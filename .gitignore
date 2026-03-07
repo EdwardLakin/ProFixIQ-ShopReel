@@ -1,86 +1,39 @@
-# ----------------------------
-# Node / Package Managers
-# ----------------------------
 node_modules
 .pnpm-store
-.pnpm-debug.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# ----------------------------
-# Next.js
-# ----------------------------
 .next
 out
-.vercel
 dist
 build
+.vercel
 
-# ----------------------------
-# Environment Variables
-# ----------------------------
 .env
 .env.local
 .env.development.local
 .env.production.local
-.env.test.local
 
-# ----------------------------
-# Supabase
-# ----------------------------
 supabase/.temp
 supabase/.branches
 supabase/.cache
 supabase/.shadow
 supabase/.history
-
-# local supabase runtime
 .supabase
 
-# ----------------------------
-# Logs
-# ----------------------------
 logs
 *.log
 
-# ----------------------------
-# OS Files
-# ----------------------------
 .DS_Store
 Thumbs.db
 
-# ----------------------------
-# Editor / IDE
-# ----------------------------
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
-!.vscode/tasks.json
-!.vscode/launch.json
 
 .idea
 *.swp
-*.swo
 
-# ----------------------------
-# TypeScript
-# ----------------------------
-*.tsbuildinfo
-
-# ----------------------------
-# Coverage
-# ----------------------------
 coverage
-
-# ----------------------------
-# Temporary files
-# ----------------------------
+.cache
 tmp
 temp
-.cache
 
-# ----------------------------
-# Supabase CLI downloads
-# ----------------------------
 supabase.tar.gz
