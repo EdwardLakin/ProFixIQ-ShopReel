@@ -1210,6 +1210,98 @@ export type Database = {
         }
         Relationships: []
       }
+      content_calendar_items: {
+        Row: {
+          calendar_id: string
+          caption: string | null
+          content_type: string
+          created_at: string | null
+          cta: string | null
+          hook: string | null
+          id: string
+          platform_targets: string[] | null
+          publish_date: string
+          shop_id: string
+          source_video_id: string | null
+          source_work_order_id: string | null
+          status: string
+          title: string | null
+        }
+        Insert: {
+          calendar_id: string
+          caption?: string | null
+          content_type: string
+          created_at?: string | null
+          cta?: string | null
+          hook?: string | null
+          id?: string
+          platform_targets?: string[] | null
+          publish_date: string
+          shop_id: string
+          source_video_id?: string | null
+          source_work_order_id?: string | null
+          status?: string
+          title?: string | null
+        }
+        Update: {
+          calendar_id?: string
+          caption?: string | null
+          content_type?: string
+          created_at?: string | null
+          cta?: string | null
+          hook?: string | null
+          id?: string
+          platform_targets?: string[] | null
+          publish_date?: string
+          shop_id?: string
+          source_video_id?: string | null
+          source_work_order_id?: string | null
+          status?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_calendar_items_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "content_calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_calendars: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          end_date: string
+          id: string
+          shop_id: string
+          start_date: string
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          end_date: string
+          id?: string
+          shop_id: string
+          start_date: string
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          shop_id?: string
+          start_date?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
       content_templates: {
         Row: {
           created_at: string
@@ -7073,6 +7165,66 @@ export type Database = {
           },
         ]
       }
+      reel_plans: {
+        Row: {
+          created_at: string | null
+          estimated_duration_seconds: number | null
+          hook: string | null
+          id: string
+          music_direction: string | null
+          overlays: Json
+          shop_id: string
+          shots: Json
+          status: string
+          title: string | null
+          video_id: string
+          voiceover_text: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          estimated_duration_seconds?: number | null
+          hook?: string | null
+          id?: string
+          music_direction?: string | null
+          overlays?: Json
+          shop_id: string
+          shots?: Json
+          status?: string
+          title?: string | null
+          video_id: string
+          voiceover_text?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          estimated_duration_seconds?: number | null
+          hook?: string | null
+          id?: string
+          music_direction?: string | null
+          overlays?: Json
+          shop_id?: string
+          shots?: Json
+          status?: string
+          title?: string | null
+          video_id?: string
+          voiceover_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reel_plans_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "v_video_performance_summary"
+            referencedColumns: ["video_id"]
+          },
+          {
+            foreignKeyName: "reel_plans_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_menu_items: {
         Row: {
           created_at: string
@@ -7222,6 +7374,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shop_content_signals: {
+        Row: {
+          avg_engagement_score: number | null
+          content_type: string
+          id: string
+          last_updated: string | null
+          posts_generated: number | null
+          shop_id: string
+          total_leads: number | null
+          total_views: number | null
+        }
+        Insert: {
+          avg_engagement_score?: number | null
+          content_type: string
+          id?: string
+          last_updated?: string | null
+          posts_generated?: number | null
+          shop_id: string
+          total_leads?: number | null
+          total_views?: number | null
+        }
+        Update: {
+          avg_engagement_score?: number | null
+          content_type?: string
+          id?: string
+          last_updated?: string | null
+          posts_generated?: number | null
+          shop_id?: string
+          total_leads?: number | null
+          total_views?: number | null
+        }
+        Relationships: []
       }
       shop_health_snapshots: {
         Row: {
@@ -7435,6 +7620,42 @@ export type Database = {
             referencedColumns: ["intake_id"]
           },
         ]
+      }
+      shop_marketing_memory: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          id: string
+          memory_key: string
+          memory_value: Json
+          shop_id: string
+          source_id: string | null
+          source_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          memory_key: string
+          memory_value?: Json
+          shop_id: string
+          source_id?: string | null
+          source_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          memory_key?: string
+          memory_value?: Json
+          shop_id?: string
+          source_id?: string | null
+          source_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       shop_members: {
         Row: {
@@ -9880,6 +10101,51 @@ export type Database = {
           },
         ]
       }
+      video_publications: {
+        Row: {
+          created_at: string | null
+          id: string
+          platform: string | null
+          platform_video_id: string | null
+          published_at: string | null
+          status: string | null
+          video_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          platform?: string | null
+          platform_video_id?: string | null
+          published_at?: string | null
+          status?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          platform?: string | null
+          platform_video_id?: string | null
+          published_at?: string | null
+          status?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_publications_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "v_video_performance_summary"
+            referencedColumns: ["video_id"]
+          },
+          {
+            foreignKeyName: "video_publications_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           ai_score: number | null
@@ -10035,6 +10301,54 @@ export type Database = {
           year?: string | null
         }
         Relationships: []
+      }
+      viral_hook_tests: {
+        Row: {
+          content_type: string | null
+          created_at: string | null
+          hook_text: string
+          id: string
+          score_predicted: number | null
+          selected: boolean
+          shop_id: string
+          video_id: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string | null
+          hook_text: string
+          id?: string
+          score_predicted?: number | null
+          selected?: boolean
+          shop_id: string
+          video_id?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string | null
+          hook_text?: string
+          id?: string
+          score_predicted?: number | null
+          selected?: boolean
+          shop_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "viral_hook_tests_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "v_video_performance_summary"
+            referencedColumns: ["video_id"]
+          },
+          {
+            foreignKeyName: "viral_hook_tests_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       warranties: {
         Row: {
@@ -12569,11 +12883,11 @@ export type Database = {
         Row: {
           avg_engagement_score: number | null
           content_type: string | null
+          last_updated: string | null
+          posts_generated: number | null
           shop_id: string | null
-          total_bookings: number | null
           total_leads: number | null
           total_views: number | null
-          videos_count: number | null
         }
         Relationships: [
           {
