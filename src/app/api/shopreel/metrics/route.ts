@@ -1,12 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { trackMetrics } from "@/features/shopreel/metrics/trackMetrics";
+
+type MetricsBody = {
+  videoId?: string;
+  platform?: string;
+  views?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  saves?: number;
+  clicks?: number;
+  leads?: number;
+  bookings?: number;
+};
+
+async function safeReadJson(req: NextRequest): Promise<MetricsBody> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text) as MetricsBody;
+  } catch {
+    return {};
+  }
+}
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await safeReadJson(req);
 
-  const supabase = await createClient();
+  if (typeof body.videoId !== "string" || typeof body.platform !== "string") {
+    return NextResponse.json(
+      { error: "videoId and platform are required" },
+      { status: 400 },
+    );
+  }
 
-  await supabase.from("video_metrics").insert(body);
+  const result = await trackMetrics({
+    videoId: body.videoId,
+    platform: body.platform,
+    views: body.views,
+    likes: body.likes,
+    comments: body.comments,
+    shares: body.shares,
+    saves: body.saves,
+    clicks: body.clicks,
+    leads: body.leads,
+    bookings: body.bookings,
+  });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    result,
+  });
 }
