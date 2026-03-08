@@ -38,16 +38,15 @@ export async function runShopReelAutopilot(
     | undefined;
 
   if (!existingCalendar) {
-    calendarResult = await generateContentCalendar(shopId);
-  } else {
-    calendarResult = {
-      calendarId: existingCalendar.id,
-      startDate: existingCalendar.start_date,
-      endDate: existingCalendar.end_date,
-      itemsCreated: 0,
-    };
-  }
+  const items = await generateContentCalendar(shopId);
 
+  calendarResult = {
+    calendarId: crypto.randomUUID(),
+    startDate: new Date().toISOString(),
+    endDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+    itemsCreated: items.length,
+  };
+}
   const memoryResult = await updateMarketingMemory(shopId);
 
   return {
