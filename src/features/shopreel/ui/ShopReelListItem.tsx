@@ -9,12 +9,13 @@ export default function ShopReelListItem(props: {
   const { title, subtitle, right, children } = props;
 
   return (
-    <div className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.022))] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.12)] backdrop-blur-2xl">
+    <div className="rounded-[26px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.024))] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.12)] backdrop-blur-3xl">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1">
           <div className="text-lg font-semibold tracking-tight text-white">
             {title}
           </div>
+
           {subtitle ? (
             <p className="mt-2 text-sm leading-6 text-white/64">{subtitle}</p>
           ) : null}

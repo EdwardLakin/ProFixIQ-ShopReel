@@ -57,7 +57,7 @@ function ToggleRow(props: {
   const { title, subtitle, checked, onChange } = props;
 
   return (
-    <label className="flex items-center justify-between gap-4 rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] px-4 py-4 backdrop-blur-2xl">
+    <label className="flex items-center justify-between gap-4 rounded-[22px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.024))] px-4 py-4 backdrop-blur-3xl">
       <div>
         <div className="text-[1.02rem] font-medium text-white">{title}</div>
         <div className="mt-1 text-sm leading-6 text-white/60">{subtitle}</div>
@@ -69,8 +69,8 @@ function ToggleRow(props: {
         className={[
           "relative inline-flex h-8 w-14 shrink-0 rounded-full border transition",
           checked
-            ? "border-[rgba(193,102,59,0.38)] bg-[linear-gradient(180deg,rgba(193,102,59,0.20),rgba(193,102,59,0.10))]"
-            : "border-white/10 bg-white/[0.05]",
+            ? "border-[rgba(193,102,59,0.34)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.12))]"
+            : "border-white/8 bg-white/[0.04]",
         ].join(" ")}
         aria-pressed={checked}
       >
@@ -79,7 +79,7 @@ function ToggleRow(props: {
             "absolute top-1 h-6 w-6 rounded-full transition",
             checked
               ? "left-7 bg-[#efc19e] shadow-[0_0_14px_rgba(193,102,59,0.22)]"
-              : "left-1 bg-white/70",
+              : "left-1 bg-white/72",
           ].join(" ")}
         />
       </button>
@@ -92,7 +92,7 @@ function FieldShell(props: {
   children: React.ReactNode;
 }) {
   return (
-    <label className="rounded-[22px] border border-[rgba(193,102,59,0.12)] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 backdrop-blur-2xl">
+    <label className="rounded-[22px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.05),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.024))] p-4 backdrop-blur-3xl">
       <div className="text-[11px] uppercase tracking-[0.28em] text-[#d8a785]">
         {props.label}
       </div>
@@ -101,7 +101,8 @@ function FieldShell(props: {
   );
 }
 
-const fieldClass = "w-full px-4 py-3 text-lg text-white";
+const fieldClass =
+  "w-full appearance-none rounded-[16px] border border-[rgba(193,102,59,0.12)] bg-[linear-gradient(90deg,rgba(193,102,59,0.06),rgba(255,255,255,0.03)_22%,rgba(255,255,255,0.02)_78%,rgba(34,211,238,0.03))] px-4 py-3 text-lg text-white placeholder:text-white/28 shadow-none outline-none focus:border-[rgba(193,102,59,0.30)] focus:bg-[linear-gradient(90deg,rgba(193,102,59,0.08),rgba(255,255,255,0.04)_22%,rgba(255,255,255,0.03)_78%,rgba(34,211,238,0.05))]";
 
 export default function ShopReelSettingsClient({ shopId, initial }: Props) {
   const [publishMode, setPublishMode] = useState(
@@ -183,7 +184,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
   return (
     <div className="space-y-6">
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[26px] border border-[rgba(193,102,59,0.14)] bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-6 backdrop-blur-2xl">
+        <div className="rounded-[26px] border border-[rgba(193,102,59,0.10)] bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.024))] p-6 backdrop-blur-3xl">
           <div className="text-[12px] uppercase tracking-[0.32em] text-[#d5a07a]">
             Launch Readiness
           </div>
@@ -201,7 +202,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
           <div className="mt-3 text-white/72">Connected platforms</div>
         </div>
 
-        <div className="rounded-[26px] border border-[rgba(193,102,59,0.14)] bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-6 backdrop-blur-2xl">
+        <div className="rounded-[26px] border border-[rgba(193,102,59,0.10)] bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.024))] p-6 backdrop-blur-3xl">
           <div className="text-[12px] uppercase tracking-[0.32em] text-[#d5a07a]">
             Publishing Scope
           </div>
@@ -219,7 +220,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
           <div className="mt-3 text-white/72">Enabled destinations</div>
         </div>
 
-        <div className="rounded-[26px] border border-[rgba(180,74,66,0.16)] bg-[radial-gradient(circle_at_top,rgba(180,74,66,0.10),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-6 backdrop-blur-2xl">
+        <div className="rounded-[26px] border border-[rgba(180,74,66,0.12)] bg-[radial-gradient(circle_at_top,rgba(180,74,66,0.08),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.024))] p-6 backdrop-blur-3xl">
           <div className="text-[12px] uppercase tracking-[0.32em] text-[#d5a07a]">
             Safety
           </div>
@@ -234,7 +235,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
         </div>
       </section>
 
-      <section className="rounded-[30px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.06),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-6 backdrop-blur-2xl">
+      <section className="rounded-[30px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.06),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.024))] p-6 backdrop-blur-3xl">
         <div className="text-[12px] uppercase tracking-[0.32em] text-[#d5a07a]">
           Content Identity
         </div>
@@ -302,7 +303,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
         </div>
       </section>
 
-      <section className="rounded-[30px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.04),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-6 backdrop-blur-2xl">
+      <section className="rounded-[30px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.04),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.024))] p-6 backdrop-blur-3xl">
         <div className="text-[12px] uppercase tracking-[0.32em] text-[#d5a07a]">
           Destinations
         </div>
@@ -314,7 +315,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
           {platforms.map((platform, index) => (
             <div
               key={platform.platform}
-              className="rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.022))] p-5 backdrop-blur-2xl"
+              className="rounded-[26px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.024))] p-5 backdrop-blur-3xl"
             >
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div className="text-2xl font-medium text-white">
@@ -382,7 +383,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
         </div>
       </section>
 
-      <section className="rounded-[30px] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(180,74,66,0.05),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-6 backdrop-blur-2xl">
+      <section className="rounded-[30px] border border-white/6 bg-[radial-gradient(circle_at_top,rgba(180,74,66,0.05),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.024))] p-6 backdrop-blur-3xl">
         <div className="text-[12px] uppercase tracking-[0.32em] text-[#d5a07a]">
           What still needs wiring
         </div>
@@ -399,7 +400,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
             missing.map((item) => (
               <div
                 key={item}
-                className="rounded-[20px] border border-[rgba(180,74,66,0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-5 py-5 text-white/82"
+                className="rounded-[20px] border border-[rgba(180,74,66,0.12)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-5 py-5 text-white/82"
               >
                 {item}
               </div>
@@ -411,7 +412,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-full border border-[rgba(193,102,59,0.34)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.08))] px-5 py-3 text-sm uppercase tracking-[0.2em] text-[#efc19e] backdrop-blur-xl transition hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(193,102,59,0.12))] disabled:opacity-60"
+            className="rounded-full border border-[rgba(193,102,59,0.28)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.08))] px-5 py-3 text-sm uppercase tracking-[0.2em] text-[#efc19e] backdrop-blur-xl transition hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(193,102,59,0.12))] disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save settings"}
           </button>
