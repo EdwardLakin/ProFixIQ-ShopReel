@@ -1,3 +1,4 @@
+import "./globals.css";
 import type { ReactNode } from "react";
 
 export default function RootLayout({
@@ -7,7 +8,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="min-h-screen bg-[#050816] text-white antialiased font-sans">
+        {children}
+      </body>
     </html>
   );
 }
