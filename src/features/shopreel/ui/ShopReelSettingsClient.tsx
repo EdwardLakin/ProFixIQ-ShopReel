@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ShopReelBadge from "@/features/shopreel/ui/ShopReelBadge";
 
 type PlatformRow = {
   platform: "instagram_reels" | "facebook" | "youtube_shorts" | "tiktok";
@@ -45,6 +46,59 @@ function labelForPlatform(platform: string) {
     default:
       return platform;
   }
+}
+
+function ToggleRow(props: {
+  title: string;
+  subtitle: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const { title, subtitle, checked, onChange } = props;
+
+  return (
+    <label className="flex items-center justify-between gap-4 rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(9,16,30,0.78),rgba(7,12,22,0.88))] px-4 py-4">
+      <div>
+        <div className="text-lg text-white">{title}</div>
+        <div className="mt-1 text-sm text-white/62">{subtitle}</div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className={[
+          "relative inline-flex h-8 w-14 shrink-0 rounded-full border transition",
+          checked
+            ? "border-[rgba(193,102,59,0.55)] bg-[rgba(193,102,59,0.22)]"
+            : "border-white/10 bg-white/[0.05]",
+        ].join(" ")}
+        aria-pressed={checked}
+      >
+        <span
+          className={[
+            "absolute top-1 h-6 w-6 rounded-full transition",
+            checked
+              ? "left-7 bg-[#efc19e] shadow-[0_0_16px_rgba(193,102,59,0.35)]"
+              : "left-1 bg-white/70",
+          ].join(" ")}
+        />
+      </button>
+    </label>
+  );
+}
+
+function FieldShell(props: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(9,16,30,0.78),rgba(7,12,22,0.88))] p-4">
+      <div className="text-[11px] uppercase tracking-[0.24em] text-white/50">
+        {props.label}
+      </div>
+      <div className="mt-3">{props.children}</div>
+    </label>
+  );
 }
 
 export default function ShopReelSettingsClient({ shopId, initial }: Props) {
@@ -131,7 +185,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
           <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
             Launch Readiness
           </div>
-          <div className="mt-4 font-display text-5xl text-white">
+          <div className="mt-4 font-display text-4xl leading-none text-white sm:text-5xl">
             {connectedCount}
           </div>
           <div className="mt-3 text-white/72">Connected platforms</div>
@@ -141,7 +195,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
           <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
             Publishing Scope
           </div>
-          <div className="mt-4 font-display text-5xl text-white">
+          <div className="mt-4 font-display text-4xl leading-none text-white sm:text-5xl">
             {enabledCount}
           </div>
           <div className="mt-3 text-white/72">Enabled destinations</div>
@@ -151,8 +205,10 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
           <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
             Safety
           </div>
-          <div className="mt-4 inline-flex rounded-full border border-[rgba(193,102,59,0.35)] bg-[rgba(193,102,59,0.12)] px-4 py-2 text-[12px] uppercase tracking-[0.24em] text-[#e1b08b]">
-            {publishMode.replaceAll("_", " ")}
+          <div className="mt-4">
+            <ShopReelBadge tone="copper">
+              {publishMode.replaceAll("_", " ")}
+            </ShopReelBadge>
           </div>
           <div className="mt-3 text-white/72">
             Recommended launch default: manual publish.
@@ -164,61 +220,47 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
         <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
           Content Identity
         </div>
-        <h2 className="mt-3 text-3xl text-white">Brand Defaults</h2>
+        <h2 className="mt-3 text-[2rem] font-semibold tracking-tight text-white">
+          Brand Defaults
+        </h2>
 
         <div className="mt-6 grid gap-4">
-          <label className="rounded-[20px] border border-white/10 bg-black/20 p-4">
-            <div className="text-[11px] uppercase tracking-[0.24em] text-white/50">
-              Default CTA
-            </div>
+          <FieldShell label="Default CTA">
             <input
               value={defaultCta}
               onChange={(e) => setDefaultCta(e.target.value)}
-              className="mt-3 w-full bg-transparent text-lg text-white outline-none"
+              className="w-full border-0 bg-transparent px-0 py-0 text-lg text-white shadow-none outline-none focus:border-0 focus:bg-transparent focus:shadow-none"
+              placeholder="Book your inspection today."
             />
-          </label>
+          </FieldShell>
 
-          <label className="rounded-[20px] border border-white/10 bg-black/20 p-4">
-            <div className="text-[11px] uppercase tracking-[0.24em] text-white/50">
-              Default Location
-            </div>
+          <FieldShell label="Default Location">
             <input
               value={defaultLocation}
               onChange={(e) => setDefaultLocation(e.target.value)}
-              className="mt-3 w-full bg-transparent text-lg text-white outline-none"
+              className="w-full border-0 bg-transparent px-0 py-0 text-lg text-white shadow-none outline-none focus:border-0 focus:bg-transparent focus:shadow-none"
+              placeholder="Calgary, Alberta"
             />
-          </label>
+          </FieldShell>
 
-          <label className="rounded-[20px] border border-white/10 bg-black/20 p-4">
-            <div className="text-[11px] uppercase tracking-[0.24em] text-white/50">
-              Brand Voice
-            </div>
+          <FieldShell label="Brand Voice">
             <textarea
               value={brandVoice}
               onChange={(e) => setBrandVoice(e.target.value)}
               rows={3}
-              className="mt-3 w-full resize-none bg-transparent text-lg text-white outline-none"
+              className="w-full resize-none border-0 bg-transparent px-0 py-0 text-lg text-white shadow-none outline-none focus:border-0 focus:bg-transparent focus:shadow-none"
+              placeholder="Straightforward, trustworthy, expert mechanic voice."
             />
-          </label>
+          </FieldShell>
 
-          <label className="flex items-center justify-between rounded-[20px] border border-white/10 bg-black/20 p-4">
-            <div>
-              <div className="text-lg text-white">Launch onboarding complete</div>
-              <div className="mt-1 text-sm text-white/62">
-                Required before enabling full autopilot.
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={onboardingCompleted}
-              onChange={(e) => setOnboardingCompleted(e.target.checked)}
-            />
-          </label>
+          <ToggleRow
+            title="Launch onboarding complete"
+            subtitle="Required before enabling full autopilot."
+            checked={onboardingCompleted}
+            onChange={setOnboardingCompleted}
+          />
 
-          <label className="rounded-[20px] border border-white/10 bg-black/20 p-4">
-            <div className="text-[11px] uppercase tracking-[0.24em] text-white/50">
-              Publish Mode
-            </div>
+          <FieldShell label="Publish Mode">
             <select
               value={publishMode}
               onChange={(e) =>
@@ -226,7 +268,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
                   e.target.value as "manual" | "approval_required" | "autopilot",
                 )
               }
-              className="mt-3 w-full bg-transparent text-lg text-white outline-none"
+              className="w-full border-0 bg-transparent px-0 py-0 text-lg text-white shadow-none outline-none focus:border-0 focus:bg-transparent focus:shadow-none"
             >
               <option value="manual" className="bg-[#071127]">
                 manual
@@ -238,7 +280,7 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
                 autopilot
               </option>
             </select>
-          </label>
+          </FieldShell>
         </div>
       </section>
 
@@ -246,17 +288,20 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
         <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
           Destinations
         </div>
-        <h2 className="mt-3 text-3xl text-white">Platform Connections</h2>
+        <h2 className="mt-3 text-[2rem] font-semibold tracking-tight text-white">
+          Platform Connections
+        </h2>
 
         <div className="mt-6 grid gap-5">
           {platforms.map((platform, index) => (
             <div
               key={platform.platform}
-              className="rounded-[24px] border border-white/10 bg-black/20 p-5"
+              className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,14,26,0.82),rgba(7,12,22,0.92))] p-5"
             >
               <div className="text-2xl text-white">
                 {labelForPlatform(platform.platform)}
               </div>
+
               <div className="mt-2 text-white/60">
                 {platform.connection_active
                   ? "Connected and available for publishing."
@@ -264,59 +309,53 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/80">
+                <ShopReelBadge tone={platform.connection_active ? "green" : "neutral"}>
                   {platform.connection_active ? "Connected" : "Not connected"}
-                </span>
-                <span className="inline-flex rounded-full border border-[rgba(193,102,59,0.35)] bg-[rgba(193,102,59,0.12)] px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-[#e1b08b]">
+                </ShopReelBadge>
+
+                <ShopReelBadge tone={platform.enabled ? "copper" : "neutral"}>
                   {platform.enabled ? "Enabled" : "Disabled"}
-                </span>
-                <span className="inline-flex rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-cyan-200">
+                </ShopReelBadge>
+
+                <ShopReelBadge
+                  tone={
+                    platform.publish_mode === "autopilot"
+                      ? "green"
+                      : platform.publish_mode === "scheduled"
+                        ? "cyan"
+                        : "neutral"
+                  }
+                >
                   {platform.publish_mode}
-                </span>
+                </ShopReelBadge>
               </div>
 
               <div className="mt-4 grid gap-3">
-                <label className="flex items-center justify-between rounded-[20px] border border-white/10 bg-black/20 p-4">
-                  <div>
-                    <div className="text-lg text-white">Enable this platform</div>
-                    <div className="mt-1 text-sm text-white/62">
-                      Allow ShopReel to prepare content for this destination.
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={platform.enabled}
-                    onChange={(e) => {
-                      const next = [...platforms];
-                      next[index] = { ...platform, enabled: e.target.checked };
-                      setPlatforms(next);
-                    }}
-                  />
-                </label>
+                <ToggleRow
+                  title="Enable this platform"
+                  subtitle="Allow ShopReel to prepare content for this destination."
+                  checked={platform.enabled}
+                  onChange={(next) => {
+                    const updated = [...platforms];
+                    updated[index] = { ...platform, enabled: next };
+                    setPlatforms(updated);
+                  }}
+                />
 
-                <label className="flex items-center justify-between rounded-[20px] border border-white/10 bg-black/20 p-4">
-                  <div>
-                    <div className="text-lg text-white">Connection active</div>
-                    <div className="mt-1 text-sm text-white/62">
-                      This becomes real once per-shop OAuth is wired.
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={platform.connection_active}
-                    onChange={(e) => {
-                      const next = [...platforms];
-                      next[index] = {
-                        ...platform,
-                        connection_active: e.target.checked,
-                        connection_status: e.target.checked
-                          ? "connected"
-                          : "not_connected",
-                      };
-                      setPlatforms(next);
-                    }}
-                  />
-                </label>
+                <ToggleRow
+                  title="Connection active"
+                  subtitle="This becomes real once per-shop OAuth is wired."
+                  checked={platform.connection_active}
+                  onChange={(next) => {
+                    const updated = [...platforms];
+                    updated[index] = {
+                      ...platform,
+                      connection_active: next,
+                      connection_status: next ? "connected" : "not_connected",
+                    };
+                    setPlatforms(updated);
+                  }}
+                />
               </div>
             </div>
           ))}
@@ -327,7 +366,9 @@ export default function ShopReelSettingsClient({ shopId, initial }: Props) {
         <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
           What still needs wiring
         </div>
-        <h2 className="mt-3 text-3xl text-white">Launch Checklist</h2>
+        <h2 className="mt-3 text-[2rem] font-semibold tracking-tight text-white">
+          Launch Checklist
+        </h2>
 
         <div className="mt-6 grid gap-3">
           {missing.length === 0 ? (
