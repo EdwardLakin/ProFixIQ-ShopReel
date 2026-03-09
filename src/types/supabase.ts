@@ -7225,6 +7225,72 @@ export type Database = {
           },
         ]
       }
+      reel_render_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          output_url: string | null
+          render_payload: Json
+          shop_id: string
+          source_id: string | null
+          source_type: string | null
+          status: string
+          thumbnail_url: string | null
+          updated_at: string
+          video_id: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          output_url?: string | null
+          render_payload: Json
+          shop_id: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          video_id?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          output_url?: string | null
+          render_payload?: Json
+          shop_id?: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          video_id?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reel_render_jobs_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "v_video_performance_summary"
+            referencedColumns: ["video_id"]
+          },
+          {
+            foreignKeyName: "reel_render_jobs_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_menu_items: {
         Row: {
           created_at: string
@@ -7885,6 +7951,57 @@ export type Database = {
           },
         ]
       }
+      shop_reel_settings: {
+        Row: {
+          brand_voice: string
+          created_at: string
+          default_cta: string
+          default_location: string
+          id: string
+          onboarding_completed: boolean
+          publish_mode: string
+          shop_id: string
+          updated_at: string
+        }
+        Insert: {
+          brand_voice?: string
+          created_at?: string
+          default_cta?: string
+          default_location?: string
+          id?: string
+          onboarding_completed?: boolean
+          publish_mode?: string
+          shop_id: string
+          updated_at?: string
+        }
+        Update: {
+          brand_voice?: string
+          created_at?: string
+          default_cta?: string
+          default_location?: string
+          id?: string
+          onboarding_completed?: boolean
+          publish_mode?: string
+          shop_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_reel_settings_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: true
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_reel_settings_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: true
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_reviews: {
         Row: {
           comment: string | null
@@ -8233,6 +8350,160 @@ export type Database = {
             columns: ["vehicle_menu_id"]
             isOneToOne: false
             referencedRelation: "vehicle_menus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_manual_asset_files: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          file_name: string
+          file_path: string
+          file_type: string
+          file_url: string | null
+          height: number | null
+          id: string
+          manual_asset_id: string
+          metadata_json: Json
+          mime_type: string
+          shop_id: string
+          size_bytes: number | null
+          sort_order: number
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_name: string
+          file_path: string
+          file_type: string
+          file_url?: string | null
+          height?: number | null
+          id?: string
+          manual_asset_id: string
+          metadata_json?: Json
+          mime_type: string
+          shop_id: string
+          size_bytes?: number | null
+          sort_order?: number
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          file_url?: string | null
+          height?: number | null
+          id?: string
+          manual_asset_id?: string
+          metadata_json?: Json
+          mime_type?: string
+          shop_id?: string
+          size_bytes?: number | null
+          sort_order?: number
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_manual_asset_files_manual_asset_id_fkey"
+            columns: ["manual_asset_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_manual_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_manual_asset_files_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_manual_asset_files_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_manual_assets: {
+        Row: {
+          asset_type: string
+          content_goal: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          metadata_json: Json
+          note: string | null
+          platform_targets: string[]
+          primary_file_url: string | null
+          shop_id: string
+          source_type: string
+          status: string
+          tags: string[]
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          content_goal?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          metadata_json?: Json
+          note?: string | null
+          platform_targets?: string[]
+          primary_file_url?: string | null
+          shop_id: string
+          source_type?: string
+          status?: string
+          tags?: string[]
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          content_goal?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          metadata_json?: Json
+          note?: string | null
+          platform_targets?: string[]
+          primary_file_url?: string | null
+          shop_id?: string
+          source_type?: string
+          status?: string
+          tags?: string[]
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_manual_assets_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_manual_assets_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]
@@ -12883,7 +13154,6 @@ export type Database = {
         Row: {
           avg_engagement_score: number | null
           content_type: string | null
-          last_updated: string | null
           posts_generated: number | null
           shop_id: string | null
           total_leads: number | null

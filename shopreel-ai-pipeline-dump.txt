@@ -1,0 +1,1672 @@
+================ FILE: src/features/ai/server/generateVideoConcept.ts ================
+
+import OpenAI from "openai";
+
+export type WorkOrderInput = {
+  id: string;
+  customId?: string | null;
+  shopId: string;
+  customerName?: string | null;
+  vehicle?: {
+    year?: number | null;
+    make?: string | null;
+    model?: string | null;
+    vin?: string | null;
+  } | null;
+  concern?: string | null;
+  findings?: string[];
+  recommendedWork?: string[];
+  completedWork?: string[];
+};
+
+export type TemplateRecord = {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  default_hook: string | null;
+  default_cta: string | null;
+  script_guidance: string | null;
+  visual_guidance: string | null;
+};
+
+export type TopPerformingType = {
+  content_type: string;
+  avg_engagement_score: number | null;
+  total_views: number | null;
+  total_leads: number | null;
+};
+
+export type PlatformTarget =
+  | "instagram"
+  | "facebook"
+  | "tiktok"
+  | "youtube";
+
+export type GeneratedVideoConcept = {
+  title: string;
+  contentType:
+    | "workflow_demo"
+    | "repair_story"
+    | "inspection_highlight"
+    | "before_after"
+    | "educational_tip"
+    | "how_to"
+    | "findings_on_vehicle";
+  hook: string;
+  caption: string;
+  cta: string;
+  scriptText: string;
+  voiceoverText: string;
+  shotList: string[];
+  platformTargets: PlatformTarget[];
+  generationNotes: string;
+  aiScore: number;
+  engagementPrediction: {
+    overall: number;
+    hookStrength: number;
+    clarity: number;
+    trust: number;
+    platformFit: number;
+    localIntent: number;
+  };
+  captionByPlatform: Record<PlatformTarget, string>;
+  hashtagsByPlatform: Record<PlatformTarget, string[]>;
+};
+
+type RawConceptResponse = {
+  title?: unknown;
+  contentType?: unknown;
+  hook?: unknown;
+  caption?: unknown;
+  cta?: unknown;
+  scriptText?: unknown;
+  voiceoverText?: unknown;
+  shotList?: unknown;
+  platformTargets?: unknown;
+  generationNotes?: unknown;
+  aiScore?: unknown;
+  engagementPrediction?: unknown;
+  captionByPlatform?: unknown;
+  hashtagsByPlatform?: unknown;
+};
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const ALLOWED_CONTENT_TYPES = new Set<GeneratedVideoConcept["contentType"]>([
+  "workflow_demo",
+  "repair_story",
+  "inspection_highlight",
+  "before_after",
+  "educational_tip",
+  "how_to",
+  "findings_on_vehicle",
+]);
+
+const ALLOWED_PLATFORMS: PlatformTarget[] = [
+  "instagram",
+  "facebook",
+  "tiktok",
+  "youtube",
+];
+
+function clampScore(value: number, min = 0, max = 100): number {
+  if (!Number.isFinite(value)) return min;
+  if (value < min) return min;
+  if (value > max) return max;
+  return Math.round(value * 100) / 100;
+}
+
+function normalizeString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : fallback;
+}
+
+function normalizeStringArray(
+  value: unknown,
+  fallback: string[],
+  maxItems = 8,
+): string[] {
+  if (!Array.isArray(value)) return fallback;
+  const cleaned = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .slice(0, maxItems);
+
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+function normalizePlatformTargets(value: unknown): PlatformTarget[] {
+  if (!Array.isArray(value)) {
+    return ["instagram", "facebook", "tiktok", "youtube"];
+  }
+
+  const cleaned = value.filter(
+    (item): item is PlatformTarget =>
+      typeof item === "string" &&
+      ALLOWED_PLATFORMS.includes(item as PlatformTarget),
+  );
+
+  return cleaned.length > 0
+    ? Array.from(new Set(cleaned))
+    : ["instagram", "facebook", "tiktok", "youtube"];
+}
+
+function normalizeNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function buildVehicleLabel(workOrder: WorkOrderInput): string {
+  const parts = [
+    workOrder.vehicle?.year?.toString(),
+    workOrder.vehicle?.make ?? null,
+    workOrder.vehicle?.model ?? null,
+  ].filter((part): part is string => Boolean(part));
+
+  return parts.join(" ").trim() || "Unknown vehicle";
+}
+
+function buildWorkOrderSummary(input: WorkOrderInput): string {
+  return [
+    `Work order ID: ${input.customId ?? input.id}`,
+    `Vehicle: ${buildVehicleLabel(input)}`,
+    `Customer: ${input.customerName ?? "Unknown customer"}`,
+    `Concern: ${input.concern ?? "No concern provided"}`,
+    `Findings: ${(input.findings ?? []).join("; ") || "None"}`,
+    `Recommended work: ${(input.recommendedWork ?? []).join("; ") || "None"}`,
+    `Completed work: ${(input.completedWork ?? []).join("; ") || "None"}`,
+  ].join("\n");
+}
+
+function summarizeLearningSignals(topPerformingTypes: TopPerformingType[]): {
+  summaryText: string;
+  bestContentTypes: string[];
+} {
+  if (topPerformingTypes.length === 0) {
+    return {
+      summaryText:
+        "No prior performance data exists yet. Favor clarity, trust, and strong local-shop utility.",
+      bestContentTypes: [],
+    };
+  }
+
+  const summaryText = topPerformingTypes
+    .map((row, index) => {
+      return `${index + 1}. ${row.content_type} | avg_engagement_score=${row.avg_engagement_score ?? 0} | total_views=${row.total_views ?? 0} | total_leads=${row.total_leads ?? 0}`;
+    })
+    .join("\n");
+
+  return {
+    summaryText,
+    bestContentTypes: topPerformingTypes.map((row) => row.content_type),
+  };
+}
+
+function buildFallbackConcept(args: {
+  workOrder: WorkOrderInput;
+  template: TemplateRecord;
+  topPerformingTypes: TopPerformingType[];
+}): GeneratedVideoConcept {
+  const { workOrder, template, topPerformingTypes } = args;
+  const vehicleLabel = buildVehicleLabel(workOrder);
+  const firstFinding = workOrder.findings?.[0] ?? null;
+  const firstCompleted = workOrder.completedWork?.[0] ?? null;
+  const contentType = ALLOWED_CONTENT_TYPES.has(
+    template.key as GeneratedVideoConcept["contentType"],
+  )
+    ? (template.key as GeneratedVideoConcept["contentType"])
+    : "workflow_demo";
+
+  const title =
+    firstCompleted != null
+      ? `${vehicleLabel}: Repair Story`
+      : firstFinding != null
+        ? `${vehicleLabel}: Inspection Highlight`
+        : `${vehicleLabel}: Shop Workflow Demo`;
+
+  const hook =
+    template.default_hook ??
+    (firstFinding != null
+      ? `Here is what we found on this ${vehicleLabel} and why it mattered.`
+      : `See how this ${vehicleLabel} moved through the shop without the usual chaos.`);
+
+  const cta =
+    template.default_cta ?? "Follow for more real repair and inspection content.";
+
+  const scriptText = [
+    hook,
+    workOrder.concern
+      ? `The vehicle came in with this concern: ${workOrder.concern}.`
+      : `The vehicle came in for service and inspection.`,
+    firstFinding
+      ? `During the inspection, we found: ${firstFinding}.`
+      : firstCompleted
+        ? `The team completed: ${firstCompleted}.`
+        : `We documented the process clearly from intake to completion.`,
+    `The goal is always the same: clear findings, honest recommendations, and professional work.`,
+    cta,
+  ].join(" ");
+
+  const voiceoverText = scriptText;
+
+  const shotList = [
+    "Opening shot of vehicle in bay",
+    "Close-up of technician inspection or repair area",
+    "On-screen overlay showing key finding or completed work",
+    "Short clip of shop process or workflow step",
+    "Final repaired / completed vehicle shot",
+  ];
+
+  const bestContentHint =
+    topPerformingTypes[0]?.content_type != null
+      ? `Top current performer in this shop is ${topPerformingTypes[0].content_type}.`
+      : "No learning signals available yet.";
+
+  const baseCaption = `${hook} ${workOrder.concern ? `Concern: ${workOrder.concern}. ` : ""}${firstFinding ? `Finding: ${firstFinding}. ` : ""}${firstCompleted ? `Completed: ${firstCompleted}. ` : ""}${cta}`;
+
+  return {
+    title,
+    contentType,
+    hook,
+    caption: baseCaption,
+    cta,
+    scriptText,
+    voiceoverText,
+    shotList,
+    platformTargets: ["instagram", "facebook", "tiktok", "youtube"],
+    generationNotes: `Fallback concept used. ${bestContentHint} Template: ${template.name}.`,
+    aiScore: 72,
+    engagementPrediction: {
+      overall: 72,
+      hookStrength: 70,
+      clarity: 80,
+      trust: 82,
+      platformFit: 68,
+      localIntent: 74,
+    },
+    captionByPlatform: {
+      instagram: `${baseCaption} #autorepair #carcare #shoplife`,
+      facebook: `${baseCaption} We like showing real findings, real repairs, and clear process.`,
+      tiktok: `${hook} Real shop, real findings, real fix. ${cta}`,
+      youtube: `${hook} In this short, we show the finding, the recommendation, and the result.`,
+    },
+    hashtagsByPlatform: {
+      instagram: ["#autorepair", "#carcare", "#mechanic", "#shoplife"],
+      facebook: ["#autorepair", "#carcare", "#localshop"],
+      tiktok: ["#mechanicsoftiktok", "#autorepair", "#carproblems", "#shoplife"],
+      youtube: ["#autorepair", "#carcare", "#shorts"],
+    },
+  };
+}
+
+function normalizeEngagementPrediction(value: unknown): GeneratedVideoConcept["engagementPrediction"] {
+  const fallback = {
+    overall: 70,
+    hookStrength: 70,
+    clarity: 70,
+    trust: 70,
+    platformFit: 70,
+    localIntent: 70,
+  };
+
+  if (typeof value !== "object" || value === null) {
+    return fallback;
+  }
+
+  const prediction = value as Record<string, unknown>;
+
+  return {
+    overall: clampScore(normalizeNumber(prediction.overall, fallback.overall)),
+    hookStrength: clampScore(
+      normalizeNumber(prediction.hookStrength, fallback.hookStrength),
+    ),
+    clarity: clampScore(normalizeNumber(prediction.clarity, fallback.clarity)),
+    trust: clampScore(normalizeNumber(prediction.trust, fallback.trust)),
+    platformFit: clampScore(
+      normalizeNumber(prediction.platformFit, fallback.platformFit),
+    ),
+    localIntent: clampScore(
+      normalizeNumber(prediction.localIntent, fallback.localIntent),
+    ),
+  };
+}
+
+function normalizeCaptionByPlatform(
+  value: unknown,
+  fallbackCaption: string,
+): Record<PlatformTarget, string> {
+  const base: Record<PlatformTarget, string> = {
+    instagram: fallbackCaption,
+    facebook: fallbackCaption,
+    tiktok: fallbackCaption,
+    youtube: fallbackCaption,
+  };
+
+  if (typeof value !== "object" || value === null) {
+    return base;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  return {
+    instagram: normalizeString(record.instagram, base.instagram),
+    facebook: normalizeString(record.facebook, base.facebook),
+    tiktok: normalizeString(record.tiktok, base.tiktok),
+    youtube: normalizeString(record.youtube, base.youtube),
+  };
+}
+
+function normalizeHashtagsByPlatform(
+  value: unknown,
+): Record<PlatformTarget, string[]> {
+  const base: Record<PlatformTarget, string[]> = {
+    instagram: ["#autorepair", "#carcare", "#shoplife"],
+    facebook: ["#autorepair", "#carcare"],
+    tiktok: ["#autorepair", "#mechanicsoftiktok", "#shoplife"],
+    youtube: ["#autorepair", "#shorts"],
+  };
+
+  if (typeof value !== "object" || value === null) {
+    return base;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  return {
+    instagram: normalizeStringArray(record.instagram, base.instagram, 8),
+    facebook: normalizeStringArray(record.facebook, base.facebook, 8),
+    tiktok: normalizeStringArray(record.tiktok, base.tiktok, 8),
+    youtube: normalizeStringArray(record.youtube, base.youtube, 8),
+  };
+}
+
+function normalizeConcept(
+  raw: RawConceptResponse,
+  fallback: GeneratedVideoConcept,
+): GeneratedVideoConcept {
+  const contentTypeCandidate = normalizeString(
+    raw.contentType,
+    fallback.contentType,
+  );
+
+  const contentType = ALLOWED_CONTENT_TYPES.has(
+    contentTypeCandidate as GeneratedVideoConcept["contentType"],
+  )
+    ? (contentTypeCandidate as GeneratedVideoConcept["contentType"])
+    : fallback.contentType;
+
+  const caption = normalizeString(raw.caption, fallback.caption);
+
+  return {
+    title: normalizeString(raw.title, fallback.title),
+    contentType,
+    hook: normalizeString(raw.hook, fallback.hook),
+    caption,
+    cta: normalizeString(raw.cta, fallback.cta),
+    scriptText: normalizeString(raw.scriptText, fallback.scriptText),
+    voiceoverText: normalizeString(raw.voiceoverText, fallback.voiceoverText),
+    shotList: normalizeStringArray(raw.shotList, fallback.shotList, 8),
+    platformTargets: normalizePlatformTargets(raw.platformTargets),
+    generationNotes: normalizeString(
+      raw.generationNotes,
+      fallback.generationNotes,
+    ),
+    aiScore: clampScore(normalizeNumber(raw.aiScore, fallback.aiScore)),
+    engagementPrediction: normalizeEngagementPrediction(
+      raw.engagementPrediction,
+    ),
+    captionByPlatform: normalizeCaptionByPlatform(
+      raw.captionByPlatform,
+      caption,
+    ),
+    hashtagsByPlatform: normalizeHashtagsByPlatform(raw.hashtagsByPlatform),
+  };
+}
+
+export async function generateVideoConcept(args: {
+  workOrder: WorkOrderInput;
+  template: TemplateRecord;
+  topPerformingTypes?: TopPerformingType[];
+}): Promise<GeneratedVideoConcept> {
+  const { workOrder, template, topPerformingTypes = [] } = args;
+
+  const fallback = buildFallbackConcept({
+    workOrder,
+    template,
+    topPerformingTypes,
+  });
+
+  const { summaryText, bestContentTypes } =
+    summarizeLearningSignals(topPerformingTypes);
+
+  const systemPrompt = `
+You are an expert short-form video strategist for automotive repair shops, truck shops, and inspection-heavy service businesses.
+
+Your job:
+- turn real repair and inspection activity into trustworthy short-form video concepts
+- optimize for local attention, clarity, credibility, and customer action
+- avoid hype, fake urgency, fluff, and cheesy marketing language
+- keep every concept grounded in real shop operations
+
+You must produce content that feels:
+- honest
+- practical
+- clear
+- locally relevant
+- visually shootable in a real repair shop
+
+Priorities:
+1. strong opening hook
+2. clear story
+3. customer understanding
+4. strong trust signal
+5. likely engagement
+6. likely lead or booking intent
+
+When performance signals are provided, bias toward styles that have historically worked for that shop.
+`;
+
+  const userPrompt = `
+Create one high-performing short-form marketing video concept.
+
+Selected template:
+- key: ${template.key}
+- name: ${template.name}
+- description: ${template.description ?? ""}
+- default_hook: ${template.default_hook ?? ""}
+- default_cta: ${template.default_cta ?? ""}
+- script_guidance: ${template.script_guidance ?? ""}
+- visual_guidance: ${template.visual_guidance ?? ""}
+
+Work order summary:
+${buildWorkOrderSummary(workOrder)}
+
+Learning signals:
+${summaryText}
+
+Best known content types for this shop:
+${bestContentTypes.join(", ") || "none yet"}
+
+Rules:
+- Stay aligned with the selected template unless the work order strongly suggests a better fit.
+- Keep the language professional and real.
+- Make the hook short and strong.
+- The script should be easy to shoot in a working repair shop.
+- Include multi-platform captions tailored to Instagram, Facebook, TikTok, and YouTube Shorts.
+- Hashtags should be relevant, not spammy.
+- Engagement prediction scores must be 0 to 100.
+
+Return strict JSON only with this exact shape:
+{
+  "title": "string",
+  "contentType": "workflow_demo | repair_story | inspection_highlight | before_after | educational_tip | how_to | findings_on_vehicle",
+  "hook": "string",
+  "caption": "string",
+  "cta": "string",
+  "scriptText": "string",
+  "voiceoverText": "string",
+  "shotList": ["string"],
+  "platformTargets": ["instagram", "facebook", "tiktok", "youtube"],
+  "generationNotes": "string",
+  "aiScore": 0,
+  "engagementPrediction": {
+    "overall": 0,
+    "hookStrength": 0,
+    "clarity": 0,
+    "trust": 0,
+    "platformFit": 0,
+    "localIntent": 0
+  },
+  "captionByPlatform": {
+    "instagram": "string",
+    "facebook": "string",
+    "tiktok": "string",
+    "youtube": "string"
+  },
+  "hashtagsByPlatform": {
+    "instagram": ["string"],
+    "facebook": ["string"],
+    "tiktok": ["string"],
+    "youtube": ["string"]
+  }
+}
+`;
+
+  try {
+    const response = await openai.responses.create({
+      model: "gpt-5-mini",
+      temperature: 0.7,
+      input: [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+        {
+          role: "user",
+          content: userPrompt,
+        },
+      ],
+    });
+
+    const outputText = response.output_text;
+    const parsed = JSON.parse(outputText) as RawConceptResponse;
+
+    return normalizeConcept(parsed, fallback);
+  } catch {
+    return fallback;
+  }
+}
+
+================ FILE: src/features/ai/server/openai.ts ================
+
+import OpenAI from "openai";
+
+export const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+
+================ FILE: src/features/shopreel/hooks/generateHooks.ts ================
+
+import { openai } from "@/features/ai/server/openai";
+
+export async function generateHooks(contentType: string, vehicle?: string) {
+  const prompt = `
+Generate 10 viral short-form video hooks for an auto repair shop.
+
+Content type: ${contentType}
+Vehicle: ${vehicle ?? "generic vehicle"}
+
+Hooks must:
+- grab attention in first 2 seconds
+- be short
+- be curiosity driven
+
+Return JSON array.
+`;
+
+  const response = await openai.responses.create({
+    model: "gpt-4.1",
+    input: prompt,
+  });
+
+  const text = response.output_text;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text.split("\n").filter(Boolean);
+  }
+}
+
+
+================ FILE: src/features/shopreel/hooks/generateViralHooks.ts ================
+
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+type HookResult = {
+  hook: string;
+  scorePredicted: number;
+};
+
+function fallbackHooks(subject: string): HookResult[] {
+  return [
+    { hook: `You would never guess what we found on this ${subject}.`, scorePredicted: 78 },
+    { hook: `This ${subject} came in with a small issue. It was not small.`, scorePredicted: 81 },
+    { hook: `Here’s what actually happened when this ${subject} hit the shop.`, scorePredicted: 76 },
+    { hook: `Most drivers miss this warning sign until it gets expensive.`, scorePredicted: 84 },
+    { hook: `This repair tells the whole story in under 30 seconds.`, scorePredicted: 73 },
+  ];
+}
+
+export async function generateViralHooks(subject: string, contentType: string) {
+  try {
+    const response = await openai.responses.create({
+      model: "gpt-5-mini",
+      input: [
+        {
+          role: "system",
+          content:
+            "Generate 5 strong short-form video hooks for an automotive repair shop. Return strict JSON only.",
+        },
+        {
+          role: "user",
+          content: `Subject: ${subject}\nContent type: ${contentType}\nReturn: [{"hook":"string","scorePredicted":0}]`,
+        },
+      ],
+    });
+
+    const raw = JSON.parse(response.output_text) as unknown;
+    if (!Array.isArray(raw)) {
+      return fallbackHooks(subject);
+    }
+
+    const hooks = raw
+      .filter((row): row is { hook?: unknown; scorePredicted?: unknown } => typeof row === "object" && row !== null)
+      .map((row) => ({
+        hook: typeof row.hook === "string" ? row.hook : "Real work. Real findings. Real repairs.",
+        scorePredicted:
+          typeof row.scorePredicted === "number" ? row.scorePredicted : 70,
+      }))
+      .slice(0, 5);
+
+    return hooks.length > 0 ? hooks : fallbackHooks(subject);
+  } catch {
+    return fallbackHooks(subject);
+  }
+}
+
+
+================ FILE: src/features/shopreel/discovery/discoverContent.ts ================
+
+import { createAdminClient } from "@/lib/supabase/server";
+
+type DiscoverableWorkOrder = {
+  id: string;
+  custom_id: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_year: number | null;
+};
+
+type DiscoverableLine = {
+  id: string;
+  work_order_id: string;
+  description: string | null;
+  cause: string | null;
+  correction: string | null;
+  status: string | null;
+  job_type: string | null;
+};
+
+type InspectionItemRow = {
+  id: string;
+  inspection_id: string | null;
+  label?: string | null;
+  name?: string | null;
+  status?: string | null;
+  notes?: string | null;
+};
+
+type InspectionPhotoRow = {
+  id: string;
+  inspection_id: string | null;
+  photo_url?: string | null;
+  url?: string | null;
+  created_at?: string | null;
+};
+
+type VehicleMediaRow = {
+  id: string;
+  vehicle_id: string | null;
+  media_url?: string | null;
+  url?: string | null;
+  kind?: string | null;
+  created_at?: string | null;
+};
+
+export type ContentOpportunity = {
+  sourceType:
+    | "inspection_item"
+    | "inspection_photo"
+    | "vehicle_media"
+    | "repair_story"
+    | "mechanic_tip"
+    | "workflow_demo";
+  workOrderId: string | null;
+  sourceId: string;
+  title: string;
+  contentType:
+    | "inspection_highlight"
+    | "before_after"
+    | "repair_story"
+    | "educational_tip"
+    | "workflow_demo";
+  hook: string;
+  reason: string;
+  visualUrls: string[];
+};
+
+function vehicleLabel(workOrder: DiscoverableWorkOrder): string {
+  return (
+    `${workOrder.vehicle_year ?? ""} ${workOrder.vehicle_make ?? ""} ${workOrder.vehicle_model ?? ""}`.trim() ||
+    "vehicle"
+  );
+}
+
+function getInspectionItemLabel(item: InspectionItemRow): string {
+  return (
+    (typeof item.label === "string" && item.label.length > 0 ? item.label : null) ||
+    (typeof item.name === "string" && item.name.length > 0 ? item.name : null) ||
+    "inspection finding"
+  );
+}
+
+function getPhotoUrl(photo: InspectionPhotoRow): string | null {
+  return (
+    (typeof photo.photo_url === "string" && photo.photo_url.length > 0 ? photo.photo_url : null) ||
+    (typeof photo.url === "string" && photo.url.length > 0 ? photo.url : null)
+  );
+}
+
+function getVehicleMediaUrl(media: VehicleMediaRow): string | null {
+  return (
+    (typeof media.media_url === "string" && media.media_url.length > 0 ? media.media_url : null) ||
+    (typeof media.url === "string" && media.url.length > 0 ? media.url : null)
+  );
+}
+
+export async function discoverContent(shopId: string): Promise<ContentOpportunity[]> {
+  const supabase = createAdminClient();
+
+  const { data: workOrders, error: woError } = await supabase
+    .from("work_orders")
+    .select("id, custom_id, vehicle_make, vehicle_model, vehicle_year")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(25);
+
+  if (woError) {
+    throw new Error(woError.message);
+  }
+
+  const { data: lines, error: lineError } = await supabase
+    .from("work_order_lines")
+    .select("id, work_order_id, description, cause, correction, status, job_type")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(150);
+
+  if (lineError) {
+    throw new Error(lineError.message);
+  }
+
+  const inspectionItemsResult = await supabase
+    .from("inspection_items")
+    .select("*")
+    .limit(150);
+
+  const inspectionPhotosResult = await supabase
+    .from("inspection_photos")
+    .select("*")
+    .limit(150);
+
+  const vehicleMediaResult = await supabase
+    .from("vehicle_media")
+    .select("*")
+    .limit(150);
+
+  const workOrderRows = (workOrders ?? []) as DiscoverableWorkOrder[];
+  const lineRows = (lines ?? []) as DiscoverableLine[];
+  const inspectionItems = (inspectionItemsResult.data ?? []) as InspectionItemRow[];
+  const inspectionPhotos = (inspectionPhotosResult.data ?? []) as InspectionPhotoRow[];
+  const vehicleMedia = (vehicleMediaResult.data ?? []) as VehicleMediaRow[];
+
+  const opportunities: ContentOpportunity[] = [];
+
+  for (const workOrder of workOrderRows) {
+    const relatedLines = lineRows.filter((line) => line.work_order_id === workOrder.id);
+    const vehicle = vehicleLabel(workOrder);
+
+    const completedRepair = relatedLines.find(
+      (line) =>
+        line.status === "completed" &&
+        (line.job_type === "repair" || line.job_type === "maintenance"),
+    );
+
+    if (completedRepair) {
+      opportunities.push({
+        sourceType: "repair_story",
+        workOrderId: workOrder.id,
+        sourceId: completedRepair.id,
+        title: completedRepair.description ?? `Repair completed on ${vehicle}`,
+        contentType: "repair_story",
+        hook:
+          completedRepair.cause && completedRepair.correction
+            ? `${vehicle} came in with ${completedRepair.cause.toLowerCase()} — here’s how we fixed it.`
+            : `Here’s how this ${vehicle} repair moved through the shop.`,
+        reason: "Completed repair line found",
+        visualUrls: [],
+      });
+    }
+
+    const mechanicTip = relatedLines.find(
+      (line) =>
+        typeof line.cause === "string" &&
+        line.cause.length > 0 &&
+        typeof line.correction === "string" &&
+        line.correction.length > 0,
+    );
+
+    if (mechanicTip) {
+      opportunities.push({
+        sourceType: "mechanic_tip",
+        workOrderId: workOrder.id,
+        sourceId: mechanicTip.id,
+        title: mechanicTip.description ?? `Mechanic tip from ${vehicle}`,
+        contentType: "educational_tip",
+        hook: `A quick mechanic tip from this ${vehicle} job: what caused it, and what fixed it.`,
+        reason: "Cause/correction pair found",
+        visualUrls: [],
+      });
+    }
+
+    const inspectionFinding = inspectionItems.find(
+      (item) =>
+        typeof item.status === "string" &&
+        ["fail", "failed", "warning", "recommended"].includes(item.status.toLowerCase()),
+    );
+
+    if (inspectionFinding) {
+      opportunities.push({
+        sourceType: "inspection_item",
+        workOrderId: workOrder.id,
+        sourceId: inspectionFinding.id,
+        title: getInspectionItemLabel(inspectionFinding),
+        contentType: "inspection_highlight",
+        hook: `We found this during an inspection on a ${vehicle}.`,
+        reason: "Inspection item with fail/warning/recommended status found",
+        visualUrls: [],
+      });
+    }
+
+    const photoUrls = inspectionPhotos
+      .map(getPhotoUrl)
+      .filter((url): url is string => typeof url === "string" && url.length > 0)
+      .slice(0, 2);
+
+    if (photoUrls.length > 0) {
+      opportunities.push({
+        sourceType: "inspection_photo",
+        workOrderId: workOrder.id,
+        sourceId: inspectionPhotos[0]?.id ?? workOrder.id,
+        title: `Before/after candidate for ${vehicle}`,
+        contentType: "before_after",
+        hook: `This ${vehicle} looked very different before we were done.`,
+        reason: "Inspection photos found",
+        visualUrls: photoUrls,
+      });
+    }
+
+    const mediaUrls = vehicleMedia
+      .map(getVehicleMediaUrl)
+      .filter((url): url is string => typeof url === "string" && url.length > 0)
+      .slice(0, 3);
+
+    if (mediaUrls.length > 0) {
+      opportunities.push({
+        sourceType: "vehicle_media",
+        workOrderId: workOrder.id,
+        sourceId: vehicleMedia[0]?.id ?? workOrder.id,
+        title: `Walkaround video for ${vehicle}`,
+        contentType: "workflow_demo",
+        hook: `Take a quick walk around this ${vehicle} in the shop.`,
+        reason: "Vehicle media found",
+        visualUrls: mediaUrls,
+      });
+    }
+
+    if (
+      !completedRepair &&
+      !mechanicTip &&
+      !inspectionFinding &&
+      photoUrls.length === 0 &&
+      mediaUrls.length === 0
+    ) {
+      opportunities.push({
+        sourceType: "workflow_demo",
+        workOrderId: workOrder.id,
+        sourceId: workOrder.id,
+        title: `${vehicle} workflow demo`,
+        contentType: "workflow_demo",
+        hook: `See how this ${vehicle} moved through the shop without the usual chaos.`,
+        reason: "Fallback workflow opportunity",
+        visualUrls: [],
+      });
+    }
+  }
+
+  return opportunities.slice(0, 20);
+}
+
+
+================ FILE: src/features/shopreel/moments/detectViralMoments.ts ================
+
+import { createAdminClient } from "@/lib/supabase/server"
+import { scoreViralMoment } from "./scoreViralMoment"
+
+export async function detectViralMoments(shopId: string) {
+
+  const supabase = createAdminClient()
+
+  const { data: lines } = await supabase
+    .from("work_order_lines")
+    .select("id, description, cause, correction, work_order_id")
+    .eq("shop_id", shopId)
+    .eq("status", "completed")
+    .limit(50)
+
+  if (!lines) return []
+
+  const moments = lines.map(line => {
+
+    const text = `${line.description ?? ""} ${line.cause ?? ""} ${line.correction ?? ""}`
+
+    const viral = scoreViralMoment(text)
+
+    return {
+      sourceType: "work_order_line",
+      sourceId: line.id,
+      workOrderId: line.work_order_id,
+      title: line.description ?? "Completed repair",
+      trigger: "Cause + correction + completed repair",
+      viralScore: viral.score,
+      reason: viral.reason
+    }
+
+  })
+
+  return moments.sort((a,b) => b.viralScore - a.viralScore).slice(0,10)
+
+}
+
+
+================ FILE: src/features/shopreel/server/scheduler.ts ================
+
+import { createAdminClient } from "@/lib/supabase/server";
+import { discoverContent, type ContentOpportunity } from "@/features/shopreel/discovery/discoverContent";
+import { detectViralMoments } from "@/features/shopreel/moments/detectViralMoments";
+import { generateHooks } from "@/features/shopreel/hooks/generateHooks";
+import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
+import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
+import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
+
+type SchedulerCalendarItem = {
+  day: number;
+  title: string;
+  contentType: string;
+  hook: string;
+  cta: string;
+  sourceType: string;
+  sourceId: string;
+  workOrderId: string | null;
+  visualUrls: string[];
+  reason: string;
+  hookOptions: unknown;
+};
+
+type SchedulerResult = {
+  ok: true;
+  shopId: string;
+  calendar: {
+    calendarId: string;
+    startDate: string;
+    endDate: string;
+    itemsCreated: number;
+    items: SchedulerCalendarItem[];
+  };
+  memory: unknown;
+  signals: unknown;
+  moments: unknown;
+};
+
+function defaultCta(contentType: string): string {
+  switch (contentType) {
+    case "repair_story":
+      return "Follow for more real repair stories.";
+    case "inspection_highlight":
+      return "Follow for more real inspection findings.";
+    case "before_after":
+      return "Follow to see more before-and-after transformations.";
+    case "educational_tip":
+      return "Follow for more mechanic tips and repair advice.";
+    default:
+      return "Follow for more real repair and inspection content.";
+  }
+}
+
+function rankOpportunity(opportunity: ContentOpportunity): number {
+  switch (opportunity.contentType) {
+    case "before_after":
+      return 100;
+    case "repair_story":
+      return 90;
+    case "inspection_highlight":
+      return 80;
+    case "educational_tip":
+      return 70;
+    default:
+      return 60;
+  }
+}
+
+export async function runShopReelAutopilot(
+  shopId: string,
+): Promise<SchedulerResult> {
+  const supabase = createAdminClient();
+  const settingsBundle = await getShopReelSettings(shopId);
+
+  if (!settingsBundle.readiness.canPublish) {
+    throw new Error(
+      `ShopReel launch settings incomplete: ${settingsBundle.readiness.missing.join(", ")}`,
+    );
+  }
+
+  const discovered = await discoverContent(shopId);
+  const moments = await detectViralMoments(shopId);
+
+  const ranked = [...discovered]
+    .sort((a, b) => rankOpportunity(b) - rankOpportunity(a))
+    .slice(0, 7);
+
+  const items: SchedulerCalendarItem[] = await Promise.all(
+    ranked.map(async (opportunity, index) => {
+      const hookOptions = await generateHooks(opportunity.contentType);
+
+      return {
+        day: index + 1,
+        title: opportunity.title,
+        contentType: opportunity.contentType,
+        hook: opportunity.hook,
+        cta: defaultCta(opportunity.contentType),
+        sourceType: opportunity.sourceType,
+        sourceId: opportunity.sourceId,
+        workOrderId: opportunity.workOrderId,
+        visualUrls: opportunity.visualUrls,
+        reason: opportunity.reason,
+        hookOptions,
+      };
+    }),
+  );
+
+  const { data: insertedCalendar, error: calendarError } = await supabase
+    .from("content_calendars")
+    .insert({
+      shop_id: shopId,
+      title: "AI Autopilot Content Calendar",
+      status: "draft",
+      start_date: new Date().toISOString(),
+      end_date: new Date(Date.now() + 7 * 86400000).toISOString(),
+    } as never)
+    .select("id, start_date, end_date")
+    .single();
+
+  if (calendarError || !insertedCalendar) {
+    throw new Error(calendarError?.message ?? "Failed to create content calendar");
+  }
+
+  const calendarItemsPayload = items.map((item, index) => {
+  const publishDate = new Date(Date.now() + index * 86400000)
+    .toISOString()
+    .slice(0, 10);
+
+  return {
+    calendar_id: insertedCalendar.id,
+    shop_id: shopId,
+    publish_date: publishDate,
+    content_type: item.contentType,
+    source_work_order_id: item.workOrderId,
+    title: item.title,
+    hook: item.hook,
+    cta: item.cta,
+    status: "planned",
+  };
+});
+
+  const { error: calendarItemsError } = await supabase
+    .from("content_calendar_items")
+    .insert(calendarItemsPayload as never);
+
+  if (calendarItemsError) {
+    throw new Error(calendarItemsError.message);
+  }
+
+  const memory = await updateMarketingMemory(shopId);
+  const signals = await updateLearningSignals(shopId);
+
+  return {
+    ok: true,
+    shopId,
+    calendar: {
+      calendarId: insertedCalendar.id,
+      startDate: insertedCalendar.start_date,
+      endDate: insertedCalendar.end_date,
+      itemsCreated: items.length,
+      items,
+    },
+    memory,
+    signals,
+    moments,
+  };
+}
+
+
+================ FILE: src/features/shopreel/types/index.ts ================
+
+export type ShopReelContentType =
+  | "workflow_demo"
+  | "repair_story"
+  | "inspection_highlight"
+  | "before_after"
+  | "educational_tip"
+  | "how_to"
+  | "findings_on_vehicle";
+
+export type ShopReelPlatform =
+  | "instagram"
+  | "facebook"
+  | "tiktok"
+  | "youtube";
+
+export type ViralHookOption = {
+  hook: string;
+  scorePredicted: number;
+};
+
+export type ContentCalendarItem = {
+  publishDate: string;
+  contentType: ShopReelContentType;
+  sourceWorkOrderId: string | null;
+  title: string;
+  hook: string;
+  caption: string;
+  cta: string;
+  platformTargets: ShopReelPlatform[];
+};
+
+export type ReelShot = {
+  order: number;
+  type: string;
+  direction: string;
+  overlayText: string;
+  durationSeconds: number;
+};
+
+export type ReelPlanResult = {
+  reelPlanId: string;
+  shots: ReelShot[];
+  overlays: {
+    order: number;
+    text: string;
+  }[];
+};
+
+export type MarketingMemoryValue = {
+  updatedAt: string;
+  topContentTypes: unknown[];
+};
+
+================ FILE: src/features/shopreel/editing/buildAutoEditPlan.ts ================
+
+import { buildSubtitleBlocks } from "@/features/shopreel/subtitles/buildSubtitleBlocks";
+import { buildRenderPayload, type RenderPayload } from "@/features/shopreel/render/buildRenderPayload";
+
+export type AutoEditInput = {
+  title: string;
+  contentType: string;
+  hook: string;
+  caption: string;
+  cta: string;
+  transcript: string;
+  durationMs?: number;
+  visualUrls?: string[];
+};
+
+export type AutoEditPlan = {
+  editStyle: "fast_punchy";
+  thumbnailText: string;
+  subtitleStyle: {
+    preset: "bold_shopreel";
+    position: "lower_third";
+    maxWordsPerBlock: number;
+  };
+  cuts: Array<{
+    atMs: number;
+    reason: string;
+  }>;
+  subtitles: ReturnType<typeof buildSubtitleBlocks>;
+  renderPayload: RenderPayload;
+};
+
+function buildThumbnailText(hook: string, title: string): string {
+  const source = hook.trim() || title.trim() || "Repair story";
+  return source.length > 52 ? `${source.slice(0, 49)}...` : source;
+}
+
+function buildCutPoints(durationMs: number): Array<{ atMs: number; reason: string }> {
+  const cuts: Array<{ atMs: number; reason: string }> = [];
+  const interval = 1400;
+
+  for (let atMs = interval; atMs < durationMs; atMs += interval) {
+    cuts.push({
+      atMs,
+      reason: "Keep pacing tight for short-form video",
+    });
+  }
+
+  return cuts;
+}
+
+export function buildAutoEditPlan(input: AutoEditInput): AutoEditPlan {
+  const durationMs = input.durationMs ?? 12000;
+  const visualUrls = input.visualUrls ?? [];
+
+  const subtitles = buildSubtitleBlocks(input.transcript, durationMs);
+
+  const renderPayload = buildRenderPayload({
+    title: input.title,
+    hook: input.hook,
+    caption: input.caption,
+    cta: input.cta,
+    transcript: input.transcript,
+    durationMs,
+    visualUrls,
+    subtitleBlocks: subtitles,
+  });
+
+  return {
+    editStyle: "fast_punchy",
+    thumbnailText: buildThumbnailText(input.hook, input.title),
+    subtitleStyle: {
+      preset: "bold_shopreel",
+      position: "lower_third",
+      maxWordsPerBlock: 5,
+    },
+    cuts: buildCutPoints(durationMs),
+    subtitles,
+    renderPayload,
+  };
+}
+
+
+================ FILE: src/features/shopreel/render/buildRenderPayload.ts ================
+
+import type { SubtitleBlock } from "@/features/shopreel/subtitles/buildSubtitleBlocks";
+
+export type RenderPayloadInput = {
+  title: string;
+  hook: string;
+  caption: string;
+  cta: string;
+  transcript: string;
+  durationMs: number;
+  visualUrls: string[];
+  subtitleBlocks: SubtitleBlock[];
+};
+
+export type RenderPayload = {
+  aspectRatio: "9:16";
+  durationMs: number;
+  scenes: Array<{
+    kind: "hook" | "problem" | "repair" | "result";
+    startMs: number;
+    endMs: number;
+    overlayText: string;
+    visualUrl: string | null;
+  }>;
+  subtitles: SubtitleBlock[];
+  exportTargets: Array<"tiktok" | "instagram_reels" | "youtube_shorts">;
+  metadata: {
+    title: string;
+    caption: string;
+    cta: string;
+    transcript: string;
+  };
+};
+
+export function buildRenderPayload(input: RenderPayloadInput): RenderPayload {
+  const quarter = Math.max(1000, Math.floor(input.durationMs / 4));
+
+  const visuals = [...input.visualUrls];
+  while (visuals.length < 4) {
+    visuals.push(visuals[visuals.length - 1] ?? null);
+  }
+
+  return {
+    aspectRatio: "9:16",
+    durationMs: input.durationMs,
+    scenes: [
+      {
+        kind: "hook",
+        startMs: 0,
+        endMs: quarter,
+        overlayText: input.hook,
+        visualUrl: visuals[0] ?? null,
+      },
+      {
+        kind: "problem",
+        startMs: quarter,
+        endMs: quarter * 2,
+        overlayText: "Here’s what we found",
+        visualUrl: visuals[1] ?? null,
+      },
+      {
+        kind: "repair",
+        startMs: quarter * 2,
+        endMs: quarter * 3,
+        overlayText: "Here’s how we fixed it",
+        visualUrl: visuals[2] ?? null,
+      },
+      {
+        kind: "result",
+        startMs: quarter * 3,
+        endMs: input.durationMs,
+        overlayText: input.cta,
+        visualUrl: visuals[3] ?? null,
+      },
+    ],
+    subtitles: input.subtitleBlocks,
+    exportTargets: ["tiktok", "instagram_reels", "youtube_shorts"],
+    metadata: {
+      title: input.title,
+      caption: input.caption,
+      cta: input.cta,
+      transcript: input.transcript,
+    },
+  };
+}
+
+
+================ FILE: src/features/shopreel/render/createRenderJob.ts ================
+
+import { createAdminClient } from "@/lib/supabase/server";
+
+export type CreateRenderJobInput = {
+  shopId: string;
+  workOrderId?: string | null;
+  sourceType?: string | null;
+  sourceId?: string | null;
+  createdBy?: string | null;
+  renderPayload: unknown;
+};
+
+export async function createRenderJob(input: CreateRenderJobInput) {
+  const supabase = createAdminClient();
+
+  const payload = {
+    shop_id: input.shopId,
+    work_order_id: input.workOrderId ?? null,
+    source_type: input.sourceType ?? null,
+    source_id: input.sourceId ?? null,
+    created_by: input.createdBy ?? null,
+    status: "queued",
+    render_payload: input.renderPayload,
+  };
+
+  const { data, error } = await supabase
+    .from("reel_render_jobs")
+    .insert(payload as never)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+
+================ FILE: src/features/shopreel/media/selectMediaForReel.ts ================
+
+import { createAdminClient } from "@/lib/supabase/server";
+
+type InspectionPhotoRow = {
+  id: string;
+  inspection_id: string | null;
+  photo_url?: string | null;
+  url?: string | null;
+  created_at?: string | null;
+};
+
+type VehicleMediaRow = {
+  id: string;
+  vehicle_id: string | null;
+  media_url?: string | null;
+  url?: string | null;
+  kind?: string | null;
+  created_at?: string | null;
+};
+
+type WorkOrderVehicleRow = {
+  vehicle_id: string | null;
+  inspection_id: string | null;
+};
+
+export type ReelMediaSelection = {
+  workOrderId: string;
+  selectedUrls: string[];
+  inspectionPhotoUrls: string[];
+  vehicleMediaUrls: string[];
+};
+
+function photoUrl(row: InspectionPhotoRow): string | null {
+  return (
+    (typeof row.photo_url === "string" && row.photo_url.length > 0
+      ? row.photo_url
+      : null) ||
+    (typeof row.url === "string" && row.url.length > 0 ? row.url : null)
+  );
+}
+
+function mediaUrl(row: VehicleMediaRow): string | null {
+  return (
+    (typeof row.media_url === "string" && row.media_url.length > 0
+      ? row.media_url
+      : null) ||
+    (typeof row.url === "string" && row.url.length > 0 ? row.url : null)
+  );
+}
+
+export async function selectMediaForReel(
+  workOrderId: string,
+): Promise<ReelMediaSelection> {
+  const supabase = createAdminClient();
+
+  const { data: workOrder, error: workOrderError } = await supabase
+    .from("work_orders")
+    .select("vehicle_id, inspection_id")
+    .eq("id", workOrderId)
+    .maybeSingle();
+
+  if (workOrderError) {
+    throw new Error(workOrderError.message);
+  }
+
+  const row = (workOrder ?? {
+    vehicle_id: null,
+    inspection_id: null,
+  }) as WorkOrderVehicleRow;
+
+  let inspectionPhotoUrls: string[] = [];
+  let vehicleMediaUrls: string[] = [];
+
+  if (row.inspection_id) {
+    const { data: inspectionPhotos, error: inspectionPhotosError } =
+      await supabase
+        .from("inspection_photos")
+        .select("*")
+        .eq("inspection_id", row.inspection_id)
+        .order("created_at", { ascending: true })
+        .limit(10);
+
+    if (inspectionPhotosError) {
+      throw new Error(inspectionPhotosError.message);
+    }
+
+    inspectionPhotoUrls = ((inspectionPhotos ?? []) as InspectionPhotoRow[])
+      .map(photoUrl)
+      .filter((value): value is string => Boolean(value));
+  }
+
+  if (row.vehicle_id) {
+    const { data: vehicleMedia, error: vehicleMediaError } = await supabase
+      .from("vehicle_media")
+      .select("*")
+      .eq("vehicle_id", row.vehicle_id)
+      .order("created_at", { ascending: true })
+      .limit(10);
+
+    if (vehicleMediaError) {
+      throw new Error(vehicleMediaError.message);
+    }
+
+    vehicleMediaUrls = ((vehicleMedia ?? []) as VehicleMediaRow[])
+      .map(mediaUrl)
+      .filter((value): value is string => Boolean(value));
+  }
+
+  const selectedUrls = [...inspectionPhotoUrls, ...vehicleMediaUrls].slice(0, 4);
+
+  return {
+    workOrderId,
+    selectedUrls,
+    inspectionPhotoUrls,
+    vehicleMediaUrls,
+  };
+}
+
+
+================ FILE: src/lib/supabase/server.ts ================
+
+import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+import type { CookieOptions } from "@supabase/ssr";
+import type { Database } from "@/types/supabase";
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+};
+
+function getSupabaseUrl(): string {
+  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!value) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
+  }
+  return value;
+}
+
+function getSupabasePublishableKey(): string {
+  const value =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!value) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    );
+  }
+
+  return value;
+}
+
+function getSupabaseServiceRoleKey(): string {
+  const value = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!value) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+  return value;
+}
+
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient<Database>(
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet: CookieToSet[]) {
+          for (const { name, value, options } of cookiesToSet) {
+            try {
+              cookieStore.set(name, value, options);
+            } catch {
+              // ignore in contexts where setting cookies is not allowed
+            }
+          }
+        },
+      },
+    },
+  );
+}
+
+export function createAdminClient() {
+  return createSupabaseClient<Database>(
+    getSupabaseUrl(),
+    getSupabaseServiceRoleKey(),
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    },
+  );
+}
+
+================ SUPABASE CLIENT HELPERS ================
+
+src/types/supabase.ts:10:  // Allows to automatically instantiate createClient with right options
+src/types/supabase.ts:11:  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+src/lib/supabase/server.ts:2:import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+src/lib/supabase/server.ts:43:export async function createClient() {
+src/lib/supabase/server.ts:68:export function createAdminClient() {
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:3:import { createAdminClient, createClient } from "@/lib/supabase/server";
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:129:  const supabase = createAdminClient();
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:217:  const supabase = createAdminClient();
+src/app/api/shopreel/render-job/[id]/route.ts:2:import { createAdminClient } from "@/lib/supabase/server";
+src/app/api/shopreel/render-job/[id]/route.ts:32:  const supabase = createAdminClient();
+src/app/api/shopreel/render-job/[id]/route.ts:64:  const supabase = createAdminClient();
+src/app/api/shopreel/render-jobs/route.ts:2:import { createAdminClient } from "@/lib/supabase/server";
+src/app/api/shopreel/render-jobs/route.ts:9:  const supabase = createAdminClient();
+src/features/shopreel/metrics/trackMetrics.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/metrics/trackMetrics.ts:17:  const supabase = createAdminClient();
+src/features/shopreel/memory/updateMarketingMemory.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/memory/updateMarketingMemory.ts:4:  const supabase = createAdminClient();
+src/features/shopreel/server/scheduler.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/server/scheduler.ts:71:  const supabase = createAdminClient();
+src/features/shopreel/discovery/discoverContent.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/discovery/discoverContent.ts:99:  const supabase = createAdminClient();
+src/features/shopreel/media/selectMediaForReel.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/media/selectMediaForReel.ts:53:  const supabase = createAdminClient();
+src/features/shopreel/learning/updateLearningSignals.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/learning/updateLearningSignals.ts:14:  const supabase = createAdminClient();
+src/features/shopreel/render/createRenderJob.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/render/createRenderJob.ts:13:  const supabase = createAdminClient();
+src/features/shopreel/publish/publishVideo.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/publish/publishVideo.ts:8:  const supabase = createAdminClient();
+src/features/shopreel/moments/detectViralMoments.ts:1:import { createAdminClient } from "@/lib/supabase/server"
+src/features/shopreel/moments/detectViralMoments.ts:6:  const supabase = createAdminClient()
+src/features/shopreel/settings/saveShopReelSettings.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/settings/saveShopReelSettings.ts:20:  const supabase = createAdminClient();
+src/features/shopreel/settings/getShopReelSettings.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/settings/getShopReelSettings.ts:55:  const supabase = createAdminClient();
+src/features/shopreel/reels/buildReelPlan.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/reels/buildReelPlan.ts:12:  const supabase = createAdminClient();
+src/features/shopreel/worker/processRenderJobs.ts:1:import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/worker/processRenderJobs.ts:4:  const supabase = createAdminClient();
+
+================ AI / HOOK GENERATION FILES ================
+
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:2:import { generateVideoConcept } from "@/features/ai/server/generateVideoConcept";
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:387:  const generated = await generateVideoConcept({
+src/app/api/shopreel/hooks/route.ts:2:import { generateViralHooks } from "@/features/shopreel/hooks/generateViralHooks";
+src/app/api/shopreel/hooks/route.ts:15:  const hooks = await generateViralHooks(subject, contentType);
+src/features/ai/server/generateVideoConcept.ts:428:export async function generateVideoConcept(args: {
+src/features/shopreel/server/scheduler.ts:4:import { generateHooks } from "@/features/shopreel/hooks/generateHooks";
+src/features/shopreel/server/scheduler.ts:89:      const hookOptions = await generateHooks(opportunity.contentType);
+src/features/shopreel/hooks/generateViralHooks.ts:22:export async function generateViralHooks(subject: string, contentType: string) {
+src/features/shopreel/hooks/generateHooks.ts:3:export async function generateHooks(contentType: string, vehicle?: string) {

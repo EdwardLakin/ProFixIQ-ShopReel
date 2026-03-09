@@ -1,3 +1,6 @@
+// src/app/shopreel/page.tsx
+
+import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import GlassNav from "@/features/shopreel/ui/system/GlassNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
@@ -14,6 +17,9 @@ export default function ShopReelPage() {
       actions={
         <>
           <GlassButton variant="ghost">Refresh</GlassButton>
+          <Link href="/shopreel/upload">
+            <GlassButton variant="secondary">Upload content</GlassButton>
+          </Link>
           <GlassButton variant="primary">Create content</GlassButton>
         </>
       }
