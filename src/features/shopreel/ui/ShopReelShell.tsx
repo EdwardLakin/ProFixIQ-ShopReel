@@ -30,7 +30,7 @@ export default function ShopReelShell(props: {
             ShopReel
           </div>
 
-          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          <h1 className="font-display text-4xl tracking-tight text-white sm:text-5xl">
             {title}
           </h1>
 
