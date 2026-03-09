@@ -1,25 +1,16 @@
-import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
 import ShopReelSettingsClient from "@/features/shopreel/ui/ShopReelSettingsClient";
-import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
 
-const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
-
-export default async function ShopReelSettingsPage() {
-  const result = await getShopReelSettings(DEFAULT_SHOP_ID);
-
+export default function ShopReelSettingsPage() {
   return (
-    <ShopReelShell
+    <GlassShell
+      eyebrow="ShopReel"
       title="Settings"
-      subtitle="Configure shop-level platform connections, publishing behavior, and brand defaults before launch."
+      subtitle="Connection, publishing, tone, and automation defaults — all through the single glass control system."
     >
-      <ShopReelSettingsClient
-        shopId={DEFAULT_SHOP_ID}
-        initial={{
-          settings: result.settings,
-          platforms: result.platforms,
-          readiness: result.readiness,
-        }}
-      />
-    </ShopReelShell>
+      <GlassNav />
+      <ShopReelSettingsClient />
+    </GlassShell>
   );
 }

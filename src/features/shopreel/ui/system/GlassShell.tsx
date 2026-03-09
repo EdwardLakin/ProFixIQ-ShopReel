@@ -1,27 +1,58 @@
-import { glassTheme } from "./glassTheme";
+import type { ReactNode } from "react";
+import { glassTheme, cx } from "./glassTheme";
 
-export default function GlassShell({
-  title,
-  subtitle,
-  children,
-}: {
+export default function GlassShell(props: {
+  eyebrow?: string;
   title: string;
   subtitle?: string;
-  children: React.ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
 }) {
+  const { eyebrow, title, subtitle, actions, children, className } = props;
+
   return (
-    <main className={glassTheme.shell}>
-      <div className={glassTheme.container}>
-        <header className={glassTheme.hero + " p-10 mb-12"}>
-          <h1 className="text-3xl font-display">{title}</h1>
+    <div
+      className={cx(
+        "relative min-h-screen overflow-hidden",
+        glassTheme.bg.base,
+        glassTheme.bg.overlay,
+      )}
+    >
+      <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:18px_18px]" />
+      <div className="relative mx-auto max-w-7xl">
+        <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
+          <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              {eyebrow ? (
+                <div className={cx("text-xs font-medium uppercase tracking-[0.24em]", glassTheme.text.copper)}>
+                  {eyebrow}
+                </div>
+              ) : null}
 
-          {subtitle && (
-            <p className="mt-3 text-white/70 max-w-2xl">{subtitle}</p>
-          )}
-        </header>
+              <div className="space-y-2">
+                <h1
+                  className={cx(
+                    "font-display text-3xl tracking-[0.02em] md:text-4xl",
+                    glassTheme.text.primary,
+                  )}
+                >
+                  {title}
+                </h1>
+                {subtitle ? (
+                  <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+            </div>
 
-        {children}
+            {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+          </header>
+
+          {children}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

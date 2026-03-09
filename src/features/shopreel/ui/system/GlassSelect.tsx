@@ -1,14 +1,15 @@
-import type { InputHTMLAttributes } from "react";
+import type { SelectHTMLAttributes } from "react";
 import { glassTheme, cx } from "./glassTheme";
 
-export default function GlassInput(
-  props: InputHTMLAttributes<HTMLInputElement> & {
+export default function GlassSelect(
+  props: SelectHTMLAttributes<HTMLSelectElement> & {
     label?: string;
     hint?: string;
     error?: string;
+    options: Array<{ value: string; label: string }>;
   },
 ) {
-  const { label, hint, error, className, id, ...rest } = props;
+  const { label, hint, error, className, id, options, ...rest } = props;
 
   return (
     <label className="block space-y-2">
@@ -19,10 +20,10 @@ export default function GlassInput(
         </div>
       ) : null}
 
-      <input
+      <select
         id={id}
         className={cx(
-          "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition placeholder:text-[rgba(243,237,230,0.34)]",
+          "w-full appearance-none rounded-2xl border px-4 py-3 text-sm outline-none transition",
           glassTheme.text.primary,
           glassTheme.glass.input,
           glassTheme.border.softer,
@@ -30,7 +31,13 @@ export default function GlassInput(
           className,
         )}
         {...rest}
-      />
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="bg-[#141414] text-[#f3ede6]">
+            {option.label}
+          </option>
+        ))}
+      </select>
 
       {error ? <p className="text-xs text-[color:#d49a84]">{error}</p> : null}
     </label>

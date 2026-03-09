@@ -1,157 +1,93 @@
-import Link from "next/link";
-import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
-import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
-import ShopReelStat from "@/features/shopreel/ui/ShopReelStat";
-import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
-import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassStat from "@/features/shopreel/ui/system/GlassStat";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 
-const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
-
-async function getJson(path: string) {
-  const base = getBaseUrl();
-
-  try {
-    const response = await fetch(`${base}${path}`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return (await response.json()) as unknown;
-  } catch {
-    return null;
-  }
-}
-
-export default async function ShopReelHomePage() {
-  const [jobsResponse, settingsBundle] = await Promise.all([
-    getJson(`/api/shopreel/render-jobs?shopId=${DEFAULT_SHOP_ID}`),
-    getShopReelSettings(DEFAULT_SHOP_ID),
-  ]);
-
-  const jobs =
-    jobsResponse &&
-    typeof jobsResponse === "object" &&
-    "jobs" in jobsResponse &&
-    Array.isArray((jobsResponse as { jobs?: unknown[] }).jobs)
-      ? ((jobsResponse as { jobs: unknown[] }).jobs ?? [])
-      : [];
-
-  const queued = jobs.filter(
-    (job) =>
-      typeof job === "object" &&
-      job !== null &&
-      "status" in job &&
-      (job as { status?: string }).status === "queued",
-  ).length;
-
-  const rendering = jobs.filter(
-    (job) =>
-      typeof job === "object" &&
-      job !== null &&
-      "status" in job &&
-      (job as { status?: string }).status === "rendering",
-  ).length;
-
-  const ready = jobs.filter(
-    (job) =>
-      typeof job === "object" &&
-      job !== null &&
-      "status" in job &&
-      (job as { status?: string }).status === "ready",
-  ).length;
-
-  const published = jobs.filter(
-    (job) =>
-      typeof job === "object" &&
-      job !== null &&
-      "status" in job &&
-      (job as { status?: string }).status === "published",
-  ).length;
-
+export default function ShopReelPage() {
   return (
-    <ShopReelShell
-      title="ShopReel Dashboard"
-      subtitle="AI content engine for repair shops. Monitor opportunities, calendars, render jobs, and publishing flow from one place."
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Content automation cockpit"
+      subtitle="One coherent glass interface for queue health, publishing flow, and high-value opportunities."
+      actions={
+        <>
+          <GlassButton variant="ghost">Refresh</GlassButton>
+          <GlassButton variant="primary">Create content</GlassButton>
+        </>
+      }
     >
-      {!settingsBundle.readiness.canPublish ? (
-        <ShopReelCard title="Launch Readiness" eyebrow="Needs attention">
+      <GlassNav />
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <GlassStat label="Open Opportunities" value="24" hint="Ready for review" trend="+8 this week" />
+        <GlassStat label="Queued Renders" value="11" hint="3 actively rendering" trend="Healthy" />
+        <GlassStat label="Scheduled Posts" value="18" hint="Next 7 days" trend="+4 today" />
+        <GlassStat label="Published This Month" value="42" hint="Across connected channels" trend="+17%" />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.95fr]">
+        <GlassCard
+          label="Pipeline"
+          title="What needs attention"
+          description="Warm glass cards, softer borders, and copper accents only."
+        >
           <div className="grid gap-3">
-            {settingsBundle.readiness.missing.map((item) => (
+            {[
+              {
+                title: "Brake inspection highlight",
+                meta: "Truck WO-4128 • 12 source clips",
+                badge: "High potential",
+              },
+              {
+                title: "Before / after steering repair",
+                meta: "WO-4130 • advisor review needed",
+                badge: "Needs approval",
+              },
+              {
+                title: "Educational tip: air brake wear",
+                meta: "Built from recent inspections",
+                badge: "Evergreen",
+              },
+            ].map((item) => (
               <div
-                key={item}
-                className="rounded-[18px] border border-[rgba(180,74,66,0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-4 py-4 text-white/82 backdrop-blur-xl"
+                key={item.title}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
               >
-                {item}
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-[color:#f3ede6]">{item.title}</div>
+                  <div className="text-sm text-[color:rgba(243,237,230,0.64)]">{item.meta}</div>
+                </div>
+                <GlassBadge tone="copper">{item.badge}</GlassBadge>
               </div>
             ))}
           </div>
+        </GlassCard>
 
-          <div className="mt-5">
-            <Link
-              href="/shopreel/settings"
-              className="inline-flex rounded-full border border-[rgba(193,102,59,0.34)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.08))] px-5 py-3 text-sm uppercase tracking-[0.18em] text-[#efc19e] backdrop-blur-xl"
-            >
-              Open settings
-            </Link>
+        <GlassCard
+          label="Snapshot"
+          title="Today"
+          description="Simple operational status without old ShopReel UI remnants."
+        >
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Top channel</div>
+              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Instagram Reels</div>
+            </div>
+
+            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Best format</div>
+              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Repair story • 22s clips</div>
+            </div>
+
+            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Next scheduled publish</div>
+              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Tomorrow • 8:30 AM</div>
+            </div>
           </div>
-        </ShopReelCard>
-      ) : null}
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <ShopReelStat label="Queued Jobs" value={queued} />
-        <ShopReelStat label="Rendering" value={rendering} />
-        <ShopReelStat label="Ready" value={ready} />
-        <ShopReelStat label="Published" value={published} />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <ShopReelCard title="Quick Actions" eyebrow="Control Center">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Link
-              href="/shopreel/opportunities"
-              className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 text-sm text-white/82 backdrop-blur-xl transition hover:border-[rgba(193,102,59,0.28)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.06))] hover:text-white"
-            >
-              View detected opportunities
-            </Link>
-            <Link
-              href="/shopreel/calendar"
-              className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 text-sm text-white/82 backdrop-blur-xl transition hover:border-[rgba(193,102,59,0.28)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.06))] hover:text-white"
-            >
-              Review content calendar
-            </Link>
-            <Link
-              href="/shopreel/render-queue"
-              className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 text-sm text-white/82 backdrop-blur-xl transition hover:border-[rgba(193,102,59,0.28)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.06))] hover:text-white"
-            >
-              Inspect render queue
-            </Link>
-            <Link
-              href="/shopreel/analytics"
-              className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 text-sm text-white/82 backdrop-blur-xl transition hover:border-[rgba(193,102,59,0.28)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.06))] hover:text-white"
-            >
-              See learning signals
-            </Link>
-          </div>
-        </ShopReelCard>
-
-        <ShopReelCard title="System Status" eyebrow="Pipeline">
-          <div className="space-y-3 text-sm text-white/75">
-            <p>Discovery engine: online</p>
-            <p>Hook engine: online</p>
-            <p>Calendar generation: online</p>
-            <p>Render queue: online</p>
-            <p>
-              Publish mode:{" "}
-              <span className="text-[#efc19e]">
-                {settingsBundle.settings?.publish_mode ?? "manual"}
-              </span>
-            </p>
-          </div>
-        </ShopReelCard>
-      </div>
-    </ShopReelShell>
+        </GlassCard>
+      </section>
+    </GlassShell>
   );
 }

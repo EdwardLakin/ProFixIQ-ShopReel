@@ -1,94 +1,71 @@
-import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
-import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
-import ShopReelBadge from "@/features/shopreel/ui/ShopReelBadge";
-import ShopReelEmpty from "@/features/shopreel/ui/ShopReelEmpty";
-import ShopReelKeyValue from "@/features/shopreel/ui/ShopReelKeyValue";
-import ShopReelListItem from "@/features/shopreel/ui/ShopReelListItem";
-import ShopReelSectionGrid from "@/features/shopreel/ui/ShopReelSectionGrid";
-import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 
-const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+const days = [
+  { day: "Mon", items: 2 },
+  { day: "Tue", items: 4 },
+  { day: "Wed", items: 3 },
+  { day: "Thu", items: 5 },
+  { day: "Fri", items: 2 },
+  { day: "Sat", items: 1 },
+  { day: "Sun", items: 2 },
+];
 
-type CalendarItem = {
-  day?: number;
-  videoIdea?: string;
-  title?: string;
-  contentType?: string;
-  hook?: string;
-  cta?: string;
-};
-
-type CalendarResponse =
-  | {
-      result?: CalendarItem[];
-      items?: CalendarItem[];
-    }
-  | null;
-
-async function postJson(path: string, body: unknown) {
-  const base = getBaseUrl();
-
-  try {
-    const response = await fetch(`${base}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    });
-
-    if (!response.ok) return null;
-    return (await response.json()) as CalendarResponse;
-  } catch {
-    return null;
-  }
-}
-
-export default async function ShopReelCalendarPage() {
-  const data = await postJson("/api/shopreel/calendar", {
-    shopId: DEFAULT_SHOP_ID,
-  });
-
-  const items = Array.isArray(data?.result)
-    ? data!.result
-    : Array.isArray(data?.items)
-      ? data!.items
-      : [];
-
+export default function ShopReelCalendarPage() {
   return (
-    <ShopReelShell
+    <GlassShell
+      eyebrow="ShopReel"
       title="Calendar"
-      subtitle="Generated posting plan and calendar structure for the current shop."
+      subtitle="Publishing cadence and visibility, reset with softer glass surfaces and warmer typography."
     >
-      <ShopReelCard title="Calendar Output" eyebrow="Planner">
-        {items.length === 0 ? (
-          <ShopReelEmpty message="No calendar items generated yet." />
-        ) : (
-          <ShopReelSectionGrid>
-            {items.map((item, index) => (
-              <ShopReelListItem
-                key={`day-${item.day ?? index + 1}`}
-                title={item.videoIdea ?? item.title ?? `Day ${item.day ?? index + 1}`}
-                subtitle={item.hook ?? "No hook generated yet."}
-                right={
-                  <ShopReelBadge tone="copper">
-                    {`Day ${String(item.day ?? index + 1)}`}
-                  </ShopReelBadge>
-                }
+      <GlassNav />
+
+      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <GlassCard
+          label="Publishing Week"
+          title="Content cadence"
+          description="A simple week view placeholder you can wire into your real scheduler."
+        >
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+            {days.map((day) => (
+              <div
+                key={day.day}
+                className="flex items-center justify-between rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
               >
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <ShopReelKeyValue label="Content Type" value={item.contentType} />
-                  <ShopReelKeyValue label="CTA" value={item.cta} />
-                  <div className="flex items-start">
-                    <ShopReelBadge tone="cyan">
-                      {item.contentType ?? "planned"}
-                    </ShopReelBadge>
+                <div>
+                  <div className="text-sm font-medium text-[color:#f3ede6]">{day.day}</div>
+                  <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+                    {day.items} scheduled item{day.items === 1 ? "" : "s"}
                   </div>
                 </div>
-              </ShopReelListItem>
+                <GlassBadge tone={day.items >= 4 ? "copper" : "muted"}>{day.items} posts</GlassBadge>
+              </div>
             ))}
-          </ShopReelSectionGrid>
-        )}
-      </ShopReelCard>
-    </ShopReelShell>
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="Best Windows"
+          title="Recommended posting times"
+          description="Keep this box simple until your analytics-backed timing model is wired in."
+        >
+          <div className="space-y-3">
+            {["8:30 AM", "12:15 PM", "5:40 PM"].map((slot) => (
+              <div
+                key={slot}
+                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+              >
+                <div className="text-base font-medium text-[color:#f3ede6]">{slot}</div>
+                <div className="mt-1 text-sm text-[color:rgba(243,237,230,0.64)]">
+                  Strong recent engagement window
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </section>
+    </GlassShell>
   );
 }

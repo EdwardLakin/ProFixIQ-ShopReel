@@ -1,8 +1,8 @@
-import type { InputHTMLAttributes } from "react";
+import type { TextareaHTMLAttributes } from "react";
 import { glassTheme, cx } from "./glassTheme";
 
-export default function GlassInput(
-  props: InputHTMLAttributes<HTMLInputElement> & {
+export default function GlassTextarea(
+  props: TextareaHTMLAttributes<HTMLTextAreaElement> & {
     label?: string;
     hint?: string;
     error?: string;
@@ -19,10 +19,10 @@ export default function GlassInput(
         </div>
       ) : null}
 
-      <input
+      <textarea
         id={id}
         className={cx(
-          "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition placeholder:text-[rgba(243,237,230,0.34)]",
+          "min-h-[120px] w-full rounded-2xl border px-4 py-3 text-sm outline-none transition placeholder:text-[rgba(243,237,230,0.34)]",
           glassTheme.text.primary,
           glassTheme.glass.input,
           glassTheme.border.softer,

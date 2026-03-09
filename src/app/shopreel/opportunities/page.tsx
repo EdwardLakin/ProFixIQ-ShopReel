@@ -1,87 +1,65 @@
-import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
-import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
-import ShopReelBadge from "@/features/shopreel/ui/ShopReelBadge";
-import ShopReelEmpty from "@/features/shopreel/ui/ShopReelEmpty";
-import ShopReelKeyValue from "@/features/shopreel/ui/ShopReelKeyValue";
-import ShopReelListItem from "@/features/shopreel/ui/ShopReelListItem";
-import ShopReelSectionGrid from "@/features/shopreel/ui/ShopReelSectionGrid";
-import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 
-const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+const items = [
+  {
+    title: "Inspection highlight from failed brake items",
+    source: "WO-4128 • 6 photos • 3 notes",
+    score: "92",
+    status: "Ready",
+  },
+  {
+    title: "Technician walkthrough clip sequence",
+    source: "WO-4133 • 4 clips • voice note",
+    score: "86",
+    status: "Review",
+  },
+  {
+    title: "Maintenance tip from seasonal service trend",
+    source: "AI suggested from recent jobs",
+    score: "79",
+    status: "Draft",
+  },
+];
 
-type Suggestion = {
-  sourceType?: string;
-  sourceId?: string;
-  workOrderId?: string | null;
-  title?: string;
-  trigger?: string;
-  viralScore?: number;
-  reason?: string;
-  prompt?: string;
-};
-
-async function postJson(path: string, body: unknown) {
-  const base = getBaseUrl();
-
-  try {
-    const response = await fetch(`${base}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    });
-
-    if (!response.ok) return null;
-    return (await response.json()) as { suggestions?: Suggestion[] } | null;
-  } catch {
-    return null;
-  }
-}
-
-export default async function ShopReelOpportunitiesPage() {
-  const data = await postJson("/api/shopreel/suggestions", {
-    shopId: DEFAULT_SHOP_ID,
-  });
-
-  const suggestions = Array.isArray(data?.suggestions) ? data!.suggestions : [];
-
+export default function ShopReelOpportunitiesPage() {
   return (
-    <ShopReelShell
+    <GlassShell
+      eyebrow="ShopReel"
       title="Opportunities"
-      subtitle="High-value repair stories, inspection highlights, and viral moments detected from shop activity."
+      subtitle="Surface the best candidate content without noisy styling or mixed design systems."
+      actions={<GlassButton variant="primary">Generate selected</GlassButton>}
     >
-      <ShopReelCard title="Detected Opportunities" eyebrow="Live Feed">
-        {suggestions.length === 0 ? (
-          <ShopReelEmpty message="No opportunities detected yet for this shop." />
-        ) : (
-          <ShopReelSectionGrid>
-            {suggestions.map((item, index) => (
-              <ShopReelListItem
-                key={`${item.sourceId ?? "op"}-${index}`}
-                title={item.title ?? "Untitled opportunity"}
-                subtitle={item.prompt ?? "AI-generated opportunity prompt"}
-                right={
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    <ShopReelBadge tone="copper">
-                      {`Score ${String(item.viralScore ?? 0)}`}
-                    </ShopReelBadge>
-                    <ShopReelBadge tone="cyan">
-                      {item.sourceType ?? "unknown"}
-                    </ShopReelBadge>
-                  </div>
-                }
-              >
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <ShopReelKeyValue label="Trigger" value={item.trigger} />
-                  <ShopReelKeyValue label="Reason" value={item.reason} />
-                  <ShopReelKeyValue label="Work Order" value={item.workOrderId} />
-                  <ShopReelKeyValue label="Source ID" value={item.sourceId} />
-                </div>
-              </ShopReelListItem>
-            ))}
-          </ShopReelSectionGrid>
-        )}
-      </ShopReelCard>
-    </ShopReelShell>
+      <GlassNav />
+
+      <GlassCard
+        label="Opportunity Queue"
+        title="Ranked by content potential"
+        description="This page intentionally uses only GlassCard, GlassBadge, and GlassButton."
+      >
+        <div className="grid gap-3">
+          {items.map((item) => (
+            <div
+              key={item.title}
+              className="grid gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 md:grid-cols-[1fr_auto]"
+            >
+              <div className="space-y-1">
+                <div className="text-base font-medium text-[color:#f3ede6]">{item.title}</div>
+                <div className="text-sm text-[color:rgba(243,237,230,0.64)]">{item.source}</div>
+              </div>
+
+              <div className="flex items-center gap-3 md:justify-end">
+                <GlassBadge tone="copper">Score {item.score}</GlassBadge>
+                <GlassBadge tone="default">{item.status}</GlassBadge>
+                <GlassButton variant="secondary">Open</GlassButton>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+    </GlassShell>
   );
 }

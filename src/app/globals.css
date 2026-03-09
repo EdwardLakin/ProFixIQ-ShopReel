@@ -3,54 +3,60 @@
 @tailwind utilities;
 
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 
-  --sr-bg-0: #050816;
-  --sr-bg-1: #091120;
-  --sr-bg-2: #0d1630;
+  --app-bg: #080808;
+  --app-bg-top: #171412;
+  --app-text: #f3ede6;
+  --app-text-muted: rgba(243, 237, 230, 0.7);
+  --app-selection: rgba(184, 115, 75, 0.28);
+}
 
-  --sr-glass: rgba(255, 255, 255, 0.045);
-  --sr-glass-strong: rgba(255, 255, 255, 0.07);
-  --sr-border: rgba(255, 255, 255, 0.09);
-  --sr-border-soft: rgba(255, 255, 255, 0.06);
-
-  --sr-text: rgba(255, 255, 255, 0.96);
-  --sr-text-soft: rgba(255, 255, 255, 0.72);
-  --sr-text-faint: rgba(255, 255, 255, 0.52);
-
-  --sr-copper: #c1663b;
-  --sr-copper-soft: #a65431;
-  --sr-copper-light: #e0a177;
-  --sr-copper-glow: rgba(193, 102, 59, 0.18);
-
-  --sr-red: #b44a42;
-  --sr-red-light: #d97b72;
-
-  --sr-cyan-glow: rgba(34, 211, 238, 0.09);
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 html {
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  min-height: 100%;
-  color: var(--sr-text);
+  min-height: 100vh;
   background:
-    radial-gradient(circle at 50% 0%, rgba(193, 102, 59, 0.16), transparent 20%),
-    radial-gradient(circle at 0% 100%, rgba(34, 211, 238, 0.08), transparent 18%),
-    radial-gradient(circle at 100% 35%, rgba(180, 74, 66, 0.07), transparent 16%),
-    linear-gradient(180deg, #04070f 0%, #071127 48%, #04070f 100%);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    radial-gradient(circle at top, rgba(184, 115, 75, 0.08), transparent 0 32%),
+    linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg) 46%, #050505 100%);
+  color: var(--app-text);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-.font-blackops,
-.font-display,
-.landing-heading {
-  font-family: var(--font-blackops), var(--font-inter), system-ui, sans-serif !important;
+::selection {
+  background: var(--app-selection);
+  color: var(--app-text);
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
 }
 
 a {
@@ -58,98 +64,7 @@ a {
   text-decoration: none;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-input,
-textarea,
-select {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  color: white !important;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.025)) !important;
-  border: 1px solid rgba(193, 102, 59, 0.16) !important;
-  border-radius: 18px !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    0 10px 30px rgba(0,0,0,0.12) !important;
-  background-clip: padding-box;
-  backdrop-filter: blur(20px);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: rgba(255,255,255,0.32);
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: rgba(193, 102, 59, 0.42) !important;
-  box-shadow:
-    0 0 0 3px rgba(193, 102, 59, 0.08),
-    0 12px 30px rgba(0,0,0,0.14),
-    inset 0 1px 0 rgba(255,255,255,0.06) !important;
-}
-
-select {
-  padding-right: 3rem !important;
-  background-image:
-    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.025)),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='rgba(224,161,119,0.95)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat, no-repeat;
-  background-position: left top, right 0.9rem center;
-  background-size: auto, 1rem;
-}
-
-textarea {
-  resize: vertical;
-}
-
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-textarea:-webkit-autofill,
-select:-webkit-autofill {
-  -webkit-text-fill-color: white !important;
-  -webkit-box-shadow: 0 0 0 1000px rgba(16,18,24,0.92) inset !important;
-  transition: background-color 99999s ease-in-out 0s;
-}
-
-input[type="checkbox"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 8px !important;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)) !important;
-  border: 1px solid rgba(255,255,255,0.16) !important;
-  position: relative;
-  cursor: pointer;
-}
-
-input[type="checkbox"]:checked {
-  background: linear-gradient(180deg, rgba(193,102,59,0.95), rgba(166,84,49,0.95)) !important;
-  border-color: rgba(224,161,119,0.75) !important;
-  box-shadow: 0 0 0 3px rgba(193,102,59,0.12) !important;
-}
-
-input[type="checkbox"]:checked::after {
-  content: "";
-  position: absolute;
-  inset: 5px;
-  border-radius: 3px;
-  background: white;
-}
-
-::selection {
-  background: rgba(193, 102, 59, 0.35);
-  color: white;
+.font-display {
+  font-family: var(--font-display), Impact, sans-serif;
+  letter-spacing: 0.02em;
 }
