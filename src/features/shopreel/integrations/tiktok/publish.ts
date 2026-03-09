@@ -1,0 +1,1 @@
+export { tiktokIntegration } from "./connect";

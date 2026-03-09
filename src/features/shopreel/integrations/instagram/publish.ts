@@ -1,0 +1,1 @@
+export { instagramIntegration } from "./connect";
