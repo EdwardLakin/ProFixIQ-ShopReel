@@ -1,0 +1,1513 @@
+===== FILE: src/app/layout.tsx =====
+import "./globals.css";
+import type { ReactNode } from "react";
+import { Inter, Roboto, Black_Ops_One } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-roboto",
+  display: "swap",
+});
+
+const blackOps = Black_Ops_One({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-blackops",
+  display: "swap",
+});
+
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <html
+      lang="en"
+      className={`${inter.variable} ${roboto.variable} ${blackOps.variable}`}
+    >
+      <body className="min-h-screen bg-[#050816] text-white antialiased font-sans">
+        {children}
+      </body>
+    </html>
+  );
+}
+===== FILE: src/app/globals.css =====
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --accent-copper: #c1663b;
+  --accent-copper-soft: #7e4023;
+  --accent-copper-light: #e39a6e;
+  --metal-bg: #050910;
+  --metal-panel: #091120;
+  --metal-panel-2: #0b1426;
+  --metal-border-soft: rgba(148, 163, 184, 0.24);
+  --metal-border-strong: rgba(148, 163, 184, 0.42);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-neutral-950 text-white antialiased;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-blackops,
+.font-display,
+.landing-heading {
+  font-family: var(--font-blackops), var(--font-inter), system-ui, sans-serif !important;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  color: white;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255,255,255,0.35);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+input[type="checkbox"] {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #08101d, #050a14);
+  border: 1px solid rgba(255,255,255,0.20);
+  position: relative;
+  cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+  background: linear-gradient(180deg, rgba(193,102,59,0.95), rgba(126,64,35,0.95));
+  border-color: rgba(227,154,110,0.8);
+  box-shadow: 0 0 0 3px rgba(193,102,59,0.12);
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 3px;
+  background: white;
+}
+
+::selection {
+  background: rgba(193, 102, 59, 0.35);
+  color: white;
+}
+
+===== FILE: tailwind.config.ts =====
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./features/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  darkMode: "class",
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: [
+          "var(--font-inter)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
+        display: [
+          "var(--font-blackops)",
+          "var(--font-inter)",
+          "system-ui",
+          "sans-serif",
+        ],
+        roboto: [
+          "var(--font-roboto)",
+          "system-ui",
+          "sans-serif",
+        ],
+      },
+      colors: {
+        copper: {
+          50: "#fdf8f4",
+          100: "#f7ede3",
+          200: "#ead0b8",
+          300: "#ddb08a",
+          400: "#c98a5d",
+          500: "#b86d3f",
+          600: "#9b552f",
+          700: "#7b4126",
+          800: "#5c301f",
+          900: "#3c1f14",
+        },
+      },
+      boxShadow: {
+        copper:
+          "0 0 0 1px rgba(184,109,63,0.22), 0 12px 40px rgba(0,0,0,0.35)",
+      },
+      backgroundImage: {
+        "shopreel-radial":
+          "radial-gradient(circle at top, rgba(184,109,63,0.16), transparent 30%), radial-gradient(circle at bottom, rgba(34,211,238,0.08), transparent 30%)",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
+===== FILE: tailwind.config.js =====
+
+===== FILE: postcss.config.js =====
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+
+===== FILE: package.json =====
+{
+  "name": "profixiq-shopreel",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.98.0",
+    "next": "^16.1.6",
+    "openai": "^6.27.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "@types/react": "19.2.14",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "3.4.17",
+    "typescript": "^5.9.3"
+  }
+}
+
+===== FILE: src/features/shopreel/ui/ShopReelShell.tsx =====
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+
+type NavItem = {
+  href: string;
+  label: string;
+};
+
+const NAV_ITEMS: NavItem[] = [
+  { href: "/shopreel", label: "Overview" },
+  { href: "/shopreel/opportunities", label: "Opportunities" },
+  { href: "/shopreel/calendar", label: "Calendar" },
+  { href: "/shopreel/render-queue", label: "Render Queue" },
+  { href: "/shopreel/published", label: "Published" },
+  { href: "/shopreel/analytics", label: "Analytics" },
+  { href: "/shopreel/settings", label: "Settings" },
+];
+
+export default function ShopReelShell(props: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  const { title, subtitle, children } = props;
+  const pathname = usePathname();
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.10),transparent_22%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.06),transparent_18%),linear-gradient(180deg,#04070f_0%,#071127_48%,#04070f_100%)] text-white">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <section className="overflow-hidden rounded-[30px] border border-[rgba(148,163,184,0.16)] bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <div className="bg-[radial-gradient(circle_at_top,rgba(193,102,59,0.09),transparent_34%)] px-6 py-7 sm:px-8 sm:py-9">
+            <div className="mb-3 text-[12px] uppercase tracking-[0.38em] text-[#d7a07b]">
+              ShopReel
+            </div>
+
+            <h1
+              className="font-display text-[2.2rem] leading-[1.02] tracking-[0.01em] text-white sm:text-[3.4rem] lg:text-[4rem]"
+              style={{ fontFamily: "var(--font-blackops), var(--font-inter), system-ui, sans-serif" }}
+            >
+              {title}
+            </h1>
+
+            {subtitle ? (
+              <p className="mt-5 max-w-4xl text-base leading-7 text-white/78 sm:text-[1.15rem]">
+                {subtitle}
+              </p>
+            ) : null}
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              {NAV_ITEMS.map((item) => {
+                const isActive =
+                  item.href === "/shopreel"
+                    ? pathname === "/shopreel"
+                    : pathname?.startsWith(item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={[
+                      "rounded-full border px-5 py-2.5 text-sm font-medium transition",
+                      isActive
+                        ? "border-[rgba(193,102,59,0.42)] bg-[rgba(193,102,59,0.14)] text-[#f3c7a4] shadow-[0_0_0_1px_rgba(193,102,59,0.14)]"
+                        : "border-white/10 bg-white/[0.03] text-white/88 hover:border-[rgba(193,102,59,0.34)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white",
+                    ].join(" ")}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <div className="mt-6 space-y-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/ShopReelCard.tsx =====
+import type { ReactNode } from "react";
+
+export default function ShopReelCard(props: {
+  title: string;
+  eyebrow?: string;
+  children: ReactNode;
+}) {
+  const { title, eyebrow, children } = props;
+
+  return (
+    <section className="rounded-[28px] border border-[rgba(148,163,184,0.16)] bg-[linear-gradient(180deg,rgba(18,27,46,0.78),rgba(10,16,30,0.92))] p-6 shadow-[0_16px_44px_rgba(0,0,0,0.30)] backdrop-blur-xl">
+      {eyebrow ? (
+        <div className="mb-3 text-[12px] uppercase tracking-[0.32em] text-[#d7a07b]">
+          {eyebrow}
+        </div>
+      ) : null}
+
+      <h2 className="text-[2rem] font-semibold tracking-tight text-white">
+        {title}
+      </h2>
+
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/ShopReelStat.tsx =====
+export default function ShopReelStat(props: {
+  label: string;
+  value: string | number;
+}) {
+  const { label, value } = props;
+
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.02))] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.24)]">
+      <div className="text-[11px] font-medium uppercase tracking-[0.34em] text-white/52">
+        {label}
+      </div>
+      <div className="mt-4 font-display text-4xl leading-none tracking-[0.02em] text-white sm:text-[2.75rem]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/ShopReelBadge.tsx =====
+import type { ReactNode } from "react";
+
+type Tone = "neutral" | "copper" | "cyan" | "green";
+
+export default function ShopReelBadge(props: {
+  children: ReactNode;
+  tone?: Tone;
+}) {
+  const { children, tone = "neutral" } = props;
+
+  const toneClass =
+    tone === "copper"
+      ? "border-[color:rgba(193,102,59,0.35)] bg-[rgba(193,102,59,0.12)] text-[#e1b08b]"
+      : tone === "cyan"
+        ? "border-cyan-400/25 bg-cyan-400/10 text-cyan-200"
+        : tone === "green"
+          ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
+          : "border-white/10 bg-white/[0.05] text-white/72";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] ${toneClass}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/ShopReelEmpty.tsx =====
+export default function ShopReelEmpty(props: { message: string }) {
+  return (
+    <div className="rounded-[22px] border border-dashed border-white/10 bg-black/25 px-5 py-6 text-sm text-white/58">
+      {props.message}
+    </div>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/ShopReelKeyValue.tsx =====
+export default function ShopReelKeyValue(props: {
+  label: string;
+  value: string | number | null | undefined;
+}) {
+  const display =
+    props.value === null || props.value === undefined || props.value === ""
+      ? "—"
+      : String(props.value);
+
+  return (
+    <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+      <div className="text-[11px] uppercase tracking-[0.24em] text-white/45">
+        {props.label}
+      </div>
+      <div className="mt-2 break-words text-sm text-white/80">{display}</div>
+    </div>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/ShopReelListItem.tsx =====
+import type { ReactNode } from "react";
+
+export default function ShopReelListItem(props: {
+  title: string;
+  subtitle?: string;
+  right?: ReactNode;
+  children?: ReactNode;
+}) {
+  const { title, subtitle, right, children } = props;
+
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(6,12,22,0.92),rgba(7,15,28,0.82))] p-5 shadow-[0_12px_30px_rgba(0,0,0,0.22)]">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="text-lg font-semibold tracking-tight text-white">
+            {title}
+          </div>
+          {subtitle ? (
+            <p className="mt-2 text-sm leading-6 text-white/62">{subtitle}</p>
+          ) : null}
+        </div>
+
+        {right ? <div className="shrink-0">{right}</div> : null}
+      </div>
+
+      {children ? <div className="mt-5">{children}</div> : null}
+    </div>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/ShopReelTheme.ts =====
+export const shopReelTheme = {
+  shell:
+    "min-h-screen bg-[radial-gradient(circle_at_top,rgba(120,72,28,0.22),transparent_28%),linear-gradient(180deg,#050816_0%,#02050d_100%)] text-white",
+  container: "mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:px-8",
+  hero:
+    "rounded-[28px] border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_20px_80px_rgba(0,0,0,0.45)]",
+  card:
+    "rounded-[24px] border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.35)]",
+  cardInner: "rounded-[18px] border border-white/8 bg-black/30",
+  copperText: "text-[#d08a45]",
+  copperBorder: "border-[#d08a45]/30",
+  copperBg: "bg-[#d08a45]/10",
+  muted: "text-white/65",
+  soft: "text-white/45",
+};
+
+===== FILE: src/features/shopreel/ui/ShopReelSettingsClient.tsx =====
+"use client";
+
+import { useMemo, useState } from "react";
+import ShopReelBadge from "@/features/shopreel/ui/ShopReelBadge";
+
+type PlatformRow = {
+  platform: "instagram_reels" | "facebook" | "youtube_shorts" | "tiktok";
+  enabled: boolean;
+  connection_active: boolean;
+  connection_status: "not_connected" | "connected" | "expired" | "error";
+  publish_mode: "manual" | "scheduled" | "autopilot";
+  account_label: string | null;
+};
+
+type Props = {
+  shopId: string;
+  initial: {
+    settings: {
+      publish_mode: "manual" | "approval_required" | "autopilot";
+      default_cta: string | null;
+      default_location: string | null;
+      brand_voice: string | null;
+      onboarding_completed: boolean;
+    } | null;
+    platforms: PlatformRow[];
+    readiness: {
+      connectedCount: number;
+      enabledCount: number;
+      canPublish: boolean;
+      canAutopilot: boolean;
+      missing: string[];
+    };
+  };
+};
+
+function labelForPlatform(platform: string) {
+  switch (platform) {
+    case "instagram_reels":
+      return "Instagram Reels";
+    case "facebook":
+      return "Facebook";
+    case "youtube_shorts":
+      return "YouTube Shorts";
+    case "tiktok":
+      return "TikTok";
+    default:
+      return platform;
+  }
+}
+
+function ToggleRow(props: {
+  title: string;
+  subtitle: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const { title, subtitle, checked, onChange } = props;
+
+  return (
+    <label className="flex items-center justify-between gap-4 rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(9,16,30,0.78),rgba(7,12,22,0.88))] px-4 py-4">
+      <div>
+        <div className="text-lg text-white">{title}</div>
+        <div className="mt-1 text-sm text-white/62">{subtitle}</div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className={[
+          "relative inline-flex h-8 w-14 shrink-0 rounded-full border transition",
+          checked
+            ? "border-[rgba(193,102,59,0.55)] bg-[rgba(193,102,59,0.22)]"
+            : "border-white/10 bg-white/[0.05]",
+        ].join(" ")}
+        aria-pressed={checked}
+      >
+        <span
+          className={[
+            "absolute top-1 h-6 w-6 rounded-full transition",
+            checked
+              ? "left-7 bg-[#efc19e] shadow-[0_0_16px_rgba(193,102,59,0.35)]"
+              : "left-1 bg-white/70",
+          ].join(" ")}
+        />
+      </button>
+    </label>
+  );
+}
+
+function FieldShell(props: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="rounded-[20px] border border-white/10 bg-[linear-gradient(180deg,rgba(9,16,30,0.78),rgba(7,12,22,0.88))] p-4">
+      <div className="text-[11px] uppercase tracking-[0.24em] text-white/50">
+        {props.label}
+      </div>
+      <div className="mt-3">{props.children}</div>
+    </label>
+  );
+}
+
+export default function ShopReelSettingsClient({ shopId, initial }: Props) {
+  const [publishMode, setPublishMode] = useState(
+    initial.settings?.publish_mode ?? "manual",
+  );
+  const [defaultCta, setDefaultCta] = useState(
+    initial.settings?.default_cta ?? "",
+  );
+  const [defaultLocation, setDefaultLocation] = useState(
+    initial.settings?.default_location ?? "",
+  );
+  const [brandVoice, setBrandVoice] = useState(
+    initial.settings?.brand_voice ?? "",
+  );
+  const [onboardingCompleted, setOnboardingCompleted] = useState(
+    initial.settings?.onboarding_completed ?? false,
+  );
+  const [platforms, setPlatforms] = useState(initial.platforms);
+  const [saving, setSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
+
+  const connectedCount = useMemo(
+    () => platforms.filter((p) => p.connection_active).length,
+    [platforms],
+  );
+
+  const enabledCount = useMemo(
+    () => platforms.filter((p) => p.enabled).length,
+    [platforms],
+  );
+
+  const missing = useMemo(() => {
+    const result: string[] = [];
+    if (!defaultCta.trim()) result.push("Default CTA");
+    if (!defaultLocation.trim()) result.push("Default location");
+    if (!brandVoice.trim()) result.push("Brand voice");
+    if (enabledCount === 0) result.push("At least one enabled platform");
+    if (connectedCount === 0) result.push("At least one connected platform");
+    if (!onboardingCompleted) result.push("Launch onboarding completion");
+    return result;
+  }, [
+    brandVoice,
+    connectedCount,
+    defaultCta,
+    defaultLocation,
+    enabledCount,
+    onboardingCompleted,
+  ]);
+
+  async function save() {
+    setSaving(true);
+    setSavedMessage(null);
+
+    const response = await fetch("/api/shopreel/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shopId,
+        publishMode,
+        defaultCta,
+        defaultLocation,
+        brandVoice,
+        onboardingCompleted,
+        platforms: platforms.map((platform) => ({
+          platform: platform.platform,
+          enabled: platform.enabled,
+          connectionActive: platform.connection_active,
+          publishMode: platform.publish_mode,
+        })),
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    setSaving(false);
+    setSavedMessage(data?.ok ? "Settings saved." : "Save failed.");
+  }
+
+  return (
+    <div className="space-y-6">
+      <section className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-6">
+          <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
+            Launch Readiness
+          </div>
+          <div className="mt-4 font-display text-4xl leading-none text-white sm:text-5xl">
+            {connectedCount}
+          </div>
+          <div className="mt-3 text-white/72">Connected platforms</div>
+        </div>
+
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-6">
+          <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
+            Publishing Scope
+          </div>
+          <div className="mt-4 font-display text-4xl leading-none text-white sm:text-5xl">
+            {enabledCount}
+          </div>
+          <div className="mt-3 text-white/72">Enabled destinations</div>
+        </div>
+
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-6">
+          <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
+            Safety
+          </div>
+          <div className="mt-4">
+            <ShopReelBadge tone="copper">
+              {publishMode.replaceAll("_", " ")}
+            </ShopReelBadge>
+          </div>
+          <div className="mt-3 text-white/72">
+            Recommended launch default: manual publish.
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6">
+        <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
+          Content Identity
+        </div>
+        <h2 className="mt-3 text-[2rem] font-semibold tracking-tight text-white">
+          Brand Defaults
+        </h2>
+
+        <div className="mt-6 grid gap-4">
+          <FieldShell label="Default CTA">
+            <input
+              value={defaultCta}
+              onChange={(e) => setDefaultCta(e.target.value)}
+              className="w-full border-0 bg-transparent px-0 py-0 text-lg text-white shadow-none outline-none focus:border-0 focus:bg-transparent focus:shadow-none"
+              placeholder="Book your inspection today."
+            />
+          </FieldShell>
+
+          <FieldShell label="Default Location">
+            <input
+              value={defaultLocation}
+              onChange={(e) => setDefaultLocation(e.target.value)}
+              className="w-full border-0 bg-transparent px-0 py-0 text-lg text-white shadow-none outline-none focus:border-0 focus:bg-transparent focus:shadow-none"
+              placeholder="Calgary, Alberta"
+            />
+          </FieldShell>
+
+          <FieldShell label="Brand Voice">
+            <textarea
+              value={brandVoice}
+              onChange={(e) => setBrandVoice(e.target.value)}
+              rows={3}
+              className="w-full resize-none border-0 bg-transparent px-0 py-0 text-lg text-white shadow-none outline-none focus:border-0 focus:bg-transparent focus:shadow-none"
+              placeholder="Straightforward, trustworthy, expert mechanic voice."
+            />
+          </FieldShell>
+
+          <ToggleRow
+            title="Launch onboarding complete"
+            subtitle="Required before enabling full autopilot."
+            checked={onboardingCompleted}
+            onChange={setOnboardingCompleted}
+          />
+
+          <FieldShell label="Publish Mode">
+            <select
+              value={publishMode}
+              onChange={(e) =>
+                setPublishMode(
+                  e.target.value as "manual" | "approval_required" | "autopilot",
+                )
+              }
+              className="w-full border-0 bg-transparent px-0 py-0 text-lg text-white shadow-none outline-none focus:border-0 focus:bg-transparent focus:shadow-none"
+            >
+              <option value="manual" className="bg-[#071127]">
+                manual
+              </option>
+              <option value="approval_required" className="bg-[#071127]">
+                approval required
+              </option>
+              <option value="autopilot" className="bg-[#071127]">
+                autopilot
+              </option>
+            </select>
+          </FieldShell>
+        </div>
+      </section>
+
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6">
+        <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
+          Destinations
+        </div>
+        <h2 className="mt-3 text-[2rem] font-semibold tracking-tight text-white">
+          Platform Connections
+        </h2>
+
+        <div className="mt-6 grid gap-5">
+          {platforms.map((platform, index) => (
+            <div
+              key={platform.platform}
+              className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,14,26,0.82),rgba(7,12,22,0.92))] p-5"
+            >
+              <div className="text-2xl text-white">
+                {labelForPlatform(platform.platform)}
+              </div>
+
+              <div className="mt-2 text-white/60">
+                {platform.connection_active
+                  ? "Connected and available for publishing."
+                  : "Not connected yet. OAuth / account linking still needs implementation."}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <ShopReelBadge tone={platform.connection_active ? "green" : "neutral"}>
+                  {platform.connection_active ? "Connected" : "Not connected"}
+                </ShopReelBadge>
+
+                <ShopReelBadge tone={platform.enabled ? "copper" : "neutral"}>
+                  {platform.enabled ? "Enabled" : "Disabled"}
+                </ShopReelBadge>
+
+                <ShopReelBadge
+                  tone={
+                    platform.publish_mode === "autopilot"
+                      ? "green"
+                      : platform.publish_mode === "scheduled"
+                        ? "cyan"
+                        : "neutral"
+                  }
+                >
+                  {platform.publish_mode}
+                </ShopReelBadge>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <ToggleRow
+                  title="Enable this platform"
+                  subtitle="Allow ShopReel to prepare content for this destination."
+                  checked={platform.enabled}
+                  onChange={(next) => {
+                    const updated = [...platforms];
+                    updated[index] = { ...platform, enabled: next };
+                    setPlatforms(updated);
+                  }}
+                />
+
+                <ToggleRow
+                  title="Connection active"
+                  subtitle="This becomes real once per-shop OAuth is wired."
+                  checked={platform.connection_active}
+                  onChange={(next) => {
+                    const updated = [...platforms];
+                    updated[index] = {
+                      ...platform,
+                      connection_active: next,
+                      connection_status: next ? "connected" : "not_connected",
+                    };
+                    setPlatforms(updated);
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-[28px] border border-white/10 bg-white/[0.05] p-6">
+        <div className="text-[12px] uppercase tracking-[0.3em] text-[#d5a07a]">
+          What still needs wiring
+        </div>
+        <h2 className="mt-3 text-[2rem] font-semibold tracking-tight text-white">
+          Launch Checklist
+        </h2>
+
+        <div className="mt-6 grid gap-3">
+          {missing.length === 0 ? (
+            <div className="rounded-[20px] border border-emerald-500/20 bg-emerald-500/10 px-5 py-5 text-emerald-100">
+              ShopReel settings are launch-ready for this shop.
+            </div>
+          ) : (
+            missing.map((item) => (
+              <div
+                key={item}
+                className="rounded-[20px] border border-dashed border-white/10 bg-black/20 px-5 py-5 text-white/82"
+              >
+                {item}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="mt-6 flex items-center gap-4">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="rounded-full border border-[rgba(193,102,59,0.45)] bg-[rgba(193,102,59,0.16)] px-5 py-3 text-sm uppercase tracking-[0.2em] text-[#efc19e] transition hover:bg-[rgba(193,102,59,0.24)] disabled:opacity-60"
+          >
+            {saving ? "Saving..." : "Save settings"}
+          </button>
+
+          {savedMessage ? (
+            <div className="text-sm text-white/72">{savedMessage}</div>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+===== FILE: src/app/shopreel/settings/page.tsx =====
+import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
+import ShopReelSettingsClient from "@/features/shopreel/ui/ShopReelSettingsClient";
+import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
+
+const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+
+export default async function ShopReelSettingsPage() {
+  const result = await getShopReelSettings(DEFAULT_SHOP_ID);
+
+  return (
+    <ShopReelShell
+      title="Settings"
+      subtitle="Configure shop-level platform connections, publishing behavior, and brand defaults before launch."
+    >
+      <ShopReelSettingsClient
+        shopId={DEFAULT_SHOP_ID}
+        initial={{
+          settings: result.settings,
+          platforms: result.platforms,
+          readiness: result.readiness,
+        }}
+      />
+    </ShopReelShell>
+  );
+}
+
+===== FILE: src/app/shopreel/page.tsx =====
+import Link from "next/link";
+import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
+import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
+import ShopReelStat from "@/features/shopreel/ui/ShopReelStat";
+import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
+import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+
+const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+
+async function getJson(path: string) {
+  const base = getBaseUrl();
+
+  try {
+    const response = await fetch(`${base}${path}`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+export default async function ShopReelHomePage() {
+  const [jobsResponse, settingsBundle] = await Promise.all([
+    getJson(`/api/shopreel/render-jobs?shopId=${DEFAULT_SHOP_ID}`),
+    getShopReelSettings(DEFAULT_SHOP_ID),
+  ]);
+
+  const jobs =
+    jobsResponse &&
+    typeof jobsResponse === "object" &&
+    "jobs" in jobsResponse &&
+    Array.isArray((jobsResponse as { jobs?: unknown[] }).jobs)
+      ? ((jobsResponse as { jobs: unknown[] }).jobs ?? [])
+      : [];
+
+  const queued = jobs.filter(
+    (job) =>
+      typeof job === "object" &&
+      job !== null &&
+      "status" in job &&
+      (job as { status?: string }).status === "queued",
+  ).length;
+
+  const rendering = jobs.filter(
+    (job) =>
+      typeof job === "object" &&
+      job !== null &&
+      "status" in job &&
+      (job as { status?: string }).status === "rendering",
+  ).length;
+
+  const ready = jobs.filter(
+    (job) =>
+      typeof job === "object" &&
+      job !== null &&
+      "status" in job &&
+      (job as { status?: string }).status === "ready",
+  ).length;
+
+  const published = jobs.filter(
+    (job) =>
+      typeof job === "object" &&
+      job !== null &&
+      "status" in job &&
+      (job as { status?: string }).status === "published",
+  ).length;
+
+  return (
+    <ShopReelShell
+      title="ShopReel Dashboard"
+      subtitle="AI content engine for repair shops. Monitor opportunities, calendars, render jobs, and publishing flow from one place."
+    >
+      {!settingsBundle.readiness.canPublish ? (
+        <ShopReelCard title="Launch Readiness" eyebrow="Needs attention">
+          <div className="grid gap-3">
+            {settingsBundle.readiness.missing.map((item) => (
+              <div
+                key={item}
+                className="rounded-[18px] border border-dashed border-white/10 bg-black/20 px-4 py-4 text-white/82"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5">
+            <Link
+              href="/shopreel/settings"
+              className="inline-flex rounded-full border border-[rgba(193,102,59,0.45)] bg-[rgba(193,102,59,0.16)] px-5 py-3 text-sm uppercase tracking-[0.18em] text-[#efc19e]"
+            >
+              Open settings
+            </Link>
+          </div>
+        </ShopReelCard>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ShopReelStat label="Queued Jobs" value={queued} />
+        <ShopReelStat label="Rendering" value={rendering} />
+        <ShopReelStat label="Ready" value={ready} />
+        <ShopReelStat label="Published" value={published} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <ShopReelCard title="Quick Actions" eyebrow="Control Center">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/shopreel/opportunities"
+              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+            >
+              View detected opportunities
+            </Link>
+            <Link
+              href="/shopreel/calendar"
+              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+            >
+              Review content calendar
+            </Link>
+            <Link
+              href="/shopreel/render-queue"
+              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+            >
+              Inspect render queue
+            </Link>
+            <Link
+              href="/shopreel/analytics"
+              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+            >
+              See learning signals
+            </Link>
+          </div>
+        </ShopReelCard>
+
+        <ShopReelCard title="System Status" eyebrow="Pipeline">
+          <div className="space-y-3 text-sm text-white/75">
+            <p>Discovery engine: online</p>
+            <p>Hook engine: online</p>
+            <p>Calendar generation: online</p>
+            <p>Render queue: online</p>
+            <p>
+              Publish mode:{" "}
+              <span className="text-[#efc19e]">
+                {settingsBundle.settings?.publish_mode ?? "manual"}
+              </span>
+            </p>
+          </div>
+        </ShopReelCard>
+      </div>
+    </ShopReelShell>
+  );
+}
+
+===== FILE: src/app/shopreel/opportunities/page.tsx =====
+import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
+import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
+import ShopReelBadge from "@/features/shopreel/ui/ShopReelBadge";
+import ShopReelEmpty from "@/features/shopreel/ui/ShopReelEmpty";
+import ShopReelKeyValue from "@/features/shopreel/ui/ShopReelKeyValue";
+import ShopReelListItem from "@/features/shopreel/ui/ShopReelListItem";
+import ShopReelSectionGrid from "@/features/shopreel/ui/ShopReelSectionGrid";
+import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+
+const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+
+type Suggestion = {
+  sourceType?: string;
+  sourceId?: string;
+  workOrderId?: string | null;
+  title?: string;
+  trigger?: string;
+  viralScore?: number;
+  reason?: string;
+  prompt?: string;
+};
+
+async function postJson(path: string, body: unknown) {
+  const base = getBaseUrl();
+
+  try {
+    const response = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as { suggestions?: Suggestion[] } | null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function ShopReelOpportunitiesPage() {
+  const data = await postJson("/api/shopreel/suggestions", {
+    shopId: DEFAULT_SHOP_ID,
+  });
+
+  const suggestions = Array.isArray(data?.suggestions) ? data!.suggestions : [];
+
+  return (
+    <ShopReelShell
+      title="Opportunities"
+      subtitle="High-value repair stories, inspection highlights, and viral moments detected from shop activity."
+    >
+      <ShopReelCard title="Detected Opportunities" eyebrow="Live Feed">
+        {suggestions.length === 0 ? (
+          <ShopReelEmpty message="No opportunities detected yet for this shop." />
+        ) : (
+          <ShopReelSectionGrid>
+            {suggestions.map((item, index) => (
+              <ShopReelListItem
+                key={`${item.sourceId ?? "op"}-${index}`}
+                title={item.title ?? "Untitled opportunity"}
+                subtitle={item.prompt ?? "AI-generated opportunity prompt"}
+                right={
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <ShopReelBadge tone="copper">
+                      {`Score ${String(item.viralScore ?? 0)}`}
+                    </ShopReelBadge>
+                    <ShopReelBadge tone="cyan">
+                      {item.sourceType ?? "unknown"}
+                    </ShopReelBadge>
+                  </div>
+                }
+              >
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <ShopReelKeyValue label="Trigger" value={item.trigger} />
+                  <ShopReelKeyValue label="Reason" value={item.reason} />
+                  <ShopReelKeyValue label="Work Order" value={item.workOrderId} />
+                  <ShopReelKeyValue label="Source ID" value={item.sourceId} />
+                </div>
+              </ShopReelListItem>
+            ))}
+          </ShopReelSectionGrid>
+        )}
+      </ShopReelCard>
+    </ShopReelShell>
+  );
+}
+
+===== FILE: src/app/shopreel/calendar/page.tsx =====
+import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
+import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
+import ShopReelBadge from "@/features/shopreel/ui/ShopReelBadge";
+import ShopReelEmpty from "@/features/shopreel/ui/ShopReelEmpty";
+import ShopReelKeyValue from "@/features/shopreel/ui/ShopReelKeyValue";
+import ShopReelListItem from "@/features/shopreel/ui/ShopReelListItem";
+import ShopReelSectionGrid from "@/features/shopreel/ui/ShopReelSectionGrid";
+import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+
+const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+
+type CalendarItem = {
+  day?: number;
+  videoIdea?: string;
+  title?: string;
+  contentType?: string;
+  hook?: string;
+  cta?: string;
+};
+
+type CalendarResponse =
+  | {
+      result?: CalendarItem[];
+      items?: CalendarItem[];
+    }
+  | null;
+
+async function postJson(path: string, body: unknown) {
+  const base = getBaseUrl();
+
+  try {
+    const response = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as CalendarResponse;
+  } catch {
+    return null;
+  }
+}
+
+export default async function ShopReelCalendarPage() {
+  const data = await postJson("/api/shopreel/calendar", {
+    shopId: DEFAULT_SHOP_ID,
+  });
+
+  const items = Array.isArray(data?.result)
+    ? data!.result
+    : Array.isArray(data?.items)
+      ? data!.items
+      : [];
+
+  return (
+    <ShopReelShell
+      title="Calendar"
+      subtitle="Generated posting plan and calendar structure for the current shop."
+    >
+      <ShopReelCard title="Calendar Output" eyebrow="Planner">
+        {items.length === 0 ? (
+          <ShopReelEmpty message="No calendar items generated yet." />
+        ) : (
+          <ShopReelSectionGrid>
+            {items.map((item, index) => (
+              <ShopReelListItem
+                key={`day-${item.day ?? index + 1}`}
+                title={item.videoIdea ?? item.title ?? `Day ${item.day ?? index + 1}`}
+                subtitle={item.hook ?? "No hook generated yet."}
+                right={
+                  <ShopReelBadge tone="copper">
+                    {`Day ${String(item.day ?? index + 1)}`}
+                  </ShopReelBadge>
+                }
+              >
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <ShopReelKeyValue label="Content Type" value={item.contentType} />
+                  <ShopReelKeyValue label="CTA" value={item.cta} />
+                  <div className="flex items-start">
+                    <ShopReelBadge tone="cyan">
+                      {item.contentType ?? "planned"}
+                    </ShopReelBadge>
+                  </div>
+                </div>
+              </ShopReelListItem>
+            ))}
+          </ShopReelSectionGrid>
+        )}
+      </ShopReelCard>
+    </ShopReelShell>
+  );
+}
+
+===== FILE: src/app/shopreel/render-queue/page.tsx =====
+import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
+import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
+import ShopReelBadge from "@/features/shopreel/ui/ShopReelBadge";
+import ShopReelEmpty from "@/features/shopreel/ui/ShopReelEmpty";
+import ShopReelKeyValue from "@/features/shopreel/ui/ShopReelKeyValue";
+import ShopReelListItem from "@/features/shopreel/ui/ShopReelListItem";
+import ShopReelStat from "@/features/shopreel/ui/ShopReelStat";
+import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+
+const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+
+type RenderJob = {
+  id?: string;
+  status?: string;
+  source_type?: string;
+  source_id?: string;
+  work_order_id?: string | null;
+  output_url?: string | null;
+  thumbnail_url?: string | null;
+  created_at?: string;
+};
+
+async function getJson(path: string) {
+  const base = getBaseUrl();
+
+  try {
+    const response = await fetch(`${base}${path}`, { cache: "no-store" });
+    if (!response.ok) return null;
+    return (await response.json()) as { jobs?: RenderJob[] } | null;
+  } catch {
+    return null;
+  }
+}
+
+function byStatus(jobs: RenderJob[], status: string) {
+  return jobs.filter((job) => job.status === status);
+}
+
+export default async function ShopReelRenderQueuePage() {
+  const data = await getJson(`/api/shopreel/render-jobs?shopId=${DEFAULT_SHOP_ID}`);
+  const jobs = Array.isArray(data?.jobs) ? data!.jobs : [];
+
+  const queued = byStatus(jobs, "queued");
+  const rendering = byStatus(jobs, "rendering");
+  const ready = byStatus(jobs, "ready");
+  const published = byStatus(jobs, "published");
+
+  return (
+    <ShopReelShell
+      title="Render Queue"
+      subtitle="Queued, rendering, ready, published, and failed reel jobs."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ShopReelStat label="Queued" value={queued.length} />
+        <ShopReelStat label="Rendering" value={rendering.length} />
+        <ShopReelStat label="Ready" value={ready.length} />
+        <ShopReelStat label="Published" value={published.length} />
+      </div>
+
+      <div className="mt-6">
+        <ShopReelCard title="Render Jobs" eyebrow="Pipeline Queue">
+          {jobs.length === 0 ? (
+            <ShopReelEmpty message="No render jobs found." />
+          ) : (
+            <div className="grid gap-4">
+              {jobs.map((job, index) => (
+                <ShopReelListItem
+                  key={job.id ?? `job-${index}`}
+                  title={job.work_order_id ?? job.id ?? "Render job"}
+                  subtitle={job.output_url ?? "Render output not ready yet"}
+                  right={
+                    <ShopReelBadge
+                      tone={
+                        job.status === "ready" || job.status === "published"
+                          ? "green"
+                          : job.status === "rendering"
+                            ? "cyan"
+                            : "neutral"
+                      }
+                    >
+                      {job.status ?? "unknown"}
+                    </ShopReelBadge>
+                  }
+                >
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <ShopReelKeyValue label="Source Type" value={job.source_type} />
+                    <ShopReelKeyValue label="Source ID" value={job.source_id} />
+                    <ShopReelKeyValue label="Work Order" value={job.work_order_id} />
+                    <ShopReelKeyValue label="Created" value={job.created_at} />
+                  </div>
+                </ShopReelListItem>
+              ))}
+            </div>
+          )}
+        </ShopReelCard>
+      </div>
+    </ShopReelShell>
+  );
+}
+
+===== FILE: src/app/shopreel/analytics/page.tsx =====
+import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
+import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
+import ShopReelBadge from "@/features/shopreel/ui/ShopReelBadge";
+import ShopReelEmpty from "@/features/shopreel/ui/ShopReelEmpty";
+import ShopReelKeyValue from "@/features/shopreel/ui/ShopReelKeyValue";
+import ShopReelListItem from "@/features/shopreel/ui/ShopReelListItem";
+import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+
+const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+
+type SignalRow = {
+  content_type?: string;
+  avg_engagement_score?: number;
+  total_views?: number;
+  total_leads?: number;
+  posts_generated?: number;
+  last_updated?: string | null;
+};
+
+type MemoryResponse = {
+  result?: {
+    updatedAt?: string;
+    topContentTypes?: SignalRow[];
+  };
+};
+
+type SignalsResponse = {
+  result?: {
+    rows?: SignalRow[];
+  };
+};
+
+async function postJson(path: string, body: unknown) {
+  const base = getBaseUrl();
+
+  try {
+    const response = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+export default async function ShopReelAnalyticsPage() {
+  const signalsData = (await postJson("/api/shopreel/signals", {
+    shopId: DEFAULT_SHOP_ID,
+  })) as SignalsResponse | null;
+
+  const memoryData = (await postJson("/api/shopreel/memory", {
+    shopId: DEFAULT_SHOP_ID,
+  })) as MemoryResponse | null;
+
+  const signalRows = Array.isArray(signalsData?.result?.rows)
+    ? signalsData!.result!.rows!
+    : [];
+
+  const memoryRows = Array.isArray(memoryData?.result?.topContentTypes)
+    ? memoryData!.result!.topContentTypes!
+    : [];
+
+  return (
+    <ShopReelShell
+      title="Analytics"
+      subtitle="Learning signals, strategy memory, and performance feedback loop."
+    >
+      <div className="grid gap-6 xl:grid-cols-2">
+        <ShopReelCard title="Learning Signals" eyebrow="Feedback Loop">
+          {signalRows.length === 0 ? (
+            <ShopReelEmpty message="No learning signals available yet." />
+          ) : (
+            <div className="grid gap-4">
+              {signalRows.map((row, index) => (
+                <ShopReelListItem
+                  key={`${row.content_type ?? "signal"}-${index}`}
+                  title={row.content_type ?? "Unknown content type"}
+                  right={<ShopReelBadge tone="copper">Signal</ShopReelBadge>}
+                >
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <ShopReelKeyValue label="Avg Engagement" value={row.avg_engagement_score} />
+                    <ShopReelKeyValue label="Views" value={row.total_views} />
+                    <ShopReelKeyValue label="Leads" value={row.total_leads} />
+                    <ShopReelKeyValue label="Posts" value={row.posts_generated} />
+                  </div>
+                </ShopReelListItem>
+              ))}
+            </div>
+          )}
+        </ShopReelCard>
+
+        <ShopReelCard title="Marketing Memory" eyebrow="Strategy Memory">
+          {memoryRows.length === 0 ? (
+            <ShopReelEmpty message="No marketing memory saved yet." />
+          ) : (
+            <div className="grid gap-4">
+              {memoryRows.map((row, index) => (
+                <ShopReelListItem
+                  key={`${row.content_type ?? "memory"}-${index}`}
+                  title={row.content_type ?? "Unknown content type"}
+                  subtitle={`Updated: ${row.last_updated ?? memoryData?.result?.updatedAt ?? "—"}`}
+                  right={<ShopReelBadge tone="cyan">Memory</ShopReelBadge>}
+                >
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <ShopReelKeyValue label="Avg Engagement" value={row.avg_engagement_score} />
+                    <ShopReelKeyValue label="Views" value={row.total_views} />
+                    <ShopReelKeyValue label="Leads" value={row.total_leads} />
+                    <ShopReelKeyValue label="Posts" value={row.posts_generated} />
+                  </div>
+                </ShopReelListItem>
+              ))}
+            </div>
+          )}
+        </ShopReelCard>
+      </div>
+    </ShopReelShell>
+  );
+}
+
+===== FILE: src/app/shopreel/published/page.tsx =====
+import ShopReelShell from "@/features/shopreel/ui/ShopReelShell";
+import ShopReelCard from "@/features/shopreel/ui/ShopReelCard";
+import ShopReelEmpty from "@/features/shopreel/ui/ShopReelEmpty";
+
+export default function ShopReelPublishedPage() {
+  return (
+    <ShopReelShell
+      title="Published"
+      subtitle="Published reels and platform delivery status will live here next."
+    >
+      <ShopReelCard title="Published Feed" eyebrow="Coming Next">
+        <ShopReelEmpty message="Published videos, platform links, and delivery tracking will appear here." />
+      </ShopReelCard>
+    </ShopReelShell>
+  );
+}
+
+===== SEARCH: bg-black / bg-neutral / font-display / Black Ops =====
+src/app/layout.tsx:21:  variable: "--font-blackops",
+src/app/shopreel/page.tsx:85:                className="rounded-[18px] border border-dashed border-white/10 bg-black/20 px-4 py-4 text-white/82"
+src/app/shopreel/page.tsx:115:              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+src/app/shopreel/page.tsx:121:              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+src/app/shopreel/page.tsx:127:              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+src/app/shopreel/page.tsx:133:              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+src/app/globals.css:24:  @apply bg-neutral-950 text-white antialiased;
+src/app/globals.css:28:.font-blackops,
+src/app/globals.css:29:.font-display,
+src/app/globals.css:31:  font-family: var(--font-blackops), var(--font-inter), system-ui, sans-serif !important;
+src/features/shopreel/ui/ShopReelInputPreview.tsx:13:    <div className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
+src/features/shopreel/ui/ShopReelToggleRow.tsx:13:    <div className="flex items-start justify-between gap-4 rounded-[20px] border border-white/8 bg-black/20 px-4 py-4">
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:188:          <div className="mt-4 font-display text-4xl leading-none text-white sm:text-5xl">
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:198:          <div className="mt-4 font-display text-4xl leading-none text-white sm:text-5xl">
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:382:                className="rounded-[20px] border border-dashed border-white/10 bg-black/20 px-5 py-5 text-white/82"
+src/features/shopreel/ui/ShopReelEmpty.tsx:3:    <div className="rounded-[22px] border border-dashed border-white/10 bg-black/25 px-5 py-6 text-sm text-white/58">
+src/features/shopreel/ui/ShopReelKeyValue.tsx:11:    <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+src/features/shopreel/ui/ShopReelShell.tsx:40:              className="font-display text-[2.2rem] leading-[1.02] tracking-[0.01em] text-white sm:text-[3.4rem] lg:text-[4rem]"
+src/features/shopreel/ui/ShopReelShell.tsx:41:              style={{ fontFamily: "var(--font-blackops), var(--font-inter), system-ui, sans-serif" }}
+src/features/shopreel/ui/ShopReelTheme.ts:9:  cardInner: "rounded-[18px] border border-white/8 bg-black/30",
+src/features/shopreel/ui/ShopReelStat.tsx:12:      <div className="mt-4 font-display text-4xl leading-none tracking-[0.02em] text-white sm:text-[2.75rem]">
