@@ -82,7 +82,7 @@ export default async function ShopReelHomePage() {
             {settingsBundle.readiness.missing.map((item) => (
               <div
                 key={item}
-                className="rounded-[18px] border border-dashed border-white/10 bg-black/20 px-4 py-4 text-white/82"
+                className="rounded-[18px] border border-[rgba(180,74,66,0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-4 py-4 text-white/82 backdrop-blur-xl"
               >
                 {item}
               </div>
@@ -92,7 +92,7 @@ export default async function ShopReelHomePage() {
           <div className="mt-5">
             <Link
               href="/shopreel/settings"
-              className="inline-flex rounded-full border border-[rgba(193,102,59,0.45)] bg-[rgba(193,102,59,0.16)] px-5 py-3 text-sm uppercase tracking-[0.18em] text-[#efc19e]"
+              className="inline-flex rounded-full border border-[rgba(193,102,59,0.34)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.08))] px-5 py-3 text-sm uppercase tracking-[0.18em] text-[#efc19e] backdrop-blur-xl"
             >
               Open settings
             </Link>
@@ -112,25 +112,25 @@ export default async function ShopReelHomePage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/shopreel/opportunities"
-              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+              className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 text-sm text-white/82 backdrop-blur-xl transition hover:border-[rgba(193,102,59,0.28)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.06))] hover:text-white"
             >
               View detected opportunities
             </Link>
             <Link
               href="/shopreel/calendar"
-              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+              className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 text-sm text-white/82 backdrop-blur-xl transition hover:border-[rgba(193,102,59,0.28)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.06))] hover:text-white"
             >
               Review content calendar
             </Link>
             <Link
               href="/shopreel/render-queue"
-              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+              className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 text-sm text-white/82 backdrop-blur-xl transition hover:border-[rgba(193,102,59,0.28)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.06))] hover:text-white"
             >
               Inspect render queue
             </Link>
             <Link
               href="/shopreel/analytics"
-              className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/80 transition hover:border-[rgba(193,102,59,0.4)] hover:bg-[rgba(193,102,59,0.10)] hover:text-white"
+              className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-4 text-sm text-white/82 backdrop-blur-xl transition hover:border-[rgba(193,102,59,0.28)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(193,102,59,0.06))] hover:text-white"
             >
               See learning signals
             </Link>
