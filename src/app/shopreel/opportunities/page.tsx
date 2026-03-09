@@ -63,7 +63,7 @@ export default async function ShopReelOpportunitiesPage() {
                 right={
                   <div className="flex flex-wrap gap-2 justify-end">
                     <ShopReelBadge tone="copper">
-                      Score {item.viralScore ?? 0}
+                      {`Score ${String(item.viralScore ?? 0)}`}
                     </ShopReelBadge>
                     <ShopReelBadge tone="cyan">
                       {item.sourceType ?? "unknown"}

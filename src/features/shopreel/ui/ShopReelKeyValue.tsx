@@ -1,17 +1,18 @@
-type Props = {
+export default function ShopReelKeyValue(props: {
   label: string;
   value: string | number | null | undefined;
-};
+}) {
+  const display =
+    props.value === null || props.value === undefined || props.value === ""
+      ? "—"
+      : String(props.value);
 
-export default function ShopReelKeyValue({ label, value }: Props) {
   return (
-    <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-        {label}
+    <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+      <div className="text-[11px] uppercase tracking-[0.24em] text-white/45">
+        {props.label}
       </div>
-      <div className="mt-1 text-sm text-white/85">
-        {value === null || value === undefined || value === "" ? "—" : String(value)}
-      </div>
+      <div className="mt-2 break-words text-sm text-white/80">{display}</div>
     </div>
   );
 }

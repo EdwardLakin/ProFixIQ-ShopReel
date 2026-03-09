@@ -71,7 +71,7 @@ export default async function ShopReelCalendarPage() {
                 subtitle={item.hook ?? "No hook generated yet."}
                 right={
                   <ShopReelBadge tone="copper">
-                    Day {item.day ?? index + 1}
+                    {`Day ${String(item.day ?? index + 1)}`}
                   </ShopReelBadge>
                 }
               >

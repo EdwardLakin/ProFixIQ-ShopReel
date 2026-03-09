@@ -1,7 +1,7 @@
-export default function ShopReelEmpty({ message }: { message: string }) {
+export default function ShopReelEmpty(props: { message: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-white/10 bg-black/30 p-6 text-sm text-white/60">
-      {message}
+    <div className="rounded-[22px] border border-dashed border-white/10 bg-black/25 px-5 py-6 text-sm text-white/58">
+      {props.message}
     </div>
   );
 }

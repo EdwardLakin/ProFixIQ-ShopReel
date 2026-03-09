@@ -4,6 +4,7 @@ import { detectViralMoments } from "@/features/shopreel/moments/detectViralMomen
 import { generateHooks } from "@/features/shopreel/hooks/generateHooks";
 import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
 import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
+import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
 
 type SchedulerCalendarItem = {
   day: number;
@@ -68,6 +69,13 @@ export async function runShopReelAutopilot(
   shopId: string,
 ): Promise<SchedulerResult> {
   const supabase = createAdminClient();
+  const settingsBundle = await getShopReelSettings(shopId);
+
+  if (!settingsBundle.readiness.canPublish) {
+    throw new Error(
+      `ShopReel launch settings incomplete: ${settingsBundle.readiness.missing.join(", ")}`,
+    );
+  }
 
   const discovered = await discoverContent(shopId);
   const moments = await detectViralMoments(shopId);

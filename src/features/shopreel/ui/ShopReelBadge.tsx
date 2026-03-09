@@ -1,26 +1,25 @@
 import type { ReactNode } from "react";
 
-type Props = {
-  children: ReactNode;
-  tone?: "copper" | "cyan" | "neutral" | "green";
-};
+type Tone = "neutral" | "copper" | "cyan" | "green";
 
-export default function ShopReelBadge({
-  children,
-  tone = "neutral",
-}: Props) {
+export default function ShopReelBadge(props: {
+  children: ReactNode;
+  tone?: Tone;
+}) {
+  const { children, tone = "neutral" } = props;
+
   const toneClass =
     tone === "copper"
-      ? "border-[#d08a45]/30 bg-[#d08a45]/10 text-[#e7b07a]"
+      ? "border-[color:rgba(193,102,59,0.35)] bg-[rgba(193,102,59,0.12)] text-[#e1b08b]"
       : tone === "cyan"
-        ? "border-[#6fdcff]/30 bg-[#6fdcff]/10 text-[#9cecff]"
+        ? "border-cyan-400/25 bg-cyan-400/10 text-cyan-200"
         : tone === "green"
-          ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-          : "border-white/10 bg-white/[0.04] text-white/75";
+          ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
+          : "border-white/10 bg-white/[0.05] text-white/72";
 
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs ${toneClass}`}
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] ${toneClass}`}
     >
       {children}
     </span>
