@@ -15,39 +15,65 @@ type MetaPublishResponse = {
   };
 };
 
-type SocialConnectionRow = {
-  access_token: string | null;
-  meta_instagram_business_id: string | null;
-  account_id: string | null;
-  connection_active: boolean | null;
+type PlatformAccountRow = {
+  access_token_encrypted: string | null;
+  metadata: unknown;
+  platform_account_id: string | null;
+  connection_active: boolean;
 };
+
+type MetaInstagramMetadata = {
+  meta_instagram_business_id?: string | null;
+};
+
+function readInstagramBusinessId(
+  metadata: unknown,
+  platformAccountId: string | null,
+): string | null {
+  if (metadata && typeof metadata === "object") {
+    const record = metadata as MetaInstagramMetadata;
+    if (
+      typeof record.meta_instagram_business_id === "string" &&
+      record.meta_instagram_business_id.length > 0
+    ) {
+      return record.meta_instagram_business_id;
+    }
+  }
+
+  return platformAccountId;
+}
 
 export async function publishInstagramVideo(
   input: PublishInput,
 ): Promise<PublishResult> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
-    .from("shopreel_social_connections")
-    .select("access_token, meta_instagram_business_id, account_id, connection_active")
+  const accountQuery = supabase
+    .from("content_platform_accounts")
+    .select("access_token_encrypted, metadata, platform_account_id, connection_active")
     .eq("shop_id", input.shopId)
     .eq("platform", "instagram_reels")
     .eq("connection_active", true)
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
-  const connection = data as SocialConnectionRow | null;
+  const { data, error } = input.platformAccountId
+    ? await accountQuery.eq("id", input.platformAccountId).maybeSingle()
+    : await accountQuery.maybeSingle();
+
+  const connection = data as PlatformAccountRow | null;
 
   if (error) {
     throw new Error(error.message);
   }
 
-  if (!connection?.access_token) {
+  if (!connection?.access_token_encrypted) {
     throw new Error("Instagram is not connected for this shop.");
   }
 
-  const instagramBusinessId =
-    connection.meta_instagram_business_id ?? connection.account_id;
+  const instagramBusinessId = readInstagramBusinessId(
+    connection.metadata,
+    connection.platform_account_id,
+  );
 
   if (!instagramBusinessId) {
     throw new Error("Instagram Business account ID is missing.");
@@ -64,7 +90,7 @@ export async function publishInstagramVideo(
         media_type: "REELS",
         video_url: input.videoUrl,
         caption: input.caption ?? input.title,
-        access_token: connection.access_token,
+        access_token: connection.access_token_encrypted,
       }).toString(),
       cache: "no-store",
     },
@@ -89,7 +115,7 @@ export async function publishInstagramVideo(
       },
       body: new URLSearchParams({
         creation_id: createContainerJson.id,
-        access_token: connection.access_token,
+        access_token: connection.access_token_encrypted,
       }).toString(),
       cache: "no-store",
     },
@@ -108,6 +134,7 @@ export async function publishInstagramVideo(
     ok: true,
     platform: "instagram_reels",
     remotePostId: publishJson.id,
+    remotePostUrl: null,
     status: "published",
   };
 }

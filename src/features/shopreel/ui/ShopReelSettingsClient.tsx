@@ -28,17 +28,22 @@ type ShopReelPlatform =
   | "tiktok"
   | "youtube_shorts";
 
-type ConnectionRow = {
-  id: string;
-  platform: ShopReelPlatform;
-  connection_active: boolean | null;
-  account_id: string | null;
-  account_name: string | null;
+type PlatformAccountMetadata = {
   meta_page_id?: string | null;
   meta_page_name?: string | null;
   meta_instagram_business_id?: string | null;
+};
+
+type ConnectionRow = {
+  id: string;
+  platform: ShopReelPlatform;
+  connection_active: boolean;
+  account_label: string | null;
+  platform_account_id: string | null;
+  platform_username: string | null;
   token_expires_at?: string | null;
   updated_at?: string | null;
+  metadata?: PlatformAccountMetadata | null;
 };
 
 type ConnectionsResponse = {
@@ -87,27 +92,39 @@ function formatConnectionSubtitle(connection: ConnectionRow | null): string {
   }
 
   if (connection.platform === "instagram_reels") {
-    if (connection.meta_page_name && connection.account_name) {
-      return `${connection.account_name} • ${connection.meta_page_name}`;
+    if (
+      connection.account_label &&
+      connection.metadata?.meta_page_name &&
+      connection.account_label !== connection.metadata.meta_page_name
+    ) {
+      return `${connection.account_label} • ${connection.metadata.meta_page_name}`;
     }
-    if (connection.account_name) {
-      return connection.account_name;
+
+    if (connection.account_label) {
+      return connection.account_label;
     }
-    if (connection.meta_page_name) {
-      return connection.meta_page_name;
+
+    if (connection.metadata?.meta_page_name) {
+      return connection.metadata.meta_page_name;
     }
   }
 
   if (connection.platform === "facebook") {
-    if (connection.meta_page_name) {
-      return connection.meta_page_name;
+    if (connection.account_label) {
+      return connection.account_label;
     }
-    if (connection.account_name) {
-      return connection.account_name;
+
+    if (connection.metadata?.meta_page_name) {
+      return connection.metadata.meta_page_name;
     }
   }
 
-  return connection.account_name ?? connection.account_id ?? "Connected";
+  return (
+    connection.account_label ??
+    connection.platform_username ??
+    connection.platform_account_id ??
+    "Connected"
+  );
 }
 
 function isConnectionActive(connection: ConnectionRow | null): boolean {
@@ -176,7 +193,9 @@ export default function ShopReelSettingsClient() {
   function handleConnect(platform: ShopReelPlatform) {
     setConnectingPlatform(platform);
     const platformParam = PLATFORM_CONNECT_QUERY[platform];
-    window.location.href = `/api/shopreel/oauth/connect?platform=${encodeURIComponent(platformParam)}`;
+    window.location.href = `/api/shopreel/oauth/connect?platform=${encodeURIComponent(
+      platformParam,
+    )}`;
   }
 
   const connectionStats = useMemo(() => {
@@ -263,14 +282,18 @@ export default function ShopReelSettingsClient() {
               label="Auto-queue renders"
               description="Send approved opportunities to render automatically."
               checked={state.autoQueueRenders}
-              onCheckedChange={(checked) => setField("autoQueueRenders", checked)}
+              onCheckedChange={(checked) =>
+                setField("autoQueueRenders", checked)
+              }
             />
 
             <GlassToggle
               label="Auto-approve drafts"
               description="Skip manual approval for low-risk content drafts."
               checked={state.autoApproveDrafts}
-              onCheckedChange={(checked) => setField("autoApproveDrafts", checked)}
+              onCheckedChange={(checked) =>
+                setField("autoApproveDrafts", checked)
+              }
             />
 
             <GlassToggle
@@ -284,7 +307,9 @@ export default function ShopReelSettingsClient() {
               label="Include advisor CTA"
               description="Append a light shop CTA where appropriate."
               checked={state.includeAdvisorCta}
-              onCheckedChange={(checked) => setField("includeAdvisorCta", checked)}
+              onCheckedChange={(checked) =>
+                setField("includeAdvisorCta", checked)
+              }
             />
           </div>
         </GlassCard>
@@ -309,7 +334,10 @@ export default function ShopReelSettingsClient() {
               {saved ? (
                 <span className="text-sm text-[color:#d2a17e]">Saved</span>
               ) : null}
-              <GlassButton variant="secondary" onClick={() => void loadConnections()}>
+              <GlassButton
+                variant="secondary"
+                onClick={() => void loadConnections()}
+              >
                 Refresh connections
               </GlassButton>
               <GlassButton variant="primary" onClick={() => void handleSave()}>
@@ -353,16 +381,24 @@ export default function ShopReelSettingsClient() {
                 </div>
 
                 <div className="mt-4 space-y-2 text-sm text-[color:rgba(243,237,230,0.64)]">
-                  {platform === "instagram_reels" && connection?.meta_instagram_business_id ? (
-                    <div>IG business ID: {connection.meta_instagram_business_id}</div>
+                  {platform === "instagram_reels" &&
+                  connection?.metadata?.meta_instagram_business_id ? (
+                    <div>
+                      IG business ID:{" "}
+                      {connection.metadata.meta_instagram_business_id}
+                    </div>
                   ) : null}
 
-                  {platform === "facebook" && connection?.meta_page_id ? (
-                    <div>Page ID: {connection.meta_page_id}</div>
+                  {platform === "facebook" &&
+                  connection?.metadata?.meta_page_id ? (
+                    <div>Page ID: {connection.metadata.meta_page_id}</div>
                   ) : null}
 
                   {connection?.token_expires_at ? (
-                    <div>Token expires: {new Date(connection.token_expires_at).toLocaleString()}</div>
+                    <div>
+                      Token expires:{" "}
+                      {new Date(connection.token_expires_at).toLocaleString()}
+                    </div>
                   ) : null}
                 </div>
 
@@ -392,21 +428,27 @@ export default function ShopReelSettingsClient() {
       >
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Publishing timezone</div>
+            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+              Publishing timezone
+            </div>
             <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
               {state.postingTimezone}
             </div>
           </div>
 
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Preferred format</div>
+            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+              Preferred format
+            </div>
             <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
               {state.defaultAspect} • {state.captionStyle}
             </div>
           </div>
 
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Connected platforms</div>
+            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+              Connected platforms
+            </div>
             <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
               {connectionStats.connected} of {connectionStats.total}
             </div>

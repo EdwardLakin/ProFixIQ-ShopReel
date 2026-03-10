@@ -2,22 +2,38 @@ export type ShopReelPublishPlatform =
   | "instagram_reels"
   | "facebook"
   | "youtube_shorts"
-  | "tiktok";
+  | "tiktok"
+  | "blog"
+  | "linkedin"
+  | "google_business"
+  | "email";
 
 export type ShopReelPublicationStatus =
+  | "draft"
   | "queued"
-  | "processing"
+  | "publishing"
   | "published"
   | "failed"
-  | "cancelled";
+  | "skipped";
 
 export type CreatePublicationInput = {
   shopId: string;
-  videoId: string;
+  contentEventId: string;
   platform: ShopReelPublishPlatform;
+
+  contentPieceId?: string | null;
+  contentAssetId?: string | null;
+  platformAccountId?: string | null;
+
   createdBy?: string | null;
   scheduledFor?: string | null;
   publishMode?: "manual" | "scheduled" | "autopilot";
+
+  title?: string | null;
+  caption?: string | null;
+
+  // temporary bridge while old video-driven pipeline still exists
+  videoId?: string | null;
 };
 
 export type EnqueuePublishJobInput = {

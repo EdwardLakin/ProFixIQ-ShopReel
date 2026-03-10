@@ -2,7 +2,11 @@ export type ShopReelPlatform =
   | "instagram_reels"
   | "facebook"
   | "youtube_shorts"
-  | "tiktok";
+  | "tiktok"
+  | "blog"
+  | "linkedin"
+  | "google_business"
+  | "email";
 
 export type OAuthStartResult = {
   ok: true;
@@ -14,6 +18,7 @@ export type OAuthCallbackResult = {
   platform: ShopReelPlatform;
   shopId: string;
   accountLabel?: string | null;
+  platformAccountId?: string | null;
 };
 
 export type PublishInput = {
@@ -23,12 +28,19 @@ export type PublishInput = {
   caption?: string | null;
   videoUrl: string;
   thumbnailUrl?: string | null;
+
+  contentEventId?: string | null;
+  contentPieceId?: string | null;
+  contentAssetId?: string | null;
+  publicationId?: string | null;
+  platformAccountId?: string | null;
 };
 
 export type PublishResult = {
   ok: true;
   platform: ShopReelPlatform;
   remotePostId: string;
+  remotePostUrl?: string | null;
   status: "queued" | "published";
 };
 

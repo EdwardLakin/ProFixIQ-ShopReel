@@ -13,36 +13,40 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const body = (await req.json().catch(() => ({}))) as {
       status?:
+        | "draft"
         | "queued"
-        | "scheduled"
         | "publishing"
         | "published"
         | "failed"
-        | "cancelled";
+        | "skipped";
       scheduledFor?: string | null;
       publishedAt?: string | null;
       externalPostId?: string | null;
       externalUrl?: string | null;
+      errorCode?: string | null;
       errorMessage?: string | null;
-      responseJson?: Json | null;
-      attemptCount?: number;
+      metadata?: Json | null;
+      title?: string | null;
+      caption?: string | null;
     };
 
     const updatePayload: {
       status?:
+        | "draft"
         | "queued"
-        | "scheduled"
         | "publishing"
         | "published"
         | "failed"
-        | "cancelled";
+        | "skipped";
       scheduled_for?: string | null;
       published_at?: string | null;
-      external_post_id?: string | null;
-      external_url?: string | null;
+      platform_post_id?: string | null;
+      platform_post_url?: string | null;
+      error_code?: string | null;
       error_message?: string | null;
-      response_json?: Json;
-      attempt_count?: number;
+      metadata?: Json;
+      title?: string | null;
+      caption?: string | null;
       updated_at: string;
     } = {
       updated_at: new Date().toISOString(),
@@ -61,30 +65,35 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     if (body.externalPostId !== undefined) {
-      updatePayload.external_post_id = body.externalPostId;
+      updatePayload.platform_post_id = body.externalPostId;
     }
 
     if (body.externalUrl !== undefined) {
-      updatePayload.external_url = body.externalUrl;
+      updatePayload.platform_post_url = body.externalUrl;
+    }
+
+    if (body.errorCode !== undefined) {
+      updatePayload.error_code = body.errorCode;
     }
 
     if (body.errorMessage !== undefined) {
       updatePayload.error_message = body.errorMessage;
     }
 
-    if (body.responseJson !== undefined) {
-      updatePayload.response_json = body.responseJson ?? {};
+    if (body.metadata !== undefined) {
+      updatePayload.metadata = body.metadata ?? {};
     }
 
-    if (
-      typeof body.attemptCount === "number" &&
-      Number.isFinite(body.attemptCount)
-    ) {
-      updatePayload.attempt_count = body.attemptCount;
+    if (body.title !== undefined) {
+      updatePayload.title = body.title;
+    }
+
+    if (body.caption !== undefined) {
+      updatePayload.caption = body.caption;
     }
 
     const { data, error } = await supabase
-      .from("shopreel_publications")
+      .from("content_publications")
       .update(updatePayload)
       .eq("id", id)
       .select("*")
@@ -92,7 +101,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     if (error || !data) {
       return NextResponse.json(
-        { error: error?.message ?? "Failed to update publication" },
+        { ok: false, error: error?.message ?? "Failed to update publication" },
         { status: 500 },
       );
     }
@@ -103,7 +112,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unexpected error" },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unexpected error",
+      },
       { status: 500 },
     );
   }
@@ -115,14 +127,14 @@ export async function GET(_: NextRequest, { params }: Params) {
     const supabase = await createClient();
 
     const { data, error } = await supabase
-      .from("shopreel_publications")
+      .from("content_publications")
       .select("*")
       .eq("id", id)
       .single();
 
     if (error || !data) {
       return NextResponse.json(
-        { error: error?.message ?? "Publication not found" },
+        { ok: false, error: error?.message ?? "Publication not found" },
         { status: 404 },
       );
     }
@@ -133,7 +145,10 @@ export async function GET(_: NextRequest, { params }: Params) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unexpected error" },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unexpected error",
+      },
       { status: 500 },
     );
   }

@@ -11,7 +11,7 @@ export async function enqueuePublishJob(input: EnqueuePublishJobInput) {
       publication_id: input.publicationId,
       status: "queued",
       run_after: input.runAfter ?? new Date().toISOString(),
-    } as never)
+    })
     .select("*")
     .single();
 

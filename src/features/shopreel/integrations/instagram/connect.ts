@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/supabase";
 import { buildOAuthCallbackUrl } from "../shared/baseUrl";
 import { getMetaClientId, getMetaClientSecret } from "../shared/env";
 import type {
@@ -30,6 +31,10 @@ type MetaPagesResponse = {
   error?: {
     message?: string;
   };
+};
+
+type ContentPlatformAccountRow = {
+  id: string;
 };
 
 function buildInstagramScopes(): string {
@@ -100,6 +105,99 @@ async function fetchInstagramBusinessPage(accessToken: string) {
   return pageWithIg;
 }
 
+async function saveInstagramPlatformAccount(args: {
+  shopId: string;
+  accessToken: string;
+  tokenExpiresAt: string | null;
+  pageId: string;
+  pageName: string | null;
+  instagramBusinessId: string;
+}): Promise<string> {
+  const supabase = createAdminClient();
+
+  const metadata: Json = {
+    oauth_platform: "instagram",
+    meta_page_id: args.pageId,
+    meta_page_name: args.pageName,
+    meta_instagram_business_id: args.instagramBusinessId,
+  };
+
+  const scopes = buildInstagramScopes().split(",");
+
+  const { data: existingData, error: existingError } = await supabase
+    .from("content_platform_accounts")
+    .select("id")
+    .eq("shop_id", args.shopId)
+    .eq("platform", "instagram_reels")
+    .eq("platform_account_id", args.instagramBusinessId)
+    .limit(1)
+    .maybeSingle();
+
+  const existing = existingData as ContentPlatformAccountRow | null;
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  if (existing?.id) {
+    const { data: updatedData, error: updateError } = await supabase
+      .from("content_platform_accounts")
+      .update({
+        account_label: args.pageName ?? "Instagram Business Account",
+        platform_username: args.pageName ?? null,
+        connection_active: true,
+        access_token_encrypted: args.accessToken,
+        refresh_token_encrypted: null,
+        token_expires_at: args.tokenExpiresAt,
+        scopes,
+        metadata,
+        last_connected_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+
+    const updated = updatedData as ContentPlatformAccountRow | null;
+
+    if (updateError || !updated) {
+      throw new Error(updateError?.message ?? "Failed to update Instagram account");
+    }
+
+    return updated.id;
+  }
+
+  const { data: insertedData, error: insertError } = await supabase
+    .from("content_platform_accounts")
+    .insert({
+      shop_id: args.shopId,
+      platform: "instagram_reels",
+      account_label: args.pageName ?? "Instagram Business Account",
+      platform_account_id: args.instagramBusinessId,
+      platform_username: args.pageName ?? null,
+      connection_active: true,
+      access_token_encrypted: args.accessToken,
+      refresh_token_encrypted: null,
+      token_expires_at: args.tokenExpiresAt,
+      scopes,
+      metadata,
+      last_connected_at: new Date().toISOString(),
+      last_sync_at: null,
+      created_by: null,
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  const inserted = insertedData as ContentPlatformAccountRow | null;
+
+  if (insertError || !inserted) {
+    throw new Error(insertError?.message ?? "Failed to create Instagram account");
+  }
+
+  return inserted.id;
+}
+
 export const instagramIntegration: PlatformIntegration = {
   async startOAuth(_: string): Promise<OAuthStartResult> {
     const authorizationUrl =
@@ -126,48 +224,32 @@ export const instagramIntegration: PlatformIntegration = {
         : null;
 
     const page = await fetchInstagramBusinessPage(accessToken);
-    const supabase = createAdminClient();
+    const instagramBusinessId = page.instagram_business_account?.id ?? null;
 
-    const { error } = await supabase
-      .from("shopreel_social_connections")
-      .upsert(
-        {
-          shop_id: shopId,
-          platform: "instagram_reels",
-          account_id: page.instagram_business_account?.id ?? null,
-          account_name: page.name ?? "Instagram Business Account",
-          access_token: accessToken,
-          refresh_token: null,
-          token_expires_at: tokenExpiresAt,
-          connection_active: true,
-          meta_page_id: page.id,
-          meta_page_name: page.name ?? null,
-          meta_instagram_business_id: page.instagram_business_account?.id ?? null,
-          scopes: buildInstagramScopes().split(","),
-          metadata_json: {
-            oauth_platform: "instagram",
-          },
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "shop_id,platform",
-        },
-      );
-
-    if (error) {
-      throw new Error(error.message);
+    if (!instagramBusinessId) {
+      throw new Error("Instagram Business account ID is missing.");
     }
+
+    const savedAccountId = await saveInstagramPlatformAccount({
+      shopId,
+      accessToken,
+      tokenExpiresAt,
+      pageId: page.id,
+      pageName: page.name ?? null,
+      instagramBusinessId,
+    });
 
     return {
       ok: true,
       platform: "instagram_reels",
       shopId,
       accountLabel: page.name ?? "Instagram Business Account",
+      platformAccountId: savedAccountId,
     };
   },
 
-  async publishVideo() {
+  async publishVideo(input) {
     const mod = await import("./publish");
-    return mod.publishInstagramVideo(arguments[0]);
+    return mod.publishInstagramVideo(input);
   },
 };

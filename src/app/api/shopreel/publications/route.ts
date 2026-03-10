@@ -40,20 +40,29 @@ export async function GET() {
     const supabase = createAdminClient();
 
     const { data, error } = await supabase
-      .from("shopreel_publications")
+      .from("content_publications")
       .select("*")
       .eq("shop_id", shopId)
       .order("created_at", { ascending: false })
       .limit(100);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: error.message },
+        { status: 500 },
+      );
     }
 
-    return NextResponse.json({ ok: true, items: data ?? [] });
+    return NextResponse.json({
+      ok: true,
+      items: data ?? [],
+    });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unexpected error" },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unexpected error",
+      },
       { status: 500 },
     );
   }
@@ -63,27 +72,47 @@ export async function POST(req: NextRequest) {
   try {
     const { shopId, userId } = await resolveContext();
     const body = (await req.json().catch(() => ({}))) as {
-      videoId?: string;
-      platform?: "instagram_reels" | "facebook" | "youtube_shorts" | "tiktok";
+      contentEventId?: string;
+      contentPieceId?: string | null;
+      contentAssetId?: string | null;
+      platformAccountId?: string | null;
+      platform?:
+        | "instagram_reels"
+        | "facebook"
+        | "youtube_shorts"
+        | "tiktok"
+        | "blog"
+        | "linkedin"
+        | "google_business"
+        | "email";
       scheduledFor?: string | null;
       publishMode?: "manual" | "scheduled" | "autopilot";
       enqueue?: boolean;
+      title?: string | null;
+      caption?: string | null;
+      videoId?: string | null;
     };
 
-    if (!body.videoId || !body.platform) {
+    if (!body.contentEventId || !body.platform) {
       return NextResponse.json(
-        { error: "videoId and platform are required" },
+        { ok: false, error: "contentEventId and platform are required" },
         { status: 400 },
       );
     }
 
     const publication = await createPublication({
       shopId,
-      videoId: body.videoId,
+      contentEventId: body.contentEventId,
+      contentPieceId: body.contentPieceId ?? null,
+      contentAssetId: body.contentAssetId ?? null,
+      platformAccountId: body.platformAccountId ?? null,
       platform: body.platform,
       scheduledFor: body.scheduledFor ?? null,
       publishMode: body.publishMode ?? "manual",
       createdBy: userId,
+      title: body.title ?? null,
+      caption: body.caption ?? null,
+      videoId: body.videoId ?? null,
     });
 
     let job = null;
@@ -103,7 +132,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unexpected error" },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unexpected error",
+      },
       { status: 500 },
     );
   }

@@ -1210,6 +1210,175 @@ export type Database = {
         }
         Relationships: []
       }
+      content_analytics_events: {
+        Row: {
+          content_event_id: string | null
+          content_piece_id: string | null
+          created_at: string
+          event_count: number | null
+          event_type: Database["public"]["Enums"]["analytics_event_type"]
+          event_value: number | null
+          id: string
+          metadata: Json
+          occurred_at: string
+          platform: Database["public"]["Enums"]["publish_platform"] | null
+          publication_id: string | null
+          shop_id: string
+        }
+        Insert: {
+          content_event_id?: string | null
+          content_piece_id?: string | null
+          created_at?: string
+          event_count?: number | null
+          event_type: Database["public"]["Enums"]["analytics_event_type"]
+          event_value?: number | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          platform?: Database["public"]["Enums"]["publish_platform"] | null
+          publication_id?: string | null
+          shop_id: string
+        }
+        Update: {
+          content_event_id?: string | null
+          content_piece_id?: string | null
+          created_at?: string
+          event_count?: number | null
+          event_type?: Database["public"]["Enums"]["analytics_event_type"]
+          event_value?: number | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          platform?: Database["public"]["Enums"]["publish_platform"] | null
+          publication_id?: string | null
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_analytics_events_content_event_id_fkey"
+            columns: ["content_event_id"]
+            isOneToOne: false
+            referencedRelation: "content_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "content_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_assets: {
+        Row: {
+          asset_type: Database["public"]["Enums"]["content_asset_type"]
+          content_event_id: string
+          created_at: string
+          created_by: string | null
+          duration_seconds: number | null
+          file_name: string | null
+          file_size_bytes: number | null
+          height: number | null
+          id: string
+          is_primary: boolean
+          metadata: Json
+          mime_type: string | null
+          public_url: string | null
+          shop_id: string
+          sort_order: number
+          storage_bucket: string | null
+          storage_path: string | null
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          asset_type: Database["public"]["Enums"]["content_asset_type"]
+          content_event_id: string
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          file_name?: string | null
+          file_size_bytes?: number | null
+          height?: number | null
+          id?: string
+          is_primary?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          public_url?: string | null
+          shop_id: string
+          sort_order?: number
+          storage_bucket?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          asset_type?: Database["public"]["Enums"]["content_asset_type"]
+          content_event_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          file_name?: string | null
+          file_size_bytes?: number | null
+          height?: number | null
+          id?: string
+          is_primary?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          public_url?: string | null
+          shop_id?: string
+          sort_order?: number
+          storage_bucket?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_assets_content_event_id_fkey"
+            columns: ["content_event_id"]
+            isOneToOne: false
+            referencedRelation: "content_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_assets_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_assets_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_calendar_items: {
         Row: {
           calendar_id: string
@@ -1301,6 +1470,469 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      content_events: {
+        Row: {
+          ai_prompt_version: string | null
+          approved_at: string | null
+          approved_by: string | null
+          content_type: Database["public"]["Enums"]["content_type"]
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          id: string
+          inspection_id: string | null
+          metadata: Json
+          needs_review: boolean
+          shop_id: string
+          source_id: string | null
+          source_type: Database["public"]["Enums"]["content_source_type"]
+          status: Database["public"]["Enums"]["content_status"]
+          summary: string | null
+          title: string | null
+          updated_at: string
+          vehicle_id: string | null
+          work_order_id: string | null
+          work_order_line_id: string | null
+        }
+        Insert: {
+          ai_prompt_version?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          content_type: Database["public"]["Enums"]["content_type"]
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          metadata?: Json
+          needs_review?: boolean
+          shop_id: string
+          source_id?: string | null
+          source_type: Database["public"]["Enums"]["content_source_type"]
+          status?: Database["public"]["Enums"]["content_status"]
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          vehicle_id?: string | null
+          work_order_id?: string | null
+          work_order_line_id?: string | null
+        }
+        Update: {
+          ai_prompt_version?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          content_type?: Database["public"]["Enums"]["content_type"]
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          metadata?: Json
+          needs_review?: boolean
+          shop_id?: string
+          source_id?: string | null
+          source_type?: Database["public"]["Enums"]["content_source_type"]
+          status?: Database["public"]["Enums"]["content_status"]
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          vehicle_id?: string | null
+          work_order_id?: string | null
+          work_order_line_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_events_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_events_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_events_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_events_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_events_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "v_portal_invoices"
+            referencedColumns: ["work_order_id"]
+          },
+          {
+            foreignKeyName: "content_events_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "v_work_order_board_cards_fleet"
+            referencedColumns: ["work_order_id"]
+          },
+          {
+            foreignKeyName: "content_events_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "v_work_order_board_cards_portal"
+            referencedColumns: ["work_order_id"]
+          },
+          {
+            foreignKeyName: "content_events_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "v_work_order_board_cards_shop"
+            referencedColumns: ["work_order_id"]
+          },
+          {
+            foreignKeyName: "content_events_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_events_work_order_line_id_fkey"
+            columns: ["work_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "v_quote_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_events_work_order_line_id_fkey"
+            columns: ["work_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "v_vehicle_service_history"
+            referencedColumns: ["work_order_line_id"]
+          },
+          {
+            foreignKeyName: "content_events_work_order_line_id_fkey"
+            columns: ["work_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_pieces: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          body_json: Json | null
+          body_markdown: string | null
+          body_text: string | null
+          content_event_id: string
+          created_at: string
+          created_by: string | null
+          excerpt: string | null
+          generated_by_ai: boolean
+          id: string
+          is_current: boolean
+          language_code: string | null
+          metadata: Json
+          model_name: string | null
+          piece_type: Database["public"]["Enums"]["content_piece_type"]
+          platform: Database["public"]["Enums"]["publish_platform"] | null
+          prompt_version: string | null
+          seo_description: string | null
+          seo_title: string | null
+          shop_id: string
+          slug: string | null
+          status: Database["public"]["Enums"]["content_status"]
+          title: string | null
+          tone: string | null
+          updated_at: string
+          version_no: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body_json?: Json | null
+          body_markdown?: string | null
+          body_text?: string | null
+          content_event_id: string
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string | null
+          generated_by_ai?: boolean
+          id?: string
+          is_current?: boolean
+          language_code?: string | null
+          metadata?: Json
+          model_name?: string | null
+          piece_type: Database["public"]["Enums"]["content_piece_type"]
+          platform?: Database["public"]["Enums"]["publish_platform"] | null
+          prompt_version?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          shop_id: string
+          slug?: string | null
+          status?: Database["public"]["Enums"]["content_status"]
+          title?: string | null
+          tone?: string | null
+          updated_at?: string
+          version_no?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body_json?: Json | null
+          body_markdown?: string | null
+          body_text?: string | null
+          content_event_id?: string
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string | null
+          generated_by_ai?: boolean
+          id?: string
+          is_current?: boolean
+          language_code?: string | null
+          metadata?: Json
+          model_name?: string | null
+          piece_type?: Database["public"]["Enums"]["content_piece_type"]
+          platform?: Database["public"]["Enums"]["publish_platform"] | null
+          prompt_version?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          shop_id?: string
+          slug?: string | null
+          status?: Database["public"]["Enums"]["content_status"]
+          title?: string | null
+          tone?: string | null
+          updated_at?: string
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_pieces_content_event_id_fkey"
+            columns: ["content_event_id"]
+            isOneToOne: false
+            referencedRelation: "content_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_pieces_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_pieces_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_platform_accounts: {
+        Row: {
+          access_token_encrypted: string | null
+          account_label: string | null
+          connection_active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          last_connected_at: string | null
+          last_sync_at: string | null
+          metadata: Json
+          platform: Database["public"]["Enums"]["publish_platform"]
+          platform_account_id: string | null
+          platform_username: string | null
+          refresh_token_encrypted: string | null
+          scopes: string[]
+          shop_id: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          account_label?: string | null
+          connection_active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_connected_at?: string | null
+          last_sync_at?: string | null
+          metadata?: Json
+          platform: Database["public"]["Enums"]["publish_platform"]
+          platform_account_id?: string | null
+          platform_username?: string | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[]
+          shop_id: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          account_label?: string | null
+          connection_active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_connected_at?: string | null
+          last_sync_at?: string | null
+          metadata?: Json
+          platform?: Database["public"]["Enums"]["publish_platform"]
+          platform_account_id?: string | null
+          platform_username?: string | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[]
+          shop_id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_platform_accounts_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_platform_accounts_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_publications: {
+        Row: {
+          caption: string | null
+          content_asset_id: string | null
+          content_event_id: string
+          content_piece_id: string | null
+          created_at: string
+          created_by: string | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          metadata: Json
+          platform: Database["public"]["Enums"]["publish_platform"]
+          platform_account_id: string | null
+          platform_post_id: string | null
+          platform_post_url: string | null
+          published_at: string | null
+          scheduled_for: string | null
+          shop_id: string
+          status: Database["public"]["Enums"]["publication_status"]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          content_asset_id?: string | null
+          content_event_id: string
+          content_piece_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          platform: Database["public"]["Enums"]["publish_platform"]
+          platform_account_id?: string | null
+          platform_post_id?: string | null
+          platform_post_url?: string | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          shop_id: string
+          status?: Database["public"]["Enums"]["publication_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          content_asset_id?: string | null
+          content_event_id?: string
+          content_piece_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          platform?: Database["public"]["Enums"]["publish_platform"]
+          platform_account_id?: string | null
+          platform_post_id?: string | null
+          platform_post_url?: string | null
+          published_at?: string | null
+          scheduled_for?: string | null
+          shop_id?: string
+          status?: Database["public"]["Enums"]["publication_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_publications_content_asset_id_fkey"
+            columns: ["content_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_publications_content_event_id_fkey"
+            columns: ["content_event_id"]
+            isOneToOne: false
+            referencedRelation: "content_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_publications_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_publications_platform_account_id_fkey"
+            columns: ["platform_account_id"]
+            isOneToOne: false
+            referencedRelation: "content_platform_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_publications_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_publications_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_templates: {
         Row: {
@@ -8610,6 +9242,73 @@ export type Database = {
           },
         ]
       }
+      shopreel_publish_jobs: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          publication_id: string
+          run_after: string
+          shop_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          publication_id: string
+          run_after?: string
+          shop_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          publication_id?: string
+          run_after?: string
+          shop_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_publish_jobs_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "content_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_publish_jobs_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_publish_jobs_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopreel_social_connections: {
         Row: {
           access_token: string | null
@@ -14449,6 +15148,68 @@ export type Database = {
         | "work_order"
         | "customer"
         | "vehicle"
+      analytics_event_type:
+        | "impression"
+        | "view"
+        | "click"
+        | "like"
+        | "comment"
+        | "share"
+        | "save"
+        | "watch_time"
+        | "engagement"
+        | "rank"
+        | "lead"
+        | "other"
+      content_asset_type:
+        | "image"
+        | "video"
+        | "audio"
+        | "document"
+        | "thumbnail"
+        | "other"
+      content_piece_type:
+        | "idea"
+        | "hook"
+        | "title"
+        | "caption"
+        | "script"
+        | "voiceover"
+        | "blog"
+        | "seo_meta"
+        | "cta"
+        | "hashtags"
+        | "faq"
+        | "platform_copy"
+      content_source_type:
+        | "inspection"
+        | "inspection_item"
+        | "work_order"
+        | "work_order_line"
+        | "vehicle_media"
+        | "manual"
+        | "other"
+      content_status:
+        | "draft"
+        | "queued"
+        | "processing"
+        | "ready"
+        | "published"
+        | "failed"
+        | "archived"
+      content_type:
+        | "workflow_demo"
+        | "repair_story"
+        | "inspection_highlight"
+        | "before_after"
+        | "educational_tip"
+        | "how_to"
+        | "findings_on_vehicle"
+        | "blog_post"
+        | "faq"
+        | "google_business_post"
+        | "email_snippet"
+        | "social_post"
       fitment_event_type: "allocated" | "consumed"
       fleet_program_cadence:
         | "monthly"
@@ -14484,6 +15245,22 @@ export type Database = {
         | "rejected"
         | "cancelled"
       plan_t: "free" | "diy" | "pro" | "pro_plus"
+      publication_status:
+        | "draft"
+        | "queued"
+        | "publishing"
+        | "published"
+        | "failed"
+        | "skipped"
+      publish_platform:
+        | "instagram_reels"
+        | "facebook"
+        | "youtube_shorts"
+        | "tiktok"
+        | "blog"
+        | "linkedin"
+        | "google_business"
+        | "email"
       punch_event_type:
         | "start"
         | "break_start"
@@ -14692,6 +15469,74 @@ export const Constants = {
         "customer",
         "vehicle",
       ],
+      analytics_event_type: [
+        "impression",
+        "view",
+        "click",
+        "like",
+        "comment",
+        "share",
+        "save",
+        "watch_time",
+        "engagement",
+        "rank",
+        "lead",
+        "other",
+      ],
+      content_asset_type: [
+        "image",
+        "video",
+        "audio",
+        "document",
+        "thumbnail",
+        "other",
+      ],
+      content_piece_type: [
+        "idea",
+        "hook",
+        "title",
+        "caption",
+        "script",
+        "voiceover",
+        "blog",
+        "seo_meta",
+        "cta",
+        "hashtags",
+        "faq",
+        "platform_copy",
+      ],
+      content_source_type: [
+        "inspection",
+        "inspection_item",
+        "work_order",
+        "work_order_line",
+        "vehicle_media",
+        "manual",
+        "other",
+      ],
+      content_status: [
+        "draft",
+        "queued",
+        "processing",
+        "ready",
+        "published",
+        "failed",
+        "archived",
+      ],
+      content_type: [
+        "workflow_demo",
+        "repair_story",
+        "inspection_highlight",
+        "before_after",
+        "educational_tip",
+        "how_to",
+        "findings_on_vehicle",
+        "blog_post",
+        "faq",
+        "google_business_post",
+        "email_snippet",
+        "social_post",
+      ],
       fitment_event_type: ["allocated", "consumed"],
       fleet_program_cadence: [
         "monthly",
@@ -14731,6 +15576,24 @@ export const Constants = {
         "cancelled",
       ],
       plan_t: ["free", "diy", "pro", "pro_plus"],
+      publication_status: [
+        "draft",
+        "queued",
+        "publishing",
+        "published",
+        "failed",
+        "skipped",
+      ],
+      publish_platform: [
+        "instagram_reels",
+        "facebook",
+        "youtube_shorts",
+        "tiktok",
+        "blog",
+        "linkedin",
+        "google_business",
+        "email",
+      ],
       punch_event_type: [
         "start",
         "break_start",

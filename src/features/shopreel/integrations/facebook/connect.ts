@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/supabase";
 import { buildOAuthCallbackUrl } from "../shared/baseUrl";
 import { getMetaClientId, getMetaClientSecret } from "../shared/env";
 import type {
@@ -40,6 +41,10 @@ type MetaPagesResponse = {
   };
 };
 
+type ContentPlatformAccountRow = {
+  id: string;
+};
+
 function buildFacebookScopes(): string {
   return [
     "pages_show_list",
@@ -72,6 +77,109 @@ async function exchangeMetaCodeForToken(code: string): Promise<MetaTokenResponse
   }
 
   return json;
+}
+
+async function saveFacebookPlatformAccount(args: {
+  shopId: string;
+  accessToken: string;
+  tokenExpiresAt: string | null;
+  pageId: string | null;
+  pageName: string | null;
+  userId: string | null;
+  userName: string | null;
+  instagramBusinessId: string | null;
+}): Promise<string> {
+  const supabase = createAdminClient();
+
+  const platformAccountId = args.pageId ?? args.userId;
+
+  if (!platformAccountId) {
+    throw new Error("Facebook platform account ID is missing.");
+  }
+
+  const metadata: Json = {
+    oauth_platform: "facebook",
+    meta_user_id: args.userId,
+    meta_user_name: args.userName,
+    meta_page_id: args.pageId,
+    meta_page_name: args.pageName,
+    meta_instagram_business_id: args.instagramBusinessId,
+  };
+
+  const scopes = buildFacebookScopes().split(",");
+
+  const { data: existingData, error: existingError } = await supabase
+    .from("content_platform_accounts")
+    .select("id")
+    .eq("shop_id", args.shopId)
+    .eq("platform", "facebook")
+    .eq("platform_account_id", platformAccountId)
+    .limit(1)
+    .maybeSingle();
+
+  const existing = existingData as ContentPlatformAccountRow | null;
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  if (existing?.id) {
+    const { data: updatedData, error: updateError } = await supabase
+      .from("content_platform_accounts")
+      .update({
+        account_label: args.pageName ?? args.userName ?? "Facebook Account",
+        platform_username: args.userName ?? args.pageName ?? null,
+        connection_active: true,
+        access_token_encrypted: args.accessToken,
+        refresh_token_encrypted: null,
+        token_expires_at: args.tokenExpiresAt,
+        scopes,
+        metadata,
+        last_connected_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+
+    const updated = updatedData as ContentPlatformAccountRow | null;
+
+    if (updateError || !updated) {
+      throw new Error(updateError?.message ?? "Failed to update Facebook account");
+    }
+
+    return updated.id;
+  }
+
+  const { data: insertedData, error: insertError } = await supabase
+    .from("content_platform_accounts")
+    .insert({
+      shop_id: args.shopId,
+      platform: "facebook",
+      account_label: args.pageName ?? args.userName ?? "Facebook Account",
+      platform_account_id: platformAccountId,
+      platform_username: args.userName ?? args.pageName ?? null,
+      connection_active: true,
+      access_token_encrypted: args.accessToken,
+      refresh_token_encrypted: null,
+      token_expires_at: args.tokenExpiresAt,
+      scopes,
+      metadata,
+      last_connected_at: new Date().toISOString(),
+      last_sync_at: null,
+      created_by: null,
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  const inserted = insertedData as ContentPlatformAccountRow | null;
+
+  if (insertError || !inserted) {
+    throw new Error(insertError?.message ?? "Failed to create Facebook account");
+  }
+
+  return inserted.id;
 }
 
 export const facebookIntegration: PlatformIntegration = {
@@ -126,51 +234,30 @@ export const facebookIntegration: PlatformIntegration = {
     );
 
     const pagesJson = (await pagesRes.json().catch(() => ({}))) as MetaPagesResponse;
-    const firstPage = Array.isArray(pagesJson.data) ? pagesJson.data[0] : null;
+    const firstPage = Array.isArray(pagesJson.data) ? pagesJson.data[0] ?? null : null;
 
-    const supabase = createAdminClient();
-
-    const { error } = await supabase
-      .from("shopreel_social_connections")
-      .upsert(
-        {
-          shop_id: shopId,
-          platform: "facebook",
-          account_id: meJson.id,
-          account_name: meJson.name ?? "Facebook Account",
-          access_token: accessToken,
-          refresh_token: null,
-          token_expires_at: tokenExpiresAt,
-          connection_active: true,
-          meta_page_id: firstPage?.id ?? null,
-          meta_page_name: firstPage?.name ?? null,
-          meta_instagram_business_id:
-            firstPage?.instagram_business_account?.id ?? null,
-          scopes: buildFacebookScopes().split(","),
-          metadata_json: {
-            oauth_platform: "facebook",
-          },
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "shop_id,platform",
-        },
-      );
-
-    if (error) {
-      throw new Error(error.message);
-    }
+    const savedAccountId = await saveFacebookPlatformAccount({
+      shopId,
+      accessToken,
+      tokenExpiresAt,
+      pageId: firstPage?.id ?? null,
+      pageName: firstPage?.name ?? null,
+      userId: meJson.id ?? null,
+      userName: meJson.name ?? null,
+      instagramBusinessId: firstPage?.instagram_business_account?.id ?? null,
+    });
 
     return {
       ok: true,
       platform: "facebook",
       shopId,
-      accountLabel: meJson.name ?? "Facebook Account",
+      accountLabel: firstPage?.name ?? meJson.name ?? "Facebook Account",
+      platformAccountId: savedAccountId,
     };
   },
 
-  async publishVideo() {
+  async publishVideo(input) {
     const mod = await import("./publish");
-    return mod.publishFacebookVideo(arguments[0]);
+    return mod.publishFacebookVideo(input);
   },
 };

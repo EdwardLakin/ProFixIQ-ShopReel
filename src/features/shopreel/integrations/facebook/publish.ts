@@ -1,12 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { PublishInput, PublishResult } from "../shared/types";
 
-type SocialConnectionRow = {
-  access_token: string | null;
-  meta_page_id: string | null;
-  connection_active: boolean | null;
-};
-
 type MetaVideoUploadResponse = {
   id?: string;
   error?: {
@@ -14,32 +8,66 @@ type MetaVideoUploadResponse = {
   };
 };
 
+type PlatformAccountRow = {
+  access_token_encrypted: string | null;
+  metadata: unknown;
+  platform_account_id: string | null;
+  connection_active: boolean;
+};
+
+type MetaFacebookMetadata = {
+  meta_page_id?: string | null;
+};
+
+function readPageId(
+  metadata: unknown,
+  platformAccountId: string | null,
+): string | null {
+  if (metadata && typeof metadata === "object") {
+    const record = metadata as MetaFacebookMetadata;
+    if (typeof record.meta_page_id === "string" && record.meta_page_id.length > 0) {
+      return record.meta_page_id;
+    }
+  }
+
+  return platformAccountId;
+}
+
 export async function publishFacebookVideo(
   input: PublishInput,
 ): Promise<PublishResult> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
-    .from("shopreel_social_connections")
-    .select("access_token, meta_page_id, connection_active")
+  const accountQuery = supabase
+    .from("content_platform_accounts")
+    .select("access_token_encrypted, metadata, platform_account_id, connection_active")
     .eq("shop_id", input.shopId)
     .eq("platform", "facebook")
     .eq("connection_active", true)
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
-  const connection = data as SocialConnectionRow | null;
+  const { data, error } = input.platformAccountId
+    ? await accountQuery.eq("id", input.platformAccountId).maybeSingle()
+    : await accountQuery.maybeSingle();
+
+  const connection = data as PlatformAccountRow | null;
 
   if (error) {
     throw new Error(error.message);
   }
 
-  if (!connection?.access_token || !connection.meta_page_id) {
+  if (!connection?.access_token_encrypted) {
     throw new Error("Facebook is not connected for this shop.");
   }
 
+  const pageId = readPageId(connection.metadata, connection.platform_account_id);
+
+  if (!pageId) {
+    throw new Error("Facebook Page ID is missing.");
+  }
+
   const response = await fetch(
-    `https://graph.facebook.com/v18.0/${encodeURIComponent(connection.meta_page_id)}/videos`,
+    `https://graph.facebook.com/v18.0/${encodeURIComponent(pageId)}/videos`,
     {
       method: "POST",
       headers: {
@@ -49,7 +77,7 @@ export async function publishFacebookVideo(
         file_url: input.videoUrl,
         description: input.caption ?? input.title,
         title: input.title,
-        access_token: connection.access_token,
+        access_token: connection.access_token_encrypted,
       }).toString(),
       cache: "no-store",
     },
@@ -66,6 +94,7 @@ export async function publishFacebookVideo(
     ok: true,
     platform: "facebook",
     remotePostId: json.id,
+    remotePostUrl: null,
     status: "published",
   };
 }

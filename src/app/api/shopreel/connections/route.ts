@@ -35,7 +35,7 @@ export async function GET() {
     const supabase = createAdminClient();
 
     const { data, error } = await supabase
-      .from("shopreel_social_connections")
+      .from("content_platform_accounts")
       .select("*")
       .eq("shop_id", shopId)
       .order("platform", { ascending: true });

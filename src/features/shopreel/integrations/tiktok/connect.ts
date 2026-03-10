@@ -5,16 +5,16 @@ import type {
 } from "../shared/types";
 
 export const tiktokIntegration: PlatformIntegration = {
-  async startOAuth(): Promise<OAuthStartResult> {
+  async startOAuth(_: string): Promise<OAuthStartResult> {
     throw new Error("TikTok OAuth is not wired yet.");
   },
 
-  async finishOAuth(shopId: string): Promise<OAuthCallbackResult> {
+  async finishOAuth(shopId: string, _code: string): Promise<OAuthCallbackResult> {
     throw new Error(`TikTok OAuth is not wired yet for shop ${shopId}.`);
   },
 
-  async publishVideo() {
+  async publishVideo(input) {
     const mod = await import("./publish");
-    return mod.publishTikTokVideo(arguments[0]);
+    return mod.publishTikTokVideo(input);
   },
 };
