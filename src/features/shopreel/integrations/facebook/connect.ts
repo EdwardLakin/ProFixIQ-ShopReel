@@ -56,6 +56,8 @@ function buildFacebookScopes(): string {
 async function exchangeMetaCodeForToken(code: string): Promise<MetaTokenResponse> {
   const redirectUri = buildOAuthCallbackUrl("facebook");
 
+  console.log("FACEBOOK_TOKEN_EXCHANGE_REDIRECT_URI", redirectUri);
+
   const response = await fetch(
     `https://graph.facebook.com/v18.0/oauth/access_token` +
       `?client_id=${encodeURIComponent(getMetaClientId())}` +
@@ -184,12 +186,17 @@ async function saveFacebookPlatformAccount(args: {
 
 export const facebookIntegration: PlatformIntegration = {
   async startOAuth(_: string): Promise<OAuthStartResult> {
+    const redirectUri = buildOAuthCallbackUrl("facebook");
+
     const authorizationUrl =
       `https://www.facebook.com/v18.0/dialog/oauth` +
       `?client_id=${encodeURIComponent(getMetaClientId())}` +
-      `&redirect_uri=${encodeURIComponent(buildOAuthCallbackUrl("facebook"))}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&scope=${encodeURIComponent(buildFacebookScopes())}` +
       `&response_type=code`;
+
+    console.log("FACEBOOK_OAUTH_REDIRECT_URI", redirectUri);
+    console.log("FACEBOOK_OAUTH_URL", authorizationUrl);
 
     return {
       ok: true,
