@@ -47,38 +47,45 @@ export async function saveShopReelSettings(payload: SavePayload) {
     throw new Error(settingsError.message);
   }
 
-  const { error: brandError } = await supabase
-    .from("shop_reel_brand_profiles")
-    .upsert(
-      {
-        shop_id: payload.shopId,
-        default_cta: payload.defaultCta,
-        default_location: payload.defaultLocation,
-        brand_voice: payload.brandVoice,
-        color_mode: "profixiq_copper",
-      },
-      { onConflict: "shop_id" },
-    );
+  const inactivePlatforms = payload.platforms
+    .filter((platform) => !platform.connectionActive)
+    .map((platform) => platform.platform);
 
-  if (brandError) {
-    throw new Error(brandError.message);
+  if (inactivePlatforms.length > 0) {
+    const { error: deactivateError } = await supabase
+      .from("content_platform_accounts")
+      .update({
+        connection_active: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("shop_id", payload.shopId)
+      .in("platform", inactivePlatforms);
+
+    if (deactivateError) {
+      throw new Error(deactivateError.message);
+    }
   }
 
-  const platformRows = payload.platforms.map((platform) => ({
-    shop_id: payload.shopId,
-    platform: platform.platform,
-    enabled: platform.enabled,
-    connection_active: platform.connectionActive,
-    connection_status: platform.connectionActive ? "connected" : "not_connected",
-    publish_mode: platform.publishMode,
-  }));
+  const activePlatforms = payload.platforms.filter(
+    (platform) => platform.connectionActive,
+  );
 
-  const { error: platformError } = await supabase
-    .from("shop_reel_platform_settings")
-    .upsert(platformRows, { onConflict: "shop_id,platform" });
+  if (activePlatforms.length > 0) {
+    const activeRows = activePlatforms.map((platform) => ({
+      shop_id: payload.shopId,
+      platform: platform.platform,
+      connection_active: true,
+      updated_at: new Date().toISOString(),
+      last_connected_at: new Date().toISOString(),
+    }));
 
-  if (platformError) {
-    throw new Error(platformError.message);
+    const { error: activateError } = await supabase
+      .from("content_platform_accounts")
+      .upsert(activeRows, { onConflict: "shop_id,platform,platform_account_id" });
+
+    if (activateError) {
+      throw new Error(activateError.message);
+    }
   }
 
   return {
