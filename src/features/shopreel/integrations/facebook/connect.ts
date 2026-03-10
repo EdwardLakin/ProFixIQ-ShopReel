@@ -46,11 +46,7 @@ type ContentPlatformAccountRow = {
 };
 
 function buildFacebookScopes(): string {
-  return [
-    "pages_show_list",
-    "pages_read_engagement",
-    "pages_manage_posts",
-  ].join(",");
+  return ["pages_show_list"].join(",");
 }
 
 async function exchangeMetaCodeForToken(code: string): Promise<MetaTokenResponse> {
