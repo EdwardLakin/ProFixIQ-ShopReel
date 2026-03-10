@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { instagramIntegration } from "@/features/shopreel/integrations/instagram/connect";
 import { facebookIntegration } from "@/features/shopreel/integrations/facebook/connect";
 
@@ -26,6 +27,22 @@ export async function GET(req: NextRequest) {
       platform !== "youtube"
     ) {
       return NextResponse.json({ error: "unsupported platform" }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      const loginUrl = new URL(`${BASE_URL}/login`);
+      loginUrl.searchParams.set(
+        "next",
+        `/api/shopreel/oauth/connect?platform=${encodeURIComponent(platform)}`,
+      );
+
+      return NextResponse.redirect(loginUrl);
     }
 
     if (platform === "instagram") {

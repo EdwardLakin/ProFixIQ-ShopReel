@@ -28,6 +28,17 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
+    const oauthError =
+      searchParams.get("error_message") ??
+      searchParams.get("error_description") ??
+      searchParams.get("error");
+
+    if (oauthError) {
+      return NextResponse.redirect(
+        `${BASE_URL}/shopreel/settings?oauth_error=${encodeURIComponent(oauthError)}`,
+      );
+    }
+
     const code = searchParams.get("code");
     const platformParam = searchParams.get("platform") as CallbackPlatformParam | null;
 
@@ -57,7 +68,13 @@ export async function GET(req: NextRequest) {
     } = await appSupabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const loginUrl = new URL(`${BASE_URL}/login`);
+      loginUrl.searchParams.set("next", "/shopreel/settings");
+      loginUrl.searchParams.set(
+        "oauth_error",
+        "Your session expired before the social account could be linked. Please sign in and try again.",
+      );
+      return NextResponse.redirect(loginUrl);
     }
 
     const supabase = createAdminClient();
@@ -73,9 +90,10 @@ export async function GET(req: NextRequest) {
     const membership = membershipData as ShopMembershipRow | null;
 
     if (membershipError || !membership?.shop_id) {
-      return NextResponse.json(
-        { error: "No active shop membership found" },
-        { status: 403 },
+      return NextResponse.redirect(
+        `${BASE_URL}/shopreel/settings?oauth_error=${encodeURIComponent(
+          "No active shop membership found.",
+        )}`,
       );
     }
 
@@ -86,11 +104,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(`${BASE_URL}/shopreel/settings`);
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 },
+    return NextResponse.redirect(
+      `${BASE_URL}/shopreel/settings?oauth_error=${encodeURIComponent(
+        error instanceof Error ? error.message : "Unexpected error",
+      )}`,
     );
   }
 }
