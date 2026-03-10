@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const searchParams = useSearchParams();
   const next = useMemo(
     () => searchParams.get("next") ?? "/shopreel/settings",
@@ -104,12 +104,33 @@ export default function LoginPage() {
 
           <p className="mt-6 text-sm text-white/70">
             Need an account?{" "}
-            <Link className="text-white underline" href={`/signup?next=${encodeURIComponent(next)}`}>
+            <Link
+              className="text-white underline"
+              href={`/signup?next=${encodeURIComponent(next)}`}
+            >
               Sign up
             </Link>
           </p>
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-black text-white">
+          <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
+            <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+              <div className="text-sm text-white/70">Loading login...</div>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   );
 }
