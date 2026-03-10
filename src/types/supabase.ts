@@ -8508,6 +8508,165 @@ export type Database = {
           },
         ]
       }
+      shopreel_publications: {
+        Row: {
+          attempt_count: number
+          caption_override: string | null
+          connection_id: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          external_post_id: string | null
+          external_url: string | null
+          id: string
+          platform: string
+          publish_payload_json: Json
+          published_at: string | null
+          response_json: Json
+          scheduled_for: string | null
+          shop_id: string
+          status: string
+          title_override: string | null
+          updated_at: string
+          video_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          caption_override?: string | null
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          external_post_id?: string | null
+          external_url?: string | null
+          id?: string
+          platform: string
+          publish_payload_json?: Json
+          published_at?: string | null
+          response_json?: Json
+          scheduled_for?: string | null
+          shop_id: string
+          status?: string
+          title_override?: string | null
+          updated_at?: string
+          video_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          caption_override?: string | null
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          external_post_id?: string | null
+          external_url?: string | null
+          id?: string
+          platform?: string
+          publish_payload_json?: Json
+          published_at?: string | null
+          response_json?: Json
+          scheduled_for?: string | null
+          shop_id?: string
+          status?: string
+          title_override?: string | null
+          updated_at?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_publications_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_social_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_publications_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shop_public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_publications_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_publications_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "v_video_performance_summary"
+            referencedColumns: ["video_id"]
+          },
+          {
+            foreignKeyName: "shopreel_publications_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_social_connections: {
+        Row: {
+          access_token: string | null
+          account_id: string | null
+          account_name: string | null
+          connection_active: boolean | null
+          created_at: string | null
+          id: string
+          meta_instagram_business_id: string | null
+          meta_page_id: string | null
+          meta_page_name: string | null
+          metadata_json: Json
+          platform: string
+          refresh_token: string | null
+          scopes: string[]
+          shop_id: string
+          token_expires_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          connection_active?: boolean | null
+          created_at?: string | null
+          id?: string
+          meta_instagram_business_id?: string | null
+          meta_page_id?: string | null
+          meta_page_name?: string | null
+          metadata_json?: Json
+          platform: string
+          refresh_token?: string | null
+          scopes?: string[]
+          shop_id: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          connection_active?: boolean | null
+          created_at?: string | null
+          id?: string
+          meta_instagram_business_id?: string | null
+          meta_page_id?: string | null
+          meta_page_name?: string | null
+          metadata_json?: Json
+          platform?: string
+          refresh_token?: string | null
+          scopes?: string[]
+          shop_id?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       shops: {
         Row: {
           accepts_online_booking: boolean | null
