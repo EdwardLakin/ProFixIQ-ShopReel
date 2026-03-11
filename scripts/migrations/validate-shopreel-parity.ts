@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import "dotenv/config";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const source = createClient(
   process.env.PROFIXIQ_SUPABASE_URL!,
@@ -22,12 +23,17 @@ const TABLES = [
   "content_analytics_events",
 ] as const;
 
-async function countRows(client: ReturnType<typeof createClient>, table: string) {
-  const { count, error } = await client
-    .from(table)
+type TableName = (typeof TABLES)[number];
+
+async function countRows(client: SupabaseClient, table: TableName) {
+  const { count, error } = await (client as SupabaseClient)
+    .from(table as string)
     .select("*", { count: "exact", head: true });
 
-  if (error) throw new Error(`${table} count failed: ${error.message}`);
+  if (error) {
+    throw new Error(`${table} count failed: ${error.message}`);
+  }
+
   return count ?? 0;
 }
 
@@ -43,7 +49,9 @@ async function main() {
       `${ok ? "OK" : "MISMATCH"} ${table} source=${sourceCount} target=${targetCount}`,
     );
 
-    if (!ok) hasMismatch = true;
+    if (!ok) {
+      hasMismatch = true;
+    }
   }
 
   process.exit(hasMismatch ? 1 : 0);
