@@ -1,46 +1,43 @@
 export const glassTheme = {
   bg: {
-    base: "bg-[#0a0a0a]",
+    base: "bg-[#050816]",
     overlay:
-      "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_28%,transparent_72%,rgba(255,255,255,0.02))] before:content-['']",
-    grid: "absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:18px_18px]",
+      "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.10),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.10),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_22%,transparent_78%,rgba(255,255,255,0.03))] before:content-['']",
+    grid: "absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:18px_18px]",
   },
 
   text: {
     primary: "text-white",
-    secondary: "text-white/70",
-    muted: "text-white/45",
-    copper: "text-[#c98b5c]",
-    copperSoft: "text-[#e0b89a]",
+    secondary: "text-white/72",
+    muted: "text-white/48",
+    copper: "text-sky-300/90",
+    copperSoft: "text-indigo-200/90",
   },
 
   border: {
     soft: "border-white/10",
-    softer: "border-white/6",
+    softer: "border-white/8",
     strong: "border-white/15",
-    copper: "border-[#c98b5c]/40",
+    copper: "border-sky-400/30",
   },
 
   glass: {
     panel:
-      "bg-white/[0.04] backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.45)]",
-
+      "bg-white/[0.045] backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.42)]",
     panelStrong:
-      "bg-white/[0.06] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.55)]",
-
+      "bg-white/[0.06] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.52)]",
     panelSoft:
-      "bg-white/[0.03] backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.35)]",
-
+      "bg-white/[0.035] backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.34)]",
     input:
       "bg-white/[0.04] backdrop-blur-md border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
   },
 
   accent: {
-    copperBg: "bg-[#c98b5c]/15",
-    copperBgStrong: "bg-[#c98b5c]/22",
-    copperLine: "bg-[#c98b5c]/40",
-    copperRing: "focus-visible:ring-[#c98b5c]/30",
-    copperBorder: "border-[#c98b5c]/40",
+    copperBg: "bg-sky-400/12",
+    copperBgStrong: "bg-indigo-400/18",
+    copperLine: "bg-sky-400/40",
+    copperRing: "focus-visible:ring-sky-400/30",
+    copperBorder: "border-sky-400/35",
   },
 
   radius: {

@@ -16,22 +16,21 @@ export default function GlassBadge(props: {
           cx(
             glassTheme.border.softer,
             "bg-white/[0.05]",
-            glassTheme.text.primary
+            glassTheme.text.primary,
           ),
 
         tone === "copper" &&
           cx(
-            glassTheme.border.copper,
-            glassTheme.accent.copperBg,
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-            glassTheme.text.copperSoft
+            glassTheme.accent.copperBorder,
+            "bg-[linear-gradient(180deg,rgba(59,130,246,0.14),rgba(99,102,241,0.12))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+            glassTheme.text.copperSoft,
           ),
 
         tone === "muted" &&
           cx(
             glassTheme.border.softer,
             "bg-white/[0.03]",
-            glassTheme.text.secondary
+            glassTheme.text.secondary,
           )
       )}
     >
