@@ -10,25 +10,29 @@ export default function GlassBadge(props: {
   return (
     <span
       className={cx(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium tracking-[0.01em]",
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium tracking-[0.01em] backdrop-blur-md",
+
         tone === "default" &&
           cx(
             glassTheme.border.softer,
-            "bg-[rgba(255,255,255,0.055)]",
-            glassTheme.text.primary,
+            "bg-white/[0.05]",
+            glassTheme.text.primary
           ),
+
         tone === "copper" &&
           cx(
             glassTheme.border.copper,
-            "bg-[rgba(201,139,92,0.15)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-            glassTheme.text.copperSoft,
+            glassTheme.accent.copperBg,
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+            glassTheme.text.copperSoft
           ),
+
         tone === "muted" &&
           cx(
             glassTheme.border.softer,
-            "bg-[rgba(255,255,255,0.035)]",
-            glassTheme.text.secondary,
-          ),
+            "bg-white/[0.03]",
+            glassTheme.text.secondary
+          )
       )}
     >
       {children}
