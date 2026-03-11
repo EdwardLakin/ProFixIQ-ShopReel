@@ -13,6 +13,8 @@ function SignupPageInner() {
   );
 
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -22,14 +24,22 @@ function SignupPageInner() {
     setStatus(null);
 
     try {
-      const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      if (password.length < 8) {
+        throw new Error("Password must be at least 8 characters.");
+      }
 
-      const { error } = await supabase.auth.signInWithOtp({
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match.");
+      }
+
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/onboarding")}&type=signup`;
+
+      const { error } = await supabase.auth.signUp({
         email,
+        password,
         options: {
           emailRedirectTo: redirectTo,
-          shouldCreateUser: true,
         },
       });
 
@@ -37,7 +47,7 @@ function SignupPageInner() {
         throw error;
       }
 
-      setStatus("Check your email to finish sign up.");
+      setStatus("Check your email to confirm your account, then you'll be sent to onboarding.");
     } catch (submitError) {
       setStatus(
         submitError instanceof Error ? submitError.message : "Unable to sign up.",
@@ -54,7 +64,7 @@ function SignupPageInner() {
           <div className="mb-6">
             <h1 className="text-2xl font-semibold">Create your ShopReel account</h1>
             <p className="mt-2 text-sm text-white/70">
-              Start with your email, then come back into the app from the link.
+              Sign up with your email and password, then finish onboarding.
             </p>
           </div>
 
@@ -78,12 +88,38 @@ function SignupPageInner() {
               />
             </label>
 
+            <label className="block">
+              <span className="mb-2 block text-sm text-white/80">Password</span>
+              <input
+                type="password"
+                required
+                autoComplete="new-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
+                placeholder="At least 8 characters"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm text-white/80">Confirm password</span>
+              <input
+                type="password"
+                required
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
+                placeholder="Re-enter your password"
+              />
+            </label>
+
             <button
               type="submit"
               disabled={busy}
               className="w-full rounded-2xl bg-white px-4 py-3 font-medium text-black disabled:opacity-60"
             >
-              {busy ? "Sending link..." : "Create account"}
+              {busy ? "Creating account..." : "Create account"}
             </button>
           </form>
 

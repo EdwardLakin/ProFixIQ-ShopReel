@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
   const requestUrl = new URL(req.url);
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") ?? "/shopreel/settings";
+  const type = requestUrl.searchParams.get("type");
   const origin = requestUrl.origin;
 
   if (!code) {
@@ -34,7 +35,13 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  let response = NextResponse.redirect(`${origin}${next}`);
+  let redirectPath = next;
+
+  if (type === "signup" || next === "/signup") {
+    redirectPath = "/onboarding";
+  }
+
+  let response = NextResponse.redirect(`${origin}${redirectPath}`);
 
   const supabase = createServerClient<Database>(
     getSupabaseUrl(),

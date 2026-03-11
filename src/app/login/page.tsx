@@ -2,11 +2,13 @@
 
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 function LoginPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+
   const next = useMemo(
     () => searchParams.get("next") ?? "/shopreel/settings",
     [searchParams],
@@ -16,6 +18,7 @@ function LoginPageInner() {
   const oauthError = searchParams.get("oauth_error");
 
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -26,21 +29,18 @@ function LoginPageInner() {
 
     try {
       const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
-      const { error: signInError } = await supabase.auth.signInWithOtp({
-  email,
-  options: {
-    emailRedirectTo: redirectTo,
-    shouldCreateUser: true,
-  },
-});
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (signInError) {
         throw signInError;
       }
 
-      setStatus("Check your email for the sign-in link.");
+      router.push(next);
+      router.refresh();
     } catch (submitError) {
       setStatus(
         submitError instanceof Error ? submitError.message : "Unable to sign in.",
@@ -57,7 +57,7 @@ function LoginPageInner() {
           <div className="mb-6">
             <h1 className="text-2xl font-semibold">Sign in to ShopReel</h1>
             <p className="mt-2 text-sm text-white/70">
-              Use your email to continue into ShopReel.
+              Use your email and password to continue into ShopReel.
             </p>
           </div>
 
@@ -93,12 +93,25 @@ function LoginPageInner() {
               />
             </label>
 
+            <label className="block">
+              <span className="mb-2 block text-sm text-white/80">Password</span>
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
+                placeholder="Enter your password"
+              />
+            </label>
+
             <button
               type="submit"
               disabled={busy}
               className="w-full rounded-2xl bg-white px-4 py-3 font-medium text-black disabled:opacity-60"
             >
-              {busy ? "Sending link..." : "Send sign-in link"}
+              {busy ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
