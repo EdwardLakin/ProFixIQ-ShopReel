@@ -9,9 +9,9 @@ type ContentPublicationRow = {
   content_asset_id: string | null;
   platform_account_id: string | null;
   platform:
-    | "instagram_reels"
+    | "instagram"
     | "facebook"
-    | "youtube_shorts"
+    | "youtube"
     | "tiktok"
     | "blog"
     | "linkedin"

@@ -127,8 +127,8 @@ async function saveInstagramPlatformAccount(args: {
   const { data: existingData, error: existingError } = await supabase
     .from("content_platform_accounts")
     .select("id")
-    .eq("shop_id", args.shopId)
-    .eq("platform", "instagram_reels")
+    .eq("tenant_shop_id", args.shopId)
+    .eq("platform", "instagram")
     .eq("platform_account_id", args.instagramBusinessId)
     .limit(1)
     .maybeSingle();
@@ -170,8 +170,10 @@ async function saveInstagramPlatformAccount(args: {
   const { data: insertedData, error: insertError } = await supabase
     .from("content_platform_accounts")
     .insert({
-      shop_id: args.shopId,
-      platform: "instagram_reels",
+      tenant_shop_id: args.shopId,
+      source_shop_id: args.shopId,
+      source_system: "profixiq",
+      platform: "instagram",
       account_label: args.pageName ?? "Instagram Business Account",
       platform_account_id: args.instagramBusinessId,
       platform_username: args.pageName ?? null,
@@ -241,7 +243,7 @@ export const instagramIntegration: PlatformIntegration = {
 
     return {
       ok: true,
-      platform: "instagram_reels",
+      platform: "instagram",
       shopId,
       accountLabel: page.name ?? "Instagram Business Account",
       platformAccountId: savedAccountId,

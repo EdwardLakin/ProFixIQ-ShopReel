@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
         onboardingCompleted?: boolean;
         platforms?: Array<{
           platform:
-            | "instagram_reels"
+            | "instagram"
             | "facebook"
-            | "youtube_shorts"
+            | "youtube"
             | "tiktok";
           enabled?: boolean;
           connectionActive?: boolean;

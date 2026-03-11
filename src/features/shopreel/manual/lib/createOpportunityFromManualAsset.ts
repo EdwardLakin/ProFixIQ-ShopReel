@@ -1,5 +1,3 @@
-// src/features/shopreel/manual/lib/createOpportunityFromManualAsset.ts
-
 import { createAdminClient } from "@/lib/supabase/server";
 
 export type ManualAssetOpportunity = {
@@ -19,25 +17,38 @@ export async function createOpportunityFromManualAsset(
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
-    .from("videos")
-    .select("id, title, content_type, status, ai_score, source_asset_id, created_at")
-    .eq("source_asset_id", assetId)
-    .order("created_at", { ascending: false })
-    .limit(1)
+    .from("content_assets")
+    .select("id, title, asset_type, metadata, created_at")
+    .eq("id", assetId)
     .maybeSingle();
 
   if (error || !data) {
-    throw new Error(error?.message ?? "No generated video found for manual asset");
+    throw new Error(error?.message ?? "No manual asset found");
   }
+
+  const metadata =
+    data.metadata &&
+    typeof data.metadata === "object" &&
+    !Array.isArray(data.metadata)
+      ? (data.metadata as Record<string, unknown>)
+      : {};
+
+  const contentType =
+    typeof metadata.content_type === "string"
+      ? metadata.content_type
+      : data.asset_type ?? "manual_upload";
+
+  const aiScore =
+    typeof metadata.ai_score === "number" ? metadata.ai_score : null;
 
   return {
     ok: true,
     assetId,
     videoId: data.id,
-    title: data.title,
-    contentType: data.content_type,
-    status: data.status,
-    aiScore: data.ai_score ?? null,
+    title: data.title ?? "Manual upload",
+    contentType,
+    status: "ready",
+    aiScore,
     source: "manual_upload",
   };
 }

@@ -1,9 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/server";
 
 export type ShopReelPlatform =
-  | "instagram_reels"
+  | "instagram"
   | "facebook"
-  | "youtube_shorts"
+  | "youtube"
   | "tiktok";
 
 export type ShopReelSettingsBundle = {
@@ -61,26 +61,45 @@ type ShopReelSettingsRow = {
 
 type ContentPlatformAccountRow = {
   platform:
-    | "instagram_reels"
+    | "instagram"
     | "facebook"
-    | "youtube_shorts"
+    | "youtube"
     | "tiktok"
     | "blog"
     | "linkedin"
     | "google_business"
     | "email";
-  account_label: string | null;
+  platform_account_id: string | null;
+  platform_username: string | null;
   connection_active: boolean;
   token_expires_at: string | null;
   metadata: unknown;
 };
 
 const DEFAULT_PLATFORMS: ShopReelPlatform[] = [
-  "instagram_reels",
+  "instagram",
   "facebook",
-  "youtube_shorts",
+  "youtube",
   "tiktok",
 ];
+
+function getAccountLabel(row: ContentPlatformAccountRow | null): string | null {
+  if (!row) return null;
+
+  const metadata =
+    row.metadata &&
+    typeof row.metadata === "object" &&
+    !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+
+  return (
+    row.platform_username ??
+    (typeof metadata.meta_page_name === "string" ? metadata.meta_page_name : null) ??
+    row.platform_account_id ??
+    null
+  );
+}
 
 export async function getShopReelSettings(
   shopId: string,
@@ -101,8 +120,10 @@ export async function getShopReelSettings(
 
   const platformAccountsResult = await supabase
     .from("content_platform_accounts")
-    .select("platform, account_label, connection_active, token_expires_at, metadata")
-    .eq("shop_id", shopId)
+    .select(
+      "platform, platform_account_id, platform_username, connection_active, token_expires_at, metadata",
+    )
+    .eq("tenant_shop_id", shopId)
     .order("platform", { ascending: true });
 
   if (platformAccountsResult.error) {
@@ -114,37 +135,37 @@ export async function getShopReelSettings(
     (platformAccountsResult.data as ContentPlatformAccountRow[] | null) ?? [];
 
   const normalizedPlatforms: ShopReelSettingsBundle["platforms"] =
-  DEFAULT_PLATFORMS.map((platform) => {
-    const row =
-      platformAccounts.find((account) => account.platform === platform) ?? null;
+    DEFAULT_PLATFORMS.map((platform) => {
+      const row =
+        platformAccounts.find((account) => account.platform === platform) ?? null;
 
-    const expired =
-      row?.token_expires_at != null &&
-      new Date(row.token_expires_at).getTime() <= Date.now();
+      const expired =
+        row?.token_expires_at != null &&
+        new Date(row.token_expires_at).getTime() <= Date.now();
 
-        const connectionStatus: ShopReelConnectionStatus = row
-      ? expired
-        ? "expired"
-        : row.connection_active
-          ? "connected"
-          : "not_connected"
-      : "not_connected";
+      const connectionStatus: ShopReelConnectionStatus = row
+        ? expired
+          ? "expired"
+          : row.connection_active
+            ? "connected"
+            : "not_connected"
+        : "not_connected";
 
-    return {
-      platform,
-      enabled: settings?.enabled_platforms?.includes(platform) ?? false,
-      connection_active: row?.connection_active ?? false,
-      connection_status: connectionStatus,
-      publish_mode: "manual",
-      account_label: row?.account_label ?? null,
-      metadata:
-        row?.metadata &&
-        typeof row.metadata === "object" &&
-        !Array.isArray(row.metadata)
-          ? (row.metadata as Record<string, unknown>)
-          : {},
-    };
-  });
+      return {
+        platform,
+        enabled: settings?.enabled_platforms?.includes(platform) ?? false,
+        connection_active: row?.connection_active ?? false,
+        connection_status: connectionStatus,
+        publish_mode: "manual",
+        account_label: getAccountLabel(row),
+        metadata:
+          row?.metadata &&
+          typeof row.metadata === "object" &&
+          !Array.isArray(row.metadata)
+            ? (row.metadata as Record<string, unknown>)
+            : {},
+      };
+    });
 
   const enabledCount = normalizedPlatforms.filter((p) => p.enabled).length;
   const connectedCount = normalizedPlatforms.filter(
@@ -153,26 +174,11 @@ export async function getShopReelSettings(
 
   const missing: string[] = [];
 
-  if (!settings?.default_cta) {
-    missing.push("Default CTA");
-  }
-
-  if (!settings?.default_location) {
-    missing.push("Default location");
-  }
-
-  if (!settings?.brand_voice) {
-    missing.push("Brand voice");
-  }
-
-  if (enabledCount === 0) {
-    missing.push("At least one enabled platform");
-  }
-
-  if (connectedCount === 0) {
-    missing.push("At least one connected platform");
-  }
-
+  if (!settings?.default_cta) missing.push("Default CTA");
+  if (!settings?.default_location) missing.push("Default location");
+  if (!settings?.brand_voice) missing.push("Brand voice");
+  if (enabledCount === 0) missing.push("At least one enabled platform");
+  if (connectedCount === 0) missing.push("At least one connected platform");
   if (!settings?.onboarding_completed) {
     missing.push("Launch onboarding completion");
   }

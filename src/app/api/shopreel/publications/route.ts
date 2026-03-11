@@ -77,9 +77,9 @@ export async function POST(req: NextRequest) {
       contentAssetId?: string | null;
       platformAccountId?: string | null;
       platform?:
-        | "instagram_reels"
+        | "instagram"
         | "facebook"
-        | "youtube_shorts"
+        | "youtube"
         | "tiktok"
         | "blog"
         | "linkedin"

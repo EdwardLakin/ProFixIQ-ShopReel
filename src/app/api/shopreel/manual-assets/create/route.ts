@@ -1,5 +1,3 @@
-// src/app/api/shopreel/manual-assets/create/route.ts
-
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
@@ -19,16 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const {
-      title,
-      description,
-      assetType,
-      contentGoal,
-      note,
-      platformTargets = [],
-      tags = [],
-    } = body as {
+    const body = (await req.json()) as {
       title?: string;
       description?: string | null;
       assetType?: "image" | "video" | "mixed";
@@ -37,6 +26,14 @@ export async function POST(req: Request) {
       platformTargets?: string[];
       tags?: string[];
     };
+
+    const {
+      title,
+      description,
+      assetType,
+      contentGoal,
+      note,
+    } = body;
 
     if (!title?.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -50,7 +47,7 @@ export async function POST(req: Request) {
     }
 
     const { data: shopData, error: shopError } = await supabase.rpc(
-      "current_shop_id",
+      "current_tenant_shop_id",
     );
 
     if (shopError || !shopData) {
@@ -68,13 +65,12 @@ export async function POST(req: Request) {
         created_by: user.id,
         title: title.trim(),
         description: description ?? null,
-        source_type: "manual_upload",
         asset_type: assetType,
         status: "draft",
         content_goal: contentGoal ?? null,
         note: note ?? null,
-        platform_targets: platformTargets,
-        tags,
+        primary_file_url: null,
+        duration_seconds: null,
       };
 
     const { data, error } = await supabase

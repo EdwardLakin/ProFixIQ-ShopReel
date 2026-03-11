@@ -22,7 +22,7 @@ export type RenderPayload = {
     visualUrl: string | null;
   }>;
   subtitles: SubtitleBlock[];
-  exportTargets: Array<"tiktok" | "instagram_reels" | "youtube_shorts">;
+  exportTargets: Array<"tiktok" | "instagram" | "youtube">;
   metadata: {
     title: string;
     caption: string;
@@ -73,7 +73,7 @@ export function buildRenderPayload(input: RenderPayloadInput): RenderPayload {
       },
     ],
     subtitles: input.subtitleBlocks,
-    exportTargets: ["tiktok", "instagram_reels", "youtube_shorts"],
+    exportTargets: ["tiktok", "instagram", "youtube"],
     metadata: {
       title: input.title,
       caption: input.caption,

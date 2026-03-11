@@ -1,5 +1,3 @@
-// src/app/api/shopreel/manual-assets/complete/route.ts
-
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
@@ -19,8 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { assetId, files } = body as {
+    const body = (await req.json()) as {
       assetId?: string;
       files?: Array<{
         filePath: string;
@@ -28,12 +25,14 @@ export async function POST(req: Request) {
         fileType: "image" | "video";
         mimeType: string;
         sizeBytes?: number | null;
-        width?: number | null;
-        height?: number | null;
         durationSeconds?: number | null;
+        bucket?: string | null;
+        publicUrl?: string | null;
         sortOrder?: number;
       }>;
     };
+
+    const { assetId, files } = body;
 
     if (!assetId || !files?.length) {
       return NextResponse.json(
@@ -57,19 +56,15 @@ export async function POST(req: Request) {
 
     const rows: DB["public"]["Tables"]["shopreel_manual_asset_files"]["Insert"][] =
       files.map((file, index) => ({
+        asset_id: asset.id,
         shop_id: asset.shop_id,
-        manual_asset_id: asset.id,
-        file_path: file.filePath,
-        file_url: null,
+        bucket: file.bucket ?? "shopreel-manual-assets",
+        storage_path: file.filePath,
+        public_url: file.publicUrl ?? null,
         file_name: file.fileName,
-        file_type: file.fileType,
         mime_type: file.mimeType,
+        file_size_bytes: file.sizeBytes ?? null,
         sort_order: file.sortOrder ?? index,
-        width: file.width ?? null,
-        height: file.height ?? null,
-        duration_seconds: file.durationSeconds ?? null,
-        size_bytes: file.sizeBytes ?? null,
-        metadata_json: {},
       }));
 
     const { error: insertError } = await supabase
@@ -84,15 +79,15 @@ export async function POST(req: Request) {
     }
 
     const firstVideo = files.find((f) => f.fileType === "video");
-    const firstPath = files[0]?.filePath ?? null;
+    const firstPublicUrl = files[0]?.publicUrl ?? null;
 
     const { error: updateError } = await supabase
       .from("shopreel_manual_assets")
       .update({
         status: "uploaded",
-        primary_file_url: firstPath,
+        primary_file_url: firstPublicUrl,
         duration_seconds: firstVideo?.durationSeconds ?? null,
-      } as DB["public"]["Tables"]["shopreel_manual_assets"]["Update"])
+      } satisfies DB["public"]["Tables"]["shopreel_manual_assets"]["Update"])
       .eq("id", asset.id);
 
     if (updateError) {

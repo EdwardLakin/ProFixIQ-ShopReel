@@ -109,7 +109,7 @@ async function saveFacebookPlatformAccount(args: {
   const { data: existingData, error: existingError } = await supabase
     .from("content_platform_accounts")
     .select("id")
-    .eq("shop_id", args.shopId)
+    .eq("tenant_shop_id", args.shopId)
     .eq("platform", "facebook")
     .eq("platform_account_id", platformAccountId)
     .limit(1)
@@ -152,7 +152,9 @@ async function saveFacebookPlatformAccount(args: {
   const { data: insertedData, error: insertError } = await supabase
     .from("content_platform_accounts")
     .insert({
-      shop_id: args.shopId,
+      tenant_shop_id: args.shopId,
+      source_shop_id: args.shopId,
+      source_system: "profixiq",
       platform: "facebook",
       account_label: args.pageName ?? args.userName ?? "Facebook Account",
       platform_account_id: platformAccountId,

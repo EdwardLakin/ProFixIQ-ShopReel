@@ -1,7 +1,7 @@
 export type ShopReelPlatform =
-  | "instagram_reels"
+  | "instagram"
   | "facebook"
-  | "youtube_shorts"
+  | "youtube"
   | "tiktok"
   | "blog"
   | "linkedin"

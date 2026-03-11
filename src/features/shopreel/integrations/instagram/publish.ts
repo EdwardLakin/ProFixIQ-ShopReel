@@ -52,7 +52,7 @@ export async function publishInstagramVideo(
     .from("content_platform_accounts")
     .select("access_token_encrypted, metadata, platform_account_id, connection_active")
     .eq("shop_id", input.shopId)
-    .eq("platform", "instagram_reels")
+    .eq("platform", "instagram")
     .eq("connection_active", true)
     .limit(1);
 
@@ -132,7 +132,7 @@ export async function publishInstagramVideo(
 
   return {
     ok: true,
-    platform: "instagram_reels",
+    platform: "instagram",
     remotePostId: publishJson.id,
     remotePostUrl: null,
     status: "published",

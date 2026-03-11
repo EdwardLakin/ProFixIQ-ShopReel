@@ -9,18 +9,18 @@ import { youtubeIntegration } from "../youtube/connect";
 import { tiktokIntegration } from "../tiktok/connect";
 
 export type SupportedPlatformIntegration =
-  | "instagram_reels"
+  | "instagram"
   | "facebook"
-  | "youtube_shorts"
+  | "youtube"
   | "tiktok";
 
 export function isSupportedPlatformIntegration(
   platform: ShopReelPlatform,
 ): platform is SupportedPlatformIntegration {
   return (
-    platform === "instagram_reels" ||
+    platform === "instagram" ||
     platform === "facebook" ||
-    platform === "youtube_shorts" ||
+    platform === "youtube" ||
     platform === "tiktok"
   );
 }
@@ -29,13 +29,13 @@ export function getPlatformIntegration(
   platform: ShopReelPlatform,
 ): PlatformIntegration {
   switch (platform) {
-    case "instagram_reels":
+    case "instagram":
       return instagramIntegration;
 
     case "facebook":
       return facebookIntegration;
 
-    case "youtube_shorts":
+    case "youtube":
       return youtubeIntegration;
 
     case "tiktok":

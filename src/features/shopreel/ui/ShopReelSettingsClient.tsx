@@ -25,10 +25,10 @@ type SettingsState = {
 };
 
 type ShopReelPlatform =
-  | "instagram_reels"
+  | "instagram"
   | "facebook"
   | "tiktok"
-  | "youtube_shorts";
+  | "youtube";
 
 type PlatformAccountMetadata = {
   meta_page_id?: string | null;
@@ -68,24 +68,24 @@ const initialState: SettingsState = {
 };
 
 const PLATFORM_ORDER: ShopReelPlatform[] = [
-  "instagram_reels",
+  "instagram",
   "facebook",
   "tiktok",
-  "youtube_shorts",
+  "youtube",
 ];
 
 const PLATFORM_LABELS: Record<ShopReelPlatform, string> = {
-  instagram_reels: "Instagram",
+  instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
-  youtube_shorts: "YouTube",
+  youtube: "YouTube",
 };
 
 const PLATFORM_CONNECT_QUERY: Record<ShopReelPlatform, string> = {
-  instagram_reels: "instagram",
+  instagram: "instagram",
   facebook: "facebook",
   tiktok: "tiktok",
-  youtube_shorts: "youtube",
+  youtube: "youtube",
 };
 
 function formatConnectionSubtitle(connection: ConnectionRow | null): string {
@@ -93,7 +93,7 @@ function formatConnectionSubtitle(connection: ConnectionRow | null): string {
     return "Not connected";
   }
 
-  if (connection.platform === "instagram_reels") {
+  if (connection.platform === "instagram") {
     if (
       connection.account_label &&
       connection.metadata?.meta_page_name &&
@@ -383,7 +383,7 @@ export default function ShopReelSettingsClient() {
                 </div>
 
                 <div className="mt-4 space-y-2 text-sm text-[color:rgba(243,237,230,0.64)]">
-                  {platform === "instagram_reels" &&
+                  {platform === "instagram" &&
                   connection?.metadata?.meta_instagram_business_id ? (
                     <div>
                       IG business ID:{" "}

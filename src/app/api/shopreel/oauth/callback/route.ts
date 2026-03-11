@@ -14,13 +14,13 @@ const BASE_URL = process.env.APP_URL!;
 function normalizePlatform(platform: CallbackPlatformParam): ShopReelPlatform {
   switch (platform) {
     case "instagram":
-      return "instagram_reels";
+      return "instagram";
     case "facebook":
       return "facebook";
     case "tiktok":
       return "tiktok";
     case "youtube":
-      return "youtube_shorts";
+      return "youtube";
   }
 }
 

@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         | "publishing"
         | "published"
         | "failed"
-        | "skipped";
+        | "cancelled";
       scheduledFor?: string | null;
       publishedAt?: string | null;
       externalPostId?: string | null;
@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         | "publishing"
         | "published"
         | "failed"
-        | "skipped";
+        | "cancelled";
       scheduled_for?: string | null;
       published_at?: string | null;
       platform_post_id?: string | null;

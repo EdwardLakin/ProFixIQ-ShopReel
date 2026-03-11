@@ -1,5 +1,3 @@
-// src/app/api/shopreel/manual-assets/[id]/generate/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateVideoConcept } from "@/features/ai/server/generateVideoConcept";
@@ -27,37 +25,37 @@ type ManualAssetRow = {
 
 type ManualAssetFileRow = {
   id: string;
-  manual_asset_id: string;
-  file_path: string;
-  file_name: string;
-  file_type: "image" | "video";
-  mime_type: string;
+  asset_id: string;
+  shop_id: string;
+  bucket: string;
+  storage_path: string;
+  public_url: string | null;
+  file_name: string | null;
+  mime_type: string | null;
   sort_order: number;
-  duration_seconds: number | null;
 };
 
 type ContentTemplateRow = {
   id: string;
-  key: string;
   name: string;
+  slug: string | null;
   description: string | null;
-  default_hook: string | null;
-  default_cta: string | null;
-  script_guidance: string | null;
-  visual_guidance: string | null;
+  config: Record<string, unknown> | null;
+  is_active: boolean;
 };
 
 type TopPerformingType = {
-  content_type: string;
+  content_type: string | null;
   avg_engagement_score: number | null;
   total_views: number | null;
-  total_leads: number | null;
 };
 
-type VideoInsertShape = {
-  shop_id: string;
-  template_id: string;
-  source_asset_id: string;
+type PieceInsertShape = {
+  tenant_shop_id: string;
+  source_shop_id: string;
+  source_system: string;
+  source_media_upload_id: string | null;
+  template_id: string | null;
   title: string;
   status: "draft";
   content_type:
@@ -68,45 +66,18 @@ type VideoInsertShape = {
     | "educational_tip"
     | "how_to"
     | "findings_on_vehicle";
-  hook: string;
-  caption: string;
-  cta: string;
-  script_text: string;
-  voiceover_text: string;
-  platform_targets: string[];
-  generation_notes: string;
-  ai_score: number;
-  created_by: string | null;
+  hook: string | null;
+  caption: string | null;
+  cta: string | null;
+  script_text: string | null;
+  voiceover_text: string | null;
+  platform_targets: Array<"instagram" | "facebook" | "tiktok" | "youtube">;
+  metadata: unknown;
 };
 
-type AIGenerationRunInsertShape = {
-  shop_id: string;
-  video_id: string;
-  template_id: string;
-  requested_by: string | null;
-  provider: string;
-  model: string;
-  prompt_version: string;
-  user_prompt: string;
-  input_payload: {
-    manualAssetId: string;
-    contentGoal: string | null;
-    title: string;
-    description: string | null;
-    note: string | null;
-    assetType: string;
-    visualUrls: string[];
-  };
-  output_payload: unknown;
-  status: "completed";
-  started_at: string;
-  completed_at: string;
-  score_predicted: number;
-};
-
-function mapContentGoalToTemplateKey(
+function mapContentGoalToTemplateSlug(
   contentGoal: string | null | undefined,
-): ContentTemplateRow["key"] {
+): string {
   switch (contentGoal) {
     case "before_after":
       return "before_after";
@@ -131,40 +102,31 @@ function mapContentGoalToTemplateKey(
 
 function mapGeneratedPlatformTargets(
   targets: Array<"instagram" | "facebook" | "tiktok" | "youtube">,
-): string[] {
-  return targets.map((target) => {
-    switch (target) {
-      case "instagram":
-        return "instagram_reels";
-      case "facebook":
-        return "facebook";
-      case "tiktok":
-        return "tiktok";
-      case "youtube":
-        return "youtube_shorts";
-      default:
-        return target;
-    }
-  });
+): Array<"instagram" | "facebook" | "tiktok" | "youtube"> {
+  return targets;
 }
 
 function buildVisualUrls(files: ManualAssetFileRow[]): string[] {
   return files
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map((file) => file.file_path)
+    .map((file) => file.public_url ?? file.storage_path)
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .slice(0, 4);
 }
 
 function buildTranscript(asset: ManualAssetRow): string {
-  return [
-    asset.title,
-    asset.description ?? "",
-    asset.note ?? "",
-  ]
+  return [asset.title, asset.description ?? "", asset.note ?? ""]
     .map((item) => item.trim())
     .filter(Boolean)
     .join(". ");
+}
+
+function getTemplateConfigValue(
+  config: Record<string, unknown> | null | undefined,
+  key: string,
+): string | null {
+  const value = config?.[key];
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
@@ -201,9 +163,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     const { data: filesData, error: filesError } = await supabase
       .from("shopreel_manual_asset_files")
       .select(
-        "id, manual_asset_id, file_path, file_name, file_type, mime_type, sort_order, duration_seconds",
+        "id, asset_id, shop_id, bucket, storage_path, public_url, file_name, mime_type, sort_order",
       )
-      .eq("manual_asset_id", asset.id)
+      .eq("asset_id", asset.id)
       .order("sort_order", { ascending: true });
 
     const files = (filesData ?? []) as ManualAssetFileRow[];
@@ -215,15 +177,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const templateKey = mapContentGoalToTemplateKey(asset.content_goal);
+    const templateSlug = mapContentGoalToTemplateSlug(asset.content_goal);
 
     const { data: templateData, error: templateError } = await supabase
       .from("content_templates")
-      .select(
-        "id, key, name, description, default_hook, default_cta, script_guidance, visual_guidance",
-      )
-      .eq("shop_id", asset.shop_id)
-      .eq("key", templateKey)
+      .select("id, name, slug, description, config, is_active")
+      .eq("tenant_shop_id", asset.shop_id)
+      .eq("slug", templateSlug)
       .eq("is_active", true)
       .maybeSingle();
 
@@ -232,7 +192,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (templateError || !template) {
       return NextResponse.json(
         {
-          error: `No active content template found for ${templateKey}`,
+          error: `No active content template found for ${templateSlug}`,
           details: templateError?.message ?? null,
         },
         { status: 400 },
@@ -241,7 +201,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const { data: rawTopTypes, error: topTypesError } = await supabase
       .from("v_top_content_types_by_shop")
-      .select("content_type, avg_engagement_score, total_views, total_leads")
+      .select("content_type, avg_engagement_score, total_views")
       .eq("shop_id", asset.shop_id)
       .order("avg_engagement_score", { ascending: false })
       .limit(5);
@@ -279,21 +239,28 @@ export async function POST(req: NextRequest, { params }: Params) {
       },
       template: {
         id: template.id,
-        key: template.key,
+        key: template.slug ?? template.name,
         name: template.name,
         description: template.description,
-        default_hook: template.default_hook,
-        default_cta: template.default_cta,
-        script_guidance: template.script_guidance,
-        visual_guidance: template.visual_guidance,
+        default_hook: getTemplateConfigValue(template.config, "default_hook"),
+        default_cta: getTemplateConfigValue(template.config, "default_cta"),
+        script_guidance: getTemplateConfigValue(template.config, "script_guidance"),
+        visual_guidance: getTemplateConfigValue(template.config, "visual_guidance"),
       },
-      topPerformingTypes,
+      topPerformingTypes: topPerformingTypes.map((row) => ({
+        content_type: row.content_type as string,
+        avg_engagement_score: row.avg_engagement_score,
+        total_views: row.total_views,
+        total_leads: null,
+      })),
     });
 
-    const videoInsert: VideoInsertShape = {
-      shop_id: asset.shop_id,
+    const pieceInsert: PieceInsertShape = {
+      tenant_shop_id: asset.shop_id,
+      source_shop_id: asset.shop_id,
+      source_system: "profixiq",
+      source_media_upload_id: asset.id,
       template_id: template.id,
-      source_asset_id: asset.id,
       title: generated.title || asset.title,
       status: "draft",
       content_type: generated.contentType,
@@ -303,7 +270,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       script_text: generated.scriptText,
       voiceover_text: generated.voiceoverText,
       platform_targets: mapGeneratedPlatformTargets(generated.platformTargets),
-      generation_notes: JSON.stringify({
+      metadata: {
         source: "manual_upload",
         manualAssetId: asset.id,
         originalTitle: asset.title,
@@ -313,66 +280,25 @@ export async function POST(req: NextRequest, { params }: Params) {
         hashtagsByPlatform: generated.hashtagsByPlatform,
         shotList: generated.shotList,
         engagementPrediction: generated.engagementPrediction,
-      }),
-      ai_score: generated.aiScore,
-      created_by: asset.created_by,
+        aiScore: generated.aiScore,
+      },
     };
 
-    const { data: createdVideoData, error: videoError } = await supabase
-      .from("videos")
-      .insert(videoInsert as never)
+    const { data: createdPieceData, error: pieceError } = await supabase
+      .from("content_pieces")
+      .insert(pieceInsert as never)
       .select("id")
       .single();
 
-    const createdVideo = createdVideoData as { id: string } | null;
+    const createdPiece = createdPieceData as { id: string } | null;
 
-    if (videoError || !createdVideo) {
+    if (pieceError || !createdPiece) {
       return NextResponse.json(
         {
-          error: "Failed to create video record",
-          details: videoError?.message ?? null,
+          error: "Failed to create content piece",
+          details: pieceError?.message ?? null,
         },
         { status: 500 },
-      );
-    }
-
-    const runInsert: AIGenerationRunInsertShape = {
-      shop_id: asset.shop_id,
-      video_id: createdVideo.id,
-      template_id: template.id,
-      requested_by: asset.created_by,
-      provider: "openai",
-      model: "gpt-5-mini",
-      prompt_version: "manual-upload-v1",
-      user_prompt: `Generated from manual ShopReel asset ${asset.id}`,
-      input_payload: {
-        manualAssetId: asset.id,
-        contentGoal: asset.content_goal,
-        title: asset.title,
-        description: asset.description,
-        note: asset.note,
-        assetType: asset.asset_type,
-        visualUrls,
-      },
-      output_payload: generated,
-      status: "completed",
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-      score_predicted: generated.aiScore,
-    };
-
-    const { error: runError } = await supabase
-      .from("ai_generation_runs")
-      .insert(runInsert as never);
-
-    if (runError) {
-      return NextResponse.json(
-        {
-          error: "Video created, but generation run logging failed",
-          videoId: createdVideo.id,
-          details: runError.message,
-        },
-        { status: 207 },
       );
     }
 
@@ -386,8 +312,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (assetUpdateError) {
       return NextResponse.json(
         {
-          error: "Video created, but manual asset status update failed",
-          videoId: createdVideo.id,
+          error: "Content piece created, but manual asset status update failed",
+          contentPieceId: createdPiece.id,
           details: assetUpdateError.message,
         },
         { status: 207 },
@@ -425,51 +351,30 @@ export async function POST(req: NextRequest, { params }: Params) {
           ? job.id
           : null;
 
-      if (renderJobId) {
-        const { error: renderUpdateError } = await supabase
-          .from("reel_render_jobs")
-          .update({
-            video_id: createdVideo.id,
-          })
-          .eq("id", renderJobId);
+      const { error: pieceQueueError } = await supabase
+        .from("content_pieces")
+        .update({
+          status: "queued",
+        })
+        .eq("id", createdPiece.id);
 
-        if (renderUpdateError) {
-          return NextResponse.json(
-            {
-              error: "Video created, but render job video link failed",
-              videoId: createdVideo.id,
-              renderJobId,
-              details: renderUpdateError.message,
-            },
-            { status: 207 },
-          );
-        }
-
-        const { error: videoQueueError } = await supabase
-          .from("videos")
-          .update({
-            status: "queued",
-          })
-          .eq("id", createdVideo.id);
-
-        if (videoQueueError) {
-          return NextResponse.json(
-            {
-              error: "Video created, but video queue status update failed",
-              videoId: createdVideo.id,
-              renderJobId,
-              details: videoQueueError.message,
-            },
-            { status: 207 },
-          );
-        }
+      if (pieceQueueError) {
+        return NextResponse.json(
+          {
+            error: "Content piece created, but queue status update failed",
+            contentPieceId: createdPiece.id,
+            renderJobId,
+            details: pieceQueueError.message,
+          },
+          { status: 207 },
+        );
       }
     }
 
     return NextResponse.json({
       ok: true,
       assetId: asset.id,
-      videoId: createdVideo.id,
+      contentPieceId: createdPiece.id,
       renderJobId,
       concept: {
         title: generated.title,

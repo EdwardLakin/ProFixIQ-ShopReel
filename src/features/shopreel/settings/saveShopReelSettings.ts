@@ -58,7 +58,7 @@ export async function saveShopReelSettings(payload: SavePayload) {
         connection_active: false,
         updated_at: new Date().toISOString(),
       })
-      .eq("shop_id", payload.shopId)
+      .eq("tenant_shop_id", payload.shopId)
       .in("platform", inactivePlatforms);
 
     if (deactivateError) {
@@ -72,16 +72,19 @@ export async function saveShopReelSettings(payload: SavePayload) {
 
   if (activePlatforms.length > 0) {
     const activeRows = activePlatforms.map((platform) => ({
-      shop_id: payload.shopId,
+      tenant_shop_id: payload.shopId,
+      source_shop_id: payload.shopId,
+      source_system: "profixiq",
       platform: platform.platform,
       connection_active: true,
       updated_at: new Date().toISOString(),
-      last_connected_at: new Date().toISOString(),
     }));
 
     const { error: activateError } = await supabase
       .from("content_platform_accounts")
-      .upsert(activeRows, { onConflict: "shop_id,platform,platform_account_id" });
+      .upsert(activeRows, {
+        onConflict: "tenant_shop_id,platform,platform_account_id",
+      });
 
     if (activateError) {
       throw new Error(activateError.message);
