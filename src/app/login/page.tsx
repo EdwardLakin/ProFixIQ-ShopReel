@@ -29,12 +29,12 @@ function LoginPageInner() {
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
       const { error: signInError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: redirectTo,
-          shouldCreateUser: false,
-        },
-      });
+  email,
+  options: {
+    emailRedirectTo: redirectTo,
+    shouldCreateUser: true,
+  },
+});
 
       if (signInError) {
         throw signInError;
