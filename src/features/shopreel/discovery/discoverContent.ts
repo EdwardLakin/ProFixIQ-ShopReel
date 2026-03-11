@@ -97,8 +97,9 @@ function getVehicleMediaUrl(media: VehicleMediaRow): string | null {
 
 export async function discoverContent(shopId: string): Promise<ContentOpportunity[]> {
   const supabase = createAdminClient();
+  const legacy = supabase as any;
 
-  const { data: workOrders, error: woError } = await supabase
+  const { data: workOrders, error: woError } = await legacy
     .from("work_orders")
     .select("id, custom_id, vehicle_make, vehicle_model, vehicle_year")
     .eq("shop_id", shopId)
@@ -109,7 +110,7 @@ export async function discoverContent(shopId: string): Promise<ContentOpportunit
     throw new Error(woError.message);
   }
 
-  const { data: lines, error: lineError } = await supabase
+  const { data: lines, error: lineError } = await legacy
     .from("work_order_lines")
     .select("id, work_order_id, description, cause, correction, status, job_type")
     .eq("shop_id", shopId)
@@ -120,17 +121,17 @@ export async function discoverContent(shopId: string): Promise<ContentOpportunit
     throw new Error(lineError.message);
   }
 
-  const inspectionItemsResult = await supabase
+  const inspectionItemsResult = await legacy
     .from("inspection_items")
     .select("*")
     .limit(150);
 
-  const inspectionPhotosResult = await supabase
+  const inspectionPhotosResult = await legacy
     .from("inspection_photos")
     .select("*")
     .limit(150);
 
-  const vehicleMediaResult = await supabase
+  const vehicleMediaResult = await legacy
     .from("vehicle_media")
     .select("*")
     .limit(150);

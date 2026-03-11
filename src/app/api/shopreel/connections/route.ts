@@ -18,7 +18,7 @@ async function resolveShopId() {
   }
 
   const admin = createAdminClient();
-  const { data: membership } = await admin
+  const { data: membership } = await (admin as any)
     .from("shop_users")
     .select("shop_id")
     .eq("user_id", user.id)
@@ -37,7 +37,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("content_platform_accounts")
       .select("*")
-      .eq("shop_id", shopId)
+      .eq("tenant_shop_id", shopId)
       .order("platform", { ascending: true });
 
     if (error) {

@@ -16,7 +16,7 @@ async function resolveShopId() {
   if (!user) return DEFAULT_SHOP_ID;
 
   const admin = createAdminClient();
-  const { data: membership } = await admin
+  const { data: membership } = await (admin as any)
     .from("shop_users")
     .select("shop_id")
     .eq("user_id", user.id)

@@ -22,13 +22,6 @@ type WorkOrderVehicleRow = {
   inspection_id: string | null;
 };
 
-export type ReelMediaSelection = {
-  workOrderId: string;
-  selectedUrls: string[];
-  inspectionPhotoUrls: string[];
-  vehicleMediaUrls: string[];
-};
-
 function photoUrl(row: InspectionPhotoRow): string | null {
   return (
     (typeof row.photo_url === "string" && row.photo_url.length > 0
@@ -47,12 +40,20 @@ function mediaUrl(row: VehicleMediaRow): string | null {
   );
 }
 
+export type ReelMediaSelection = {
+  workOrderId: string;
+  selectedUrls: string[];
+  inspectionPhotoUrls: string[];
+  vehicleMediaUrls: string[];
+};
+
 export async function selectMediaForReel(
   workOrderId: string,
 ): Promise<ReelMediaSelection> {
   const supabase = createAdminClient();
+  const legacy = supabase as any;
 
-  const { data: workOrder, error: workOrderError } = await supabase
+  const { data: workOrder, error: workOrderError } = await legacy
     .from("work_orders")
     .select("vehicle_id, inspection_id")
     .eq("id", workOrderId)
@@ -72,7 +73,7 @@ export async function selectMediaForReel(
 
   if (row.inspection_id) {
     const { data: inspectionPhotos, error: inspectionPhotosError } =
-      await supabase
+      await legacy
         .from("inspection_photos")
         .select("*")
         .eq("inspection_id", row.inspection_id)
@@ -89,7 +90,7 @@ export async function selectMediaForReel(
   }
 
   if (row.vehicle_id) {
-    const { data: vehicleMedia, error: vehicleMediaError } = await supabase
+    const { data: vehicleMedia, error: vehicleMediaError } = await legacy
       .from("vehicle_media")
       .select("*")
       .eq("vehicle_id", row.vehicle_id)

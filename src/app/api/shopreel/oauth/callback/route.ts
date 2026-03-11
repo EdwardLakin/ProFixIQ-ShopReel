@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
 
     const supabase = createAdminClient();
 
-    const { data: membershipData, error: membershipError } = await supabase
+    const { data: membershipData, error: membershipError } = await (supabase as any)
       .from("shop_users")
       .select("shop_id")
       .eq("user_id", user.id)

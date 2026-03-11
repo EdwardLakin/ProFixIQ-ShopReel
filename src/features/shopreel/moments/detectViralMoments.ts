@@ -1,24 +1,34 @@
-import { createAdminClient } from "@/lib/supabase/server"
-import { scoreViralMoment } from "./scoreViralMoment"
+import { createAdminClient } from "@/lib/supabase/server";
+import { scoreViralMoment } from "./scoreViralMoment";
+
+type WorkOrderLineRow = {
+  id: string;
+  description: string | null;
+  cause: string | null;
+  correction: string | null;
+  work_order_id: string | null;
+};
 
 export async function detectViralMoments(shopId: string) {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
 
-  const supabase = createAdminClient()
-
-  const { data: lines } = await supabase
+  const { data, error } = await legacy
     .from("work_order_lines")
     .select("id, description, cause, correction, work_order_id")
     .eq("shop_id", shopId)
     .eq("status", "completed")
-    .limit(50)
+    .limit(50);
 
-  if (!lines) return []
+  if (error) {
+    throw new Error(error.message);
+  }
 
-  const moments = lines.map(line => {
+  const lines = (data ?? []) as WorkOrderLineRow[];
 
-    const text = `${line.description ?? ""} ${line.cause ?? ""} ${line.correction ?? ""}`
-
-    const viral = scoreViralMoment(text)
+  const moments = lines.map((line) => {
+    const text = `${line.description ?? ""} ${line.cause ?? ""} ${line.correction ?? ""}`;
+    const viral = scoreViralMoment(text);
 
     return {
       sourceType: "work_order_line",
@@ -27,11 +37,9 @@ export async function detectViralMoments(shopId: string) {
       title: line.description ?? "Completed repair",
       trigger: "Cause + correction + completed repair",
       viralScore: viral.score,
-      reason: viral.reason
-    }
+      reason: viral.reason,
+    };
+  });
 
-  })
-
-  return moments.sort((a,b) => b.viralScore - a.viralScore).slice(0,10)
-
+  return moments.sort((a, b) => b.viralScore - a.viralScore).slice(0, 10);
 }

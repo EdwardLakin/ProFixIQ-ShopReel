@@ -1,5 +1,3 @@
-// src/app/api/shopreel/opportunities/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
@@ -7,12 +5,12 @@ const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
 
 type OpportunityRow = {
   id: string;
-  title: string;
-  status: string;
-  content_type: string;
+  title: string | null;
+  status: string | null;
+  content_type: string | null;
   ai_score: number | null;
   source_asset_id: string | null;
-  created_at: string;
+  created_at: string | null;
 };
 
 type ShopUserLite = {
@@ -32,7 +30,7 @@ async function resolveShopId() {
 
   const admin = createAdminClient();
 
-  const { data: membership } = await admin
+  const { data: membership } = await (admin as any)
     .from("shop_users")
     .select("shop_id")
     .eq("user_id", user.id)
@@ -68,13 +66,13 @@ export async function GET(req: NextRequest) {
 
     const items = ((data ?? []) as OpportunityRow[]).map((row) => ({
       id: row.id,
-      title: row.title,
-      contentType: row.content_type,
+      title: row.title ?? "Untitled",
+      contentType: row.content_type ?? "workflow_demo",
       score: row.ai_score,
-      status: row.status,
+      status: row.status ?? "draft",
       source: row.source_asset_id ? "Manual Upload" : "Shop Data",
       sourceType: row.source_asset_id ? "manual_upload" : "shop_data",
-      createdAt: row.created_at,
+      createdAt: row.created_at ?? new Date().toISOString(),
     }));
 
     return NextResponse.json({

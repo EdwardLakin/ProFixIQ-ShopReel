@@ -20,7 +20,7 @@ async function resolveContext() {
   }
 
   const admin = createAdminClient();
-  const { data: membership } = await admin
+  const { data: membership } = await (admin as any)
     .from("shop_users")
     .select("shop_id")
     .eq("user_id", user.id)
@@ -42,7 +42,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("content_publications")
       .select("*")
-      .eq("shop_id", shopId)
+      .eq("tenant_shop_id", shopId)
       .order("created_at", { ascending: false })
       .limit(100);
 

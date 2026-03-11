@@ -1,13 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/server";
 
 type TopContentTypeRow = {
-  shop_id: string;
-  content_type: string;
+  shop_id: string | null;
+  content_type: string | null;
   avg_engagement_score: number | null;
   total_views: number | null;
-  total_leads: number | null;
-  posts_generated: number | null;
-  last_updated: string | null;
+  total_posts: number | null;
+  last_posted_at: string | null;
 };
 
 export async function updateLearningSignals(shopId: string) {
@@ -22,16 +21,23 @@ export async function updateLearningSignals(shopId: string) {
     throw new Error(error.message);
   }
 
-  const rows = (data ?? []) as TopContentTypeRow[];
+  const rows = ((data ?? []) as TopContentTypeRow[]).filter(
+    (row): row is TopContentTypeRow & { shop_id: string; content_type: string } =>
+      typeof row.shop_id === "string" &&
+      row.shop_id.length > 0 &&
+      typeof row.content_type === "string" &&
+      row.content_type.length > 0,
+  );
 
   const upserts = rows.map((row) => ({
     shop_id: row.shop_id,
     content_type: row.content_type,
     avg_engagement_score: row.avg_engagement_score ?? 0,
     total_views: row.total_views ?? 0,
-    total_leads: row.total_leads ?? 0,
-    posts_generated: row.posts_generated ?? 0,
-    last_updated: new Date().toISOString(),
+    total_posts: row.total_posts ?? 0,
+    last_posted_at: row.last_posted_at ?? null,
+    notes: {},
+    updated_at: new Date().toISOString(),
   }));
 
   if (upserts.length > 0) {

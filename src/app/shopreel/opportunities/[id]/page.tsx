@@ -12,10 +12,10 @@ type Params = {
 
 type VideoRow = {
   id: string;
-  shop_id: string;
-  title: string;
-  status: string;
-  content_type: string;
+  shop_id: string | null;
+  title: string | null;
+  status: string | null;
+  content_type: string | null;
   hook: string | null;
   caption: string | null;
   cta: string | null;
@@ -26,7 +26,7 @@ type VideoRow = {
   source_asset_id: string | null;
   render_url: string | null;
   thumbnail_url: string | null;
-  created_at: string;
+  created_at: string | null;
 };
 
 type ShopUserLite = {
@@ -52,7 +52,7 @@ async function resolveShopId() {
   if (!user) return DEFAULT_SHOP_ID;
 
   const admin = createAdminClient();
-  const { data: membership } = await admin
+  const { data: membership } = await (admin as any)
     .from("shop_users")
     .select("shop_id")
     .eq("user_id", user.id)
@@ -71,7 +71,7 @@ export default async function ShopReelOpportunityDetailPage({ params }: Params) 
   const { data, error } = await supabase
     .from("videos")
     .select(
-      "id, shop_id, title, status, content_type, hook, caption, cta, script_text, voiceover_text, platform_targets, ai_score, source_asset_id, render_url, thumbnail_url, created_at"
+      "id, shop_id, title, status, content_type, hook, caption, cta, script_text, voiceover_text, platform_targets, ai_score, source_asset_id, render_url, thumbnail_url, created_at",
     )
     .eq("id", id)
     .eq("shop_id", shopId)
@@ -86,7 +86,7 @@ export default async function ShopReelOpportunityDetailPage({ params }: Params) 
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title={video.title}
+      title={video.title ?? "Untitled opportunity"}
       subtitle="Review the generated concept before rendering or publishing."
       actions={
         <div className="flex flex-wrap gap-3">
@@ -108,8 +108,12 @@ export default async function ShopReelOpportunityDetailPage({ params }: Params) 
               <GlassBadge tone={video.source_asset_id ? "copper" : "default"}>
                 {video.source_asset_id ? "Manual Upload" : "Shop Data"}
               </GlassBadge>
-              <GlassBadge tone="default">{formatStatus(video.status)}</GlassBadge>
-              <GlassBadge tone="muted">{formatContentType(video.content_type)}</GlassBadge>
+              <GlassBadge tone="default">
+                {formatStatus(video.status ?? "draft")}
+              </GlassBadge>
+              <GlassBadge tone="muted">
+                {formatContentType(video.content_type ?? "workflow_demo")}
+              </GlassBadge>
               <GlassBadge tone="muted">
                 Score {video.ai_score != null ? Math.round(video.ai_score) : "--"}
               </GlassBadge>
@@ -147,7 +151,7 @@ export default async function ShopReelOpportunityDetailPage({ params }: Params) 
             <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
               <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Created</div>
               <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-                {new Date(video.created_at).toLocaleString()}
+                {video.created_at ? new Date(video.created_at).toLocaleString() : "Unknown"}
               </div>
             </div>
 

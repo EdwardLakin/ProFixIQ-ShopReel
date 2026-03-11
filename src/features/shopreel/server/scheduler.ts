@@ -1,5 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { discoverContent, type ContentOpportunity } from "@/features/shopreel/discovery/discoverContent";
+import {
+  discoverContent,
+  type ContentOpportunity,
+} from "@/features/shopreel/discovery/discoverContent";
 import { detectViralMoments } from "@/features/shopreel/moments/detectViralMoments";
 import { generateHooks } from "@/features/shopreel/hooks/generateHooks";
 import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
@@ -104,39 +107,44 @@ export async function runShopReelAutopilot(
     }),
   );
 
-  const { data: insertedCalendar, error: calendarError } = await supabase
+  const startDate = new Date().toISOString();
+  const endDate = new Date(Date.now() + 7 * 86400000).toISOString();
+
+  const { data: insertedCalendarData, error: calendarError } = await supabase
     .from("content_calendars")
     .insert({
-      shop_id: shopId,
+      tenant_shop_id: shopId,
+      source_shop_id: shopId,
+      source_system: "profixiq",
       title: "AI Autopilot Content Calendar",
       status: "draft",
-      start_date: new Date().toISOString(),
-      end_date: new Date(Date.now() + 7 * 86400000).toISOString(),
     } as never)
-    .select("id, start_date, end_date")
+    .select("id")
     .single();
+
+  const insertedCalendar = insertedCalendarData as { id: string } | null;
 
   if (calendarError || !insertedCalendar) {
     throw new Error(calendarError?.message ?? "Failed to create content calendar");
   }
 
   const calendarItemsPayload = items.map((item, index) => {
-  const publishDate = new Date(Date.now() + index * 86400000)
-    .toISOString()
-    .slice(0, 10);
+    const publishDate = new Date(Date.now() + index * 86400000)
+      .toISOString()
+      .slice(0, 10);
 
-  return {
-    calendar_id: insertedCalendar.id,
-    shop_id: shopId,
-    publish_date: publishDate,
-    content_type: item.contentType,
-    source_work_order_id: item.workOrderId,
-    title: item.title,
-    hook: item.hook,
-    cta: item.cta,
-    status: "planned",
-  };
-});
+    return {
+      calendar_id: insertedCalendar.id,
+      shop_id: shopId,
+      publish_date: publishDate,
+      content_type: item.contentType,
+      source_work_order_id: item.workOrderId,
+      title: item.title,
+      hook: item.hook,
+      cta: item.cta,
+      status: "planned",
+    };
+  });
 
   const { error: calendarItemsError } = await supabase
     .from("content_calendar_items")
@@ -154,8 +162,8 @@ export async function runShopReelAutopilot(
     shopId,
     calendar: {
       calendarId: insertedCalendar.id,
-      startDate: insertedCalendar.start_date,
-      endDate: insertedCalendar.end_date,
+      startDate,
+      endDate,
       itemsCreated: items.length,
       items,
     },

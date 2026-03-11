@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateVideoConcept } from "@/features/ai/server/generateVideoConcept";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -69,6 +69,14 @@ type TopPerformingType = {
   total_leads: number | null;
 };
 
+type ContentTemplateRow = {
+  id: string;
+  name: string;
+  slug: string | null;
+  description: string | null;
+  config: Record<string, unknown> | null;
+};
+
 type VideoInsertShape = {
   shop_id: string;
   template_id: string;
@@ -121,12 +129,21 @@ type AuthContext = {
   shopId: string;
 };
 
+function getTemplateConfigValue(
+  config: Record<string, unknown> | null | undefined,
+  key: string,
+): string | null {
+  const value = config?.[key];
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
 async function resolveAuthContext(
   req: NextRequest,
 ): Promise<
   { ok: true; value: AuthContext } | { ok: false; response: NextResponse }
 > {
   const supabase = createAdminClient();
+  const supabaseAny = supabase as any;
 
   const devBypassToken = process.env.SHOPREEL_DEV_BYPASS_TOKEN;
   const requestDevToken = req.headers.get("x-shopreel-dev-token");
@@ -136,7 +153,7 @@ async function resolveAuthContext(
     devBypassToken &&
     requestDevToken === devBypassToken
   ) {
-    const { data: membershipData, error: membershipError } = await supabase
+    const { data: membershipData, error: membershipError } = await supabaseAny
       .from("shop_users")
       .select("shop_id, user_id")
       .eq("is_active", true)
@@ -176,7 +193,7 @@ async function resolveAuthContext(
     };
   }
 
-  const { data: membershipData, error: membershipError } = await supabase
+  const { data: membershipData, error: membershipError } = await supabaseAny
     .from("shop_users")
     .select("shop_id")
     .eq("user_id", user.id)
@@ -215,8 +232,9 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { userId, shopId } = auth.value;
   const supabase = createAdminClient();
+  const supabaseAny = supabase as any;
 
-  const { data: workOrderData, error: woError } = await supabase
+  const { data: workOrderData, error: woError } = await supabaseAny
     .from("work_orders")
     .select(
       `
@@ -277,10 +295,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     : [];
 
   const completedWork = lines
-    .filter((line: WorkOrderLineLite) => {
-      return line.status === "completed" || Boolean(line.correction);
-    })
-    .map((line: WorkOrderLineLite) => {
+    .filter((line) => line.status === "completed" || Boolean(line.correction))
+    .map((line) => {
       return (
         line.correction ||
         line.description ||
@@ -290,13 +306,12 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
 
   const findings = lines
-    .filter((line: WorkOrderLineLite) => {
-      return (
+    .filter(
+      (line) =>
         line.status !== "completed" &&
-        Boolean(line.complaint || line.cause || line.notes)
-      );
-    })
-    .map((line: WorkOrderLineLite) => {
+        Boolean(line.complaint || line.cause || line.notes),
+    )
+    .map((line) => {
       return (
         line.cause ||
         line.complaint ||
@@ -307,16 +322,15 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
 
   const recommendedWork = lines
-    .filter((line: WorkOrderLineLite) => {
-      return (
+    .filter(
+      (line) =>
         line.job_type === "repair" ||
         line.job_type === "maintenance" ||
         line.approval_state === "pending" ||
         line.status === "awaiting_approval" ||
-        line.status === "queued"
-      );
-    })
-    .map((line: WorkOrderLineLite) => {
+        line.status === "queued",
+    )
+    .map((line) => {
       return (
         line.description ||
         line.complaint ||
@@ -334,13 +348,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { data: templateData, error: templateError } = await supabase
     .from("content_templates")
-    .select("*")
-    .eq("shop_id", shopId)
-    .eq("key", contentType)
+    .select("id,name,slug,description,config")
+    .eq("tenant_shop_id", shopId)
+    .eq("slug", contentType)
     .eq("is_active", true)
     .maybeSingle();
 
-  const template = templateData as { id: string } | null;
+  const template = templateData as ContentTemplateRow | null;
 
   if (templateError || !template) {
     return NextResponse.json(
@@ -354,11 +368,10 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { data: rawTopTypes, error: topTypesError } = await supabase
     .from("v_top_content_types_by_shop")
-    .select("content_type, avg_engagement_score, total_views, total_leads")
+    .select("content_type, avg_engagement_score, total_views")
     .eq("shop_id", shopId)
     .order("avg_engagement_score", { ascending: false })
-    .limit(5)
-    .returns<TopPerformingType[]>();
+    .limit(5);
 
   if (topTypesError) {
     return NextResponse.json(
@@ -370,10 +383,18 @@ export async function POST(req: NextRequest, { params }: Params) {
     );
   }
 
-  const topPerformingTypes: TopPerformingType[] = (rawTopTypes ?? []).filter(
-    (row: TopPerformingType) =>
-      typeof row.content_type === "string" && row.content_type.length > 0,
-  );
+  const topPerformingTypes: TopPerformingType[] = ((rawTopTypes ?? []) as Array<{
+    content_type: string | null;
+    avg_engagement_score: number | null;
+    total_views: number | null;
+  }>)
+    .filter((row) => typeof row.content_type === "string" && row.content_type.length > 0)
+    .map((row) => ({
+      content_type: row.content_type as string,
+      avg_engagement_score: row.avg_engagement_score,
+      total_views: row.total_views,
+      total_leads: null,
+    }));
 
   const customerName =
     workOrder.customers?.name ||
@@ -398,8 +419,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       },
       concern:
         workOrder.notes ??
-        lines.find((line: WorkOrderLineLite) => Boolean(line.complaint))
-          ?.complaint ??
+        lines.find((line) => Boolean(line.complaint))?.complaint ??
         null,
       findings,
       recommendedWork,
@@ -407,13 +427,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     },
     template: {
       id: template.id,
-      key: contentType,
-      name: contentType,
-      description: null,
-      default_hook: null,
-      default_cta: null,
-      script_guidance: null,
-      visual_guidance: null,
+      key: template.slug ?? contentType,
+      name: template.name,
+      description: template.description,
+      default_hook: getTemplateConfigValue(template.config, "default_hook"),
+      default_cta: getTemplateConfigValue(template.config, "default_cta"),
+      script_guidance: getTemplateConfigValue(template.config, "script_guidance"),
+      visual_guidance: getTemplateConfigValue(template.config, "visual_guidance"),
     },
     topPerformingTypes,
   });
@@ -441,9 +461,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     created_by: userId,
   };
 
-  const { data: createdVideoData, error: videoError } = await supabase
+  const { data: createdVideoData, error: videoError } = await supabaseAny
     .from("videos")
-    .insert(videoInsert as unknown as never)
+    .insert(videoInsert)
     .select("id")
     .single();
 
@@ -482,9 +502,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     score_predicted: generated.aiScore,
   };
 
-  const { error: runError } = await supabase
+  const { error: runError } = await supabaseAny
     .from("ai_generation_runs")
-    .insert(runInsert as unknown as never);
+    .insert(runInsert);
 
   if (runError) {
     return NextResponse.json(
