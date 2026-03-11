@@ -20,6 +20,13 @@ export default function GlassShell(props: {
       )}
     >
       <div className={glassTheme.bg.grid} />
+
+      <div className="shopreel-floating-light-a" />
+      <div className="shopreel-floating-light-b" />
+      <div className="shopreel-floating-light-c" />
+
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_20%,transparent_80%,rgba(255,255,255,0.02))]" />
+
       <div className="relative mx-auto max-w-7xl">
         <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
           <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -27,7 +34,7 @@ export default function GlassShell(props: {
               {eyebrow ? (
                 <div
                   className={cx(
-                    "text-xs font-semibold uppercase tracking-[0.32em]",
+                    "text-xs font-medium uppercase tracking-[0.24em]",
                     glassTheme.text.copper,
                   )}
                 >
@@ -38,12 +45,13 @@ export default function GlassShell(props: {
               <div className="space-y-2">
                 <h1
                   className={cx(
-                    "text-3xl md:text-4xl font-semibold font-['Black_Ops_One'] tracking-[0.03em]",
+                    "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
                     glassTheme.text.primary,
                   )}
                 >
                   {title}
                 </h1>
+
                 {subtitle ? (
                   <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
                     {subtitle}

@@ -1,5 +1,3 @@
-// src/features/shopreel/ui/system/GlassNav.tsx
-
 "use client";
 
 import Link from "next/link";
@@ -23,9 +21,9 @@ export default function GlassNav() {
   return (
     <nav
       className={cx(
-        "flex flex-wrap gap-2 rounded-3xl border p-2",
+        "flex flex-wrap gap-2 rounded-3xl border p-2 relative",
         glassTheme.border.soft,
-        glassTheme.glass.panelSoft,
+        glassTheme.glass.panelSoft
       )}
       aria-label="ShopReel navigation"
     >
@@ -37,12 +35,24 @@ export default function GlassNav() {
             key={item.href}
             href={item.href}
             className={cx(
-              "rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-150",
+              "relative overflow-hidden rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-200",
+
               active
-                ? "border border-sky-400/30 bg-[linear-gradient(180deg,rgba(59,130,246,0.16),rgba(99,102,241,0.14))] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                : "border border-transparent text-white/72 hover:border-white/10 hover:bg-white/[0.045] hover:text-white",
+                ? "border border-sky-400/30 text-white bg-white/[0.04] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]"
+                : "border border-transparent text-white/70 hover:text-white hover:bg-white/[0.05]"
             )}
           >
+            {active && (
+              <span
+                className="
+                absolute inset-0 -z-10
+                bg-[linear-gradient(120deg,rgba(59,130,246,0.18),rgba(139,92,246,0.18),rgba(34,211,238,0.16))]
+                blur-xl opacity-70
+                animate-[navGlow_6s_linear_infinite]
+                "
+              />
+            )}
+
             {item.label}
           </Link>
         );

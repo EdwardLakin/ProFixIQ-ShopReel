@@ -23,6 +23,8 @@
   --copper-2: rgba(184, 115, 75, 0.10);
   --cyan-1: rgba(54, 191, 216, 0.10);
   --cyan-2: rgba(54, 191, 216, 0.05);
+  --violet-1: rgba(99, 102, 241, 0.12);
+  --violet-2: rgba(139, 92, 246, 0.08);
 }
 
 *,
@@ -81,6 +83,63 @@ a {
   letter-spacing: 0.02em;
 }
 
+@keyframes navGlow {
+  0% {
+    transform: translateX(-30%);
+  }
+  50% {
+    transform: translateX(30%);
+  }
+  100% {
+    transform: translateX(-30%);
+  }
+}
+
+@keyframes floatLightA {
+  0% {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+    opacity: 0.30;
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+    opacity: 0.50;
+  }
+  100% {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+    opacity: 0.30;
+  }
+}
+
+@keyframes floatLightB {
+  0% {
+    transform: translate3d(2%, -1%, 0) scale(1);
+    opacity: 0.22;
+  }
+  50% {
+    transform: translate3d(-4%, 4%, 0) scale(1.12);
+    opacity: 0.42;
+  }
+  100% {
+    transform: translate3d(2%, -1%, 0) scale(1);
+    opacity: 0.22;
+  }
+}
+
+@keyframes floatLightC {
+  0% {
+    transform: translate3d(0%, 0%, 0) scale(1);
+    opacity: 0.18;
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0) scale(1.06);
+    opacity: 0.34;
+  }
+  100% {
+    transform: translate3d(0%, 0%, 0) scale(1);
+    opacity: 0.18;
+  }
+}
+
 @layer utilities {
   .glass-panel {
     background: linear-gradient(
@@ -123,5 +182,50 @@ a {
       0 0 0 1px rgba(184, 115, 75, 0.20),
       0 16px 40px rgba(0, 0, 0, 0.34),
       0 0 40px rgba(184, 115, 75, 0.08);
+  }
+
+  .shopreel-floating-light-a {
+    position: absolute;
+    inset: auto;
+    top: -8rem;
+    left: -6rem;
+    width: 34rem;
+    height: 34rem;
+    border-radius: 9999px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle, rgba(99, 102, 241, 0.20) 0%, rgba(99, 102, 241, 0.08) 28%, transparent 68%);
+    filter: blur(60px);
+    animation: floatLightA 18s ease-in-out infinite;
+  }
+
+  .shopreel-floating-light-b {
+    position: absolute;
+    inset: auto;
+    top: 12rem;
+    right: -10rem;
+    width: 30rem;
+    height: 30rem;
+    border-radius: 9999px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle, rgba(34, 211, 238, 0.16) 0%, rgba(34, 211, 238, 0.07) 30%, transparent 70%);
+    filter: blur(70px);
+    animation: floatLightB 22s ease-in-out infinite;
+  }
+
+  .shopreel-floating-light-c {
+    position: absolute;
+    inset: auto;
+    bottom: -8rem;
+    left: 28%;
+    width: 28rem;
+    height: 28rem;
+    border-radius: 9999px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle, rgba(184, 115, 75, 0.18) 0%, rgba(184, 115, 75, 0.07) 32%, transparent 72%);
+    filter: blur(72px);
+    animation: floatLightC 20s ease-in-out infinite;
   }
 }
