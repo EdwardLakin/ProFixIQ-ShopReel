@@ -1,0 +1,1392 @@
+===============================
+SHOPREEL DEBUG FILE DUMP
+===============================
+
+----- src/app/page.tsx -----
+import Link from "next/link";
+
+export default function LandingPage() {
+  return (
+    <main className="min-h-screen bg-black text-white">
+      <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 py-20">
+        <div className="max-w-3xl">
+          <div className="mb-4 text-sm uppercase tracking-[0.3em] text-[#c98b5c]">
+            ShopReel
+          </div>
+
+          <h1 className="text-5xl font-semibold leading-tight md:text-7xl">
+            AI content automation for modern repair shops
+          </h1>
+
+          <p className="mt-6 max-w-2xl text-lg text-white/70 md:text-xl">
+            Turn real work orders, inspections, photos, and shop moments into
+            publish-ready content with one clean workflow.
+          </p>
+
+          <div className="mt-10 flex flex-wrap gap-4">
+            <Link
+              href="/signup"
+              className="rounded-2xl bg-white px-6 py-3 font-medium text-black"
+            >
+              Start free
+            </Link>
+
+            <Link
+              href="/login"
+              className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 font-medium text-white"
+            >
+              Sign in
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-16 grid gap-4 md:grid-cols-3">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h2 className="text-xl font-semibold">Find opportunities</h2>
+            <p className="mt-2 text-sm text-white/70">
+              Surface repair stories, inspection highlights, before-and-after
+              moments, and educational tips from live shop activity.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h2 className="text-xl font-semibold">Render and review</h2>
+            <p className="mt-2 text-sm text-white/70">
+              Build concepts, queue renders, review output, and keep the workflow
+              controlled before publishing.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h2 className="text-xl font-semibold">Publish everywhere</h2>
+            <p className="mt-2 text-sm text-white/70">
+              Connect Instagram, Facebook, TikTok, and YouTube, then push
+              content from one dashboard.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+----- src/app/login/page.tsx -----
+"use client";
+
+import { Suspense, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+function LoginPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const next = useMemo(
+    () => searchParams.get("next") ?? "/shopreel/settings",
+    [searchParams],
+  );
+
+  const error = searchParams.get("error");
+  const oauthError = searchParams.get("oauth_error");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setStatus(null);
+
+    try {
+      const supabase = createClient();
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      router.push(next);
+      router.refresh();
+    } catch (submitError) {
+      setStatus(
+        submitError instanceof Error ? submitError.message : "Unable to sign in.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-black text-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
+        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold">Sign in to ShopReel</h1>
+            <p className="mt-2 text-sm text-white/70">
+              Use your email and password to continue into ShopReel.
+            </p>
+          </div>
+
+          {error ? (
+            <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              {decodeURIComponent(error)}
+            </div>
+          ) : null}
+
+          {oauthError ? (
+            <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              {decodeURIComponent(oauthError)}
+            </div>
+          ) : null}
+
+          {status ? (
+            <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+              {status}
+            </div>
+          ) : null}
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <label className="block">
+              <span className="mb-2 block text-sm text-white/80">Email</span>
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
+                placeholder="you@example.com"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm text-white/80">Password</span>
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
+                placeholder="Enter your password"
+              />
+            </label>
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-2xl bg-white px-4 py-3 font-medium text-black disabled:opacity-60"
+            >
+              {busy ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-sm text-white/70">
+            Need an account?{" "}
+            <Link
+              className="text-white underline"
+              href={`/signup?next=${encodeURIComponent(next)}`}
+            >
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-black text-white">
+          <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
+            <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+              <div className="text-sm text-white/70">Loading login...</div>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+----- src/app/signup/page.tsx -----
+"use client";
+
+import { Suspense, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+function SignupPageInner() {
+  const searchParams = useSearchParams();
+  const next = useMemo(
+    () => searchParams.get("next") ?? "/shopreel/settings",
+    [searchParams],
+  );
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setStatus(null);
+
+    try {
+      if (password.length < 8) {
+        throw new Error("Password must be at least 8 characters.");
+      }
+
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match.");
+      }
+
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/onboarding")}&type=signup`;
+
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectTo,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setStatus("Check your email to confirm your account, then you'll be sent to onboarding.");
+    } catch (submitError) {
+      setStatus(
+        submitError instanceof Error ? submitError.message : "Unable to sign up.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-black text-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
+        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold">Create your ShopReel account</h1>
+            <p className="mt-2 text-sm text-white/70">
+              Sign up with your email and password, then finish onboarding.
+            </p>
+          </div>
+
+          {status ? (
+            <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+              {status}
+            </div>
+          ) : null}
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <label className="block">
+              <span className="mb-2 block text-sm text-white/80">Email</span>
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
+                placeholder="you@example.com"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm text-white/80">Password</span>
+              <input
+                type="password"
+                required
+                autoComplete="new-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
+                placeholder="At least 8 characters"
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm text-white/80">Confirm password</span>
+              <input
+                type="password"
+                required
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
+                placeholder="Re-enter your password"
+              />
+            </label>
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-2xl bg-white px-4 py-3 font-medium text-black disabled:opacity-60"
+            >
+              {busy ? "Creating account..." : "Create account"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-sm text-white/70">
+            Already have an account?{" "}
+            <Link
+              className="text-white underline"
+              href={`/login?next=${encodeURIComponent(next)}`}
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-black text-white">
+          <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
+            <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+              <div className="text-sm text-white/70">Loading sign up...</div>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+----- src/app/auth/callback/route.ts -----
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import type { Database } from "@/types/supabase";
+
+function getSupabaseUrl(): string {
+  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!value) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
+  return value;
+}
+
+function getSupabasePublishableKey(): string {
+  const value =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!value) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    );
+  }
+
+  return value;
+}
+
+export async function GET(req: NextRequest) {
+  const requestUrl = new URL(req.url);
+  const code = requestUrl.searchParams.get("code");
+  const next = requestUrl.searchParams.get("next") ?? "/shopreel/settings";
+  const type = requestUrl.searchParams.get("type");
+  const origin = requestUrl.origin;
+
+  if (!code) {
+    return NextResponse.redirect(
+      `${origin}/login?error=${encodeURIComponent("Missing auth code.")}`,
+    );
+  }
+
+  let redirectPath = next;
+
+  if (type === "signup" || next === "/signup") {
+    redirectPath = "/onboarding";
+  }
+
+  let response = NextResponse.redirect(`${origin}${redirectPath}`);
+
+  const supabase = createServerClient<Database>(
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(
+          cookiesToSet: Array<{
+            name: string;
+            value: string;
+            options?: CookieOptions;
+          }>,
+        ) {
+          for (const cookie of cookiesToSet) {
+            response.cookies.set(cookie.name, cookie.value, cookie.options);
+          }
+        },
+      },
+    },
+  );
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    return NextResponse.redirect(
+      `${origin}/login?error=${encodeURIComponent(error.message)}`,
+    );
+  }
+
+  return response;
+}
+
+----- middleware.ts -----
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import type { Database } from "@/types/supabase";
+
+function getSupabaseUrl(): string {
+  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!value) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
+  }
+  return value;
+}
+
+function getSupabasePublishableKey(): string {
+  const value =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!value) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    );
+  }
+
+  return value;
+}
+
+function buildLoginRedirect(req: NextRequest) {
+  const loginUrl = req.nextUrl.clone();
+  loginUrl.pathname = "/login";
+  loginUrl.searchParams.set(
+    "next",
+    `${req.nextUrl.pathname}${req.nextUrl.search}`,
+  );
+  return loginUrl;
+}
+
+export async function middleware(req: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
+
+  const supabase = createServerClient<Database>(
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(
+          cookiesToSet: Array<{
+            name: string;
+            value: string;
+            options?: CookieOptions;
+          }>,
+        ) {
+          for (const cookie of cookiesToSet) {
+            req.cookies.set(cookie.name, cookie.value);
+          }
+
+          response = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          });
+
+          for (const cookie of cookiesToSet) {
+            response.cookies.set(cookie.name, cookie.value, cookie.options);
+          }
+        },
+      },
+    },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = req.nextUrl.pathname;
+  const requiresAuth =
+    pathname.startsWith("/shopreel") ||
+    pathname.startsWith("/onboarding") ||
+    pathname === "/api/shopreel/oauth/connect";
+
+  if (requiresAuth && !user) {
+    return NextResponse.redirect(buildLoginRedirect(req));
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    "/shopreel/:path*",
+    "/onboarding/:path*",
+    "/api/shopreel/oauth/connect",
+  ],
+};
+
+----- src/features/shopreel/settings/getShopReelSettings.ts -----
+import { createAdminClient } from "@/lib/supabase/server";
+
+export type ShopReelPlatform =
+  | "instagram"
+  | "facebook"
+  | "youtube"
+  | "tiktok";
+
+export type ShopReelSettingsBundle = {
+  settings: {
+    shop_id: string;
+    publish_mode: "manual" | "approval_required" | "autopilot";
+    default_cta: string | null;
+    default_location: string | null;
+    brand_voice: string | null;
+    enabled_platforms: string[];
+    connected_platforms: string[];
+    onboarding_completed: boolean;
+  } | null;
+  brandProfile: {
+    brand_name: string | null;
+    brand_voice: string | null;
+    default_cta: string | null;
+    default_location: string | null;
+    color_mode: "profixiq_copper" | "dark_cyan" | "neutral_dark";
+  } | null;
+  platforms: Array<{
+    platform: ShopReelPlatform;
+    enabled: boolean;
+    connection_active: boolean;
+    connection_status: "not_connected" | "connected" | "expired" | "error";
+    publish_mode: "manual" | "scheduled" | "autopilot";
+    account_label: string | null;
+    metadata: Record<string, unknown>;
+  }>;
+  readiness: {
+    connectedCount: number;
+    enabledCount: number;
+    canPublish: boolean;
+    canAutopilot: boolean;
+    missing: string[];
+  };
+};
+
+type ShopReelConnectionStatus =
+  | "not_connected"
+  | "connected"
+  | "expired"
+  | "error";
+
+type ShopReelSettingsRow = {
+  shop_id: string;
+  publish_mode: "manual" | "approval_required" | "autopilot";
+  default_cta: string | null;
+  default_location: string | null;
+  brand_voice: string | null;
+  enabled_platforms: string[] | null;
+  connected_platforms: string[] | null;
+  onboarding_completed: boolean;
+};
+
+type ContentPlatformAccountRow = {
+  platform:
+    | "instagram"
+    | "facebook"
+    | "youtube"
+    | "tiktok"
+    | "blog"
+    | "linkedin"
+    | "google_business"
+    | "email";
+  platform_account_id: string | null;
+  platform_username: string | null;
+  connection_active: boolean;
+  token_expires_at: string | null;
+  metadata: unknown;
+};
+
+const DEFAULT_PLATFORMS: ShopReelPlatform[] = [
+  "instagram",
+  "facebook",
+  "youtube",
+  "tiktok",
+];
+
+function getAccountLabel(row: ContentPlatformAccountRow | null): string | null {
+  if (!row) return null;
+
+  const metadata =
+    row.metadata &&
+    typeof row.metadata === "object" &&
+    !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+
+  return (
+    row.platform_username ??
+    (typeof metadata.meta_page_name === "string" ? metadata.meta_page_name : null) ??
+    row.platform_account_id ??
+    null
+  );
+}
+
+export async function getShopReelSettings(
+  shopId: string,
+): Promise<ShopReelSettingsBundle> {
+  const supabase = createAdminClient();
+
+  const settingsResult = await supabase
+    .from("shop_reel_settings")
+    .select(
+      "shop_id, publish_mode, default_cta, default_location, brand_voice, enabled_platforms, connected_platforms, onboarding_completed",
+    )
+    .eq("shop_id", shopId)
+    .maybeSingle();
+
+  if (settingsResult.error) {
+    throw new Error(settingsResult.error.message);
+  }
+
+  const platformAccountsResult = await supabase
+    .from("content_platform_accounts")
+    .select(
+      "platform, platform_account_id, platform_username, connection_active, token_expires_at, metadata",
+    )
+    .eq("tenant_shop_id", shopId)
+    .order("platform", { ascending: true });
+
+  if (platformAccountsResult.error) {
+    throw new Error(platformAccountsResult.error.message);
+  }
+
+  const settings = settingsResult.data as ShopReelSettingsRow | null;
+  const platformAccounts =
+    (platformAccountsResult.data as ContentPlatformAccountRow[] | null) ?? [];
+
+  const normalizedPlatforms: ShopReelSettingsBundle["platforms"] =
+    DEFAULT_PLATFORMS.map((platform) => {
+      const row =
+        platformAccounts.find((account) => account.platform === platform) ?? null;
+
+      const expired =
+        row?.token_expires_at != null &&
+        new Date(row.token_expires_at).getTime() <= Date.now();
+
+      const connectionStatus: ShopReelConnectionStatus = row
+        ? expired
+          ? "expired"
+          : row.connection_active
+            ? "connected"
+            : "not_connected"
+        : "not_connected";
+
+      return {
+        platform,
+        enabled: settings?.enabled_platforms?.includes(platform) ?? false,
+        connection_active: row?.connection_active ?? false,
+        connection_status: connectionStatus,
+        publish_mode: "manual",
+        account_label: getAccountLabel(row),
+        metadata:
+          row?.metadata &&
+          typeof row.metadata === "object" &&
+          !Array.isArray(row.metadata)
+            ? (row.metadata as Record<string, unknown>)
+            : {},
+      };
+    });
+
+  const enabledCount = normalizedPlatforms.filter((p) => p.enabled).length;
+  const connectedCount = normalizedPlatforms.filter(
+    (p) => p.connection_active && p.connection_status === "connected",
+  ).length;
+
+  const missing: string[] = [];
+
+  if (!settings?.default_cta) missing.push("Default CTA");
+  if (!settings?.default_location) missing.push("Default location");
+  if (!settings?.brand_voice) missing.push("Brand voice");
+  if (enabledCount === 0) missing.push("At least one enabled platform");
+  if (connectedCount === 0) missing.push("At least one connected platform");
+  if (!settings?.onboarding_completed) {
+    missing.push("Launch onboarding completion");
+  }
+
+  const canPublish = enabledCount > 0 && connectedCount > 0;
+  const canAutopilot =
+    canPublish &&
+    settings?.publish_mode === "autopilot" &&
+    (settings?.onboarding_completed ?? false);
+
+  return {
+    settings: settings
+      ? {
+          shop_id: settings.shop_id,
+          publish_mode: settings.publish_mode,
+          default_cta: settings.default_cta,
+          default_location: settings.default_location,
+          brand_voice: settings.brand_voice,
+          enabled_platforms: settings.enabled_platforms ?? [],
+          connected_platforms: normalizedPlatforms
+            .filter((p) => p.connection_active)
+            .map((p) => p.platform),
+          onboarding_completed: settings.onboarding_completed,
+        }
+      : null,
+    brandProfile: null,
+    platforms: normalizedPlatforms,
+    readiness: {
+      connectedCount,
+      enabledCount,
+      canPublish,
+      canAutopilot,
+      missing,
+    },
+  };
+}
+----- src/features/shopreel/ui/ShopReelSettingsClient.tsx -----
+//src/features/shopreel/ui/ShopReelSettingsClient.tsx
+
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassInput from "@/features/shopreel/ui/system/GlassInput";
+import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
+import GlassSelect from "@/features/shopreel/ui/system/GlassSelect";
+import GlassToggle from "@/features/shopreel/ui/system/GlassToggle";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+
+type SettingsState = {
+  brandVoice: string;
+  postingTimezone: string;
+  defaultAspect: string;
+  captionStyle: string;
+  autoApproveDrafts: boolean;
+  autoQueueRenders: boolean;
+  autoPublish: boolean;
+  includeAdvisorCta: boolean;
+  defaultHookTemplate: string;
+  complianceNote: string;
+};
+
+type ShopReelPlatform =
+  | "instagram"
+  | "facebook"
+  | "tiktok"
+  | "youtube";
+
+type PlatformAccountMetadata = {
+  meta_page_id?: string | null;
+  meta_page_name?: string | null;
+  meta_instagram_business_id?: string | null;
+};
+
+type ConnectionRow = {
+  id: string;
+  platform: ShopReelPlatform;
+  connection_active: boolean;
+  account_label: string | null;
+  platform_account_id: string | null;
+  platform_username: string | null;
+  token_expires_at?: string | null;
+  updated_at?: string | null;
+  metadata?: PlatformAccountMetadata | null;
+};
+
+type ConnectionsResponse = {
+  ok: boolean;
+  connections?: ConnectionRow[];
+  error?: string;
+};
+
+const initialState: SettingsState = {
+  brandVoice: "Helpful, confident, transparent, practical",
+  postingTimezone: "America/Edmonton",
+  defaultAspect: "9:16",
+  captionStyle: "Short and clear",
+  autoApproveDrafts: false,
+  autoQueueRenders: true,
+  autoPublish: false,
+  includeAdvisorCta: true,
+  defaultHookTemplate: "Show the real issue fast, then explain the fix simply.",
+  complianceNote: "Avoid overstating urgency. Keep copy factual and customer-friendly.",
+};
+
+const PLATFORM_ORDER: ShopReelPlatform[] = [
+  "instagram",
+  "facebook",
+  "tiktok",
+  "youtube",
+];
+
+const PLATFORM_LABELS: Record<ShopReelPlatform, string> = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+};
+
+const PLATFORM_CONNECT_QUERY: Record<ShopReelPlatform, string> = {
+  instagram: "instagram",
+  facebook: "facebook",
+  tiktok: "tiktok",
+  youtube: "youtube",
+};
+
+function formatConnectionSubtitle(connection: ConnectionRow | null): string {
+  if (!connection) {
+    return "Not connected";
+  }
+
+  if (connection.platform === "instagram") {
+    if (
+      connection.account_label &&
+      connection.metadata?.meta_page_name &&
+      connection.account_label !== connection.metadata.meta_page_name
+    ) {
+      return `${connection.account_label} • ${connection.metadata.meta_page_name}`;
+    }
+
+    if (connection.account_label) {
+      return connection.account_label;
+    }
+
+    if (connection.metadata?.meta_page_name) {
+      return connection.metadata.meta_page_name;
+    }
+  }
+
+  if (connection.platform === "facebook") {
+    if (connection.account_label) {
+      return connection.account_label;
+    }
+
+    if (connection.metadata?.meta_page_name) {
+      return connection.metadata.meta_page_name;
+    }
+  }
+
+  return (
+    connection.account_label ??
+    connection.platform_username ??
+    connection.platform_account_id ??
+    "Connected"
+  );
+}
+
+function isConnectionActive(connection: ConnectionRow | null): boolean {
+  return Boolean(connection?.connection_active);
+}
+
+export default function ShopReelSettingsClient() {
+  const [state, setState] = useState<SettingsState>(initialState);
+  const [saved, setSaved] = useState(false);
+  const [connections, setConnections] = useState<
+    Partial<Record<ShopReelPlatform, ConnectionRow>>
+  >({});
+  const [connectionsLoading, setConnectionsLoading] = useState(true);
+  const [connectionsError, setConnectionsError] = useState<string | null>(null);
+  const [connectingPlatform, setConnectingPlatform] =
+    useState<ShopReelPlatform | null>(null);
+
+  function setField<K extends keyof SettingsState>(
+    key: K,
+    value: SettingsState[K],
+  ) {
+    setSaved(false);
+    setState((prev) => ({ ...prev, [key]: value }));
+  }
+
+  const loadConnections = useCallback(async () => {
+    try {
+      setConnectionsLoading(true);
+      setConnectionsError(null);
+
+      const res = await fetch("/api/shopreel/connections", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const json = (await res.json().catch(() => ({}))) as ConnectionsResponse;
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to load connections");
+      }
+
+      const next: Partial<Record<ShopReelPlatform, ConnectionRow>> = {};
+
+      for (const connection of json.connections ?? []) {
+        next[connection.platform] = connection;
+      }
+
+      setConnections(next);
+    } catch (error) {
+      setConnectionsError(
+        error instanceof Error ? error.message : "Failed to load connections",
+      );
+    } finally {
+      setConnectionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadConnections();
+  }, [loadConnections]);
+
+  async function handleSave() {
+    setSaved(true);
+  }
+
+  function handleConnect(platform: ShopReelPlatform) {
+    setConnectingPlatform(platform);
+    const platformParam = PLATFORM_CONNECT_QUERY[platform];
+    window.location.href = `/api/shopreel/oauth/connect?platform=${encodeURIComponent(
+      platformParam,
+    )}`;
+  }
+
+  const connectionStats = useMemo(() => {
+    const total = PLATFORM_ORDER.length;
+    const connected = PLATFORM_ORDER.filter((platform) =>
+      isConnectionActive(connections[platform] ?? null),
+    ).length;
+
+    return { total, connected };
+  }, [connections]);
+
+  return (
+    <div className="space-y-5">
+      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <GlassCard
+          label="Brand"
+          title="Voice and formatting"
+          description="All fields now use the Glass system only. No page-local field styling."
+        >
+          <GlassInput
+            label="Brand voice"
+            value={state.brandVoice}
+            onChange={(e) => setField("brandVoice", e.target.value)}
+            placeholder="Describe tone and voice"
+          />
+
+          <GlassSelect
+            label="Posting timezone"
+            value={state.postingTimezone}
+            onChange={(e) => setField("postingTimezone", e.target.value)}
+            options={[
+              { value: "America/Edmonton", label: "America/Edmonton" },
+              { value: "America/Vancouver", label: "America/Vancouver" },
+              { value: "America/Toronto", label: "America/Toronto" },
+            ]}
+          />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <GlassSelect
+              label="Default aspect"
+              value={state.defaultAspect}
+              onChange={(e) => setField("defaultAspect", e.target.value)}
+              options={[
+                { value: "9:16", label: "9:16 Vertical" },
+                { value: "1:1", label: "1:1 Square" },
+                { value: "16:9", label: "16:9 Landscape" },
+              ]}
+            />
+
+            <GlassSelect
+              label="Caption style"
+              value={state.captionStyle}
+              onChange={(e) => setField("captionStyle", e.target.value)}
+              options={[
+                { value: "Short and clear", label: "Short and clear" },
+                { value: "Educational", label: "Educational" },
+                { value: "Story-led", label: "Story-led" },
+              ]}
+            />
+          </div>
+
+          <GlassTextarea
+            label="Default hook template"
+            value={state.defaultHookTemplate}
+            onChange={(e) => setField("defaultHookTemplate", e.target.value)}
+            placeholder="Enter your preferred short-form opener"
+          />
+
+          <GlassTextarea
+            label="Compliance note"
+            value={state.complianceNote}
+            onChange={(e) => setField("complianceNote", e.target.value)}
+            placeholder="Add messaging guardrails"
+          />
+        </GlassCard>
+
+        <GlassCard
+          label="Automation"
+          title="Approval and publishing flow"
+          description="Simple toggles, same visual language, no giant page-specific class strings."
+        >
+          <div className="space-y-3">
+            <GlassToggle
+              label="Auto-queue renders"
+              description="Send approved opportunities to render automatically."
+              checked={state.autoQueueRenders}
+              onCheckedChange={(checked) =>
+                setField("autoQueueRenders", checked)
+              }
+            />
+
+            <GlassToggle
+              label="Auto-approve drafts"
+              description="Skip manual approval for low-risk content drafts."
+              checked={state.autoApproveDrafts}
+              onCheckedChange={(checked) =>
+                setField("autoApproveDrafts", checked)
+              }
+            />
+
+            <GlassToggle
+              label="Auto-publish"
+              description="Publish scheduled content automatically after render completes."
+              checked={state.autoPublish}
+              onCheckedChange={(checked) => setField("autoPublish", checked)}
+            />
+
+            <GlassToggle
+              label="Include advisor CTA"
+              description="Append a light shop CTA where appropriate."
+              checked={state.includeAdvisorCta}
+              onCheckedChange={(checked) =>
+                setField("includeAdvisorCta", checked)
+              }
+            />
+          </div>
+        </GlassCard>
+      </section>
+
+      <GlassCard
+        label="Connections"
+        title="Platform accounts"
+        description="Connect each publishing destination your shop wants to use."
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <GlassBadge tone="default">
+                {connectionStats.connected} / {connectionStats.total} connected
+              </GlassBadge>
+              <GlassBadge tone="muted">
+                Default flow: Opportunity → Render → Review → Publish
+              </GlassBadge>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {saved ? (
+                <span className="text-sm text-[color:#d2a17e]">Saved</span>
+              ) : null}
+              <GlassButton
+                variant="secondary"
+                onClick={() => void loadConnections()}
+              >
+                Refresh connections
+              </GlassButton>
+              <GlassButton variant="primary" onClick={() => void handleSave()}>
+                Save settings
+              </GlassButton>
+            </div>
+          </div>
+        }
+      >
+        {connectionsError ? (
+          <div className="mb-4 rounded-2xl border border-[rgba(184,115,75,0.22)] bg-[rgba(184,115,75,0.08)] px-4 py-3 text-sm text-[color:#d2a17e]">
+            {connectionsError}
+          </div>
+        ) : null}
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {PLATFORM_ORDER.map((platform) => {
+            const connection = connections[platform] ?? null;
+            const active = isConnectionActive(connection);
+            const subtitle = formatConnectionSubtitle(connection);
+            const isBusy = connectingPlatform === platform;
+
+            return (
+              <div
+                key={platform}
+                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="text-base font-medium text-[color:#f3ede6]">
+                      {PLATFORM_LABELS[platform]}
+                    </div>
+                    <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+                      {connectionsLoading ? "Checking connection..." : subtitle}
+                    </div>
+                  </div>
+
+                  <GlassBadge tone={active ? "default" : "muted"}>
+                    {active ? "Connected" : "Not connected"}
+                  </GlassBadge>
+                </div>
+
+                <div className="mt-4 space-y-2 text-sm text-[color:rgba(243,237,230,0.64)]">
+                  {platform === "instagram" &&
+                  connection?.metadata?.meta_instagram_business_id ? (
+                    <div>
+                      IG business ID:{" "}
+                      {connection.metadata.meta_instagram_business_id}
+                    </div>
+                  ) : null}
+
+                  {platform === "facebook" &&
+                  connection?.metadata?.meta_page_id ? (
+                    <div>Page ID: {connection.metadata.meta_page_id}</div>
+                  ) : null}
+
+                  {connection?.token_expires_at ? (
+                    <div>
+                      Token expires:{" "}
+                      {new Date(connection.token_expires_at).toLocaleString()}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <GlassButton
+                    variant={active ? "secondary" : "primary"}
+                    onClick={() => handleConnect(platform)}
+                    disabled={isBusy}
+                  >
+                    {isBusy
+                      ? "Redirecting..."
+                      : active
+                        ? `Reconnect ${PLATFORM_LABELS[platform]}`
+                        : `Connect ${PLATFORM_LABELS[platform]}`}
+                  </GlassButton>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </GlassCard>
+
+      <GlassCard
+        label="Status"
+        title="Connection summary"
+        description="Live publishing connection state and core output preferences."
+      >
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+              Publishing timezone
+            </div>
+            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
+              {state.postingTimezone}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+              Preferred format
+            </div>
+            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
+              {state.defaultAspect} • {state.captionStyle}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+              Connected platforms
+            </div>
+            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
+              {connectionStats.connected} of {connectionStats.total}
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+----- src/features/shopreel/integrations/shared/types.ts -----
+export type ShopReelPlatform =
+  | "instagram"
+  | "facebook"
+  | "youtube"
+  | "tiktok"
+  | "blog"
+  | "linkedin"
+  | "google_business"
+  | "email";
+
+export type OAuthStartResult = {
+  ok: true;
+  authorizationUrl: string;
+};
+
+export type OAuthCallbackResult = {
+  ok: true;
+  platform: ShopReelPlatform;
+  shopId: string;
+  accountLabel?: string | null;
+  platformAccountId?: string | null;
+};
+
+export type PublishInput = {
+  shopId: string;
+  platform: ShopReelPlatform;
+  title: string;
+  caption?: string | null;
+  videoUrl: string;
+  thumbnailUrl?: string | null;
+
+  contentEventId?: string | null;
+  contentPieceId?: string | null;
+  contentAssetId?: string | null;
+  publicationId?: string | null;
+  platformAccountId?: string | null;
+};
+
+export type PublishResult = {
+  ok: true;
+  platform: ShopReelPlatform;
+  remotePostId: string;
+  remotePostUrl?: string | null;
+  status: "queued" | "published";
+};
+
+export type PlatformIntegration = {
+  startOAuth: (shopId: string) => Promise<OAuthStartResult>;
+  finishOAuth: (shopId: string, code: string) => Promise<OAuthCallbackResult>;
+  publishVideo: (input: PublishInput) => Promise<PublishResult>;
+};
+----- src/features/shopreel/integrations/shared/platformRegistry.ts -----
+import type {
+  PlatformIntegration,
+  ShopReelPlatform,
+} from "./types";
+
+import { instagramIntegration } from "../instagram/connect";
+import { facebookIntegration } from "../facebook/connect";
+import { youtubeIntegration } from "../youtube/connect";
+import { tiktokIntegration } from "../tiktok/connect";
+
+export type SupportedPlatformIntegration =
+  | "instagram"
+  | "facebook"
+  | "youtube"
+  | "tiktok";
+
+export function isSupportedPlatformIntegration(
+  platform: ShopReelPlatform,
+): platform is SupportedPlatformIntegration {
+  return (
+    platform === "instagram" ||
+    platform === "facebook" ||
+    platform === "youtube" ||
+    platform === "tiktok"
+  );
+}
+
+export function getPlatformIntegration(
+  platform: ShopReelPlatform,
+): PlatformIntegration {
+  switch (platform) {
+    case "instagram":
+      return instagramIntegration;
+
+    case "facebook":
+      return facebookIntegration;
+
+    case "youtube":
+      return youtubeIntegration;
+
+    case "tiktok":
+      return tiktokIntegration;
+
+    case "blog":
+    case "linkedin":
+    case "google_business":
+    case "email":
+      throw new Error(`No platform integration is wired yet for ${platform}`);
+  }
+}
+----- src/features/shopreel/publishing/types/index.ts -----
+export type ShopReelPublishPlatform =
+  | "instagram"
+  | "facebook"
+  | "youtube"
+  | "tiktok"
+  | "blog"
+  | "linkedin"
+  | "google_business"
+  | "email";
+
+export type ShopReelPublicationStatus =
+  | "draft"
+  | "queued"
+  | "publishing"
+  | "published"
+  | "failed"
+  | "skipped";
+
+export type CreatePublicationInput = {
+  shopId: string;
+  contentEventId: string;
+  platform: ShopReelPublishPlatform;
+
+  contentPieceId?: string | null;
+  contentAssetId?: string | null;
+  platformAccountId?: string | null;
+
+  createdBy?: string | null;
+  scheduledFor?: string | null;
+  publishMode?: "manual" | "scheduled" | "autopilot";
+
+  title?: string | null;
+  caption?: string | null;
+
+  // temporary bridge while old video-driven pipeline still exists
+  videoId?: string | null;
+};
+
+export type EnqueuePublishJobInput = {
+  shopId: string;
+  publicationId: string;
+  runAfter?: string | null;
+};

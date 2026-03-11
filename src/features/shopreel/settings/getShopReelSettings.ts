@@ -83,15 +83,18 @@ const DEFAULT_PLATFORMS: ShopReelPlatform[] = [
   "tiktok",
 ];
 
+function normalizeMetadata(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
 function getAccountLabel(row: ContentPlatformAccountRow | null): string | null {
   if (!row) return null;
 
-  const metadata =
-    row.metadata &&
-    typeof row.metadata === "object" &&
-    !Array.isArray(row.metadata)
-      ? (row.metadata as Record<string, unknown>)
-      : {};
+  const metadata = normalizeMetadata(row.metadata);
 
   return (
     row.platform_username ??
@@ -99,6 +102,40 @@ function getAccountLabel(row: ContentPlatformAccountRow | null): string | null {
     row.platform_account_id ??
     null
   );
+}
+
+function pickBestPlatformRow(
+  platform: ShopReelPlatform,
+  rows: ContentPlatformAccountRow[],
+): ContentPlatformAccountRow | null {
+  const matching = rows.filter((row) => row.platform === platform);
+
+  if (matching.length === 0) {
+    return null;
+  }
+
+  const activeNonExpired = matching.find((row) => {
+    if (!row.connection_active) {
+      return false;
+    }
+
+    if (!row.token_expires_at) {
+      return true;
+    }
+
+    return new Date(row.token_expires_at).getTime() > Date.now();
+  });
+
+  if (activeNonExpired) {
+    return activeNonExpired;
+  }
+
+  const active = matching.find((row) => row.connection_active);
+  if (active) {
+    return active;
+  }
+
+  return matching[0] ?? null;
 }
 
 export async function getShopReelSettings(
@@ -136,8 +173,7 @@ export async function getShopReelSettings(
 
   const normalizedPlatforms: ShopReelSettingsBundle["platforms"] =
     DEFAULT_PLATFORMS.map((platform) => {
-      const row =
-        platformAccounts.find((account) => account.platform === platform) ?? null;
+      const row = pickBestPlatformRow(platform, platformAccounts);
 
       const expired =
         row?.token_expires_at != null &&
@@ -158,12 +194,7 @@ export async function getShopReelSettings(
         connection_status: connectionStatus,
         publish_mode: "manual",
         account_label: getAccountLabel(row),
-        metadata:
-          row?.metadata &&
-          typeof row.metadata === "object" &&
-          !Array.isArray(row.metadata)
-            ? (row.metadata as Record<string, unknown>)
-            : {},
+        metadata: normalizeMetadata(row?.metadata),
       };
     });
 

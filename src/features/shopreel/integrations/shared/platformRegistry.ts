@@ -7,6 +7,10 @@ import { instagramIntegration } from "../instagram/connect";
 import { facebookIntegration } from "../facebook/connect";
 import { youtubeIntegration } from "../youtube/connect";
 import { tiktokIntegration } from "../tiktok/connect";
+import { blogIntegration } from "../blog/connect";
+import { linkedinIntegration } from "../linkedin/connect";
+import { googleBusinessIntegration } from "../google-business/connect";
+import { emailIntegration } from "../email/connect";
 
 export type SupportedPlatformIntegration =
   | "instagram"
@@ -42,9 +46,15 @@ export function getPlatformIntegration(
       return tiktokIntegration;
 
     case "blog":
+      return blogIntegration;
+
     case "linkedin":
+      return linkedinIntegration;
+
     case "google_business":
+      return googleBusinessIntegration;
+
     case "email":
-      throw new Error(`No platform integration is wired yet for ${platform}`);
+      return emailIntegration;
   }
 }

@@ -43,6 +43,8 @@ type MetaPagesResponse = {
 
 type ContentPlatformAccountRow = {
   id: string;
+  platform_account_id: string | null;
+  metadata: unknown;
 };
 
 function buildFacebookScopes(): string {
@@ -51,8 +53,6 @@ function buildFacebookScopes(): string {
 
 async function exchangeMetaCodeForToken(code: string): Promise<MetaTokenResponse> {
   const redirectUri = buildOAuthCallbackUrl("facebook");
-
-  console.log("FACEBOOK_TOKEN_EXCHANGE_REDIRECT_URI", redirectUri);
 
   const response = await fetch(
     `https://graph.facebook.com/v18.0/oauth/access_token` +
@@ -77,12 +77,22 @@ async function exchangeMetaCodeForToken(code: string): Promise<MetaTokenResponse
   return json;
 }
 
+function readMetaPageId(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const value = (metadata as Record<string, unknown>).meta_page_id;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 async function saveFacebookPlatformAccount(args: {
   shopId: string;
   accessToken: string;
   tokenExpiresAt: string | null;
   pageId: string | null;
   pageName: string | null;
+  pageAccessToken: string | null;
   userId: string | null;
   userName: string | null;
   instagramBusinessId: string | null;
@@ -106,47 +116,51 @@ async function saveFacebookPlatformAccount(args: {
 
   const scopes = buildFacebookScopes().split(",");
 
-  const { data: existingData, error: existingError } = await supabase
+  const { data: existingRows, error: existingError } = await supabase
     .from("content_platform_accounts")
-    .select("id")
+    .select("id, platform_account_id, metadata")
     .eq("tenant_shop_id", args.shopId)
     .eq("platform", "facebook")
-    .eq("platform_account_id", platformAccountId)
-    .limit(1)
-    .maybeSingle();
-
-  const existing = existingData as ContentPlatformAccountRow | null;
+    .order("updated_at", { ascending: false });
 
   if (existingError) {
     throw new Error(existingError.message);
   }
 
+  const existing = ((existingRows ?? []) as ContentPlatformAccountRow[]).find((row) => {
+    return (
+      row.platform_account_id === platformAccountId ||
+      row.platform_account_id === args.userId ||
+      readMetaPageId(row.metadata) === args.pageId
+    );
+  }) ?? null;
+
+  const writePayload = {
+    platform_username: args.pageName ?? args.userName ?? null,
+    connection_active: true,
+    access_token_encrypted: args.pageAccessToken ?? args.accessToken,
+    refresh_token_encrypted: null,
+    token_expires_at: args.tokenExpiresAt,
+    scopes,
+    metadata,
+    last_connected_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    platform_account_id: platformAccountId,
+  };
+
   if (existing?.id) {
     const { data: updatedData, error: updateError } = await supabase
       .from("content_platform_accounts")
-      .update({
-        account_label: args.pageName ?? args.userName ?? "Facebook Account",
-        platform_username: args.userName ?? args.pageName ?? null,
-        connection_active: true,
-        access_token_encrypted: args.accessToken,
-        refresh_token_encrypted: null,
-        token_expires_at: args.tokenExpiresAt,
-        scopes,
-        metadata,
-        last_connected_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .update(writePayload)
       .eq("id", existing.id)
       .select("id")
       .single();
 
-    const updated = updatedData as ContentPlatformAccountRow | null;
-
-    if (updateError || !updated) {
+    if (updateError || !updatedData?.id) {
       throw new Error(updateError?.message ?? "Failed to update Facebook account");
     }
 
-    return updated.id;
+    return updatedData.id;
   }
 
   const { data: insertedData, error: insertError } = await supabase
@@ -156,11 +170,10 @@ async function saveFacebookPlatformAccount(args: {
       source_shop_id: args.shopId,
       source_system: "profixiq",
       platform: "facebook",
-      account_label: args.pageName ?? args.userName ?? "Facebook Account",
       platform_account_id: platformAccountId,
-      platform_username: args.userName ?? args.pageName ?? null,
+      platform_username: args.pageName ?? args.userName ?? null,
       connection_active: true,
-      access_token_encrypted: args.accessToken,
+      access_token_encrypted: args.pageAccessToken ?? args.accessToken,
       refresh_token_encrypted: null,
       token_expires_at: args.tokenExpiresAt,
       scopes,
@@ -173,13 +186,11 @@ async function saveFacebookPlatformAccount(args: {
     .select("id")
     .single();
 
-  const inserted = insertedData as ContentPlatformAccountRow | null;
-
-  if (insertError || !inserted) {
+  if (insertError || !insertedData?.id) {
     throw new Error(insertError?.message ?? "Failed to create Facebook account");
   }
 
-  return inserted.id;
+  return insertedData.id;
 }
 
 export const facebookIntegration: PlatformIntegration = {
@@ -193,9 +204,6 @@ export const facebookIntegration: PlatformIntegration = {
       `&scope=${encodeURIComponent(buildFacebookScopes())}` +
       `&response_type=code`;
 
-    console.log("FACEBOOK_OAUTH_REDIRECT_URI", redirectUri);
-    console.log("FACEBOOK_OAUTH_URL", authorizationUrl);
-
     return {
       ok: true,
       authorizationUrl,
@@ -207,6 +215,7 @@ export const facebookIntegration: PlatformIntegration = {
     const accessToken = tokenData.access_token as string;
     const expiresIn =
       typeof tokenData.expires_in === "number" ? tokenData.expires_in : null;
+
     const tokenExpiresAt =
       expiresIn && expiresIn > 0
         ? new Date(Date.now() + expiresIn * 1000).toISOString()
@@ -247,6 +256,7 @@ export const facebookIntegration: PlatformIntegration = {
       tokenExpiresAt,
       pageId: firstPage?.id ?? null,
       pageName: firstPage?.name ?? null,
+      pageAccessToken: firstPage?.access_token ?? null,
       userId: meJson.id ?? null,
       userName: meJson.name ?? null,
       instagramBusinessId: firstPage?.instagram_business_account?.id ?? null,
