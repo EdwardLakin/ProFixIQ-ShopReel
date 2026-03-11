@@ -1,5 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import type { Database } from "@/types/supabase";
+
+function getSupabaseUrl(): string {
+  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!value) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
+  return value;
+}
+
+function getSupabasePublishableKey(): string {
+  const value =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!value) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    );
+  }
+
+  return value;
+}
 
 export async function GET(req: NextRequest) {
   const requestUrl = new URL(req.url);
@@ -13,7 +34,31 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const supabase = await createClient();
+  let response = NextResponse.redirect(`${origin}${next}`);
+
+  const supabase = createServerClient<Database>(
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(
+          cookiesToSet: Array<{
+            name: string;
+            value: string;
+            options?: CookieOptions;
+          }>,
+        ) {
+          for (const cookie of cookiesToSet) {
+            response.cookies.set(cookie.name, cookie.value, cookie.options);
+          }
+        },
+      },
+    },
+  );
+
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
@@ -22,5 +67,5 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  return response;
 }
