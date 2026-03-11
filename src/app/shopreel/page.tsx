@@ -7,6 +7,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassStat from "@/features/shopreel/ui/system/GlassStat";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 export default function ShopReelPage() {
   return (
@@ -37,7 +38,8 @@ export default function ShopReelPage() {
         <GlassCard
           label="Pipeline"
           title="What needs attention"
-          description="Warm glass cards, softer borders, and copper accents only."
+          description="Warm glass cards, copper emphasis, and stronger contrast."
+          strong
         >
           <div className="grid gap-3">
             {[
@@ -59,11 +61,17 @@ export default function ShopReelPage() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+                className={cx(
+                  "flex items-center justify-between gap-4 rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
               >
                 <div className="space-y-1">
-                  <div className="text-sm font-medium text-[color:#f3ede6]">{item.title}</div>
-                  <div className="text-sm text-[color:rgba(243,237,230,0.64)]">{item.meta}</div>
+                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                    {item.title}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>{item.meta}</div>
                 </div>
                 <GlassBadge tone="copper">{item.badge}</GlassBadge>
               </div>
@@ -74,23 +82,28 @@ export default function ShopReelPage() {
         <GlassCard
           label="Snapshot"
           title="Today"
-          description="Simple operational status without old ShopReel UI remnants."
+          description="Simple operational status with warmer emphasis."
         >
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Top channel</div>
-              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Instagram Reels</div>
-            </div>
-
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Best format</div>
-              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Repair story • 22s clips</div>
-            </div>
-
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Next scheduled publish</div>
-              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Tomorrow • 8:30 AM</div>
-            </div>
+            {[
+              ["Top channel", "Instagram Reels"],
+              ["Best format", "Repair story • 22s clips"],
+              ["Next scheduled publish", "Tomorrow • 8:30 AM"],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>{label}</div>
+                <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
+                  {value}
+                </div>
+              </div>
+            ))}
           </div>
         </GlassCard>
       </section>

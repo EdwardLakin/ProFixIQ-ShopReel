@@ -2,6 +2,7 @@ import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import GlassNav from "@/features/shopreel/ui/system/GlassNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 const jobs = [
   { title: "Brake inspection story", state: "Rendering", eta: "02:14" },
@@ -15,34 +16,49 @@ export default function ShopReelRenderQueuePage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Render queue"
-      subtitle="A single queue surface with consistent spacing, muted borders, and no leftover white-field styling."
+      subtitle="A single queue surface with stronger depth and warmer glass."
     >
       <GlassNav />
 
       <GlassCard
         label="Renderer"
         title="Active and pending jobs"
-        description="Keep this page operational and quiet — the queue should feel dense, but not cramped."
+        description="Keep this page operational, dense, and warm."
+        strong
       >
         <div className="grid gap-3">
           {jobs.map((job) => (
             <div
               key={job.title}
-              className="grid gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 md:grid-cols-[1fr_auto_auto]"
+              className={cx(
+                "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto_auto]",
+                job.state === "Rendering" ? glassTheme.border.copper : glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
             >
               <div>
-                <div className="text-base font-medium text-[color:#f3ede6]">{job.title}</div>
-                <div className="mt-1 text-sm text-[color:rgba(243,237,230,0.62)]">ETA {job.eta}</div>
+                <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                  {job.title}
+                </div>
+                <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>ETA {job.eta}</div>
               </div>
 
               <div className="md:self-center">
-                <GlassBadge tone={job.state === "Rendering" ? "copper" : job.state === "Queued" ? "default" : "muted"}>
+                <GlassBadge
+                  tone={
+                    job.state === "Rendering"
+                      ? "copper"
+                      : job.state === "Queued"
+                        ? "default"
+                        : "muted"
+                  }
+                >
                   {job.state}
                 </GlassBadge>
               </div>
 
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)] md:self-center">
-                Glass-only queue row
+              <div className={cx("text-sm md:self-center", glassTheme.text.muted)}>
+                Queue surface
               </div>
             </div>
           ))}

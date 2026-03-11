@@ -2,13 +2,14 @@ import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import GlassNav from "@/features/shopreel/ui/system/GlassNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassStat from "@/features/shopreel/ui/system/GlassStat";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 export default function ShopReelAnalyticsPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
       title="Analytics"
-      subtitle="Warm, legible metrics with cleaner depth and no blue-heavy dashboard feel."
+      subtitle="Warm, legible metrics with stronger hierarchy and less washed-out grey."
     >
       <GlassNav />
 
@@ -24,6 +25,7 @@ export default function ShopReelAnalyticsPage() {
           label="What worked"
           title="High-performing patterns"
           description="Use this section later for AI-generated recommendations from your actual data."
+          strong
         >
           <div className="space-y-3">
             {[
@@ -33,7 +35,12 @@ export default function ShopReelAnalyticsPage() {
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 text-sm text-[color:#f3ede6]"
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.primary,
+                )}
               >
                 {item}
               </div>
@@ -54,7 +61,12 @@ export default function ShopReelAnalyticsPage() {
             ].map((item) => (
               <div
                 key={item}
-                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 text-sm text-[color:#f3ede6]"
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.primary,
+                )}
               >
                 {item}
               </div>

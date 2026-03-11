@@ -2,6 +2,7 @@ import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import GlassNav from "@/features/shopreel/ui/system/GlassNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 const published = [
   { title: "Brake inspection highlight", channel: "Instagram Reels", when: "Yesterday", perf: "12.8K views" },
@@ -14,7 +15,7 @@ export default function ShopReelPublishedPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Published"
-      subtitle="A calmer content history view with glass rows and warm text hierarchy."
+      subtitle="A calmer content history view with warmer glass rows and clearer hierarchy."
     >
       <GlassNav />
 
@@ -22,16 +23,23 @@ export default function ShopReelPublishedPage() {
         label="History"
         title="Recently published"
         description="This is the clean replacement surface for your posted content list."
+        strong
       >
         <div className="grid gap-3">
           {published.map((item) => (
             <div
               key={item.title}
-              className="grid gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 md:grid-cols-[1fr_auto]"
+              className={cx(
+                "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+              )}
             >
               <div className="space-y-1">
-                <div className="text-base font-medium text-[color:#f3ede6]">{item.title}</div>
-                <div className="text-sm text-[color:rgba(243,237,230,0.64)]">
+                <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                  {item.title}
+                </div>
+                <div className={cx("text-sm", glassTheme.text.secondary)}>
                   {item.channel} • {item.when}
                 </div>
               </div>

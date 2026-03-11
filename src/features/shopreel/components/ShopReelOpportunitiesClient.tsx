@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 type OpportunityItem = {
   id: string;
@@ -98,6 +99,7 @@ export default function ShopReelOpportunitiesClient() {
         label="Opportunity Queue"
         title="Ranked by content potential"
         description="Manual uploads and shop-generated concepts now flow into one opportunity queue."
+        strong
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
@@ -123,19 +125,40 @@ export default function ShopReelOpportunitiesClient() {
         }
       >
         {isLoading ? (
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 text-sm text-[color:rgba(243,237,230,0.64)]">
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
             Loading opportunities...
           </div>
         ) : null}
 
         {error ? (
-          <div className="rounded-2xl border border-[rgba(184,115,75,0.20)] bg-[rgba(184,115,75,0.08)] p-4 text-sm text-[color:#d49a84]">
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
             {error}
           </div>
         ) : null}
 
         {!isLoading && !error && items.length === 0 ? (
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 text-sm text-[color:rgba(243,237,230,0.64)]">
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
             No opportunities yet. Upload content or generate from shop data to populate this queue.
           </div>
         ) : null}
@@ -145,11 +168,19 @@ export default function ShopReelOpportunitiesClient() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="grid gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 md:grid-cols-[1fr_auto]"
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                  item.sourceType === "manual_upload"
+                    ? glassTheme.border.copper
+                    : glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
               >
                 <div className="space-y-1">
-                  <div className="text-base font-medium text-[color:#f3ede6]">{item.title}</div>
-                  <div className="text-sm text-[color:rgba(243,237,230,0.64)]">
+                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    {item.title}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
                     {item.source} • {formatContentType(item.contentType)} • {timeAgoLabel(item.createdAt)}
                   </div>
                 </div>

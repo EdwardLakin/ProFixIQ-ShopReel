@@ -1,0 +1,404 @@
+===============================
+SHOPREEL PAGE FILE DUMP
+===============================
+
+----- src/app/shopreel/page.tsx -----
+// src/app/shopreel/page.tsx
+
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassStat from "@/features/shopreel/ui/system/GlassStat";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+
+export default function ShopReelPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Content automation cockpit"
+      subtitle="One coherent glass interface for queue health, publishing flow, and high-value opportunities."
+      actions={
+        <>
+          <GlassButton variant="ghost">Refresh</GlassButton>
+          <Link href="/shopreel/upload">
+            <GlassButton variant="secondary">Upload content</GlassButton>
+          </Link>
+          <GlassButton variant="primary">Create content</GlassButton>
+        </>
+      }
+    >
+      <GlassNav />
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <GlassStat label="Open Opportunities" value="24" hint="Ready for review" trend="+8 this week" />
+        <GlassStat label="Queued Renders" value="11" hint="3 actively rendering" trend="Healthy" />
+        <GlassStat label="Scheduled Posts" value="18" hint="Next 7 days" trend="+4 today" />
+        <GlassStat label="Published This Month" value="42" hint="Across connected channels" trend="+17%" />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.95fr]">
+        <GlassCard
+          label="Pipeline"
+          title="What needs attention"
+          description="Warm glass cards, softer borders, and copper accents only."
+        >
+          <div className="grid gap-3">
+            {[
+              {
+                title: "Brake inspection highlight",
+                meta: "Truck WO-4128 • 12 source clips",
+                badge: "High potential",
+              },
+              {
+                title: "Before / after steering repair",
+                meta: "WO-4130 • advisor review needed",
+                badge: "Needs approval",
+              },
+              {
+                title: "Educational tip: air brake wear",
+                meta: "Built from recent inspections",
+                badge: "Evergreen",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+              >
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-[color:#f3ede6]">{item.title}</div>
+                  <div className="text-sm text-[color:rgba(243,237,230,0.64)]">{item.meta}</div>
+                </div>
+                <GlassBadge tone="copper">{item.badge}</GlassBadge>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="Snapshot"
+          title="Today"
+          description="Simple operational status without old ShopReel UI remnants."
+        >
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Top channel</div>
+              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Instagram Reels</div>
+            </div>
+
+            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Best format</div>
+              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Repair story • 22s clips</div>
+            </div>
+
+            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
+              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Next scheduled publish</div>
+              <div className="mt-1 text-lg font-semibold text-[color:#f3ede6]">Tomorrow • 8:30 AM</div>
+            </div>
+          </div>
+        </GlassCard>
+      </section>
+    </GlassShell>
+  );
+}
+----- src/app/shopreel/upload/page.tsx -----
+// src/app/shopreel/upload/page.tsx
+
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ManualUploadClient from "@/features/shopreel/manual/components/ManualUploadClient";
+
+export default function ShopReelUploadPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Upload Content"
+      subtitle="Add manual photos and videos, then turn them into ShopReel AI concepts, videos, and render jobs."
+    >
+      <GlassNav />
+      <ManualUploadClient />
+    </GlassShell>
+  );
+}
+----- src/app/shopreel/opportunities/page.tsx -----
+// src/app/shopreel/opportunities/page.tsx
+
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+
+export default function ShopReelOpportunitiesPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Opportunities"
+      subtitle="Surface the best candidate content across manual uploads and shop-generated content in one queue."
+      actions={<GlassButton variant="primary">Generate selected</GlassButton>}
+    >
+      <GlassNav />
+      <ShopReelOpportunitiesClient />
+    </GlassShell>
+  );
+}
+----- src/app/shopreel/calendar/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+
+const days = [
+  { day: "Mon", items: 2 },
+  { day: "Tue", items: 4 },
+  { day: "Wed", items: 3 },
+  { day: "Thu", items: 5 },
+  { day: "Fri", items: 2 },
+  { day: "Sat", items: 1 },
+  { day: "Sun", items: 2 },
+];
+
+export default function ShopReelCalendarPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Calendar"
+      subtitle="Publishing cadence and visibility, reset with softer glass surfaces and warmer typography."
+    >
+      <GlassNav />
+
+      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <GlassCard
+          label="Publishing Week"
+          title="Content cadence"
+          description="A simple week view placeholder you can wire into your real scheduler."
+        >
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+            {days.map((day) => (
+              <div
+                key={day.day}
+                className="flex items-center justify-between rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+              >
+                <div>
+                  <div className="text-sm font-medium text-[color:#f3ede6]">{day.day}</div>
+                  <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+                    {day.items} scheduled item{day.items === 1 ? "" : "s"}
+                  </div>
+                </div>
+                <GlassBadge tone={day.items >= 4 ? "copper" : "muted"}>{day.items} posts</GlassBadge>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="Best Windows"
+          title="Recommended posting times"
+          description="Keep this box simple until your analytics-backed timing model is wired in."
+        >
+          <div className="space-y-3">
+            {["8:30 AM", "12:15 PM", "5:40 PM"].map((slot) => (
+              <div
+                key={slot}
+                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+              >
+                <div className="text-base font-medium text-[color:#f3ede6]">{slot}</div>
+                <div className="mt-1 text-sm text-[color:rgba(243,237,230,0.64)]">
+                  Strong recent engagement window
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </section>
+    </GlassShell>
+  );
+}
+----- src/app/shopreel/render-queue/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+
+const jobs = [
+  { title: "Brake inspection story", state: "Rendering", eta: "02:14" },
+  { title: "Wheel seal before / after", state: "Queued", eta: "05:40" },
+  { title: "Air brake safety tip", state: "Queued", eta: "07:05" },
+  { title: "Suspension repair recap", state: "Needs asset", eta: "--" },
+];
+
+export default function ShopReelRenderQueuePage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Render queue"
+      subtitle="A single queue surface with consistent spacing, muted borders, and no leftover white-field styling."
+    >
+      <GlassNav />
+
+      <GlassCard
+        label="Renderer"
+        title="Active and pending jobs"
+        description="Keep this page operational and quiet — the queue should feel dense, but not cramped."
+      >
+        <div className="grid gap-3">
+          {jobs.map((job) => (
+            <div
+              key={job.title}
+              className="grid gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 md:grid-cols-[1fr_auto_auto]"
+            >
+              <div>
+                <div className="text-base font-medium text-[color:#f3ede6]">{job.title}</div>
+                <div className="mt-1 text-sm text-[color:rgba(243,237,230,0.62)]">ETA {job.eta}</div>
+              </div>
+
+              <div className="md:self-center">
+                <GlassBadge tone={job.state === "Rendering" ? "copper" : job.state === "Queued" ? "default" : "muted"}>
+                  {job.state}
+                </GlassBadge>
+              </div>
+
+              <div className="text-sm text-[color:rgba(243,237,230,0.62)] md:self-center">
+                Glass-only queue row
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+    </GlassShell>
+  );
+}
+----- src/app/shopreel/analytics/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassStat from "@/features/shopreel/ui/system/GlassStat";
+
+export default function ShopReelAnalyticsPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Analytics"
+      subtitle="Warm, legible metrics with cleaner depth and no blue-heavy dashboard feel."
+    >
+      <GlassNav />
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <GlassStat label="Views" value="128.4K" hint="Last 30 days" trend="+21%" />
+        <GlassStat label="Avg Watch Time" value="18.2s" hint="Short-form clips" trend="+3.4s" />
+        <GlassStat label="Leads Influenced" value="37" hint="Tracked attribution" trend="+9" />
+        <GlassStat label="Best Theme" value="Repair Story" hint="Most saves and shares" trend="Leading" />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <GlassCard
+          label="What worked"
+          title="High-performing patterns"
+          description="Use this section later for AI-generated recommendations from your actual data."
+        >
+          <div className="space-y-3">
+            {[
+              "Before / after transformations with tight intros",
+              "Technician voice overlays under 25 seconds",
+              "Educational tips tied to real work order findings",
+            ].map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 text-sm text-[color:#f3ede6]"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="What to change"
+          title="Optimization notes"
+          description="Keep the insight stack restrained and readable."
+        >
+          <div className="space-y-3">
+            {[
+              "Reduce slow logo-heavy openings",
+              "Post more midweek educational content",
+              "Use fewer text-dense caption slides",
+            ].map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 text-sm text-[color:#f3ede6]"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </section>
+    </GlassShell>
+  );
+}
+----- src/app/shopreel/published/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+
+const published = [
+  { title: "Brake inspection highlight", channel: "Instagram Reels", when: "Yesterday", perf: "12.8K views" },
+  { title: "Air brake maintenance tip", channel: "TikTok", when: "2 days ago", perf: "8.2K views" },
+  { title: "Wheel seal before / after", channel: "Facebook", when: "4 days ago", perf: "3.1K views" },
+];
+
+export default function ShopReelPublishedPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Published"
+      subtitle="A calmer content history view with glass rows and warm text hierarchy."
+    >
+      <GlassNav />
+
+      <GlassCard
+        label="History"
+        title="Recently published"
+        description="This is the clean replacement surface for your posted content list."
+      >
+        <div className="grid gap-3">
+          {published.map((item) => (
+            <div
+              key={item.title}
+              className="grid gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4 md:grid-cols-[1fr_auto]"
+            >
+              <div className="space-y-1">
+                <div className="text-base font-medium text-[color:#f3ede6]">{item.title}</div>
+                <div className="text-sm text-[color:rgba(243,237,230,0.64)]">
+                  {item.channel} • {item.when}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 md:justify-end">
+                <GlassBadge tone="copper">{item.perf}</GlassBadge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+    </GlassShell>
+  );
+}
+----- src/app/shopreel/settings/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ShopReelSettingsClient from "@/features/shopreel/ui/ShopReelSettingsClient";
+
+export default function ShopReelSettingsPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Settings"
+      subtitle="Connection, publishing, tone, and automation defaults — all through the single glass control system."
+    >
+      <GlassNav />
+      <ShopReelSettingsClient />
+    </GlassShell>
+  );
+}

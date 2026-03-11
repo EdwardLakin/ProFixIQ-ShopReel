@@ -1,6 +1,6 @@
 export const glassTheme = {
   bg: {
-    base: "bg-[radial-gradient(circle_at_top,rgba(184,115,75,0.18),transparent_0_24%),radial-gradient(circle_at_top_right,rgba(54,191,216,0.10),transparent_0_22%),linear-gradient(180deg,#181310_0%,#0d0d0d_40%,#070707_100%)]",
+    base: "bg-[radial-gradient(circle_at_top,rgba(201,139,92,0.16),transparent_0_34%),radial-gradient(circle_at_bottom_right,rgba(184,109,63,0.10),transparent_0_24%),linear-gradient(180deg,#16110f_0%,#0f0b09_44%,#070505_100%)]",
     overlay:
       "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(180deg,rgba(255,255,255,0.035),transparent_24%,transparent_76%,rgba(255,255,255,0.018))] before:content-[''] after:pointer-events-none after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_bottom_left,rgba(184,115,75,0.08),transparent_0_20%)] after:content-['']",
     grid: "absolute inset-0 opacity-40 [background-image:radial-gradient(rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:18px_18px]",
@@ -8,15 +8,15 @@ export const glassTheme = {
   text: {
     primary: "text-[color:#f5eee7]",
     secondary: "text-[color:rgba(245,238,231,0.72)]",
-    muted: "text-[color:rgba(245,238,231,0.50)]",
-    copper: "text-[color:#cf8f61]",
-    copperSoft: "text-[color:#e0b08d]",
+    muted: "text-[color:rgba(245,238,231,0.54)]",
+    copper: "text-[color:#c98b5c]",
+    copperSoft: "text-[color:#d9aa88]",
   },
   border: {
     soft: "border-[color:rgba(255,255,255,0.09)]",
     softer: "border-[color:rgba(255,255,255,0.06)]",
     strong: "border-[color:rgba(255,255,255,0.12)]",
-    copper: "border-[color:rgba(207,143,97,0.32)]",
+    copper: "border-[color:rgba(201,139,92,0.30)]",
   },
   glass: {
     panel:
@@ -24,16 +24,16 @@ export const glassTheme = {
     panelStrong:
       "bg-[linear-gradient(180deg,rgba(255,255,255,0.13),rgba(255,255,255,0.05))] backdrop-blur-2xl shadow-[0_18px_48px_rgba(0,0,0,0.40)]",
     panelSoft:
+      "bg-[linear-gradient(180deg,rgba(255,255,255,0.085),rgba(255,255,255,0.035))] backdrop-blur-xl shadow-[0_10px_24px_rgba(0,0,0,0.22)]",
+    subtle:
       "bg-[linear-gradient(180deg,rgba(255,255,255,0.075),rgba(255,255,255,0.03))] backdrop-blur-lg shadow-[0_8px_24px_rgba(0,0,0,0.24)]",
     input:
       "bg-[rgba(255,255,255,0.06)] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
   },
   accent: {
-    copperBg: "bg-[rgba(207,143,97,0.18)]",
-    copperBgStrong: "bg-[rgba(207,143,97,0.24)]",
-    copperLine: "bg-[rgba(207,143,97,0.42)]",
-    copperRing: "focus-visible:ring-[rgba(207,143,97,0.30)]",
-    copperBorder: "border-[rgba(207,143,97,0.32)]",
+    copperBg: "bg-[rgba(201,139,92,0.16)]",
+    copperLine: "bg-[rgba(201,139,92,0.40)]",
+    copperRing: "focus-visible:ring-[rgba(201,139,92,0.30)]",
   },
   radius: {
     xl: "rounded-3xl",

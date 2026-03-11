@@ -7,7 +7,7 @@ export default function ShopReelSettingsPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Settings"
-      subtitle="Connection, publishing, tone, and automation defaults — all through the single glass control system."
+      subtitle="Connection, publishing, tone, and automation defaults — all through the shared glass control system."
     >
       <GlassNav />
       <ShopReelSettingsClient />

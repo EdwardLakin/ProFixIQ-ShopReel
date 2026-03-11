@@ -2,6 +2,7 @@ import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import GlassNav from "@/features/shopreel/ui/system/GlassNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 const days = [
   { day: "Mon", items: 2 },
@@ -18,7 +19,7 @@ export default function ShopReelCalendarPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Calendar"
-      subtitle="Publishing cadence and visibility, reset with softer glass surfaces and warmer typography."
+      subtitle="Publishing cadence and visibility with warmer, more dimensional glass surfaces."
     >
       <GlassNav />
 
@@ -27,20 +28,29 @@ export default function ShopReelCalendarPage() {
           label="Publishing Week"
           title="Content cadence"
           description="A simple week view placeholder you can wire into your real scheduler."
+          strong
         >
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
             {days.map((day) => (
               <div
                 key={day.day}
-                className="flex items-center justify-between rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+                className={cx(
+                  "flex items-center justify-between rounded-2xl border p-4",
+                  day.items >= 4 ? glassTheme.border.copper : glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
               >
                 <div>
-                  <div className="text-sm font-medium text-[color:#f3ede6]">{day.day}</div>
-                  <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                    {day.day}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
                     {day.items} scheduled item{day.items === 1 ? "" : "s"}
                   </div>
                 </div>
-                <GlassBadge tone={day.items >= 4 ? "copper" : "muted"}>{day.items} posts</GlassBadge>
+                <GlassBadge tone={day.items >= 4 ? "copper" : "muted"}>
+                  {day.items} posts
+                </GlassBadge>
               </div>
             ))}
           </div>
@@ -55,10 +65,14 @@ export default function ShopReelCalendarPage() {
             {["8:30 AM", "12:15 PM", "5:40 PM"].map((slot) => (
               <div
                 key={slot}
-                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
               >
-                <div className="text-base font-medium text-[color:#f3ede6]">{slot}</div>
-                <div className="mt-1 text-sm text-[color:rgba(243,237,230,0.64)]">
+                <div className={cx("text-base font-medium", glassTheme.text.primary)}>{slot}</div>
+                <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
                   Strong recent engagement window
                 </div>
               </div>

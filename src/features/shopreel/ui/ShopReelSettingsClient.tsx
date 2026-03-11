@@ -8,6 +8,7 @@ import GlassSelect from "@/features/shopreel/ui/system/GlassSelect";
 import GlassToggle from "@/features/shopreel/ui/system/GlassToggle";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 type SettingsState = {
   brandVoice: string;
@@ -109,11 +110,12 @@ const PLATFORM_CONNECT_QUERY: Record<ShopReelPlatform, string> = {
   email: "email",
 };
 
-function formatConnectionSubtitle(connection: ConnectionRow | null, platform: ShopReelPlatform): string {
+function formatConnectionSubtitle(
+  connection: ConnectionRow | null,
+  platform: ShopReelPlatform,
+): string {
   if (!connection) {
-    return CONNECTABLE_PLATFORMS.includes(platform)
-      ? "Not connected"
-      : "Coming soon";
+    return CONNECTABLE_PLATFORMS.includes(platform) ? "Not connected" : "Coming soon";
   }
 
   if (connection.platform === "instagram") {
@@ -125,23 +127,13 @@ function formatConnectionSubtitle(connection: ConnectionRow | null, platform: Sh
       return `${connection.account_label} • ${connection.metadata.meta_page_name}`;
     }
 
-    if (connection.account_label) {
-      return connection.account_label;
-    }
-
-    if (connection.metadata?.meta_page_name) {
-      return connection.metadata.meta_page_name;
-    }
+    if (connection.account_label) return connection.account_label;
+    if (connection.metadata?.meta_page_name) return connection.metadata.meta_page_name;
   }
 
   if (connection.platform === "facebook") {
-    if (connection.account_label) {
-      return connection.account_label;
-    }
-
-    if (connection.metadata?.meta_page_name) {
-      return connection.metadata.meta_page_name;
-    }
+    if (connection.account_label) return connection.account_label;
+    if (connection.metadata?.meta_page_name) return connection.metadata.meta_page_name;
   }
 
   return (
@@ -167,10 +159,7 @@ export default function ShopReelSettingsClient() {
   const [connectingPlatform, setConnectingPlatform] =
     useState<ShopReelPlatform | null>(null);
 
-  function setField<K extends keyof SettingsState>(
-    key: K,
-    value: SettingsState[K],
-  ) {
+  function setField<K extends keyof SettingsState>(key: K, value: SettingsState[K]) {
     setSaved(false);
     setState((prev) => ({ ...prev, [key]: value }));
   }
@@ -241,6 +230,7 @@ export default function ShopReelSettingsClient() {
           label="Brand"
           title="Voice and formatting"
           description="All fields now use the Glass system only. No page-local field styling."
+          strong
         >
           <GlassInput
             label="Brand voice"
@@ -309,18 +299,14 @@ export default function ShopReelSettingsClient() {
               label="Auto-queue renders"
               description="Send approved opportunities to render automatically."
               checked={state.autoQueueRenders}
-              onCheckedChange={(checked) =>
-                setField("autoQueueRenders", checked)
-              }
+              onCheckedChange={(checked) => setField("autoQueueRenders", checked)}
             />
 
             <GlassToggle
               label="Auto-approve drafts"
               description="Skip manual approval for low-risk content drafts."
               checked={state.autoApproveDrafts}
-              onCheckedChange={(checked) =>
-                setField("autoApproveDrafts", checked)
-              }
+              onCheckedChange={(checked) => setField("autoApproveDrafts", checked)}
             />
 
             <GlassToggle
@@ -334,9 +320,7 @@ export default function ShopReelSettingsClient() {
               label="Include advisor CTA"
               description="Append a light shop CTA where appropriate."
               checked={state.includeAdvisorCta}
-              onCheckedChange={(checked) =>
-                setField("includeAdvisorCta", checked)
-              }
+              onCheckedChange={(checked) => setField("includeAdvisorCta", checked)}
             />
           </div>
         </GlassCard>
@@ -346,6 +330,7 @@ export default function ShopReelSettingsClient() {
         label="Connections"
         title="Publishing destinations"
         description="Connect live channels now and stage the next expansion paths for blogs, email, LinkedIn, and Google Business."
+        strong
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -359,12 +344,9 @@ export default function ShopReelSettingsClient() {
 
             <div className="flex items-center gap-3">
               {saved ? (
-                <span className="text-sm text-[color:#d2a17e]">Saved</span>
+                <span className={cx("text-sm", glassTheme.text.copperSoft)}>Saved</span>
               ) : null}
-              <GlassButton
-                variant="secondary"
-                onClick={() => void loadConnections()}
-              >
+              <GlassButton variant="secondary" onClick={() => void loadConnections()}>
                 Refresh connections
               </GlassButton>
               <GlassButton variant="primary" onClick={() => void handleSave()}>
@@ -375,7 +357,14 @@ export default function ShopReelSettingsClient() {
         }
       >
         {connectionsError ? (
-          <div className="mb-4 rounded-2xl border border-[rgba(184,115,75,0.22)] bg-[rgba(184,115,75,0.08)] px-4 py-3 text-sm text-[color:#d2a17e]">
+          <div
+            className={cx(
+              "mb-4 rounded-2xl border px-4 py-3 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
             {connectionsError}
           </div>
         ) : null}
@@ -391,14 +380,18 @@ export default function ShopReelSettingsClient() {
             return (
               <div
                 key={platform}
-                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+                className={cx(
+                  "rounded-2xl border p-4",
+                  !canConnect || active ? glassTheme.border.copper : glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <div className="text-base font-medium text-[color:#f3ede6]">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
                       {PLATFORM_LABELS[platform]}
                     </div>
-                    <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
                       {connectionsLoading ? "Checking connection..." : subtitle}
                     </div>
                   </div>
@@ -408,30 +401,26 @@ export default function ShopReelSettingsClient() {
                   </GlassBadge>
                 </div>
 
-                <div className="mt-4 space-y-2 text-sm text-[color:rgba(243,237,230,0.64)]">
+                <div className={cx("mt-4 space-y-2 text-sm", glassTheme.text.secondary)}>
                   {platform === "instagram" &&
                   connection?.metadata?.meta_instagram_business_id ? (
-                    <div>
-                      IG business ID:{" "}
-                      {connection.metadata.meta_instagram_business_id}
-                    </div>
+                    <div>IG business ID: {connection.metadata.meta_instagram_business_id}</div>
                   ) : null}
 
-                  {platform === "facebook" &&
-                  connection?.metadata?.meta_page_id ? (
+                  {platform === "facebook" && connection?.metadata?.meta_page_id ? (
                     <div>Page ID: {connection.metadata.meta_page_id}</div>
                   ) : null}
 
                   {connection?.token_expires_at ? (
                     <div>
-                      Token expires:{" "}
-                      {new Date(connection.token_expires_at).toLocaleString()}
+                      Token expires: {new Date(connection.token_expires_at).toLocaleString()}
                     </div>
                   ) : null}
 
                   {!canConnect ? (
                     <div>
-                      Planned destination. UI and publish-path scaffolding added, live connection wiring comes next.
+                      Planned destination. UI and publish-path scaffolding added, live connection
+                      wiring comes next.
                     </div>
                   ) : null}
                 </div>
@@ -463,32 +452,25 @@ export default function ShopReelSettingsClient() {
         description="Live publishing connection state and core output preferences."
       >
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
-              Publishing timezone
+          {[
+            ["Publishing timezone", state.postingTimezone],
+            ["Preferred format", `${state.defaultAspect} • ${state.captionStyle}`],
+            ["Connected platforms", `${connectionStats.connected} of ${connectionStats.total}`],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>{label}</div>
+              <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                {value}
+              </div>
             </div>
-            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-              {state.postingTimezone}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
-              Preferred format
-            </div>
-            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-              {state.defaultAspect} • {state.captionStyle}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
-              Connected platforms
-            </div>
-            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-              {connectionStats.connected} of {connectionStats.total}
-            </div>
-          </div>
+          ))}
         </div>
       </GlassCard>
     </div>

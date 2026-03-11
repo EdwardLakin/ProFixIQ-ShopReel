@@ -7,6 +7,7 @@ import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
 import GlassSelect from "@/features/shopreel/ui/system/GlassSelect";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 type UploadFileMeta = {
   file: File;
@@ -56,8 +57,7 @@ export default function ManualUploadClient() {
     const next: UploadFileMeta[] = [];
 
     for (const file of Array.from(fileList)) {
-      if (!file.type.startsWith("image/") && !file.type.startsWith("video/"))
-        continue;
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) continue;
 
       next.push({
         file,
@@ -100,7 +100,7 @@ export default function ManualUploadClient() {
           "x-upsert": "false",
         },
         body: file,
-      }
+      },
     );
 
     if (!uploadRes.ok) {
@@ -148,7 +148,6 @@ export default function ManualUploadClient() {
       }
 
       const { assetId } = createJson;
-
       const uploadedFiles = [];
 
       for (const item of files) {
@@ -175,18 +174,15 @@ export default function ManualUploadClient() {
         throw new Error(completeJson.error ?? "Finalize failed");
       }
 
-      const generateRes = await fetch(
-        `/api/shopreel/manual-assets/${assetId}/generate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            enqueueRender: true,
-          }),
-        }
-      );
+      const generateRes = await fetch(`/api/shopreel/manual-assets/${assetId}/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          enqueueRender: true,
+        }),
+      });
 
       const generateJson = await generateRes.json();
 
@@ -194,12 +190,12 @@ export default function ManualUploadClient() {
         throw new Error(generateJson.error ?? "Generation failed");
       }
 
-      const result = generateJson as GeneratedVideoResult;
+      const generated = generateJson as GeneratedVideoResult;
 
       setResult(
-        `Upload complete. Video ${result.videoId} created${
-          result.renderJobId ? ` • Render job ${result.renderJobId}` : ""
-        }`
+        `Upload complete. Video ${generated.videoId} created${
+          generated.renderJobId ? ` • Render job ${generated.renderJobId}` : ""
+        }`,
       );
 
       setTitle("");
@@ -219,6 +215,7 @@ export default function ManualUploadClient() {
         label="Upload Content"
         title="Manual media intake"
         description="Add photos or videos not tied to work orders or inspections."
+        strong
       >
         <div className="grid gap-4 md:grid-cols-2">
           <GlassInput
@@ -252,22 +249,54 @@ export default function ManualUploadClient() {
           onChange={(e) => setNote(e.target.value)}
         />
 
-        <input
-          type="file"
-          multiple
-          accept="image/*,video/*"
-          onChange={(e) => onSelectFiles(e.target.files)}
-        />
+        <div
+          className={cx(
+            "rounded-2xl border p-4",
+            glassTheme.border.copper,
+            glassTheme.glass.panelSoft,
+          )}
+        >
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            onChange={(e) => onSelectFiles(e.target.files)}
+            className={cx("block w-full text-sm", glassTheme.text.secondary)}
+          />
 
-        {files.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            <GlassBadge tone="copper">{assetType}</GlassBadge>
-            <GlassBadge tone="default">{files.length} files</GlassBadge>
+          {files.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <GlassBadge tone="copper">{assetType}</GlassBadge>
+              <GlassBadge tone="default">{files.length} files</GlassBadge>
+            </div>
+          ) : null}
+        </div>
+
+        {error ? (
+          <div
+            className={cx(
+              "rounded-2xl border px-4 py-3 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
+            {error}
           </div>
-        )}
+        ) : null}
 
-        {error && <div className="text-red-400 text-sm">{error}</div>}
-        {result && <div className="text-green-400 text-sm">{result}</div>}
+        {result ? (
+          <div
+            className={cx(
+              "rounded-2xl border px-4 py-3 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.primary,
+            )}
+          >
+            {result}
+          </div>
+        ) : null}
 
         <GlassButton
           variant="primary"
