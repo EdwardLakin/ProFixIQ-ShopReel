@@ -189,7 +189,7 @@ function pick<T extends Row>(row: T, keys: string[]) {
   return out;
 }
 
-function transformRow(table: TableName, row: Row): Row {
+function transformRow(table: TableName, row: Row): Row | null {
   const shopId =
     (row.tenant_shop_id as string | null) ??
     (row.shop_id as string | null) ??
@@ -291,7 +291,7 @@ async function backfillTable(table: TableName) {
 
     const rows = data
   .map((row) => transformRow(table, row as Row))
-  .filter(Boolean);
+  .filter((row): row is Row => row !== null);
 
 if (rows.length === 0) {
   from += data.length;
