@@ -27,7 +27,7 @@ export default function GlassShell(props: {
               {eyebrow ? (
                 <div
                   className={cx(
-                    "text-xs font-medium uppercase tracking-[0.24em]",
+                    "text-xs font-semibold uppercase tracking-[0.32em]",
                     glassTheme.text.copper,
                   )}
                 >
@@ -38,7 +38,7 @@ export default function GlassShell(props: {
               <div className="space-y-2">
                 <h1
                   className={cx(
-                    "text-3xl tracking-[0.01em] md:text-4xl font-semibold",
+                    "text-3xl md:text-4xl font-semibold font-['Black_Ops_One'] tracking-[0.03em]",
                     glassTheme.text.primary,
                   )}
                 >
