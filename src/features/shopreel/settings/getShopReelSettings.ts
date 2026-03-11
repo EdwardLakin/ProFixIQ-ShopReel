@@ -4,7 +4,11 @@ export type ShopReelPlatform =
   | "instagram"
   | "facebook"
   | "youtube"
-  | "tiktok";
+  | "tiktok"
+  | "blog"
+  | "linkedin"
+  | "google_business"
+  | "email";
 
 export type ShopReelSettingsBundle = {
   settings: {
@@ -28,7 +32,7 @@ export type ShopReelSettingsBundle = {
     platform: ShopReelPlatform;
     enabled: boolean;
     connection_active: boolean;
-    connection_status: "not_connected" | "connected" | "expired" | "error";
+    connection_status: "not_connected" | "connected" | "expired" | "error" | "coming_soon";
     publish_mode: "manual" | "scheduled" | "autopilot";
     account_label: string | null;
     metadata: Record<string, unknown>;
@@ -46,7 +50,8 @@ type ShopReelConnectionStatus =
   | "not_connected"
   | "connected"
   | "expired"
-  | "error";
+  | "error"
+  | "coming_soon";
 
 type ShopReelSettingsRow = {
   shop_id: string;
@@ -81,20 +86,28 @@ const DEFAULT_PLATFORMS: ShopReelPlatform[] = [
   "facebook",
   "youtube",
   "tiktok",
+  "blog",
+  "linkedin",
+  "google_business",
+  "email",
 ];
 
-function normalizeMetadata(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return {};
-  }
-
-  return value as Record<string, unknown>;
-}
+const COMING_SOON_PLATFORMS: ShopReelPlatform[] = [
+  "blog",
+  "linkedin",
+  "google_business",
+  "email",
+];
 
 function getAccountLabel(row: ContentPlatformAccountRow | null): string | null {
   if (!row) return null;
 
-  const metadata = normalizeMetadata(row.metadata);
+  const metadata =
+    row.metadata &&
+    typeof row.metadata === "object" &&
+    !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : {};
 
   return (
     row.platform_username ??
@@ -102,40 +115,6 @@ function getAccountLabel(row: ContentPlatformAccountRow | null): string | null {
     row.platform_account_id ??
     null
   );
-}
-
-function pickBestPlatformRow(
-  platform: ShopReelPlatform,
-  rows: ContentPlatformAccountRow[],
-): ContentPlatformAccountRow | null {
-  const matching = rows.filter((row) => row.platform === platform);
-
-  if (matching.length === 0) {
-    return null;
-  }
-
-  const activeNonExpired = matching.find((row) => {
-    if (!row.connection_active) {
-      return false;
-    }
-
-    if (!row.token_expires_at) {
-      return true;
-    }
-
-    return new Date(row.token_expires_at).getTime() > Date.now();
-  });
-
-  if (activeNonExpired) {
-    return activeNonExpired;
-  }
-
-  const active = matching.find((row) => row.connection_active);
-  if (active) {
-    return active;
-  }
-
-  return matching[0] ?? null;
 }
 
 export async function getShopReelSettings(
@@ -173,28 +152,38 @@ export async function getShopReelSettings(
 
   const normalizedPlatforms: ShopReelSettingsBundle["platforms"] =
     DEFAULT_PLATFORMS.map((platform) => {
-      const row = pickBestPlatformRow(platform, platformAccounts);
+      const row =
+        platformAccounts.find((account) => account.platform === platform) ?? null;
+
+      const isComingSoon = COMING_SOON_PLATFORMS.includes(platform);
 
       const expired =
         row?.token_expires_at != null &&
         new Date(row.token_expires_at).getTime() <= Date.now();
 
-      const connectionStatus: ShopReelConnectionStatus = row
-        ? expired
-          ? "expired"
-          : row.connection_active
-            ? "connected"
-            : "not_connected"
-        : "not_connected";
+      const connectionStatus: ShopReelConnectionStatus = isComingSoon
+        ? "coming_soon"
+        : row
+          ? expired
+            ? "expired"
+            : row.connection_active
+              ? "connected"
+              : "not_connected"
+          : "not_connected";
 
       return {
         platform,
         enabled: settings?.enabled_platforms?.includes(platform) ?? false,
-        connection_active: row?.connection_active ?? false,
+        connection_active: isComingSoon ? false : (row?.connection_active ?? false),
         connection_status: connectionStatus,
         publish_mode: "manual",
         account_label: getAccountLabel(row),
-        metadata: normalizeMetadata(row?.metadata),
+        metadata:
+          row?.metadata &&
+          typeof row.metadata === "object" &&
+          !Array.isArray(row.metadata)
+            ? (row.metadata as Record<string, unknown>)
+            : {},
       };
     });
 

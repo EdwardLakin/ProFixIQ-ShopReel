@@ -2,24 +2,25 @@ import type {
   OAuthCallbackResult,
   OAuthStartResult,
   PlatformIntegration,
+  PublishResult,
 } from "../shared/types";
 
 export const linkedinIntegration: PlatformIntegration = {
-  async startOAuth(_: string): Promise<OAuthStartResult> {
+  async startOAuth(): Promise<OAuthStartResult> {
+    throw new Error("LinkedIn integration is not wired yet.");
+  },
+
+  async finishOAuth(): Promise<OAuthCallbackResult> {
     throw new Error("LinkedIn OAuth is not implemented yet.");
   },
 
-  async finishOAuth(shopId: string): Promise<OAuthCallbackResult> {
+  async publishVideo(): Promise<PublishResult> {
     return {
       ok: true,
       platform: "linkedin",
-      shopId,
-      accountLabel: "LinkedIn",
-      platformAccountId: null,
+      remotePostId: `linkedin-draft-${Date.now()}`,
+      remotePostUrl: null,
+      status: "queued",
     };
-  },
-
-  async publishVideo() {
-    throw new Error("LinkedIn publishing is not implemented yet.");
   },
 };

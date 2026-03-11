@@ -16,7 +16,11 @@ export type SupportedPlatformIntegration =
   | "instagram"
   | "facebook"
   | "youtube"
-  | "tiktok";
+  | "tiktok"
+  | "blog"
+  | "linkedin"
+  | "google_business"
+  | "email";
 
 export function isSupportedPlatformIntegration(
   platform: ShopReelPlatform,
@@ -25,7 +29,11 @@ export function isSupportedPlatformIntegration(
     platform === "instagram" ||
     platform === "facebook" ||
     platform === "youtube" ||
-    platform === "tiktok"
+    platform === "tiktok" ||
+    platform === "blog" ||
+    platform === "linkedin" ||
+    platform === "google_business" ||
+    platform === "email"
   );
 }
 
@@ -35,25 +43,18 @@ export function getPlatformIntegration(
   switch (platform) {
     case "instagram":
       return instagramIntegration;
-
     case "facebook":
       return facebookIntegration;
-
     case "youtube":
       return youtubeIntegration;
-
     case "tiktok":
       return tiktokIntegration;
-
     case "blog":
       return blogIntegration;
-
     case "linkedin":
       return linkedinIntegration;
-
     case "google_business":
       return googleBusinessIntegration;
-
     case "email":
       return emailIntegration;
   }

@@ -47,7 +47,9 @@ function SignupPageInner() {
         throw error;
       }
 
-      setStatus("Check your email to confirm your account, then you'll be sent to onboarding.");
+      setStatus(
+        "Account created. Check your email to confirm your address, then you'll be sent into onboarding.",
+      );
     } catch (submitError) {
       setStatus(
         submitError instanceof Error ? submitError.message : "Unable to sign up.",
@@ -58,13 +60,17 @@ function SignupPageInner() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+    <main className="min-h-screen bg-[#050816] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(236,72,153,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.16),transparent_34%)]" />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md items-center px-6">
+        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
           <div className="mb-6">
+            <div className="mb-2 text-sm uppercase tracking-[0.25em] text-violet-300/80">
+              Get started
+            </div>
             <h1 className="text-2xl font-semibold">Create your ShopReel account</h1>
             <p className="mt-2 text-sm text-white/70">
-              Sign up with your email and password, then finish onboarding.
+              Set up your email and password, confirm your email, then finish onboarding.
             </p>
           </div>
 
@@ -142,7 +148,7 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-black text-white">
+        <main className="min-h-screen bg-[#050816] text-white">
           <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
             <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
               <div className="text-sm text-white/70">Loading sign up...</div>

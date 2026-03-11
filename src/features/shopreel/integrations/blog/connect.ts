@@ -2,24 +2,25 @@ import type {
   OAuthCallbackResult,
   OAuthStartResult,
   PlatformIntegration,
+  PublishResult,
 } from "../shared/types";
 
 export const blogIntegration: PlatformIntegration = {
-  async startOAuth(_: string): Promise<OAuthStartResult> {
+  async startOAuth(): Promise<OAuthStartResult> {
     throw new Error("Blog publishing does not use OAuth yet.");
   },
 
-  async finishOAuth(shopId: string): Promise<OAuthCallbackResult> {
+  async finishOAuth(): Promise<OAuthCallbackResult> {
+    throw new Error("Blog publishing OAuth is not implemented yet.");
+  },
+
+  async publishVideo(): Promise<PublishResult> {
     return {
       ok: true,
       platform: "blog",
-      shopId,
-      accountLabel: "Blog publishing",
-      platformAccountId: null,
+      remotePostId: `blog-draft-${Date.now()}`,
+      remotePostUrl: null,
+      status: "queued",
     };
-  },
-
-  async publishVideo() {
-    throw new Error("Blog publishing is not implemented yet.");
   },
 };

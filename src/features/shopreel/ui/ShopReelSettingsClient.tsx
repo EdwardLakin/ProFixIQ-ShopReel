@@ -1,5 +1,3 @@
-//src/features/shopreel/ui/ShopReelSettingsClient.tsx
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -28,7 +26,11 @@ type ShopReelPlatform =
   | "instagram"
   | "facebook"
   | "tiktok"
-  | "youtube";
+  | "youtube"
+  | "blog"
+  | "linkedin"
+  | "google_business"
+  | "email";
 
 type PlatformAccountMetadata = {
   meta_page_id?: string | null;
@@ -72,6 +74,17 @@ const PLATFORM_ORDER: ShopReelPlatform[] = [
   "facebook",
   "tiktok",
   "youtube",
+  "blog",
+  "linkedin",
+  "google_business",
+  "email",
+];
+
+const CONNECTABLE_PLATFORMS: ShopReelPlatform[] = [
+  "instagram",
+  "facebook",
+  "tiktok",
+  "youtube",
 ];
 
 const PLATFORM_LABELS: Record<ShopReelPlatform, string> = {
@@ -79,6 +92,10 @@ const PLATFORM_LABELS: Record<ShopReelPlatform, string> = {
   facebook: "Facebook",
   tiktok: "TikTok",
   youtube: "YouTube",
+  blog: "Blog",
+  linkedin: "LinkedIn",
+  google_business: "Google Business",
+  email: "Email",
 };
 
 const PLATFORM_CONNECT_QUERY: Record<ShopReelPlatform, string> = {
@@ -86,11 +103,17 @@ const PLATFORM_CONNECT_QUERY: Record<ShopReelPlatform, string> = {
   facebook: "facebook",
   tiktok: "tiktok",
   youtube: "youtube",
+  blog: "blog",
+  linkedin: "linkedin",
+  google_business: "google_business",
+  email: "email",
 };
 
-function formatConnectionSubtitle(connection: ConnectionRow | null): string {
+function formatConnectionSubtitle(connection: ConnectionRow | null, platform: ShopReelPlatform): string {
   if (!connection) {
-    return "Not connected";
+    return CONNECTABLE_PLATFORMS.includes(platform)
+      ? "Not connected"
+      : "Coming soon";
   }
 
   if (connection.platform === "instagram") {
@@ -193,6 +216,8 @@ export default function ShopReelSettingsClient() {
   }
 
   function handleConnect(platform: ShopReelPlatform) {
+    if (!CONNECTABLE_PLATFORMS.includes(platform)) return;
+
     setConnectingPlatform(platform);
     const platformParam = PLATFORM_CONNECT_QUERY[platform];
     window.location.href = `/api/shopreel/oauth/connect?platform=${encodeURIComponent(
@@ -319,16 +344,16 @@ export default function ShopReelSettingsClient() {
 
       <GlassCard
         label="Connections"
-        title="Platform accounts"
-        description="Connect each publishing destination your shop wants to use."
+        title="Publishing destinations"
+        description="Connect live channels now and stage the next expansion paths for blogs, email, LinkedIn, and Google Business."
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <GlassBadge tone="default">
-                {connectionStats.connected} / {connectionStats.total} connected
+                {connectionStats.connected} / {connectionStats.total} active
               </GlassBadge>
               <GlassBadge tone="muted">
-                Default flow: Opportunity → Render → Review → Publish
+                Default flow: Opportunity → Draft → Render → Review → Publish
               </GlassBadge>
             </div>
 
@@ -359,8 +384,9 @@ export default function ShopReelSettingsClient() {
           {PLATFORM_ORDER.map((platform) => {
             const connection = connections[platform] ?? null;
             const active = isConnectionActive(connection);
-            const subtitle = formatConnectionSubtitle(connection);
+            const subtitle = formatConnectionSubtitle(connection, platform);
             const isBusy = connectingPlatform === platform;
+            const canConnect = CONNECTABLE_PLATFORMS.includes(platform);
 
             return (
               <div
@@ -377,8 +403,8 @@ export default function ShopReelSettingsClient() {
                     </div>
                   </div>
 
-                  <GlassBadge tone={active ? "default" : "muted"}>
-                    {active ? "Connected" : "Not connected"}
+                  <GlassBadge tone={active ? "default" : canConnect ? "muted" : "copper"}>
+                    {active ? "Connected" : canConnect ? "Not connected" : "Coming soon"}
                   </GlassBadge>
                 </div>
 
@@ -402,19 +428,27 @@ export default function ShopReelSettingsClient() {
                       {new Date(connection.token_expires_at).toLocaleString()}
                     </div>
                   ) : null}
+
+                  {!canConnect ? (
+                    <div>
+                      Planned destination. UI and publish-path scaffolding added, live connection wiring comes next.
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-3">
                   <GlassButton
                     variant={active ? "secondary" : "primary"}
                     onClick={() => handleConnect(platform)}
-                    disabled={isBusy}
+                    disabled={isBusy || !canConnect}
                   >
-                    {isBusy
-                      ? "Redirecting..."
-                      : active
-                        ? `Reconnect ${PLATFORM_LABELS[platform]}`
-                        : `Connect ${PLATFORM_LABELS[platform]}`}
+                    {!canConnect
+                      ? "Coming soon"
+                      : isBusy
+                        ? "Redirecting..."
+                        : active
+                          ? `Reconnect ${PLATFORM_LABELS[platform]}`
+                          : `Connect ${PLATFORM_LABELS[platform]}`}
                   </GlassButton>
                 </div>
               </div>

@@ -2,24 +2,25 @@ import type {
   OAuthCallbackResult,
   OAuthStartResult,
   PlatformIntegration,
+  PublishResult,
 } from "../shared/types";
 
 export const emailIntegration: PlatformIntegration = {
-  async startOAuth(_: string): Promise<OAuthStartResult> {
-    throw new Error("Email publishing does not use OAuth yet.");
+  async startOAuth(): Promise<OAuthStartResult> {
+    throw new Error("Email integration does not use OAuth yet.");
   },
 
-  async finishOAuth(shopId: string): Promise<OAuthCallbackResult> {
+  async finishOAuth(): Promise<OAuthCallbackResult> {
+    throw new Error("Email integration OAuth is not implemented.");
+  },
+
+  async publishVideo(): Promise<PublishResult> {
     return {
       ok: true,
       platform: "email",
-      shopId,
-      accountLabel: "Email publishing",
-      platformAccountId: null,
+      remotePostId: `email-draft-${Date.now()}`,
+      remotePostUrl: null,
+      status: "queued",
     };
-  },
-
-  async publishVideo() {
-    throw new Error("Email publishing is not implemented yet.");
   },
 };

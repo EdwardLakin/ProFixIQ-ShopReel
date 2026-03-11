@@ -51,13 +51,17 @@ function LoginPageInner() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+    <main className="min-h-screen bg-[#050816] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(34,197,94,0.12),transparent_34%)]" />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-md items-center px-6">
+        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
           <div className="mb-6">
+            <div className="mb-2 text-sm uppercase tracking-[0.25em] text-cyan-300/80">
+              Welcome back
+            </div>
             <h1 className="text-2xl font-semibold">Sign in to ShopReel</h1>
             <p className="mt-2 text-sm text-white/70">
-              Use your email and password to continue into ShopReel.
+              Use your email and password to get back into your content workflow.
             </p>
           </div>
 
@@ -134,7 +138,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-black text-white">
+        <main className="min-h-screen bg-[#050816] text-white">
           <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
             <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
               <div className="text-sm text-white/70">Loading login...</div>

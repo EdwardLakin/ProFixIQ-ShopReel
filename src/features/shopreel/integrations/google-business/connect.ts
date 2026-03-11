@@ -2,24 +2,25 @@ import type {
   OAuthCallbackResult,
   OAuthStartResult,
   PlatformIntegration,
+  PublishResult,
 } from "../shared/types";
 
 export const googleBusinessIntegration: PlatformIntegration = {
-  async startOAuth(_: string): Promise<OAuthStartResult> {
+  async startOAuth(): Promise<OAuthStartResult> {
+    throw new Error("Google Business integration is not wired yet.");
+  },
+
+  async finishOAuth(): Promise<OAuthCallbackResult> {
     throw new Error("Google Business OAuth is not implemented yet.");
   },
 
-  async finishOAuth(shopId: string): Promise<OAuthCallbackResult> {
+  async publishVideo(): Promise<PublishResult> {
     return {
       ok: true,
       platform: "google_business",
-      shopId,
-      accountLabel: "Google Business",
-      platformAccountId: null,
+      remotePostId: `google-business-draft-${Date.now()}`,
+      remotePostUrl: null,
+      status: "queued",
     };
-  },
-
-  async publishVideo() {
-    throw new Error("Google Business publishing is not implemented yet.");
   },
 };
