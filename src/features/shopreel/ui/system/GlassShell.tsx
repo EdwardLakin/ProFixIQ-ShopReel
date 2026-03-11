@@ -19,13 +19,18 @@ export default function GlassShell(props: {
         glassTheme.bg.overlay,
       )}
     >
-      <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:18px_18px]" />
+      <div className={glassTheme.bg.grid} />
       <div className="relative mx-auto max-w-7xl">
         <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
           <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
               {eyebrow ? (
-                <div className={cx("text-xs font-medium uppercase tracking-[0.24em]", glassTheme.text.copper)}>
+                <div
+                  className={cx(
+                    "text-xs font-medium uppercase tracking-[0.24em]",
+                    glassTheme.text.copper,
+                  )}
+                >
                   {eyebrow}
                 </div>
               ) : null}
@@ -33,7 +38,7 @@ export default function GlassShell(props: {
               <div className="space-y-2">
                 <h1
                   className={cx(
-                    "font-display text-3xl tracking-[0.02em] md:text-4xl",
+                    "text-3xl tracking-[0.01em] md:text-4xl font-semibold",
                     glassTheme.text.primary,
                   )}
                 >
@@ -47,7 +52,9 @@ export default function GlassShell(props: {
               </div>
             </div>
 
-            {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+            {actions ? (
+              <div className="flex flex-wrap items-center gap-3">{actions}</div>
+            ) : null}
           </header>
 
           {children}

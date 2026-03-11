@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cx } from "./glassTheme";
+import { glassTheme, cx } from "./glassTheme";
 
 export default function GlassBadge(props: {
   children: ReactNode;
@@ -10,13 +10,25 @@ export default function GlassBadge(props: {
   return (
     <span
       className={cx(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium tracking-[0.01em]",
         tone === "default" &&
-          "border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.05)] text-[color:#f3ede6]",
+          cx(
+            glassTheme.border.softer,
+            "bg-[rgba(255,255,255,0.055)]",
+            glassTheme.text.primary,
+          ),
         tone === "copper" &&
-          "border-[rgba(184,115,75,0.28)] bg-[rgba(184,115,75,0.14)] text-[color:#d9aa88]",
+          cx(
+            glassTheme.border.copper,
+            "bg-[rgba(201,139,92,0.15)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+            glassTheme.text.copperSoft,
+          ),
         tone === "muted" &&
-          "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] text-[color:rgba(243,237,230,0.60)]",
+          cx(
+            glassTheme.border.softer,
+            "bg-[rgba(255,255,255,0.035)]",
+            glassTheme.text.secondary,
+          ),
       )}
     >
       {children}

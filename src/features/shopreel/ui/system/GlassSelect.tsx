@@ -15,7 +15,9 @@ export default function GlassSelect(
     <label className="block space-y-2">
       {label ? (
         <div className="flex items-center justify-between gap-3">
-          <span className={cx("text-sm font-medium", glassTheme.text.primary)}>{label}</span>
+          <span className={cx("text-sm font-medium", glassTheme.text.primary)}>
+            {label}
+          </span>
           {hint ? <span className={cx("text-xs", glassTheme.text.muted)}>{hint}</span> : null}
         </div>
       ) : null}
@@ -27,19 +29,19 @@ export default function GlassSelect(
           glassTheme.text.primary,
           glassTheme.glass.input,
           glassTheme.border.softer,
-          "focus:border-[rgba(184,115,75,0.28)] focus:ring-2 focus:ring-[rgba(184,115,75,0.20)]",
+          "focus:border-[rgba(201,139,92,0.32)] focus:ring-2 focus:ring-[rgba(201,139,92,0.22)]",
           className,
         )}
         {...rest}
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value} className="bg-[#141414] text-[#f3ede6]">
+          <option key={option.value} value={option.value} className="bg-[#141414] text-[#f5eee7]">
             {option.label}
           </option>
         ))}
       </select>
 
-      {error ? <p className="text-xs text-[color:#d49a84]">{error}</p> : null}
+      {error ? <p className="text-xs text-[color:#d9a089]">{error}</p> : null}
     </label>
   );
 }

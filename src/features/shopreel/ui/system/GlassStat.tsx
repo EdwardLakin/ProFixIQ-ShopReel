@@ -16,17 +16,27 @@ export default function GlassStat(props: {
         glassTheme.glass.panel,
       )}
     >
-      <div className={cx("text-[11px] font-semibold uppercase tracking-[0.24em]", glassTheme.text.copper)}>
+      <div
+        className={cx(
+          "text-[11px] font-semibold uppercase tracking-[0.24em]",
+          glassTheme.text.copper,
+        )}
+      >
         {label}
       </div>
 
-      <div className={cx("mt-3 text-2xl font-semibold tracking-tight md:text-3xl", glassTheme.text.primary)}>
+      <div
+        className={cx(
+          "mt-3 text-2xl font-semibold tracking-tight md:text-3xl",
+          glassTheme.text.primary,
+        )}
+      >
         {value}
       </div>
 
       {(hint || trend) && (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-          {trend ? <span className="text-[color:#d2a17e]">{trend}</span> : null}
+          {trend ? <span className={glassTheme.text.copperSoft}>{trend}</span> : null}
           {hint ? <span className={glassTheme.text.secondary}>{hint}</span> : null}
         </div>
       )}

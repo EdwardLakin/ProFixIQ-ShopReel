@@ -25,7 +25,7 @@ export default function GlassNav() {
       className={cx(
         "flex flex-wrap gap-2 rounded-3xl border p-2",
         glassTheme.border.softer,
-        glassTheme.glass.panel,
+        glassTheme.glass.panelSoft,
       )}
       aria-label="ShopReel navigation"
     >
@@ -39,8 +39,8 @@ export default function GlassNav() {
             className={cx(
               "rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-150",
               active
-                ? "border border-[rgba(184,115,75,0.30)] bg-[rgba(184,115,75,0.14)] text-[color:#f3ede6] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                : "border border-transparent text-[color:rgba(243,237,230,0.68)] hover:border-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.04)] hover:text-[color:#f3ede6]",
+                ? "border border-[rgba(201,139,92,0.30)] bg-[rgba(201,139,92,0.15)] text-[color:#f5eee7] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                : "border border-transparent text-[color:rgba(245,238,231,0.70)] hover:border-[rgba(255,255,255,0.07)] hover:bg-[rgba(255,255,255,0.045)] hover:text-[color:#f5eee7]",
             )}
           >
             {item.label}
