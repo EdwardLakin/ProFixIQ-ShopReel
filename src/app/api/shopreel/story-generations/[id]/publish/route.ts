@@ -1,0 +1,149 @@
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { createPublication } from "@/features/shopreel/publishing/lib/createPublication";
+import { enqueuePublishJob } from "@/features/shopreel/publishing/lib/enqueuePublishJob";
+import type { PublishPlatform, PublishMode } from "@/features/shopreel/publishing/types";
+
+type Body = {
+  platform?: PublishPlatform;
+  publishMode?: PublishMode | null;
+  runAfter?: string | null;
+};
+
+function toObjectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await ctx.params;
+    const body = (await req.json().catch(() => ({}))) as Body;
+
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const platform: PublishPlatform = body.platform ?? "instagram";
+    const publishMode: PublishMode | null = body.publishMode ?? "manual";
+
+    const { data: generation, error: generationError } = await legacy
+      .from("shopreel_story_generations")
+      .select("*")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (generationError) {
+      throw new Error(generationError.message);
+    }
+
+    if (!generation) {
+      return NextResponse.json(
+        { ok: false, error: "Story generation not found" },
+        { status: 404 },
+      );
+    }
+
+    if (generation.status !== "ready") {
+      return NextResponse.json(
+        { ok: false, error: "Story generation must be ready before publishing" },
+        { status: 400 },
+      );
+    }
+
+    if (!generation.content_piece_id) {
+      return NextResponse.json(
+        { ok: false, error: "Generation has no content piece" },
+        { status: 400 },
+      );
+    }
+
+    const { data: contentPiece, error: contentPieceError } = await legacy
+      .from("content_pieces")
+      .select("*")
+      .eq("id", generation.content_piece_id)
+      .maybeSingle();
+
+    if (contentPieceError) {
+      throw new Error(contentPieceError.message);
+    }
+
+    if (!contentPiece) {
+      return NextResponse.json(
+        { ok: false, error: "Content piece not found" },
+        { status: 404 },
+      );
+    }
+
+    if (!contentPiece.render_url) {
+      return NextResponse.json(
+        { ok: false, error: "Content piece has no render_url" },
+        { status: 400 },
+      );
+    }
+
+    const { data: storySource, error: storySourceError } = await legacy
+      .from("shopreel_story_sources")
+      .select("*")
+      .eq("id", generation.story_source_id)
+      .maybeSingle();
+
+    if (storySourceError) {
+      throw new Error(storySourceError.message);
+    }
+
+    const generationMetadata = toObjectRecord(generation.generation_metadata ?? {});
+
+    const publication = await createPublication({
+      shopId,
+      contentPieceId: generation.content_piece_id,
+      platform,
+      publishMode,
+      scheduledFor: body.runAfter ?? null,
+      title: contentPiece.title ?? generation.story_draft?.title ?? null,
+      caption: contentPiece.caption ?? generation.story_draft?.caption ?? null,
+      storySourceId: generation.story_source_id,
+      storySourceKind: storySource?.kind ?? null,
+    });
+
+    const publishJob = await enqueuePublishJob({
+      shopId,
+      publicationId: publication.id,
+      runAfter: body.runAfter ?? null,
+    });
+
+    await legacy
+      .from("shopreel_story_generations")
+      .update({
+        generation_metadata: {
+          ...generationMetadata,
+          publication_id: publication.id,
+          publish_job_id: publishJob.id,
+          publish_platform: platform,
+          queued_for_publish_at: new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", generation.id);
+
+    return NextResponse.json({
+      ok: true,
+      publicationId: publication.id,
+      publishJobId: publishJob.id,
+      platform,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to enqueue publication";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}

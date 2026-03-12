@@ -9,9 +9,10 @@ type PublishJobRow = {
   attempt_count: number | null;
 };
 
-type ContentPublicationRow = {
+type PublicationPayloadRow = {
   id: string;
-  shop_id: string;
+  tenant_shop_id?: string;
+  source_shop_id?: string;
   platform:
     | "instagram"
     | "facebook"
@@ -64,43 +65,23 @@ export async function processPublishJob(jobId: string) {
     .eq("id", jobId);
 
   const payload = await getPublicationPayload(job.publication_id);
-  const publication = payload.publication as ContentPublicationRow;
+  const publication = payload.publication as unknown as PublicationPayloadRow;
   const video = payload.video as VideoPayloadRow;
 
   if (!video.render_url) {
-    const message = "Video has no render_url";
-    const publicationMetadata = jsonObject(publication.metadata);
+    throw new Error("Video has no render_url");
+  }
 
-    await supabase
-      .from("shopreel_publish_jobs")
-      .update({
-        status: "failed",
-        error_message: message,
-      })
-      .eq("id", jobId);
-
-    await supabase
-      .from("content_publications")
-      .update({
-        status: "failed",
-        error_code: "missing_render_url",
-        error_message: message,
-        metadata: {
-          ...publicationMetadata,
-          last_attempt_at: new Date().toISOString(),
-          last_attempt_error: message,
-        },
-      })
-      .eq("id", publication.id);
-
-    throw new Error(message);
+  const shopId = publication.tenant_shop_id ?? publication.source_shop_id;
+  if (!shopId) {
+    throw new Error("Publication has no shop id");
   }
 
   try {
     const integration = getPlatformIntegration(publication.platform);
 
     const result = await integration.publishVideo({
-      shopId: publication.shop_id,
+      shopId,
       platform: publication.platform,
       title: video.title,
       caption: video.caption,
@@ -119,14 +100,8 @@ export async function processPublishJob(jobId: string) {
           result.status === "published" ? new Date().toISOString() : null,
         platform_post_id: result.remotePostId,
         platform_post_url: result.remotePostUrl ?? null,
-        error_code: null,
-        error_message: null,
         metadata: {
           ...publicationMetadata,
-          title_sent: video.title,
-          caption_sent: video.caption,
-          video_url_sent: video.render_url,
-          thumbnail_url_sent: video.thumbnail_url,
           last_attempt_at: new Date().toISOString(),
           attempt_count: (job.attempt_count ?? 0) + 1,
         },
@@ -138,7 +113,6 @@ export async function processPublishJob(jobId: string) {
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
-        error_message: null,
       })
       .eq("id", jobId);
 
@@ -151,22 +125,6 @@ export async function processPublishJob(jobId: string) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unexpected publish error";
-    const publicationMetadata = jsonObject(publication.metadata);
-
-    await supabase
-      .from("content_publications")
-      .update({
-        status: "failed",
-        error_code: "publish_failed",
-        error_message: message,
-        metadata: {
-          ...publicationMetadata,
-          last_attempt_at: new Date().toISOString(),
-          last_attempt_error: message,
-          attempt_count: (job.attempt_count ?? 0) + 1,
-        },
-      })
-      .eq("id", publication.id);
 
     await supabase
       .from("shopreel_publish_jobs")
