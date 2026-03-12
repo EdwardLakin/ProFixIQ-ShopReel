@@ -17,6 +17,34 @@ type Body = {
   sourceUrl?: string;
 };
 
+function scoreCreatorMode(mode: Body["mode"]) {
+  switch (mode) {
+    case "debunk":
+      return 93;
+    case "stitch":
+      return 90;
+    case "angle_pack":
+      return 88;
+    case "research_script":
+    default:
+      return 91;
+  }
+}
+
+function reasonForMode(mode: Body["mode"]) {
+  switch (mode) {
+    case "debunk":
+      return "Creator debunk opportunity ready for fast response content";
+    case "stitch":
+      return "Creator stitch opportunity ready for response content";
+    case "angle_pack":
+      return "Creator angle pack ready for multiple follow-up posts";
+    case "research_script":
+    default:
+      return "Creator research opportunity ready for script generation";
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Body;
@@ -85,6 +113,29 @@ export async function POST(req: Request) {
     };
 
     const savedSource = await saveStorySource(source);
+
+    await legacy
+      .from("shopreel_content_opportunities")
+      .upsert(
+        {
+          shop_id: shopId,
+          story_source_id: savedSource.id,
+          score: scoreCreatorMode(mode),
+          status: "ready",
+          reason: reasonForMode(mode),
+          metadata: {
+            source_kind: "creator_idea",
+            source_title: body.topic.trim(),
+            source_origin: "creator_mode",
+            creator_mode_type: mode,
+            expanded_topic: ai.expandedTopic,
+            angle_pack: ai.angles,
+          },
+        },
+        {
+          onConflict: "shop_id,story_source_id",
+        },
+      );
 
     const { data: creatorRequest } = await legacy
       .from("shopreel_creator_requests")
@@ -190,7 +241,7 @@ export async function POST(req: Request) {
     await legacy
       .from("shopreel_creator_requests")
       .update({
-        status: "ready",
+        status: "generated",
         source_generation_id: generation.id,
         updated_at: new Date().toISOString(),
       })
