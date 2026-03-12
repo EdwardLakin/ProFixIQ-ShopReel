@@ -36,14 +36,14 @@ export default async function ShopReelPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Content automation cockpit"
-      subtitle="Story Sources drive the pipeline: discover what happened, turn it into a story, then generate content."
+      subtitle="Business Mode and Creator Mode now share one engine: story source → story builder → editor → render → publish."
       actions={
         <>
-          <Link href="/shopreel/opportunities">
-            <GlassButton variant="ghost">Open opportunities</GlassButton>
+          <Link href="/shopreel/create">
+            <GlassButton variant="ghost">Creator mode</GlassButton>
           </Link>
-          <Link href="/shopreel/upload">
-            <GlassButton variant="secondary">Upload content</GlassButton>
+          <Link href="/shopreel/opportunities">
+            <GlassButton variant="secondary">Business opportunities</GlassButton>
           </Link>
           <Link href="/shopreel/generations">
             <GlassButton variant="primary">Open generations</GlassButton>
@@ -84,7 +84,7 @@ export default async function ShopReelPage() {
         <GlassCard
           label="Recent Story Sources"
           title="What the system can build from"
-          description="These are the latest saved sources in the ShopReel story pipeline."
+          description="These are the latest saved sources across business and creator flows."
           strong
         >
           <div className="grid gap-3">
@@ -133,30 +133,36 @@ export default async function ShopReelPage() {
         </GlassCard>
 
         <GlassCard
-          label="Snapshot"
-          title="Pipeline state"
-          description="Current story pipeline status from the new ShopReel architecture."
+          label="Modes"
+          title="Two entry paths"
+          description="One engine serving both businesses and creators."
         >
           <div className="space-y-4">
-            {[
-              ["Saved story sources", String(sourceCount ?? 0)],
-              ["Saved generations", String(generationCount ?? 0)],
-              ["Next action", "Open opportunities or editor"],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className={cx(
-                  "rounded-2xl border p-4",
-                  glassTheme.border.copper,
-                  glassTheme.glass.panelSoft,
-                )}
-              >
-                <div className={cx("text-sm", glassTheme.text.secondary)}>{label}</div>
-                <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
-                  {value}
-                </div>
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Business Mode</div>
+              <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
+                Operational events → content
               </div>
-            ))}
+            </div>
+
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Creator Mode</div>
+              <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
+                Idea → story draft → editor
+              </div>
+            </div>
           </div>
         </GlassCard>
       </section>

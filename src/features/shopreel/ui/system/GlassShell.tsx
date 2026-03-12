@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { glassTheme, cx } from "./glassTheme";
 
@@ -29,40 +30,74 @@ export default function GlassShell(props: {
 
       <div className="relative mx-auto max-w-7xl">
         <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
-          <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-2">
-              {eyebrow ? (
-                <div
+          <header className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/"
                   className={cx(
-                    "text-xs font-medium uppercase tracking-[0.24em]",
-                    glassTheme.text.copper,
-                  )}
-                >
-                  {eyebrow}
-                </div>
-              ) : null}
-
-              <div className="space-y-2">
-                <h1
-                  className={cx(
-                    "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
                     glassTheme.text.primary,
+                    "hover:bg-white/[0.06]",
                   )}
                 >
-                  {title}
-                </h1>
+                  Home
+                </Link>
 
-                {subtitle ? (
-                  <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
-                    {subtitle}
-                  </p>
-                ) : null}
+                <form action="/auth/sign-out" method="post">
+                  <button
+                    type="submit"
+                    className={cx(
+                      "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft,
+                      glassTheme.text.secondary,
+                      "hover:text-white hover:bg-white/[0.06]",
+                    )}
+                  >
+                    Sign out
+                  </button>
+                </form>
               </div>
+
+              {actions ? (
+                <div className="flex flex-wrap items-center gap-3">{actions}</div>
+              ) : null}
             </div>
 
-            {actions ? (
-              <div className="flex flex-wrap items-center gap-3">{actions}</div>
-            ) : null}
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-2">
+                {eyebrow ? (
+                  <div
+                    className={cx(
+                      "text-xs font-medium uppercase tracking-[0.24em]",
+                      glassTheme.text.copper,
+                    )}
+                  >
+                    {eyebrow}
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <h1
+                    className={cx(
+                      "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
+                      glassTheme.text.primary,
+                    )}
+                  >
+                    {title}
+                  </h1>
+
+                  {subtitle ? (
+                    <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
+                      {subtitle}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </header>
 
           {children}

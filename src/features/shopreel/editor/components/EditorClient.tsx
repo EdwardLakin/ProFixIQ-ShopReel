@@ -50,10 +50,7 @@ function IconAction(props: {
   return (
     <button
       type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        props.onClick();
-      }}
+      onClick={props.onClick}
       className={cx(
         "inline-flex h-8 w-8 items-center justify-center rounded-full border text-sm transition",
         glassTheme.border.softer,
@@ -222,12 +219,19 @@ export default function EditorClient(props: Props) {
               const isSelected = selectedScene?.id === scene.id;
 
               return (
-                <button
+                <div
                   key={scene.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelection({ type: "scene", id: scene.id })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelection({ type: "scene", id: scene.id });
+                    }
+                  }}
                   className={cx(
-                    "rounded-2xl border p-4 text-left transition",
+                    "rounded-2xl border p-4 text-left transition cursor-pointer",
                     isSelected ? glassTheme.border.copper : glassTheme.border.softer,
                     glassTheme.glass.panelSoft,
                     isSelected ? "ring-2 ring-sky-300/20" : "hover:ring-1 hover:ring-white/10",
@@ -254,7 +258,7 @@ export default function EditorClient(props: Props) {
                       {scene.overlayText}
                     </div>
                   ) : null}
-                </button>
+                </div>
               );
             })}
           </div>
