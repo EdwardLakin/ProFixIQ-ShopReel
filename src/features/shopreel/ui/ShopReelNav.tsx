@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: "Create", href: "/shopreel/create" },
   { label: "Upload", href: "/shopreel/upload" },
   { label: "Opportunities", href: "/shopreel/opportunities" },
+  { label: "Creator Requests", href: "/shopreel/creator-requests" },
   { label: "Calendar", href: "/shopreel/calendar" },
   { label: "Render Queue", href: "/shopreel/render-queue" },
   { label: "Published", href: "/shopreel/published" },

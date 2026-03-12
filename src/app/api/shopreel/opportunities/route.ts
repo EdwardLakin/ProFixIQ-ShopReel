@@ -39,21 +39,27 @@ export async function GET(req: Request) {
     }
 
     const items = (data ?? []).map((row: any) => {
-      const origin = row.shopreel_story_sources?.origin ?? "shopreel";
+      const metadata =
+        row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+
+      const sourceType =
+        metadata.source_type === "creator_request"
+          ? "creator_request"
+          : row.shopreel_story_sources?.origin === "manual_upload"
+            ? "manual_upload"
+            : "shop_data";
 
       return {
         id: row.id,
-        title: row.shopreel_story_sources?.title ?? "Untitled",
-        contentType: row.shopreel_story_sources?.kind ?? "story_source",
+        title: row.shopreel_story_sources?.title ?? metadata.creator_title ?? "Untitled",
+        contentType:
+          metadata.creator_mode ??
+          row.shopreel_story_sources?.kind ??
+          "story_source",
         score: typeof row.score === "number" ? row.score : Number(row.score ?? 0),
         status: row.status,
-        source: origin,
-        sourceType:
-          origin === "manual_upload"
-            ? "manual_upload"
-            : origin === "creator_mode"
-              ? "creator_mode"
-              : "shop_data",
+        source: row.shopreel_story_sources?.origin ?? "shopreel",
+        sourceType,
         createdAt: row.shopreel_story_sources?.created_at ?? row.created_at,
       };
     });
