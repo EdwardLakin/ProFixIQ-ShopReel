@@ -1,1392 +1,1723 @@
-===============================
-SHOPREEL DEBUG FILE DUMP
-===============================
-
------ src/app/page.tsx -----
-import Link from "next/link";
-
-export default function LandingPage() {
-  return (
-    <main className="min-h-screen bg-black text-white">
-      <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 py-20">
-        <div className="max-w-3xl">
-          <div className="mb-4 text-sm uppercase tracking-[0.3em] text-[#c98b5c]">
-            ShopReel
-          </div>
-
-          <h1 className="text-5xl font-semibold leading-tight md:text-7xl">
-            AI content automation for modern repair shops
-          </h1>
-
-          <p className="mt-6 max-w-2xl text-lg text-white/70 md:text-xl">
-            Turn real work orders, inspections, photos, and shop moments into
-            publish-ready content with one clean workflow.
-          </p>
-
-          <div className="mt-10 flex flex-wrap gap-4">
-            <Link
-              href="/signup"
-              className="rounded-2xl bg-white px-6 py-3 font-medium text-black"
-            >
-              Start free
-            </Link>
-
-            <Link
-              href="/login"
-              className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 font-medium text-white"
-            >
-              Sign in
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-16 grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="text-xl font-semibold">Find opportunities</h2>
-            <p className="mt-2 text-sm text-white/70">
-              Surface repair stories, inspection highlights, before-and-after
-              moments, and educational tips from live shop activity.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="text-xl font-semibold">Render and review</h2>
-            <p className="mt-2 text-sm text-white/70">
-              Build concepts, queue renders, review output, and keep the workflow
-              controlled before publishing.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="text-xl font-semibold">Publish everywhere</h2>
-            <p className="mt-2 text-sm text-white/70">
-              Connect Instagram, Facebook, TikTok, and YouTube, then push
-              content from one dashboard.
-            </p>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
-}
-
------ src/app/login/page.tsx -----
-"use client";
-
-import { Suspense, useMemo, useState } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
-function LoginPageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const next = useMemo(
-    () => searchParams.get("next") ?? "/shopreel/settings",
-    [searchParams],
-  );
-
-  const error = searchParams.get("error");
-  const oauthError = searchParams.get("oauth_error");
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setStatus(null);
-
-    try {
-      const supabase = createClient();
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) {
-        throw signInError;
-      }
-
-      router.push(next);
-      router.refresh();
-    } catch (submitError) {
-      setStatus(
-        submitError instanceof Error ? submitError.message : "Unable to sign in.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold">Sign in to ShopReel</h1>
-            <p className="mt-2 text-sm text-white/70">
-              Use your email and password to continue into ShopReel.
-            </p>
-          </div>
-
-          {error ? (
-            <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {decodeURIComponent(error)}
-            </div>
-          ) : null}
-
-          {oauthError ? (
-            <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-              {decodeURIComponent(oauthError)}
-            </div>
-          ) : null}
-
-          {status ? (
-            <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
-              {status}
-            </div>
-          ) : null}
-
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <label className="block">
-              <span className="mb-2 block text-sm text-white/80">Email</span>
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
-                placeholder="you@example.com"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm text-white/80">Password</span>
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
-                placeholder="Enter your password"
-              />
-            </label>
-
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full rounded-2xl bg-white px-4 py-3 font-medium text-black disabled:opacity-60"
-            >
-              {busy ? "Signing in..." : "Sign in"}
-            </button>
-          </form>
-
-          <p className="mt-6 text-sm text-white/70">
-            Need an account?{" "}
-            <Link
-              className="text-white underline"
-              href={`/signup?next=${encodeURIComponent(next)}`}
-            >
-              Sign up
-            </Link>
-          </p>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="min-h-screen bg-black text-white">
-          <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-            <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-              <div className="text-sm text-white/70">Loading login...</div>
-            </div>
-          </div>
-        </main>
-      }
-    >
-      <LoginPageInner />
-    </Suspense>
-  );
-}
-
------ src/app/signup/page.tsx -----
-"use client";
-
-import { Suspense, useMemo, useState } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
-function SignupPageInner() {
-  const searchParams = useSearchParams();
-  const next = useMemo(
-    () => searchParams.get("next") ?? "/shopreel/settings",
-    [searchParams],
-  );
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setStatus(null);
-
-    try {
-      if (password.length < 8) {
-        throw new Error("Password must be at least 8 characters.");
-      }
-
-      if (password !== confirmPassword) {
-        throw new Error("Passwords do not match.");
-      }
-
-      const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/onboarding")}&type=signup`;
-
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectTo,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      setStatus("Check your email to confirm your account, then you'll be sent to onboarding.");
-    } catch (submitError) {
-      setStatus(
-        submitError instanceof Error ? submitError.message : "Unable to sign up.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-        <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold">Create your ShopReel account</h1>
-            <p className="mt-2 text-sm text-white/70">
-              Sign up with your email and password, then finish onboarding.
-            </p>
-          </div>
-
-          {status ? (
-            <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
-              {status}
-            </div>
-          ) : null}
-
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <label className="block">
-              <span className="mb-2 block text-sm text-white/80">Email</span>
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
-                placeholder="you@example.com"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm text-white/80">Password</span>
-              <input
-                type="password"
-                required
-                autoComplete="new-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
-                placeholder="At least 8 characters"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm text-white/80">Confirm password</span>
-              <input
-                type="password"
-                required
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
-                placeholder="Re-enter your password"
-              />
-            </label>
-
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full rounded-2xl bg-white px-4 py-3 font-medium text-black disabled:opacity-60"
-            >
-              {busy ? "Creating account..." : "Create account"}
-            </button>
-          </form>
-
-          <p className="mt-6 text-sm text-white/70">
-            Already have an account?{" "}
-            <Link
-              className="text-white underline"
-              href={`/login?next=${encodeURIComponent(next)}`}
-            >
-              Sign in
-            </Link>
-          </p>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-export default function SignupPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="min-h-screen bg-black text-white">
-          <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-            <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-              <div className="text-sm text-white/70">Loading sign up...</div>
-            </div>
-          </div>
-        </main>
-      }
-    >
-      <SignupPageInner />
-    </Suspense>
-  );
-}
-
------ src/app/auth/callback/route.ts -----
-import { NextRequest, NextResponse } from "next/server";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import type { Database } from "@/types/supabase";
-
-function getSupabaseUrl(): string {
-  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!value) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
-  return value;
-}
-
-function getSupabasePublishableKey(): string {
-  const value =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!value) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    );
-  }
-
-  return value;
-}
-
-export async function GET(req: NextRequest) {
-  const requestUrl = new URL(req.url);
-  const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/shopreel/settings";
-  const type = requestUrl.searchParams.get("type");
-  const origin = requestUrl.origin;
-
-  if (!code) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent("Missing auth code.")}`,
-    );
-  }
-
-  let redirectPath = next;
-
-  if (type === "signup" || next === "/signup") {
-    redirectPath = "/onboarding";
-  }
-
-  let response = NextResponse.redirect(`${origin}${redirectPath}`);
-
-  const supabase = createServerClient<Database>(
-    getSupabaseUrl(),
-    getSupabasePublishableKey(),
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(
-          cookiesToSet: Array<{
-            name: string;
-            value: string;
-            options?: CookieOptions;
-          }>,
-        ) {
-          for (const cookie of cookiesToSet) {
-            response.cookies.set(cookie.name, cookie.value, cookie.options);
-          }
-        },
-      },
-    },
-  );
-
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-  if (error) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error.message)}`,
-    );
-  }
-
-  return response;
-}
-
------ middleware.ts -----
-import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import type { Database } from "@/types/supabase";
-
-function getSupabaseUrl(): string {
-  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!value) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
-  }
-  return value;
-}
-
-function getSupabasePublishableKey(): string {
-  const value =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!value) {
-    throw new Error(
-      "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    );
-  }
-
-  return value;
-}
-
-function buildLoginRedirect(req: NextRequest) {
-  const loginUrl = req.nextUrl.clone();
-  loginUrl.pathname = "/login";
-  loginUrl.searchParams.set(
-    "next",
-    `${req.nextUrl.pathname}${req.nextUrl.search}`,
-  );
-  return loginUrl;
-}
-
-export async function middleware(req: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  });
-
-  const supabase = createServerClient<Database>(
-    getSupabaseUrl(),
-    getSupabasePublishableKey(),
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(
-          cookiesToSet: Array<{
-            name: string;
-            value: string;
-            options?: CookieOptions;
-          }>,
-        ) {
-          for (const cookie of cookiesToSet) {
-            req.cookies.set(cookie.name, cookie.value);
-          }
-
-          response = NextResponse.next({
-            request: {
-              headers: req.headers,
-            },
-          });
-
-          for (const cookie of cookiesToSet) {
-            response.cookies.set(cookie.name, cookie.value, cookie.options);
-          }
-        },
-      },
-    },
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const pathname = req.nextUrl.pathname;
-  const requiresAuth =
-    pathname.startsWith("/shopreel") ||
-    pathname.startsWith("/onboarding") ||
-    pathname === "/api/shopreel/oauth/connect";
-
-  if (requiresAuth && !user) {
-    return NextResponse.redirect(buildLoginRedirect(req));
-  }
-
-  return response;
-}
-
-export const config = {
-  matcher: [
-    "/shopreel/:path*",
-    "/onboarding/:path*",
-    "/api/shopreel/oauth/connect",
-  ],
+export type StorySourceKind =
+  | "inspection_completed"
+  | "repair_completed"
+  | "before_after"
+  | "project_progress"
+  | "job_finished"
+  | "product_launch"
+  | "customer_result"
+  | "technician_tip"
+  | "educational_finding"
+  | "manual_upload"
+  | "creator_idea";
+
+export type StorySourceOrigin =
+  | "shop_data"
+  | "manual_upload"
+  | "project"
+  | "creator_mode";
+
+export type StoryGenerationMode =
+  | "assisted"
+  | "automatic"
+  | "manual";
+
+export type StorySourceFactMap = {
+  hook?: string;
+  contentType?: string;
+  [key: string]: unknown;
 };
 
------ src/features/shopreel/settings/getShopReelSettings.ts -----
-import { createAdminClient } from "@/lib/supabase/server";
-
-export type ShopReelPlatform =
-  | "instagram"
-  | "facebook"
-  | "youtube"
-  | "tiktok";
-
-export type ShopReelSettingsBundle = {
-  settings: {
-    shop_id: string;
-    publish_mode: "manual" | "approval_required" | "autopilot";
-    default_cta: string | null;
-    default_location: string | null;
-    brand_voice: string | null;
-    enabled_platforms: string[];
-    connected_platforms: string[];
-    onboarding_completed: boolean;
-  } | null;
-  brandProfile: {
-    brand_name: string | null;
-    brand_voice: string | null;
-    default_cta: string | null;
-    default_location: string | null;
-    color_mode: "profixiq_copper" | "dark_cyan" | "neutral_dark";
-  } | null;
-  platforms: Array<{
-    platform: ShopReelPlatform;
-    enabled: boolean;
-    connection_active: boolean;
-    connection_status: "not_connected" | "connected" | "expired" | "error";
-    publish_mode: "manual" | "scheduled" | "autopilot";
-    account_label: string | null;
-    metadata: Record<string, unknown>;
-  }>;
-  readiness: {
-    connectedCount: number;
-    enabledCount: number;
-    canPublish: boolean;
-    canAutopilot: boolean;
-    missing: string[];
-  };
+export type StorySource = {
+  id: string;
+  shopId: string;
+  title: string;
+  description?: string | null;
+  kind: StorySourceKind;
+  origin: StorySourceOrigin;
+  generationMode: StoryGenerationMode;
+  occurredAt?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  projectId?: string | null;
+  projectName?: string | null;
+  vehicleLabel?: string | null;
+  customerLabel?: string | null;
+  technicianLabel?: string | null;
+  tags: string[];
+  notes: string[];
+  facts: StorySourceFactMap;
+  metadata: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
 };
+import type { StorySourceKind } from "./types"
 
-type ShopReelConnectionStatus =
-  | "not_connected"
-  | "connected"
-  | "expired"
-  | "error";
+export const STORY_SOURCE_KINDS: readonly StorySourceKind[] = [
+  "job_completed",
+  "inspection_completed",
+  "repair_completed",
+  "before_after",
+  "project_progress",
+  "project_completed",
+  "educational_insight",
+  "expert_tip",
+  "customer_result",
+  "product_launch",
+  "service_highlight",
+  "milestone",
+  "manual_upload",
+  "daily_timeline",
+] as const
 
-type ShopReelSettingsRow = {
-  shop_id: string;
-  publish_mode: "manual" | "approval_required" | "autopilot";
-  default_cta: string | null;
-  default_location: string | null;
-  brand_voice: string | null;
-  enabled_platforms: string[] | null;
-  connected_platforms: string[] | null;
-  onboarding_completed: boolean;
-};
+export const DEFAULT_SCENE_SHAPE_BY_SOURCE_KIND: Record<
+  StorySourceKind,
+  readonly string[]
+> = {
+  job_completed: ["hook", "problem", "process", "result", "cta"],
+  inspection_completed: ["hook", "finding", "explanation", "recommendation", "cta"],
+  repair_completed: ["hook", "problem", "repair", "result", "cta"],
+  before_after: ["hook", "before", "process", "after", "cta"],
+  project_progress: ["hook", "start", "progress", "current_state", "cta"],
+  project_completed: ["hook", "challenge", "process", "result", "cta"],
+  educational_insight: ["hook", "teaching", "example", "takeaway", "cta"],
+  expert_tip: ["hook", "tip", "why_it_matters", "example", "cta"],
+  customer_result: ["hook", "context", "solution", "outcome", "cta"],
+  product_launch: ["hook", "what_it_is", "benefit", "demo", "cta"],
+  service_highlight: ["hook", "service", "what_we_do", "result", "cta"],
+  milestone: ["hook", "milestone", "why_it_matters", "gratitude", "cta"],
+  manual_upload: ["hook", "context", "story", "result", "cta"],
+  daily_timeline: ["hook", "start_of_day", "progress", "end_of_day", "cta"],
+} as const
+import type { StorySource, StorySourceAsset } from "./types"
 
-type ContentPlatformAccountRow = {
-  platform:
-    | "instagram"
-    | "facebook"
-    | "youtube"
-    | "tiktok"
-    | "blog"
-    | "linkedin"
-    | "google_business"
-    | "email";
-  platform_account_id: string | null;
-  platform_username: string | null;
-  connection_active: boolean;
-  token_expires_at: string | null;
-  metadata: unknown;
-};
-
-const DEFAULT_PLATFORMS: ShopReelPlatform[] = [
-  "instagram",
-  "facebook",
-  "youtube",
-  "tiktok",
-];
-
-function getAccountLabel(row: ContentPlatformAccountRow | null): string | null {
-  if (!row) return null;
-
-  const metadata =
-    row.metadata &&
-    typeof row.metadata === "object" &&
-    !Array.isArray(row.metadata)
-      ? (row.metadata as Record<string, unknown>)
-      : {};
-
-  return (
-    row.platform_username ??
-    (typeof metadata.meta_page_name === "string" ? metadata.meta_page_name : null) ??
-    row.platform_account_id ??
-    null
-  );
+function compactParts(parts: Array<string | null | undefined>): string {
+  return parts
+    .map((part) => (part ?? "").trim().toLowerCase())
+    .filter(Boolean)
+    .join("::")
 }
 
-export async function getShopReelSettings(
+function assetFingerprint(asset: StorySourceAsset): string {
+  return compactParts([
+    asset.assetType,
+    asset.contentAssetId ?? null,
+    asset.manualAssetId ?? null,
+    asset.url ?? null,
+    asset.takenAt ?? null,
+    String(asset.sortOrder),
+  ])
+}
+
+export function buildStorySourceKey(
+  source: Pick<
+    StorySource,
+    "shopId" | "kind" | "origin" | "title" | "occurredAt" | "projectId" | "assets"
+  >,
+): string {
+  const assetBits = source.assets
+    .slice()
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map(assetFingerprint)
+    .join("|")
+
+  return compactParts([
+    source.shopId,
+    source.kind,
+    source.origin,
+    source.title,
+    source.projectId ?? null,
+    source.occurredAt ?? null,
+    assetBits,
+  ])
+}
+import type { ContentOpportunity } from "../discovery/discoverContent"
+import type { StorySource, StorySourceKind } from "./types"
+
+function mapKind(opportunity: ContentOpportunity): StorySourceKind {
+  switch (opportunity.contentType) {
+    case "inspection_highlight":
+      return "inspection_completed"
+    case "before_after":
+      return "before_after"
+    case "repair_story":
+      return "repair_completed"
+    case "educational_tip":
+      return "educational_insight"
+    case "workflow_demo":
+    default:
+      return "manual_upload"
+  }
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((v) => (v ?? "").trim()).filter(Boolean)))
+}
+
+export function storySourceFromOpportunity(
   shopId: string,
-): Promise<ShopReelSettingsBundle> {
-  const supabase = createAdminClient();
+  opportunity: ContentOpportunity,
+): StorySource {
+  return {
+    id: `opportunity:${opportunity.sourceId}`,
+    shopId,
+    title: opportunity.title,
+    description: opportunity.reason,
+    kind: mapKind(opportunity),
+    origin: "future_operational_event",
+    generationMode: "assisted",
+    occurredAt: null,
+    vehicleLabel: null,
+    customerLabel: null,
+    technicianLabel: null,
+    tags: uniqueStrings([
+      opportunity.contentType,
+      opportunity.sourceType,
+      opportunity.workOrderId ? "work_order" : null,
+    ]),
+    assets: opportunity.visualUrls.map((url, index) => ({
+      id: `asset:${opportunity.sourceId}:${index + 1}`,
+      assetType: "photo",
+      url,
+      sortOrder: index,
+      metadata: {
+        imported_from: "discoverContent",
+      },
+    })),
+    refs: [
+      {
+        type: opportunity.workOrderId ? "future_work_order" : "content_piece",
+        id: opportunity.workOrderId ?? opportunity.sourceId,
+      },
+    ],
+    notes: [opportunity.reason],
+    facts: {
+      hook: opportunity.hook,
+      contentType: opportunity.contentType,
+      sourceType: opportunity.sourceType,
+    },
+    metadata: {
+      sourceId: opportunity.sourceId,
+      workOrderId: opportunity.workOrderId,
+      hook: opportunity.hook,
+    },
+  }
+}
+import { discoverContent } from "../discovery/discoverContent";
+import type { StorySourceCandidate } from "./types";
 
-  const settingsResult = await supabase
-    .from("shop_reel_settings")
-    .select(
-      "shop_id, publish_mode, default_cta, default_location, brand_voice, enabled_platforms, connected_platforms, onboarding_completed",
-    )
-    .eq("shop_id", shopId)
+export async function discoverStorySourceCandidates(
+  shopId: string,
+): Promise<StorySourceCandidate[]> {
+  const opportunities = await discoverContent(shopId);
+
+  return opportunities.map((opportunity) => ({
+    title: opportunity.title,
+    kind:
+      opportunity.contentType === "repair_story"
+        ? "repair_completed"
+        : opportunity.contentType === "inspection_highlight"
+          ? "inspection_completed"
+          : opportunity.contentType === "before_after"
+            ? "before_after"
+            : opportunity.contentType === "educational_tip"
+              ? "educational_insight"
+              : "manual_upload",
+    confidence: 0.8,
+    reason: opportunity.reason,
+    tags: [opportunity.contentType, opportunity.sourceType].filter(Boolean),
+    metadata: {
+      sourceId: opportunity.sourceId,
+      workOrderId: opportunity.workOrderId,
+      hook: opportunity.hook,
+      visualUrlCount: opportunity.visualUrls.length,
+    },
+  }));
+}
+import { createAdminClient } from "@/lib/supabase/server";
+import { buildStorySourceKey } from "../buildStorySourceKey";
+import type { StorySource } from "../types";
+
+function toJson(value: unknown) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+export async function saveStorySource(source: StorySource) {
+  const supabase = createAdminClient();
+  const sourceKey = buildStorySourceKey(source);
+
+  const { data: existing } = await supabase
+    .from("shopreel_story_sources")
+    .select("id")
+    .eq("shop_id", source.shopId)
+    .eq("source_key", sourceKey)
     .maybeSingle();
 
-  if (settingsResult.error) {
-    throw new Error(settingsResult.error.message);
+  if (existing?.id) {
+    return { id: existing.id, deduped: true };
   }
 
-  const platformAccountsResult = await supabase
-    .from("content_platform_accounts")
-    .select(
-      "platform, platform_account_id, platform_username, connection_active, token_expires_at, metadata",
-    )
-    .eq("tenant_shop_id", shopId)
-    .order("platform", { ascending: true });
+  const { data: inserted, error: insertError } = await supabase
+    .from("shopreel_story_sources")
+    .insert({
+      shop_id: source.shopId,
+      title: source.title,
+      description: source.description ?? null,
+      kind: source.kind,
+      origin: source.origin,
+      generation_mode: source.generationMode,
+      occurred_at: source.occurredAt ?? null,
+      started_at: source.startedAt ?? null,
+      ended_at: source.endedAt ?? null,
+      project_id: source.projectId ?? null,
+      project_name: source.projectName ?? null,
+      vehicle_label: source.vehicleLabel ?? null,
+      customer_label: source.customerLabel ?? null,
+      technician_label: source.technicianLabel ?? null,
+      tags: source.tags,
+      notes: source.notes,
+      facts: toJson(source.facts),
+      metadata: toJson(source.metadata),
+      source_key: sourceKey,
+    } as never)
+    .select("id")
+    .single();
 
-  if (platformAccountsResult.error) {
-    throw new Error(platformAccountsResult.error.message);
+  if (insertError || !inserted) {
+    throw new Error(insertError?.message ?? "Failed to save story source");
   }
 
-  const settings = settingsResult.data as ShopReelSettingsRow | null;
-  const platformAccounts =
-    (platformAccountsResult.data as ContentPlatformAccountRow[] | null) ?? [];
+  if (source.assets.length > 0) {
+    const { error: assetError } = await supabase
+      .from("shopreel_story_source_assets")
+      .insert(
+        source.assets.map((asset) => ({
+          story_source_id: inserted.id,
+          shop_id: source.shopId,
+          asset_type: asset.assetType,
+          content_asset_id: asset.contentAssetId ?? null,
+          manual_asset_id: asset.manualAssetId ?? null,
+          url: asset.url ?? null,
+          title: asset.title ?? null,
+          caption: asset.caption ?? null,
+          note: asset.note ?? null,
+          taken_at: asset.takenAt ?? null,
+          sort_order: asset.sortOrder,
+          metadata: toJson(asset.metadata),
+        })) as never,
+      );
 
-  const normalizedPlatforms: ShopReelSettingsBundle["platforms"] =
-    DEFAULT_PLATFORMS.map((platform) => {
-      const row =
-        platformAccounts.find((account) => account.platform === platform) ?? null;
-
-      const expired =
-        row?.token_expires_at != null &&
-        new Date(row.token_expires_at).getTime() <= Date.now();
-
-      const connectionStatus: ShopReelConnectionStatus = row
-        ? expired
-          ? "expired"
-          : row.connection_active
-            ? "connected"
-            : "not_connected"
-        : "not_connected";
-
-      return {
-        platform,
-        enabled: settings?.enabled_platforms?.includes(platform) ?? false,
-        connection_active: row?.connection_active ?? false,
-        connection_status: connectionStatus,
-        publish_mode: "manual",
-        account_label: getAccountLabel(row),
-        metadata:
-          row?.metadata &&
-          typeof row.metadata === "object" &&
-          !Array.isArray(row.metadata)
-            ? (row.metadata as Record<string, unknown>)
-            : {},
-      };
-    });
-
-  const enabledCount = normalizedPlatforms.filter((p) => p.enabled).length;
-  const connectedCount = normalizedPlatforms.filter(
-    (p) => p.connection_active && p.connection_status === "connected",
-  ).length;
-
-  const missing: string[] = [];
-
-  if (!settings?.default_cta) missing.push("Default CTA");
-  if (!settings?.default_location) missing.push("Default location");
-  if (!settings?.brand_voice) missing.push("Brand voice");
-  if (enabledCount === 0) missing.push("At least one enabled platform");
-  if (connectedCount === 0) missing.push("At least one connected platform");
-  if (!settings?.onboarding_completed) {
-    missing.push("Launch onboarding completion");
+    if (assetError) {
+      throw new Error(assetError.message);
+    }
   }
 
-  const canPublish = enabledCount > 0 && connectedCount > 0;
-  const canAutopilot =
-    canPublish &&
-    settings?.publish_mode === "autopilot" &&
-    (settings?.onboarding_completed ?? false);
+  if (source.refs.length > 0) {
+    const { error: refError } = await supabase
+      .from("shopreel_story_source_refs")
+      .insert(
+        source.refs.map((ref) => ({
+          story_source_id: inserted.id,
+          shop_id: source.shopId,
+          ref_type: ref.type,
+          ref_id: ref.id,
+          metadata: {},
+        })) as never,
+      );
+
+    if (refError) {
+      throw new Error(refError.message);
+    }
+  }
+
+  return { id: inserted.id, deduped: false };
+}
+import type { StoryDraft, StoryScene, StorySceneRole } from "./types"
+import type { StorySource, StorySourceAsset } from "../story-sources"
+import { DEFAULT_SCENE_SHAPE_BY_SOURCE_KIND } from "../story-sources"
+
+function toTitleCase(value: string): string {
+  return value
+    .split("_")
+    .map((part) => (part.length > 0 ? part[0]!.toUpperCase() + part.slice(1) : part))
+    .join(" ")
+}
+
+function buildSceneTitle(role: StorySceneRole): string {
+  switch (role) {
+    case "cta":
+      return "Call to action"
+    case "why_it_matters":
+      return "Why it matters"
+    case "what_it_is":
+      return "What it is"
+    case "what_we_do":
+      return "What we do"
+    case "start_of_day":
+      return "Start of day"
+    case "end_of_day":
+      return "End of day"
+    case "current_state":
+      return "Current state"
+    default:
+      return toTitleCase(role)
+  }
+}
+
+function inferHook(source: StorySource): string {
+  const factHook =
+    typeof source.facts.hook === "string" && source.facts.hook.trim().length > 0
+      ? source.facts.hook.trim()
+      : null
+
+  if (factHook) return factHook
+
+  switch (source.kind) {
+    case "before_after":
+      return `${source.title} — here’s the transformation.`
+    case "repair_completed":
+      return `${source.title} — here’s what we fixed.`
+    case "inspection_completed":
+      return `${source.title} — here’s what we found.`
+    case "educational_insight":
+      return `${source.title} — here’s what to know.`
+    case "daily_timeline":
+      return `${source.title} — here’s how the day went.`
+    default:
+      return source.title
+  }
+}
+
+function inferCaption(source: StorySource, hook: string): string {
+  const noteLine = source.notes.find((note) => note.trim().length > 0)
+  return [hook, noteLine].filter(Boolean).join(" ")
+}
+
+function inferCta(source: StorySource): string {
+  switch (source.kind) {
+    case "educational_insight":
+    case "expert_tip":
+      return "Follow for more practical tips."
+    case "before_after":
+    case "repair_completed":
+    case "project_completed":
+      return "Message us if you want results like this."
+    case "inspection_completed":
+      return "Book an inspection before it turns into a bigger repair."
+    default:
+      return "Reach out if you want help with a job like this."
+  }
+}
+
+function assetToMedia(asset: StorySourceAsset) {
+  return {
+    contentAssetId: asset.contentAssetId ?? null,
+    manualAssetId: asset.manualAssetId ?? null,
+    url: asset.url ?? null,
+    startSeconds: null,
+    endSeconds: null,
+    metadata: asset.metadata ?? {},
+  }
+}
+
+function pickAssetsForRole(source: StorySource, role: StorySceneRole): StorySourceAsset[] {
+  if (source.assets.length === 0) return []
+
+  if (role === "hook") return source.assets.slice(0, 1)
+  if (role === "before") return source.assets.slice(0, 1)
+  if (role === "after") return source.assets.slice(-1)
+  if (role === "result" || role === "cta") return source.assets.slice(-1)
+
+  return source.assets.slice(0, Math.min(2, source.assets.length))
+}
+
+function buildOverlayText(
+  source: StorySource,
+  role: StorySceneRole,
+  index: number,
+  hook: string,
+): string {
+  if (role === "hook") return hook
+  if (role === "cta") return inferCta(source)
+
+  const note = source.notes[index]
+  if (typeof note === "string" && note.trim().length > 0) {
+    return note.trim()
+  }
+
+  return buildSceneTitle(role)
+}
+
+function buildVoiceoverText(
+  source: StorySource,
+  role: StorySceneRole,
+  overlayText: string,
+): string {
+  if (role === "hook") {
+    return overlayText
+  }
+
+  if (role === "cta") {
+    return inferCta(source)
+  }
+
+  if (source.description && source.description.trim().length > 0) {
+    return `${overlayText}. ${source.description.trim()}`
+  }
+
+  return overlayText
+}
+
+function buildScenes(source: StorySource, hook: string): StoryScene[] {
+  const roles = DEFAULT_SCENE_SHAPE_BY_SOURCE_KIND[source.kind] ?? [
+    "hook",
+    "context",
+    "story",
+    "result",
+    "cta",
+  ]
+
+  return roles.map((role, index) => {
+    const typedRole = role as StorySceneRole
+    const selectedAssets = pickAssetsForRole(source, typedRole)
+    const overlayText = buildOverlayText(source, typedRole, index, hook)
+
+    return {
+      id: `${source.id}:scene:${index + 1}`,
+      role: typedRole,
+      title: buildSceneTitle(typedRole),
+      overlayText,
+      voiceoverText: buildVoiceoverText(source, typedRole, overlayText),
+      durationSeconds: typedRole === "hook" ? 3 : typedRole === "cta" ? 3 : 4,
+      media: selectedAssets.map(assetToMedia),
+      metadata: {
+        sourceAssetCount: selectedAssets.length,
+      },
+    }
+  })
+}
+
+export function buildStoryDraftFromSource(source: StorySource): StoryDraft {
+  const hook = inferHook(source)
+  const caption = inferCaption(source, hook)
+  const cta = inferCta(source)
+  const scenes = buildScenes(source, hook)
 
   return {
-    settings: settings
-      ? {
-          shop_id: settings.shop_id,
-          publish_mode: settings.publish_mode,
-          default_cta: settings.default_cta,
-          default_location: settings.default_location,
-          brand_voice: settings.brand_voice,
-          enabled_platforms: settings.enabled_platforms ?? [],
-          connected_platforms: normalizedPlatforms
-            .filter((p) => p.connection_active)
-            .map((p) => p.platform),
-          onboarding_completed: settings.onboarding_completed,
-        }
-      : null,
-    brandProfile: null,
-    platforms: normalizedPlatforms,
-    readiness: {
-      connectedCount,
-      enabledCount,
-      canPublish,
-      canAutopilot,
-      missing,
+    id: `draft:${source.id}`,
+    shopId: source.shopId,
+    sourceId: source.id,
+    sourceKind: source.kind,
+    title: source.title,
+    hook,
+    caption,
+    cta,
+    hashtags: [],
+    tone: "professional",
+    targetChannels: ["instagram_reel", "facebook_video", "youtube_short", "tiktok_video"],
+    targetDurationSeconds: scenes.reduce(
+      (sum, scene) => sum + (scene.durationSeconds ?? 0),
+      0,
+    ),
+    summary: source.description ?? null,
+    voiceoverText: scenes
+      .map((scene) => scene.voiceoverText)
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .join(" "),
+    scriptText: scenes
+      .map((scene) => scene.voiceoverText)
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .join("\n"),
+    scenes,
+    metadata: {
+      sourceOrigin: source.origin,
+      sourceTags: source.tags,
+      sourceRefs: source.refs,
+    },
+  }
+}
+import type { Json, TablesInsert } from "@/types/supabase";
+import type { StoryDraft } from "./types";
+
+type ContentPieceInsert = TablesInsert<"content_pieces">;
+
+function mapChannelsToPlatforms(
+  channels: StoryDraft["targetChannels"],
+): ContentPieceInsert["platform_targets"] {
+  const platforms = new Set<string>();
+
+  for (const channel of channels) {
+    switch (channel) {
+      case "instagram_reel":
+        platforms.add("instagram");
+        break;
+      case "facebook_video":
+        platforms.add("facebook");
+        break;
+      case "youtube_short":
+        platforms.add("youtube");
+        break;
+      case "tiktok_video":
+        platforms.add("tiktok");
+        break;
+      default:
+        break;
+    }
+  }
+
+  return Array.from(platforms);
+}
+
+function mapSourceKindToContentType(sourceKind: StoryDraft["sourceKind"]): string {
+  switch (sourceKind) {
+    case "repair_completed":
+      return "repair_story";
+    case "inspection_completed":
+      return "inspection_highlight";
+    case "before_after":
+      return "before_after";
+    case "educational_insight":
+    case "expert_tip":
+      return "educational_tip";
+    default:
+      return "workflow_demo";
+  }
+}
+
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value)) as Json;
+}
+
+export function buildContentPieceInsertFromDraft(input: {
+  shopId: string;
+  draft: StoryDraft;
+  templateId?: string | null;
+  sourceSystem?: string | null;
+}): ContentPieceInsert {
+  const { shopId, draft } = input;
+
+  return {
+    tenant_shop_id: shopId,
+    source_shop_id: shopId,
+    source_system: input.sourceSystem ?? "shopreel",
+    title: draft.title,
+    status: "draft",
+    content_type: mapSourceKindToContentType(draft.sourceKind),
+    hook: draft.hook ?? null,
+    caption: draft.caption ?? null,
+    cta: draft.cta ?? null,
+    script_text: draft.scriptText ?? null,
+    voiceover_text: draft.voiceoverText ?? null,
+    platform_targets: mapChannelsToPlatforms(draft.targetChannels),
+    template_id: input.templateId ?? null,
+    metadata: toJson({
+      story_source_id: draft.sourceId,
+      story_source_kind: draft.sourceKind,
+      story_draft: draft,
+      story_scene_count: draft.scenes.length,
+      story_target_duration_seconds: draft.targetDurationSeconds ?? null,
+      story_tone: draft.tone,
+    }),
+  };
+}
+import { NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+import { generateStoryPipeline } from "@/features/shopreel/story-builder";
+import { getStorySourceWithAssets } from "@/features/shopreel/story-sources/server";
+import type {
+  StoryGenerationMode,
+  StorySource,
+  StorySourceKind,
+  StorySourceOrigin,
+} from "@/features/shopreel/story-sources";
+
+type GenerateBody = {
+  storySourceId?: string | null;
+  createRenderJobNow?: boolean;
+  limit?: number | null;
+};
+
+function toObjectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function toStorySourceKind(value: string): StorySourceKind {
+  switch (value) {
+    case "job_completed":
+    case "inspection_completed":
+    case "repair_completed":
+    case "before_after":
+    case "project_progress":
+    case "project_completed":
+    case "educational_insight":
+    case "expert_tip":
+    case "customer_result":
+    case "product_launch":
+    case "service_highlight":
+    case "milestone":
+    case "manual_upload":
+    case "daily_timeline":
+      return value;
+    default:
+      return "manual_upload";
+  }
+}
+
+function toStorySourceOrigin(value: string): StorySourceOrigin {
+  switch (value) {
+    case "manual_upload":
+    case "project":
+    case "day_timeline":
+    case "imported_media":
+    case "future_operational_event":
+      return value;
+    default:
+      return "manual_upload";
+  }
+}
+
+function toStoryGenerationMode(value: string): StoryGenerationMode {
+  switch (value) {
+    case "manual":
+    case "assisted":
+    case "autopilot":
+      return value;
+    default:
+      return "manual";
+  }
+}
+
+function toStorySourceAssetType(value: string) {
+  switch (value) {
+    case "photo":
+    case "video":
+    case "note":
+    case "text":
+    case "other":
+      return value;
+    default:
+      return "other";
+  }
+}
+
+function toStorySource(saved: NonNullable<Awaited<ReturnType<typeof getStorySourceWithAssets>>>) {
+  const source: StorySource = {
+    id: saved.source.id,
+    shopId: saved.source.shop_id,
+    title: saved.source.title,
+    description: saved.source.description,
+    kind: toStorySourceKind(saved.source.kind),
+    origin: toStorySourceOrigin(saved.source.origin),
+    generationMode: toStoryGenerationMode(saved.source.generation_mode),
+    occurredAt: saved.source.occurred_at,
+    startedAt: saved.source.started_at,
+    endedAt: saved.source.ended_at,
+    projectId: saved.source.project_id,
+    projectName: saved.source.project_name,
+    vehicleLabel: saved.source.vehicle_label,
+    customerLabel: saved.source.customer_label,
+    technicianLabel: saved.source.technician_label,
+    tags: saved.source.tags ?? [],
+    notes: saved.source.notes ?? [],
+    facts: toObjectRecord(saved.source.facts ?? {}),
+    metadata: toObjectRecord(saved.source.metadata ?? {}),
+    assets: saved.assets.map((asset) => ({
+      id: asset.id,
+      assetType: toStorySourceAssetType(asset.asset_type),
+      contentAssetId: asset.content_asset_id,
+      manualAssetId: asset.manual_asset_id,
+      url: asset.url,
+      title: asset.title,
+      caption: asset.caption,
+      note: asset.note,
+      takenAt: asset.taken_at,
+      sortOrder: asset.sort_order,
+      metadata: toObjectRecord(asset.metadata ?? {}),
+    })),
+    refs: saved.refs.map((ref) => ({
+      type: ref.ref_type as
+        | "content_asset"
+        | "manual_asset"
+        | "content_event"
+        | "content_piece"
+        | "project"
+        | "day_bucket"
+        | "future_work_order"
+        | "future_inspection",
+      id: ref.ref_id,
+    })),
+    createdAt: saved.source.created_at,
+    updatedAt: saved.source.updated_at,
+  };
+
+  return source;
+}
+
+export async function POST(req: Request) {
+  try {
+    const shopId = await getCurrentShopId();
+    const body = (await req.json().catch(() => ({}))) as GenerateBody;
+
+    if (body.storySourceId) {
+      const result = await getStorySourceWithAssets({
+        shopId,
+        storySourceId: body.storySourceId,
+      });
+
+      if (!result) {
+        return NextResponse.json(
+          { ok: false, error: "Story source not found" },
+          { status: 404 },
+        );
+      }
+
+      const storySource = toStorySource(result);
+
+      const generated = await generateStoryPipeline({
+        shopId,
+        source: storySource,
+        sourceSystem: "shopreel",
+        createRenderJobNow: body.createRenderJobNow ?? false,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        mode: "saved_story_source",
+        generated,
+      });
+    }
+
+    const discovered = await discoverStorySources(shopId);
+    const limited = discovered.slice(0, body.limit ?? 1);
+
+    const results = [];
+    for (const source of limited) {
+      const generated = await generateStoryPipeline({
+        shopId,
+        source,
+        sourceSystem: "shopreel",
+        createRenderJobNow: body.createRenderJobNow ?? false,
+      });
+      results.push(generated);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      mode: "discover_and_generate",
+      count: results.length,
+      results,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to generate story";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { generateStoryPipeline } from "@/features/shopreel/story-builder";
+import type {
+  StoryGenerationMode,
+  StorySource,
+  StorySourceKind,
+  StorySourceOrigin,
+} from "@/features/shopreel/story-sources";
+
+function toObjectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function toStorySourceKind(value: string): StorySourceKind {
+  switch (value) {
+    case "job_completed":
+    case "inspection_completed":
+    case "repair_completed":
+    case "before_after":
+    case "project_progress":
+    case "project_completed":
+    case "educational_insight":
+    case "expert_tip":
+    case "customer_result":
+    case "product_launch":
+    case "service_highlight":
+    case "milestone":
+    case "manual_upload":
+    case "daily_timeline":
+      return value;
+    default:
+      return "manual_upload";
+  }
+}
+
+function toStorySourceOrigin(value: string): StorySourceOrigin {
+  switch (value) {
+    case "manual_upload":
+    case "project":
+    case "day_timeline":
+    case "imported_media":
+    case "future_operational_event":
+      return value;
+    default:
+      return "manual_upload";
+  }
+}
+
+function toStoryGenerationMode(value: string): StoryGenerationMode {
+  switch (value) {
+    case "manual":
+    case "assisted":
+    case "autopilot":
+      return value;
+    default:
+      return "manual";
+  }
+}
+
+function toStorySourceAssetType(value: string) {
+  switch (value) {
+    case "photo":
+    case "video":
+    case "note":
+    case "text":
+    case "other":
+      return value;
+    default:
+      return "other";
+  }
+}
+
+type Body = {
+  createRenderJobNow?: boolean;
+};
+
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await ctx.params;
+    const body = (await req.json().catch(() => ({}))) as Body;
+
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data: opportunity, error: opportunityError } = await legacy
+      .from("shopreel_content_opportunities")
+      .select("id, story_source_id, score, status, reason, metadata")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (opportunityError) {
+      throw new Error(opportunityError.message);
+    }
+
+    if (!opportunity) {
+      return NextResponse.json(
+        { ok: false, error: "Opportunity not found" },
+        { status: 404 },
+      );
+    }
+
+    const { data: source, error: sourceError } = await legacy
+      .from("shopreel_story_sources")
+      .select("*")
+      .eq("id", opportunity.story_source_id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (sourceError) {
+      throw new Error(sourceError.message);
+    }
+
+    if (!source) {
+      return NextResponse.json(
+        { ok: false, error: "Story source not found" },
+        { status: 404 },
+      );
+    }
+
+    const [{ data: assets, error: assetsError }, { data: refs, error: refsError }] =
+      await Promise.all([
+        legacy
+          .from("shopreel_story_source_assets")
+          .select("*")
+          .eq("shop_id", shopId)
+          .eq("story_source_id", source.id)
+          .order("sort_order", { ascending: true }),
+        legacy
+          .from("shopreel_story_source_refs")
+          .select("*")
+          .eq("shop_id", shopId)
+          .eq("story_source_id", source.id)
+          .order("created_at", { ascending: true }),
+      ]);
+
+    if (assetsError) {
+      throw new Error(assetsError.message);
+    }
+
+    if (refsError) {
+      throw new Error(refsError.message);
+    }
+
+    const storySource: StorySource = {
+      id: source.id,
+      shopId: source.shop_id,
+      title: source.title,
+      description: source.description,
+      kind: toStorySourceKind(source.kind),
+      origin: toStorySourceOrigin(source.origin),
+      generationMode: toStoryGenerationMode(source.generation_mode),
+      occurredAt: source.occurred_at,
+      startedAt: source.started_at,
+      endedAt: source.ended_at,
+      projectId: source.project_id,
+      projectName: source.project_name,
+      vehicleLabel: source.vehicle_label,
+      customerLabel: source.customer_label,
+      technicianLabel: source.technician_label,
+      tags: source.tags ?? [],
+      notes: source.notes ?? [],
+      facts: toObjectRecord(source.facts ?? {}),
+      metadata: toObjectRecord(source.metadata ?? {}),
+      assets: (assets ?? []).map((asset: any) => ({
+        id: asset.id,
+        assetType: toStorySourceAssetType(asset.asset_type),
+        contentAssetId: asset.content_asset_id,
+        manualAssetId: asset.manual_asset_id,
+        url: asset.url,
+        title: asset.title,
+        caption: asset.caption,
+        note: asset.note,
+        takenAt: asset.taken_at,
+        sortOrder: asset.sort_order,
+        metadata: toObjectRecord(asset.metadata ?? {}),
+      })),
+      refs: (refs ?? []).map((ref: any) => ({
+        type: ref.ref_type as
+          | "content_asset"
+          | "manual_asset"
+          | "content_event"
+          | "content_piece"
+          | "project"
+          | "day_bucket"
+          | "future_work_order"
+          | "future_inspection",
+        id: ref.ref_id,
+      })),
+      createdAt: source.created_at,
+      updatedAt: source.updated_at,
+    };
+
+    const generated = await generateStoryPipeline({
+      shopId,
+      source: storySource,
+      sourceSystem: "shopreel",
+      createRenderJobNow: body.createRenderJobNow ?? true,
+    });
+
+    await legacy
+      .from("shopreel_content_opportunities")
+      .update({
+        status: "generated",
+        metadata: {
+          ...(toObjectRecord(opportunity.metadata ?? {})),
+          last_generation_id: generated.generation.id,
+          last_content_piece_id: generated.contentPiece.id,
+          last_render_job_id: generated.renderJob?.id ?? null,
+          generated_at: new Date().toISOString(),
+        },
+      })
+      .eq("id", id);
+
+    return NextResponse.json({
+      ok: true,
+      generated: {
+        opportunityId: id,
+        contentPieceId: generated.contentPiece.id,
+        renderJobId: generated.renderJob?.id ?? null,
+        generationId: generated.generation.id,
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to generate from opportunity";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+import { NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { generateStoryPipeline } from "@/features/shopreel/story-builder";
+import type { StorySource } from "@/features/shopreel/story-sources";
+
+type SeedBody = {
+  createRenderJobNow?: boolean;
+};
+
+export async function POST(req: Request) {
+  try {
+    const shopId = await getCurrentShopId();
+    const body = (await req.json().catch(() => ({}))) as SeedBody;
+
+    const source: StorySource = {
+      id: `seed:${Date.now()}`,
+      shopId,
+      title: "Brake inspection story",
+      description: "Seeded ShopReel story source for pipeline testing.",
+      kind: "inspection_completed",
+      origin: "manual_upload",
+      generationMode: "assisted",
+      occurredAt: new Date().toISOString(),
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      projectName: null,
+      vehicleLabel: "2020 Ford F-150",
+      customerLabel: "Demo customer",
+      technicianLabel: "Demo tech",
+      tags: ["seed", "inspection", "brakes"],
+      assets: [],
+      refs: [],
+      notes: [
+        "Front pads worn low",
+        "Rotor scoring visible",
+        "Inspection completed and documented",
+      ],
+      facts: {
+        hook: "Brake pads worn past spec — here’s what we found.",
+        contentType: "inspection_highlight",
+      },
+      metadata: {
+        seeded: true,
+      },
+    };
+
+    const generated = await generateStoryPipeline({
+      shopId,
+      source,
+      sourceSystem: "shopreel",
+      createRenderJobNow: body.createRenderJobNow ?? false,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      generated,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to seed story source";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+import { createAdminClient } from "@/lib/supabase/server";
+import { buildStoryDraftFromSource, createContentPieceFromStoryDraft } from "../../story-builder";
+import type { StorySource } from "../../story-sources";
+
+export type ManualAssetOpportunity = {
+  ok: true;
+  assetId: string;
+  videoId: string;
+  title: string;
+  contentType: string;
+  status: string;
+  aiScore: number | null;
+  source: "manual_upload";
+};
+
+export async function createOpportunityFromManualAsset(
+  assetId: string,
+): Promise<ManualAssetOpportunity> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("content_assets")
+    .select("id, title, asset_type, metadata, created_at, public_url, storage_path")
+    .eq("id", assetId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "No manual asset found");
+  }
+
+  const metadata =
+    data.metadata &&
+    typeof data.metadata === "object" &&
+    !Array.isArray(data.metadata)
+      ? (data.metadata as Record<string, unknown>)
+      : {};
+
+  const contentType =
+    typeof metadata.content_type === "string"
+      ? metadata.content_type
+      : data.asset_type ?? "manual_upload";
+
+  const aiScore =
+    typeof metadata.ai_score === "number" ? metadata.ai_score : null;
+
+  return {
+    ok: true,
+    assetId,
+    videoId: data.id,
+    title: data.title ?? "Manual upload",
+    contentType,
+    status: "ready",
+    aiScore,
+    source: "manual_upload",
+  };
+}
+
+export async function createStorySourceFromManualAsset(
+  shopId: string,
+  assetId: string,
+): Promise<StorySource> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("content_assets")
+    .select("id, title, asset_type, metadata, created_at, public_url, storage_path, caption")
+    .eq("id", assetId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "No manual asset found");
+  }
+
+  const metadata =
+    data.metadata &&
+    typeof data.metadata === "object" &&
+    !Array.isArray(data.metadata)
+      ? (data.metadata as Record<string, unknown>)
+      : {};
+
+  const title =
+    (typeof data.title === "string" && data.title.trim().length > 0
+      ? data.title.trim()
+      : null) ?? "Manual upload";
+
+  const contentType =
+    typeof metadata.content_type === "string"
+      ? metadata.content_type
+      : data.asset_type ?? "manual_upload";
+
+  const tags = Array.isArray(metadata.tags)
+    ? metadata.tags.filter((value): value is string => typeof value === "string")
+    : [];
+
+  return {
+    id: `manual:${data.id}`,
+    shopId,
+    title,
+    description:
+      typeof data.caption === "string" && data.caption.trim().length > 0
+        ? data.caption.trim()
+        : null,
+    kind: "manual_upload",
+    origin: "manual_upload",
+    generationMode: "manual",
+    occurredAt: data.created_at ?? null,
+    tags: Array.from(new Set(["manual_upload", contentType, ...tags].filter(Boolean))),
+    assets: [
+      {
+        id: `manual-asset:${data.id}`,
+        assetType: data.asset_type === "video" ? "video" : "photo",
+        contentAssetId: data.id,
+        url: data.public_url ?? null,
+        title,
+        caption:
+          typeof data.caption === "string" && data.caption.trim().length > 0
+            ? data.caption.trim()
+            : null,
+        takenAt: data.created_at ?? null,
+        sortOrder: 0,
+        metadata: {
+          storage_path: data.storage_path ?? null,
+          raw_metadata: metadata,
+        },
+      },
+    ],
+    refs: [
+      {
+        type: "content_asset",
+        id: data.id,
+      },
+      {
+        type: "manual_asset",
+        id: data.id,
+      },
+    ],
+    notes: [],
+    facts: {
+      contentType,
+    },
+    metadata: {
+      source: "manual_upload",
+      contentType,
+      aiScore: typeof metadata.ai_score === "number" ? metadata.ai_score : null,
+    },
+    createdAt: data.created_at ?? undefined,
+    updatedAt: data.created_at ?? undefined,
+  };
+}
+
+export async function createContentPieceFromManualAsset(input: {
+  shopId: string;
+  assetId: string;
+  templateId?: string | null;
+}) {
+  const storySource = await createStorySourceFromManualAsset(input.shopId, input.assetId);
+  const draft = buildStoryDraftFromSource(storySource);
+
+  const contentPiece = await createContentPieceFromStoryDraft({
+    shopId: input.shopId,
+    draft,
+    templateId: input.templateId ?? null,
+    sourceSystem: "shopreel",
+  });
+
+  return {
+    storySource,
+    draft,
+    contentPiece,
+  };
+}
+import crypto from "crypto";
+import type { StoryDraft } from "@/features/shopreel/story-builder/types";
+
+export type CreatorResearchInput = {
+  shopId: string;
+  sourceId: string;
+  topic: string;
+  audience?: string | null;
+  platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
+  tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
+  researchSummary?: string | null;
+  bullets?: string[];
+};
+
+function makeId(prefix: string) {
+  return `${prefix}:${crypto.randomUUID()}`;
+}
+
+function cleanTopic(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function buildTitle(topic: string) {
+  const cleaned = cleanTopic(topic);
+  return cleaned.length <= 68 ? cleaned : `${cleaned.slice(0, 65).trim()}...`;
+}
+
+function buildHook(topic: string) {
+  const cleaned = cleanTopic(topic);
+  if (!cleaned) return "Here’s what you need to know.";
+  return `${cleaned} — here’s what you need to know.`;
+}
+
+function buildTargetChannels(platformFocus: NonNullable<CreatorResearchInput["platformFocus"]>) {
+  if (platformFocus === "instagram") return ["instagram_reel"] as const;
+  if (platformFocus === "tiktok") return ["tiktok_video"] as const;
+  if (platformFocus === "youtube") return ["youtube_short"] as const;
+  if (platformFocus === "facebook") return ["facebook_video"] as const;
+  return ["instagram_reel", "tiktok_video", "youtube_short", "facebook_video"] as const;
+}
+
+export function buildCreatorResearchDraft(input: CreatorResearchInput): StoryDraft {
+  const topic = cleanTopic(input.topic);
+  const hook = buildHook(topic);
+  const title = buildTitle(topic);
+  const bullets = (input.bullets ?? []).filter(Boolean).slice(0, 3);
+
+  const pointA = bullets[0] ?? "Start with the biggest point people are asking about.";
+  const pointB = bullets[1] ?? "Explain what seems credible, what is rumor, and what actually matters.";
+  const pointC = bullets[2] ?? "End with the practical takeaway for viewers.";
+
+  const scenes = [
+    {
+      id: makeId("scene"),
+      role: "hook" as const,
+      title: "Hook",
+      overlayText: hook,
+      voiceoverText: hook,
+      durationSeconds: 3,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+    {
+      id: makeId("scene"),
+      role: "context" as const,
+      title: "Context",
+      overlayText: "What’s being said",
+      voiceoverText: pointA,
+      durationSeconds: 5,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+    {
+      id: makeId("scene"),
+      role: "explanation" as const,
+      title: "What matters",
+      overlayText: "What matters most",
+      voiceoverText: pointB,
+      durationSeconds: 6,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+    {
+      id: makeId("scene"),
+      role: "takeaway" as const,
+      title: "Takeaway",
+      overlayText: "Bottom line",
+      voiceoverText: pointC,
+      durationSeconds: 4,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+    {
+      id: makeId("scene"),
+      role: "cta" as const,
+      title: "CTA",
+      overlayText: "Follow for more updates",
+      voiceoverText: "Follow for more updates, and check back for the next breakdown.",
+      durationSeconds: 3,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+  ];
+
+  const voiceoverText = scenes.map((scene) => scene.voiceoverText ?? "").join(" ");
+  const scriptText = scenes.map((scene) => scene.voiceoverText ?? "").join("\n");
+  const audience = input.audience?.trim() ?? "";
+
+  return {
+    id: makeId("draft"),
+    shopId: input.shopId,
+    sourceId: input.sourceId,
+    sourceKind: "creator_idea",
+    title,
+    hook,
+    caption: audience ? `${topic}\n\nMade for: ${audience}` : topic,
+    cta: "Follow for more updates",
+    hashtags: [],
+    tone: input.tone ?? "confident",
+    targetChannels: [...buildTargetChannels(input.platformFocus ?? "multi")],
+    targetDurationSeconds: 21,
+    summary: input.researchSummary?.trim() || topic,
+    voiceoverText,
+    scriptText,
+    scenes,
+    metadata: {
+      creatorMode: true,
+      audience: audience || null,
+      platformFocus: input.platformFocus ?? "multi",
+      researchSummary: input.researchSummary ?? null,
+      bullets,
+      sourceOrigin: "creator_mode",
     },
   };
 }
------ src/features/shopreel/ui/ShopReelSettingsClient.tsx -----
-//src/features/shopreel/ui/ShopReelSettingsClient.tsx
-
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassInput from "@/features/shopreel/ui/system/GlassInput";
 import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
-import GlassSelect from "@/features/shopreel/ui/system/GlassSelect";
-import GlassToggle from "@/features/shopreel/ui/system/GlassToggle";
-import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
-type SettingsState = {
-  brandVoice: string;
-  postingTimezone: string;
-  defaultAspect: string;
-  captionStyle: string;
-  autoApproveDrafts: boolean;
-  autoQueueRenders: boolean;
-  autoPublish: boolean;
-  includeAdvisorCta: boolean;
-  defaultHookTemplate: string;
-  complianceNote: string;
-};
-
-type ShopReelPlatform =
-  | "instagram"
-  | "facebook"
-  | "tiktok"
-  | "youtube";
-
-type PlatformAccountMetadata = {
-  meta_page_id?: string | null;
-  meta_page_name?: string | null;
-  meta_instagram_business_id?: string | null;
-};
-
-type ConnectionRow = {
-  id: string;
-  platform: ShopReelPlatform;
-  connection_active: boolean;
-  account_label: string | null;
-  platform_account_id: string | null;
-  platform_username: string | null;
-  token_expires_at?: string | null;
-  updated_at?: string | null;
-  metadata?: PlatformAccountMetadata | null;
-};
-
-type ConnectionsResponse = {
-  ok: boolean;
-  connections?: ConnectionRow[];
-  error?: string;
-};
-
-const initialState: SettingsState = {
-  brandVoice: "Helpful, confident, transparent, practical",
-  postingTimezone: "America/Edmonton",
-  defaultAspect: "9:16",
-  captionStyle: "Short and clear",
-  autoApproveDrafts: false,
-  autoQueueRenders: true,
-  autoPublish: false,
-  includeAdvisorCta: true,
-  defaultHookTemplate: "Show the real issue fast, then explain the fix simply.",
-  complianceNote: "Avoid overstating urgency. Keep copy factual and customer-friendly.",
-};
-
-const PLATFORM_ORDER: ShopReelPlatform[] = [
-  "instagram",
-  "facebook",
-  "tiktok",
-  "youtube",
-];
-
-const PLATFORM_LABELS: Record<ShopReelPlatform, string> = {
-  instagram: "Instagram",
-  facebook: "Facebook",
-  tiktok: "TikTok",
-  youtube: "YouTube",
-};
-
-const PLATFORM_CONNECT_QUERY: Record<ShopReelPlatform, string> = {
-  instagram: "instagram",
-  facebook: "facebook",
-  tiktok: "tiktok",
-  youtube: "youtube",
-};
-
-function formatConnectionSubtitle(connection: ConnectionRow | null): string {
-  if (!connection) {
-    return "Not connected";
-  }
-
-  if (connection.platform === "instagram") {
-    if (
-      connection.account_label &&
-      connection.metadata?.meta_page_name &&
-      connection.account_label !== connection.metadata.meta_page_name
-    ) {
-      return `${connection.account_label} • ${connection.metadata.meta_page_name}`;
+type CreateResponse =
+  | {
+      ok: true;
+      generationId: string;
+      editorUrl: string;
+      researchSummary?: string;
+      researchBullets?: string[];
     }
+  | {
+      ok?: false;
+      error?: string;
+    };
 
-    if (connection.account_label) {
-      return connection.account_label;
-    }
+export default function ShopReelCreatePage() {
+  const router = useRouter();
+  const [topic, setTopic] = useState("");
+  const [audience, setAudience] = useState("");
+  const [platformFocus, setPlatformFocus] = useState<
+    "instagram" | "tiktok" | "youtube" | "facebook" | "multi"
+  >("multi");
+  const [tone, setTone] = useState<
+    "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy"
+  >("confident");
+  const [useResearch, setUseResearch] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [preview, setPreview] = useState<{ summary: string; bullets: string[] } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-    if (connection.metadata?.meta_page_name) {
-      return connection.metadata.meta_page_name;
-    }
-  }
-
-  if (connection.platform === "facebook") {
-    if (connection.account_label) {
-      return connection.account_label;
-    }
-
-    if (connection.metadata?.meta_page_name) {
-      return connection.metadata.meta_page_name;
-    }
-  }
-
-  return (
-    connection.account_label ??
-    connection.platform_username ??
-    connection.platform_account_id ??
-    "Connected"
-  );
-}
-
-function isConnectionActive(connection: ConnectionRow | null): boolean {
-  return Boolean(connection?.connection_active);
-}
-
-export default function ShopReelSettingsClient() {
-  const [state, setState] = useState<SettingsState>(initialState);
-  const [saved, setSaved] = useState(false);
-  const [connections, setConnections] = useState<
-    Partial<Record<ShopReelPlatform, ConnectionRow>>
-  >({});
-  const [connectionsLoading, setConnectionsLoading] = useState(true);
-  const [connectionsError, setConnectionsError] = useState<string | null>(null);
-  const [connectingPlatform, setConnectingPlatform] =
-    useState<ShopReelPlatform | null>(null);
-
-  function setField<K extends keyof SettingsState>(
-    key: K,
-    value: SettingsState[K],
-  ) {
-    setSaved(false);
-    setState((prev) => ({ ...prev, [key]: value }));
-  }
-
-  const loadConnections = useCallback(async () => {
+  async function createFromTopic() {
     try {
-      setConnectionsLoading(true);
-      setConnectionsError(null);
+      setError(null);
+      setIsSubmitting(true);
+      setPreview(null);
 
-      const res = await fetch("/api/shopreel/connections", {
-        method: "GET",
-        cache: "no-store",
+      const res = await fetch("/api/shopreel/create/research-script", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topic,
+          audience,
+          platformFocus,
+          tone,
+          useResearch,
+        }),
       });
 
-      const json = (await res.json().catch(() => ({}))) as ConnectionsResponse;
+      const json = (await res.json()) as CreateResponse;
 
       if (!res.ok || !json.ok) {
-        throw new Error(json.error ?? "Failed to load connections");
+        throw new Error(("error" in json && json.error) || "Failed to create story");
       }
 
-      const next: Partial<Record<ShopReelPlatform, ConnectionRow>> = {};
+      setPreview({
+        summary: json.researchSummary ?? "",
+        bullets: json.researchBullets ?? [],
+      });
 
-      for (const connection of json.connections ?? []) {
-        next[connection.platform] = connection;
-      }
-
-      setConnections(next);
-    } catch (error) {
-      setConnectionsError(
-        error instanceof Error ? error.message : "Failed to load connections",
-      );
+      router.push(json.editorUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create story");
     } finally {
-      setConnectionsLoading(false);
+      setIsSubmitting(false);
     }
-  }, []);
-
-  useEffect(() => {
-    void loadConnections();
-  }, [loadConnections]);
-
-  async function handleSave() {
-    setSaved(true);
   }
-
-  function handleConnect(platform: ShopReelPlatform) {
-    setConnectingPlatform(platform);
-    const platformParam = PLATFORM_CONNECT_QUERY[platform];
-    window.location.href = `/api/shopreel/oauth/connect?platform=${encodeURIComponent(
-      platformParam,
-    )}`;
-  }
-
-  const connectionStats = useMemo(() => {
-    const total = PLATFORM_ORDER.length;
-    const connected = PLATFORM_ORDER.filter((platform) =>
-      isConnectionActive(connections[platform] ?? null),
-    ).length;
-
-    return { total, connected };
-  }, [connections]);
 
   return (
-    <div className="space-y-5">
-      <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Creator Mode"
+      subtitle="Start from a topic, review, rumor round-up, explainer, or creator idea. ShopReel researches the angle, writes the script, and opens the editor."
+      actions={<GlassBadge tone="copper">Creator research + script</GlassBadge>}
+    >
+      <ShopReelNav />
+
+      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
         <GlassCard
-          label="Brand"
-          title="Voice and formatting"
-          description="All fields now use the Glass system only. No page-local field styling."
+          label="Start From Topic"
+          title="Topic -> Research -> Script -> Editor"
+          description="Example: iPhone 18 leaks and rumors. ShopReel prepares the talking points and builds the first creator-ready story draft."
+          strong
+          footer={
+            <div className="flex flex-wrap gap-3">
+              <GlassButton
+                variant="primary"
+                onClick={() => void createFromTopic()}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Building script..." : "Build creator script"}
+              </GlassButton>
+            </div>
+          }
         >
-          <GlassInput
-            label="Brand voice"
-            value={state.brandVoice}
-            onChange={(e) => setField("brandVoice", e.target.value)}
-            placeholder="Describe tone and voice"
+          <GlassTextarea
+            label="Topic or prompt"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="Example: iPhone 18 leaks and rumors — make this into a fast creator breakdown with a strong hook, what seems credible, and why people should care."
           />
 
-          <GlassSelect
-            label="Posting timezone"
-            value={state.postingTimezone}
-            onChange={(e) => setField("postingTimezone", e.target.value)}
-            options={[
-              { value: "America/Edmonton", label: "America/Edmonton" },
-              { value: "America/Vancouver", label: "America/Vancouver" },
-              { value: "America/Toronto", label: "America/Toronto" },
-            ]}
+          <GlassInput
+            label="Audience"
+            value={audience}
+            onChange={(e) => setAudience(e.target.value)}
+            placeholder="Example: tech buyers, Apple fans, creators, parents, truck owners"
           />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <GlassSelect
-              label="Default aspect"
-              value={state.defaultAspect}
-              onChange={(e) => setField("defaultAspect", e.target.value)}
-              options={[
-                { value: "9:16", label: "9:16 Vertical" },
-                { value: "1:1", label: "1:1 Square" },
-                { value: "16:9", label: "16:9 Landscape" },
-              ]}
-            />
+            <label className="space-y-2">
+              <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                Platform focus
+              </div>
+              <select
+                value={platformFocus}
+                onChange={(e) => setPlatformFocus(e.target.value as typeof platformFocus)}
+                className={cx(
+                  "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                  glassTheme.text.primary,
+                  glassTheme.glass.input,
+                  glassTheme.border.softer,
+                  "bg-transparent",
+                )}
+              >
+                <option value="multi">Multi-platform</option>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="youtube">YouTube Shorts</option>
+                <option value="facebook">Facebook</option>
+              </select>
+            </label>
 
-            <GlassSelect
-              label="Caption style"
-              value={state.captionStyle}
-              onChange={(e) => setField("captionStyle", e.target.value)}
-              options={[
-                { value: "Short and clear", label: "Short and clear" },
-                { value: "Educational", label: "Educational" },
-                { value: "Story-led", label: "Story-led" },
-              ]}
-            />
+            <label className="space-y-2">
+              <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                Tone
+              </div>
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value as typeof tone)}
+                className={cx(
+                  "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                  glassTheme.text.primary,
+                  glassTheme.glass.input,
+                  glassTheme.border.softer,
+                  "bg-transparent",
+                )}
+              >
+                <option value="confident">Confident</option>
+                <option value="professional">Professional</option>
+                <option value="educational">Educational</option>
+                <option value="friendly">Friendly</option>
+                <option value="direct">Direct</option>
+                <option value="high-energy">High-energy</option>
+              </select>
+            </label>
           </div>
 
-          <GlassTextarea
-            label="Default hook template"
-            value={state.defaultHookTemplate}
-            onChange={(e) => setField("defaultHookTemplate", e.target.value)}
-            placeholder="Enter your preferred short-form opener"
-          />
+          <label className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm text-white/80 border-white/10 bg-white/[0.03]">
+            <input
+              type="checkbox"
+              checked={useResearch}
+              onChange={(e) => setUseResearch(e.target.checked)}
+            />
+            Research topic before writing script
+          </label>
 
-          <GlassTextarea
-            label="Compliance note"
-            value={state.complianceNote}
-            onChange={(e) => setField("complianceNote", e.target.value)}
-            placeholder="Add messaging guardrails"
-          />
+          {error ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.copperSoft,
+              )}
+            >
+              {error}
+            </div>
+          ) : null}
         </GlassCard>
 
         <GlassCard
-          label="Automation"
-          title="Approval and publishing flow"
-          description="Simple toggles, same visual language, no giant page-specific class strings."
+          label="What this unlocks"
+          title="Creator-first scripting"
+          description="The creator does not need to leave ShopReel to research the topic and get the first script."
+          strong
         >
-          <div className="space-y-3">
-            <GlassToggle
-              label="Auto-queue renders"
-              description="Send approved opportunities to render automatically."
-              checked={state.autoQueueRenders}
-              onCheckedChange={(checked) =>
-                setField("autoQueueRenders", checked)
-              }
-            />
-
-            <GlassToggle
-              label="Auto-approve drafts"
-              description="Skip manual approval for low-risk content drafts."
-              checked={state.autoApproveDrafts}
-              onCheckedChange={(checked) =>
-                setField("autoApproveDrafts", checked)
-              }
-            />
-
-            <GlassToggle
-              label="Auto-publish"
-              description="Publish scheduled content automatically after render completes."
-              checked={state.autoPublish}
-              onCheckedChange={(checked) => setField("autoPublish", checked)}
-            />
-
-            <GlassToggle
-              label="Include advisor CTA"
-              description="Append a light shop CTA where appropriate."
-              checked={state.includeAdvisorCta}
-              onCheckedChange={(checked) =>
-                setField("includeAdvisorCta", checked)
-              }
-            />
-          </div>
-        </GlassCard>
-      </section>
-
-      <GlassCard
-        label="Connections"
-        title="Platform accounts"
-        description="Connect each publishing destination your shop wants to use."
-        footer={
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <GlassBadge tone="default">
-                {connectionStats.connected} / {connectionStats.total} connected
-              </GlassBadge>
-              <GlassBadge tone="muted">
-                Default flow: Opportunity → Render → Review → Publish
-              </GlassBadge>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {saved ? (
-                <span className="text-sm text-[color:#d2a17e]">Saved</span>
-              ) : null}
-              <GlassButton
-                variant="secondary"
-                onClick={() => void loadConnections()}
-              >
-                Refresh connections
-              </GlassButton>
-              <GlassButton variant="primary" onClick={() => void handleSave()}>
-                Save settings
-              </GlassButton>
-            </div>
-          </div>
-        }
-      >
-        {connectionsError ? (
-          <div className="mb-4 rounded-2xl border border-[rgba(184,115,75,0.22)] bg-[rgba(184,115,75,0.08)] px-4 py-3 text-sm text-[color:#d2a17e]">
-            {connectionsError}
-          </div>
-        ) : null}
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {PLATFORM_ORDER.map((platform) => {
-            const connection = connections[platform] ?? null;
-            const active = isConnectionActive(connection);
-            const subtitle = formatConnectionSubtitle(connection);
-            const isBusy = connectingPlatform === platform;
-
-            return (
+          <div className="grid gap-3">
+            {[
+              "Rumor round-ups",
+              "Product reviews",
+              "Topic explainers",
+              "Trend breakdowns",
+              "Talking-head scripts",
+              "Short-form educational clips",
+            ].map((item) => (
               <div
-                key={platform}
-                className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4"
+                key={item}
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.primary,
+                )}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="text-base font-medium text-[color:#f3ede6]">
-                      {PLATFORM_LABELS[platform]}
-                    </div>
-                    <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
-                      {connectionsLoading ? "Checking connection..." : subtitle}
-                    </div>
-                  </div>
+                {item}
+              </div>
+            ))}
+          </div>
 
-                  <GlassBadge tone={active ? "default" : "muted"}>
-                    {active ? "Connected" : "Not connected"}
-                  </GlassBadge>
-                </div>
-
-                <div className="mt-4 space-y-2 text-sm text-[color:rgba(243,237,230,0.64)]">
-                  {platform === "instagram" &&
-                  connection?.metadata?.meta_instagram_business_id ? (
-                    <div>
-                      IG business ID:{" "}
-                      {connection.metadata.meta_instagram_business_id}
-                    </div>
-                  ) : null}
-
-                  {platform === "facebook" &&
-                  connection?.metadata?.meta_page_id ? (
-                    <div>Page ID: {connection.metadata.meta_page_id}</div>
-                  ) : null}
-
-                  {connection?.token_expires_at ? (
-                    <div>
-                      Token expires:{" "}
-                      {new Date(connection.token_expires_at).toLocaleString()}
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <GlassButton
-                    variant={active ? "secondary" : "primary"}
-                    onClick={() => handleConnect(platform)}
-                    disabled={isBusy}
-                  >
-                    {isBusy
-                      ? "Redirecting..."
-                      : active
-                        ? `Reconnect ${PLATFORM_LABELS[platform]}`
-                        : `Connect ${PLATFORM_LABELS[platform]}`}
-                  </GlassButton>
+          {preview ? (
+            <div className="space-y-3 pt-2">
+              <div
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Research summary</div>
+                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                  {preview.summary}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </GlassCard>
 
-      <GlassCard
-        label="Status"
-        title="Connection summary"
-        description="Live publishing connection state and core output preferences."
-      >
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
-              Publishing timezone
+              {preview.bullets.map((bullet) => (
+                <div
+                  key={bullet}
+                  className={cx(
+                    "rounded-2xl border p-4 text-sm",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.primary,
+                  )}
+                >
+                  {bullet}
+                </div>
+              ))}
             </div>
-            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-              {state.postingTimezone}
-            </div>
-          </div>
+          ) : (
+            <div className="grid gap-3 pt-2 md:grid-cols-2">
+              <div
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Flow</div>
+                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                  Topic {"->"} script {"->"} editor
+                </div>
+              </div>
 
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
-              Preferred format
+              <div
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Works with</div>
+                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                  Reviews, rumors, explainers
+                </div>
+              </div>
             </div>
-            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-              {state.defaultAspect} • {state.captionStyle}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-            <div className="text-sm text-[color:rgba(243,237,230,0.62)]">
-              Connected platforms
-            </div>
-            <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-              {connectionStats.connected} of {connectionStats.total}
-            </div>
-          </div>
-        </div>
-      </GlassCard>
-    </div>
+          )}
+        </GlassCard>
+      </section>
+    </GlassShell>
   );
 }
------ src/features/shopreel/integrations/shared/types.ts -----
-export type ShopReelPlatform =
-  | "instagram"
-  | "facebook"
-  | "youtube"
-  | "tiktok"
-  | "blog"
-  | "linkedin"
-  | "google_business"
-  | "email";
-
-export type OAuthStartResult = {
-  ok: true;
-  authorizationUrl: string;
-};
-
-export type OAuthCallbackResult = {
-  ok: true;
-  platform: ShopReelPlatform;
-  shopId: string;
-  accountLabel?: string | null;
-  platformAccountId?: string | null;
-};
-
-export type PublishInput = {
-  shopId: string;
-  platform: ShopReelPlatform;
-  title: string;
-  caption?: string | null;
-  videoUrl: string;
-  thumbnailUrl?: string | null;
-
-  contentEventId?: string | null;
-  contentPieceId?: string | null;
-  contentAssetId?: string | null;
-  publicationId?: string | null;
-  platformAccountId?: string | null;
-};
-
-export type PublishResult = {
-  ok: true;
-  platform: ShopReelPlatform;
-  remotePostId: string;
-  remotePostUrl?: string | null;
-  status: "queued" | "published";
-};
-
-export type PlatformIntegration = {
-  startOAuth: (shopId: string) => Promise<OAuthStartResult>;
-  finishOAuth: (shopId: string, code: string) => Promise<OAuthCallbackResult>;
-  publishVideo: (input: PublishInput) => Promise<PublishResult>;
-};
------ src/features/shopreel/integrations/shared/platformRegistry.ts -----
-import type {
-  PlatformIntegration,
-  ShopReelPlatform,
-} from "./types";
-
-import { instagramIntegration } from "../instagram/connect";
-import { facebookIntegration } from "../facebook/connect";
-import { youtubeIntegration } from "../youtube/connect";
-import { tiktokIntegration } from "../tiktok/connect";
-
-export type SupportedPlatformIntegration =
-  | "instagram"
-  | "facebook"
-  | "youtube"
-  | "tiktok";
-
-export function isSupportedPlatformIntegration(
-  platform: ShopReelPlatform,
-): platform is SupportedPlatformIntegration {
-  return (
-    platform === "instagram" ||
-    platform === "facebook" ||
-    platform === "youtube" ||
-    platform === "tiktok"
-  );
-}
-
-export function getPlatformIntegration(
-  platform: ShopReelPlatform,
-): PlatformIntegration {
-  switch (platform) {
-    case "instagram":
-      return instagramIntegration;
-
-    case "facebook":
-      return facebookIntegration;
-
-    case "youtube":
-      return youtubeIntegration;
-
-    case "tiktok":
-      return tiktokIntegration;
-
-    case "blog":
-    case "linkedin":
-    case "google_business":
-    case "email":
-      throw new Error(`No platform integration is wired yet for ${platform}`);
-  }
-}
------ src/features/shopreel/publishing/types/index.ts -----
-export type ShopReelPublishPlatform =
-  | "instagram"
-  | "facebook"
-  | "youtube"
-  | "tiktok"
-  | "blog"
-  | "linkedin"
-  | "google_business"
-  | "email";
-
-export type ShopReelPublicationStatus =
-  | "draft"
-  | "queued"
-  | "publishing"
-  | "published"
-  | "failed"
-  | "skipped";
-
-export type CreatePublicationInput = {
-  shopId: string;
-  contentEventId: string;
-  platform: ShopReelPublishPlatform;
-
-  contentPieceId?: string | null;
-  contentAssetId?: string | null;
-  platformAccountId?: string | null;
-
-  createdBy?: string | null;
-  scheduledFor?: string | null;
-  publishMode?: "manual" | "scheduled" | "autopilot";
-
-  title?: string | null;
-  caption?: string | null;
-
-  // temporary bridge while old video-driven pipeline still exists
-  videoId?: string | null;
-};
-
-export type EnqueuePublishJobInput = {
-  shopId: string;
-  publicationId: string;
-  runAfter?: string | null;
-};

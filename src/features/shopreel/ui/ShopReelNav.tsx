@@ -2,46 +2,39 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { cx } from "./system/glassTheme";
 
-type NavItem = {
-  href: string;
-  label: string;
-};
-
-const NAV_ITEMS: NavItem[] = [
-  { href: "/shopreel", label: "Overview" },
-  { href: "/shopreel/upload", label: "Upload" },
-  { href: "/shopreel/create", label: "Create" },
-  { href: "/shopreel/opportunities", label: "Opportunities" },
-  { href: "/shopreel/generations", label: "Generations" },
-  { href: "/shopreel/calendar", label: "Calendar" },
-  { href: "/shopreel/render-queue", label: "Render Queue" },
-  { href: "/shopreel/analytics", label: "Analytics" },
-  { href: "/shopreel/published", label: "Published" },
-  { href: "/shopreel/settings", label: "Settings" },
-];
+const NAV_ITEMS = [
+  { label: "Dashboard", href: "/shopreel" },
+  { label: "Create", href: "/shopreel/create" },
+  { label: "Upload", href: "/shopreel/upload" },
+  { label: "Opportunities", href: "/shopreel/opportunities" },
+  { label: "Calendar", href: "/shopreel/calendar" },
+  { label: "Render Queue", href: "/shopreel/render-queue" },
+  { label: "Published", href: "/shopreel/published" },
+  { label: "Analytics", href: "/shopreel/analytics" },
+  { label: "Settings", href: "/shopreel/settings" },
+] as const;
 
 export default function ShopReelNav() {
   const pathname = usePathname();
 
   return (
-    <nav className={cx("flex flex-wrap items-center gap-2 pb-2", glassTheme.text.secondary)}>
+    <nav className="mb-6 flex flex-wrap gap-2">
       {NAV_ITEMS.map((item) => {
         const active =
-          item.href === "/shopreel"
-            ? pathname === "/shopreel"
-            : pathname?.startsWith(item.href);
+          pathname === item.href ||
+          (item.href !== "/shopreel" && pathname.startsWith(item.href + "/"));
 
         return (
           <Link
             key={item.href}
             href={item.href}
             className={cx(
-              "rounded-full px-4 py-2 text-sm font-medium transition",
+              "rounded-full border px-4 py-2 text-sm transition",
               active
-                ? "bg-sky-400/10 text-white border border-sky-400/25"
-                : "text-white/70 hover:text-white hover:bg-white/[0.04]",
+                ? "border-white/20 bg-white/20 text-white"
+                : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.1]"
             )}
           >
             {item.label}

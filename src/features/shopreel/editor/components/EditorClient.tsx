@@ -43,6 +43,76 @@ function selectedSceneFromSelection(
   return scenes[0] ?? null;
 }
 
+function buildDraftTextFromScenes(scenes: StoryScene[]) {
+  const voiceLines = scenes
+    .map((scene) => (scene.voiceoverText ?? "").trim())
+    .filter(Boolean);
+
+  const scriptBlocks = scenes.map((scene) => {
+    const heading = scene.role.replaceAll("_", " ").toUpperCase();
+    const body = (scene.voiceoverText ?? scene.overlayText ?? "").trim();
+    return `${heading}\n${body}`;
+  });
+
+  return {
+    voiceoverText: voiceLines.join(" "),
+    scriptText: scriptBlocks.join("\n\n"),
+  };
+}
+
+function syncDraftText(draft: StoryDraft): StoryDraft {
+  const text = buildDraftTextFromScenes(draft.scenes);
+  return {
+    ...draft,
+    voiceoverText: text.voiceoverText,
+    scriptText: text.scriptText,
+    targetDurationSeconds: draft.scenes.reduce(
+      (sum, scene) => sum + Math.max(1, Number(scene.durationSeconds ?? 0)),
+      0,
+    ),
+  };
+}
+
+function buildScriptPanelValue(draft: StoryDraft) {
+  return draft.scenes
+    .map((scene) => {
+      const heading = scene.role.replaceAll("_", " ").toUpperCase();
+      const body = (scene.voiceoverText ?? scene.overlayText ?? "").trim();
+      return `${heading}\n${body}`;
+    })
+    .join("\n\n");
+}
+
+function applyScriptPanelValue(draft: StoryDraft, value: string): StoryDraft {
+  const blocks = value
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  const nextScenes = draft.scenes.map((scene, index) => {
+    const block = blocks[index];
+    if (!block) return scene;
+
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const body = lines.slice(1).join(" ").trim();
+    if (!body) return scene;
+
+    return {
+      ...scene,
+      voiceoverText: body,
+    };
+  });
+
+  return syncDraftText({
+    ...draft,
+    scenes: nextScenes,
+  });
+}
+
 function IconAction(props: {
   label: string;
   onClick: () => void;
@@ -69,13 +139,14 @@ function IconAction(props: {
 export default function EditorClient(props: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [draft, setDraft] = useState<StoryDraft>(() => cloneDraft(props.initialDraft));
+  const [draft, setDraft] = useState<StoryDraft>(() => syncDraftText(cloneDraft(props.initialDraft)));
   const [selection, setSelection] = useState<TimelineSelection>(() => {
     const sceneId = searchParams.get("scene");
     return sceneId ? { type: "scene", id: sceneId } : null;
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isRendering, setIsRendering] = useState(false);
+  const [isRegeneratingScript, setIsRegeneratingScript] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const timelineClips = useMemo(() => buildTimelineClips(draft), [draft]);
@@ -97,15 +168,21 @@ export default function EditorClient(props: Props) {
     [draft.voiceoverText, draft.scriptText, totalMs],
   );
 
+  const scriptPanelValue = useMemo(() => buildScriptPanelValue(draft), [draft]);
+
+  function updateDraft(updater: (prev: StoryDraft) => StoryDraft) {
+    setDraft((prev) => syncDraftText(updater(prev)));
+  }
+
   function updateScene(sceneId: string, updater: (scene: StoryScene) => StoryScene) {
-    setDraft((prev) => ({
+    updateDraft((prev) => ({
       ...prev,
       scenes: prev.scenes.map((scene) => (scene.id === sceneId ? updater(scene) : scene)),
     }));
   }
 
   function moveScene(sceneId: string, direction: -1 | 1) {
-    setDraft((prev) => {
+    updateDraft((prev) => {
       const index = prev.scenes.findIndex((scene) => scene.id === sceneId);
       if (index < 0) return prev;
 
@@ -136,6 +213,26 @@ export default function EditorClient(props: Props) {
       ...scene,
       durationSeconds: Math.max(1, Number(scene.durationSeconds ?? 3) + deltaSeconds),
     }));
+  }
+
+  function regenerateScriptFromScenes() {
+    setIsRegeneratingScript(true);
+    setError(null);
+
+    updateDraft((prev) => ({
+      ...prev,
+      scenes: prev.scenes.map((scene) => ({
+        ...scene,
+        voiceoverText:
+          (scene.voiceoverText ?? "").trim() ||
+          (scene.overlayText ?? "").trim() ||
+          scene.title,
+      })),
+    }));
+
+    window.setTimeout(() => {
+      setIsRegeneratingScript(false);
+    }, 250);
   }
 
   async function saveDraft() {
@@ -368,6 +465,66 @@ export default function EditorClient(props: Props) {
         </GlassCard>
 
         <GlassCard
+          label="Script"
+          title="AI script panel"
+          description="Edit the full scene-by-scene script. Subtitle chunks rebuild automatically from these scene voice lines."
+          strong
+          footer={
+            <div className="flex flex-wrap gap-3">
+              <GlassButton
+                variant="secondary"
+                onClick={() => regenerateScriptFromScenes()}
+                disabled={isRegeneratingScript}
+              >
+                {isRegeneratingScript ? "Regenerating..." : "Regenerate script"}
+              </GlassButton>
+            </div>
+          }
+        >
+          <GlassTextarea
+            label="Structured script"
+            value={scriptPanelValue}
+            onChange={(e) => {
+              const value = e.target.value;
+              setDraft((prev) => applyScriptPanelValue(prev, value));
+            }}
+            className="min-h-[320px]"
+          />
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Voiceover transcript
+              </div>
+              <div className="mt-2 text-sm text-white whitespace-pre-wrap">
+                {draft.voiceoverText ?? ""}
+              </div>
+            </div>
+
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Script blocks
+              </div>
+              <div className="mt-2 text-sm text-white whitespace-pre-wrap">
+                {draft.scriptText ?? ""}
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard
           label="Timeline"
           title="Sequence lanes"
           description="Visual timeline with ruler, drag reorder, and resize handles."
@@ -457,25 +614,25 @@ export default function EditorClient(props: Props) {
         <GlassInput
           label="Title"
           value={draft.title}
-          onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))}
+          onChange={(e) => updateDraft((prev) => ({ ...prev, title: e.target.value }))}
         />
 
         <GlassTextarea
           label="Hook"
           value={draft.hook ?? ""}
-          onChange={(e) => setDraft((prev) => ({ ...prev, hook: e.target.value }))}
+          onChange={(e) => updateDraft((prev) => ({ ...prev, hook: e.target.value }))}
         />
 
         <GlassTextarea
           label="Caption"
           value={draft.caption ?? ""}
-          onChange={(e) => setDraft((prev) => ({ ...prev, caption: e.target.value }))}
+          onChange={(e) => updateDraft((prev) => ({ ...prev, caption: e.target.value }))}
         />
 
         <GlassTextarea
           label="CTA"
           value={draft.cta ?? ""}
-          onChange={(e) => setDraft((prev) => ({ ...prev, cta: e.target.value }))}
+          onChange={(e) => updateDraft((prev) => ({ ...prev, cta: e.target.value }))}
         />
 
         {selectedScene ? (

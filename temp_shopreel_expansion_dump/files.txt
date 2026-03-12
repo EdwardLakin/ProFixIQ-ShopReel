@@ -1,0 +1,2132 @@
+----- src/features/shopreel/ui/ShopReelNav.tsx -----
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cx } from "./system/glassTheme";
+
+const NAV_ITEMS = [
+  { label: "Dashboard", href: "/shopreel" },
+  { label: "Create", href: "/shopreel/create" },
+  { label: "Upload", href: "/shopreel/upload" },
+  { label: "Opportunities", href: "/shopreel/opportunities" },
+  { label: "Calendar", href: "/shopreel/calendar" },
+  { label: "Render Queue", href: "/shopreel/render-queue" },
+  { label: "Published", href: "/shopreel/published" },
+  { label: "Analytics", href: "/shopreel/analytics" },
+  { label: "Settings", href: "/shopreel/settings" },
+] as const;
+
+export default function ShopReelNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="mb-6 flex flex-wrap gap-2">
+      {NAV_ITEMS.map((item) => {
+        const active =
+          pathname === item.href ||
+          (item.href !== "/shopreel" && pathname.startsWith(item.href + "/"));
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cx(
+              "rounded-full border px-4 py-2 text-sm transition",
+              active
+                ? "border-white/20 bg-white/20 text-white"
+                : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.1]"
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+
+----- src/app/shopreel/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassStat from "@/features/shopreel/ui/system/GlassStat";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { createAdminClient } from "@/lib/supabase/server";
+
+export default async function ShopReelPage() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const [{ count: sourceCount }, { count: generationCount }, { count: readyCount }, { count: queuedRenderCount }] =
+    await Promise.all([
+      legacy.from("shopreel_story_sources").select("*", { count: "exact", head: true }),
+      legacy.from("shopreel_story_generations").select("*", { count: "exact", head: true }),
+      legacy
+        .from("shopreel_story_generations")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "ready"),
+      legacy
+        .from("reel_render_jobs")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["queued", "rendering"]),
+    ]);
+
+  const { data: recentSources } = await legacy
+    .from("shopreel_story_sources")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Content automation cockpit"
+      subtitle="Business Mode and Creator Mode now share one engine: story source → story builder → editor → render → publish."
+      actions={
+        <>
+          <Link href="/shopreel/create">
+            <GlassButton variant="ghost">Creator mode</GlassButton>
+          </Link>
+          <Link href="/shopreel/opportunities">
+            <GlassButton variant="secondary">Business opportunities</GlassButton>
+          </Link>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="primary">Open generations</GlassButton>
+          </Link>
+        </>
+      }
+    >
+      <ShopReelNav />
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <GlassStat
+          label="Story Sources"
+          value={String(sourceCount ?? 0)}
+          hint="Saved source queue"
+          trend="Active"
+        />
+        <GlassStat
+          label="Story Generations"
+          value={String(generationCount ?? 0)}
+          hint="Draft + queued + ready"
+          trend="Building"
+        />
+        <GlassStat
+          label="Queued Renders"
+          value={String(queuedRenderCount ?? 0)}
+          hint="Jobs waiting or rendering"
+          trend="Pipeline"
+        />
+        <GlassStat
+          label="Ready Stories"
+          value={String(readyCount ?? 0)}
+          hint="Generated and ready"
+          trend="Continue editing"
+        />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.95fr]">
+        <GlassCard
+          label="Recent Story Sources"
+          title="What the system can build from"
+          description="These are the latest saved sources across business and creator flows."
+          strong
+        >
+          <div className="grid gap-3">
+            {(recentSources ?? []).length === 0 ? (
+              <div
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.secondary,
+                )}
+              >
+                No saved story sources yet.
+              </div>
+            ) : (
+              (recentSources ?? []).map((item: any) => (
+                <div
+                  key={item.id}
+                  className={cx(
+                    "flex items-center justify-between gap-4 rounded-2xl border p-4",
+                    glassTheme.border.copper,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                      {item.title}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      {String(item.kind).replaceAll("_", " ")} • {String(item.origin).replaceAll("_", " ")}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <GlassBadge tone="default">
+                      {String(item.generation_mode ?? "assisted")}
+                    </GlassBadge>
+                    {Array.isArray(item.tags) && item.tags[0] ? (
+                      <GlassBadge tone="copper">{String(item.tags[0])}</GlassBadge>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="Modes"
+          title="Two entry paths"
+          description="One engine serving both businesses and creators."
+        >
+          <div className="space-y-4">
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Business Mode</div>
+              <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
+                Operational events → content
+              </div>
+            </div>
+
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Creator Mode</div>
+              <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
+                Idea → story draft → editor
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      </section>
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/create/page.tsx -----
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassInput from "@/features/shopreel/ui/system/GlassInput";
+import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+
+type CreateResponse =
+  | {
+      ok: true;
+      generationId: string;
+      editorUrl: string;
+      researchSummary?: string;
+      researchBullets?: string[];
+    }
+  | {
+      ok?: false;
+      error?: string;
+    };
+
+export default function ShopReelCreatePage() {
+  const router = useRouter();
+  const [topic, setTopic] = useState("");
+  const [audience, setAudience] = useState("");
+  const [platformFocus, setPlatformFocus] = useState<
+    "instagram" | "tiktok" | "youtube" | "facebook" | "multi"
+  >("multi");
+  const [tone, setTone] = useState<
+    "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy"
+  >("confident");
+  const [useResearch, setUseResearch] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [preview, setPreview] = useState<{ summary: string; bullets: string[] } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function createFromTopic() {
+    try {
+      setError(null);
+      setIsSubmitting(true);
+      setPreview(null);
+
+      const res = await fetch("/api/shopreel/create/research-script", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topic,
+          audience,
+          platformFocus,
+          tone,
+          useResearch,
+        }),
+      });
+
+      const json = (await res.json()) as CreateResponse;
+
+      if (!res.ok || !json.ok) {
+        throw new Error(("error" in json && json.error) || "Failed to create story");
+      }
+
+      setPreview({
+        summary: json.researchSummary ?? "",
+        bullets: json.researchBullets ?? [],
+      });
+
+      router.push(json.editorUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create story");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Creator Mode"
+      subtitle="Start from a topic, review, rumor round-up, explainer, or creator idea. ShopReel researches the angle, writes the script, and opens the editor."
+      actions={<GlassBadge tone="copper">Creator research + script</GlassBadge>}
+    >
+      <ShopReelNav />
+
+      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <GlassCard
+          label="Start From Topic"
+          title="Topic -> Research -> Script -> Editor"
+          description="Example: iPhone 18 leaks and rumors. ShopReel prepares the talking points and builds the first creator-ready story draft."
+          strong
+          footer={
+            <div className="flex flex-wrap gap-3">
+              <GlassButton
+                variant="primary"
+                onClick={() => void createFromTopic()}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Building script..." : "Build creator script"}
+              </GlassButton>
+            </div>
+          }
+        >
+          <GlassTextarea
+            label="Topic or prompt"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="Example: iPhone 18 leaks and rumors — make this into a fast creator breakdown with a strong hook, what seems credible, and why people should care."
+          />
+
+          <GlassInput
+            label="Audience"
+            value={audience}
+            onChange={(e) => setAudience(e.target.value)}
+            placeholder="Example: tech buyers, Apple fans, creators, parents, truck owners"
+          />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                Platform focus
+              </div>
+              <select
+                value={platformFocus}
+                onChange={(e) => setPlatformFocus(e.target.value as typeof platformFocus)}
+                className={cx(
+                  "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                  glassTheme.text.primary,
+                  glassTheme.glass.input,
+                  glassTheme.border.softer,
+                  "bg-transparent",
+                )}
+              >
+                <option value="multi">Multi-platform</option>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="youtube">YouTube Shorts</option>
+                <option value="facebook">Facebook</option>
+              </select>
+            </label>
+
+            <label className="space-y-2">
+              <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                Tone
+              </div>
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value as typeof tone)}
+                className={cx(
+                  "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                  glassTheme.text.primary,
+                  glassTheme.glass.input,
+                  glassTheme.border.softer,
+                  "bg-transparent",
+                )}
+              >
+                <option value="confident">Confident</option>
+                <option value="professional">Professional</option>
+                <option value="educational">Educational</option>
+                <option value="friendly">Friendly</option>
+                <option value="direct">Direct</option>
+                <option value="high-energy">High-energy</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm text-white/80 border-white/10 bg-white/[0.03]">
+            <input
+              type="checkbox"
+              checked={useResearch}
+              onChange={(e) => setUseResearch(e.target.checked)}
+            />
+            Research topic before writing script
+          </label>
+
+          {error ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.copperSoft,
+              )}
+            >
+              {error}
+            </div>
+          ) : null}
+        </GlassCard>
+
+        <GlassCard
+          label="What this unlocks"
+          title="Creator-first scripting"
+          description="The creator does not need to leave ShopReel to research the topic and get the first script."
+          strong
+        >
+          <div className="grid gap-3">
+            {[
+              "Rumor round-ups",
+              "Product reviews",
+              "Topic explainers",
+              "Trend breakdowns",
+              "Talking-head scripts",
+              "Short-form educational clips",
+            ].map((item) => (
+              <div
+                key={item}
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.primary,
+                )}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+
+          {preview ? (
+            <div className="space-y-3 pt-2">
+              <div
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Research summary</div>
+                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                  {preview.summary}
+                </div>
+              </div>
+
+              {preview.bullets.map((bullet) => (
+                <div
+                  key={bullet}
+                  className={cx(
+                    "rounded-2xl border p-4 text-sm",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.primary,
+                  )}
+                >
+                  {bullet}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-3 pt-2 md:grid-cols-2">
+              <div
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Flow</div>
+                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                  Topic {"->"} script {"->"} editor
+                </div>
+              </div>
+
+              <div
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Works with</div>
+                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                  Reviews, rumors, explainers
+                </div>
+              </div>
+            </div>
+          )}
+        </GlassCard>
+      </section>
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/opportunities/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+
+export default function ShopReelOpportunitiesPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Opportunities"
+      subtitle="Discover, score, generate, and move strong story candidates into editing and publishing."
+      actions={
+        <>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="ghost">View generations</GlassButton>
+          </Link>
+          <GlassButton variant="primary">Generate selected</GlassButton>
+        </>
+      }
+    >
+      <ShopReelNav />
+      <ShopReelOpportunitiesClient />
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/upload/page.tsx -----
+// src/app/shopreel/upload/page.tsx
+
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ManualUploadClient from "@/features/shopreel/manual/components/ManualUploadClient";
+
+export default function ShopReelUploadPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Upload Content"
+      subtitle="Add manual photos and videos, then turn them into ShopReel AI concepts, videos, and render jobs."
+    >
+      <GlassNav />
+      <ManualUploadClient />
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/calendar/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+
+const days = [
+  { day: "Mon", items: 2 },
+  { day: "Tue", items: 4 },
+  { day: "Wed", items: 3 },
+  { day: "Thu", items: 5 },
+  { day: "Fri", items: 2 },
+  { day: "Sat", items: 1 },
+  { day: "Sun", items: 2 },
+];
+
+export default function ShopReelCalendarPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Calendar"
+      subtitle="Publishing cadence and visibility with warmer, more dimensional glass surfaces."
+    >
+      <ShopReelNav />
+
+      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <GlassCard
+          label="Publishing Week"
+          title="Content cadence"
+          description="A simple week view placeholder you can wire into your real scheduler."
+          strong
+        >
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+            {days.map((day) => (
+              <div
+                key={day.day}
+                className={cx(
+                  "flex items-center justify-between rounded-2xl border p-4",
+                  day.items >= 4 ? glassTheme.border.copper : glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div>
+                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                    {day.day}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+                    {day.items} scheduled item{day.items === 1 ? "" : "s"}
+                  </div>
+                </div>
+                <GlassBadge tone={day.items >= 4 ? "copper" : "muted"}>
+                  {day.items} posts
+                </GlassBadge>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="Best Windows"
+          title="Recommended posting times"
+          description="Keep this box simple until your analytics-backed timing model is wired in."
+        >
+          <div className="space-y-3">
+            {["8:30 AM", "12:15 PM", "5:40 PM"].map((slot) => (
+              <div
+                key={slot}
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-base font-medium", glassTheme.text.primary)}>{slot}</div>
+                <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
+                  Strong recent engagement window
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </section>
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/render-queue/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { createAdminClient } from "@/lib/supabase/server";
+
+function timeAgoLabel(value: string) {
+  const now = Date.now();
+  const then = new Date(value).getTime();
+  const diffMs = Math.max(0, now - then);
+
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+
+  if (diffMinutes < 1) return "just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  return new Date(value).toLocaleDateString();
+}
+
+export default async function ShopReelRenderQueuePage() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data } = await legacy
+    .from("reel_render_jobs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  const jobs = data ?? [];
+
+  const generationByRenderJob = new Map<string, string>();
+  if (jobs.length > 0) {
+    const ids = jobs.map((job: any) => job.id);
+    const { data: generations } = await legacy
+      .from("shopreel_story_generations")
+      .select("id, render_job_id")
+      .in("render_job_id", ids);
+
+    for (const generation of generations ?? []) {
+      if (generation.render_job_id) {
+        generationByRenderJob.set(generation.render_job_id, generation.id);
+      }
+    }
+  }
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Render queue"
+      subtitle="Rendering pipeline for generated ShopReel stories."
+    >
+      <GlassNav />
+
+      <GlassCard
+        label="Renderer"
+        title="Active and pending jobs"
+        description="Jobs move from queued → rendering → ready."
+        strong
+      >
+        {jobs.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary
+            )}
+          >
+            No render jobs yet.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {jobs.map((job: any) => {
+              const generationId = generationByRenderJob.get(job.id) ?? null;
+
+              return (
+                <div
+                  key={job.id}
+                  className={cx(
+                    "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto_auto]",
+                    job.status === "rendering"
+                      ? glassTheme.border.copper
+                      : glassTheme.border.softer,
+                    glassTheme.glass.panelSoft
+                  )}
+                >
+                  <div>
+                    <div
+                      className={cx(
+                        "text-base font-medium",
+                        glassTheme.text.primary
+                      )}
+                    >
+                      Render Job
+                    </div>
+
+                    <div
+                      className={cx(
+                        "mt-1 text-sm",
+                        glassTheme.text.secondary
+                      )}
+                    >
+                      Content Piece: {job.content_piece_id ?? "unknown"}
+                    </div>
+
+                    <div
+                      className={cx(
+                        "mt-1 text-xs",
+                        glassTheme.text.muted
+                      )}
+                    >
+                      Created {timeAgoLabel(job.created_at)}
+                    </div>
+                  </div>
+
+                  <div className="md:self-center">
+                    <GlassBadge
+                      tone={
+                        job.status === "rendering"
+                          ? "copper"
+                          : job.status === "queued"
+                          ? "default"
+                          : job.status === "ready"
+                          ? "default"
+                          : "muted"
+                      }
+                    >
+                      {job.status}
+                    </GlassBadge>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-3">
+                    <div
+                      className={cx(
+                        "text-sm md:self-center",
+                        glassTheme.text.muted
+                      )}
+                    >
+                      Attempts {job.attempt_count ?? 0}
+                    </div>
+
+                    {generationId ? (
+                      <>
+                        <Link href={`/shopreel/generations/${generationId}`}>
+                          <GlassButton variant="ghost">Review</GlassButton>
+                        </Link>
+                        <Link href={`/shopreel/editor/${generationId}`}>
+                          <GlassButton variant="secondary">Edit</GlassButton>
+                        </Link>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </GlassCard>
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/published/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { createAdminClient } from "@/lib/supabase/server";
+
+function timeAgoLabel(value: string | null) {
+  if (!value) return "unknown";
+
+  const now = Date.now();
+  const then = new Date(value).getTime();
+  const diffMs = Math.max(0, now - then);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return new Date(value).toLocaleDateString();
+}
+
+export default async function ShopReelPublishedPage() {
+  const supabase = createAdminClient();
+
+  const { data } = await supabase
+    .from("content_publications")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  const publications = data ?? [];
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Published"
+      subtitle="Content distributed through the ShopReel publishing engine."
+    >
+      <ShopReelNav />
+
+      <GlassCard
+        label="History"
+        title="Recently published"
+        description="Queued, published, and failed publication attempts."
+        strong
+      >
+        {publications.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            No published content yet.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {publications.map((item) => (
+              <div
+                key={item.id}
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className="space-y-1">
+                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    {(item.metadata as any)?.title ?? item.platform}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+                    {item.platform} • {timeAgoLabel(item.published_at ?? item.created_at)}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 md:justify-end">
+                  <GlassBadge tone={item.status === "published" ? "copper" : "default"}>
+                    {item.status}
+                  </GlassBadge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/analytics/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassStat from "@/features/shopreel/ui/system/GlassStat";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+
+export default function ShopReelAnalyticsPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Analytics"
+      subtitle="Warm, legible metrics with stronger hierarchy and less washed-out grey."
+    >
+      <ShopReelNav />
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <GlassStat label="Views" value="128.4K" hint="Last 30 days" trend="+21%" />
+        <GlassStat label="Avg Watch Time" value="18.2s" hint="Short-form clips" trend="+3.4s" />
+        <GlassStat label="Leads Influenced" value="37" hint="Tracked attribution" trend="+9" />
+        <GlassStat label="Best Theme" value="Repair Story" hint="Most saves and shares" trend="Leading" />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <GlassCard
+          label="What worked"
+          title="High-performing patterns"
+          description="Use this section later for AI-generated recommendations from your actual data."
+          strong
+        >
+          <div className="space-y-3">
+            {[
+              "Before / after transformations with tight intros",
+              "Technician voice overlays under 25 seconds",
+              "Educational tips tied to real work order findings",
+            ].map((item) => (
+              <div
+                key={item}
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.primary,
+                )}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="What to change"
+          title="Optimization notes"
+          description="Keep the insight stack restrained and readable."
+        >
+          <div className="space-y-3">
+            {[
+              "Reduce slow logo-heavy openings",
+              "Post more midweek educational content",
+              "Use fewer text-dense caption slides",
+            ].map((item) => (
+              <div
+                key={item}
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.primary,
+                )}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </section>
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/settings/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import ShopReelSettingsClient from "@/features/shopreel/ui/ShopReelSettingsClient";
+
+export default function ShopReelSettingsPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Settings"
+      subtitle="Connection, publishing, tone, and automation defaults — all through the shared glass control system."
+    >
+      <ShopReelNav />
+      <ShopReelSettingsClient />
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/editor/[id]/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { StoryDraft } from "@/features/shopreel/story-builder/types";
+import EditorClient from "@/features/shopreel/editor/components/EditorClient";
+import type { MediaBinItem } from "@/features/shopreel/editor/components/MediaBin";
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function detectMediaType(url: string | null): "image" | "video" | "unknown" {
+  if (!url) return "unknown";
+  const lower = url.toLowerCase();
+  if (lower.match(/\.(mp4|mov|webm|m4v)(\?|$)/)) return "video";
+  if (lower.match(/\.(jpg|jpeg|png|webp|gif)(\?|$)/)) return "image";
+  return "unknown";
+}
+
+export default async function ShopReelEditorPage(
+  props: { params: Promise<{ id: string }> },
+) {
+  const { id } = await props.params;
+  const shopId = await getCurrentShopId();
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data: generation, error } = await legacy
+    .from("shopreel_story_generations")
+    .select("*")
+    .eq("id", id)
+    .eq("shop_id", shopId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!generation || !generation.story_draft) {
+    return (
+      <GlassShell
+        eyebrow="ShopReel"
+        title="Editor unavailable"
+        subtitle="No story draft exists for this generation."
+      >
+        <GlassCard strong>
+          Story draft missing.
+        </GlassCard>
+      </GlassShell>
+    );
+  }
+
+  const metadata = objectRecord(generation.generation_metadata ?? {});
+  const renderUrl =
+    typeof metadata.render_url === "string" ? metadata.render_url : null;
+
+  const mediaItems: MediaBinItem[] = [];
+  const storyDraft = generation.story_draft as StoryDraft;
+
+  for (const scene of storyDraft.scenes ?? []) {
+    for (const media of scene.media ?? []) {
+      const url = typeof media.url === "string" ? media.url : null;
+      mediaItems.push({
+        id: `${scene.id}:${media.contentAssetId ?? media.manualAssetId ?? url ?? Math.random()}`,
+        label: scene.title,
+        type: detectMediaType(url),
+        url,
+      });
+    }
+  }
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Editor"
+      subtitle="AI-first business video editor with timeline foundations and manual control."
+      actions={
+        <>
+          <Link href={`/shopreel/generations/${generation.id}`}>
+            <GlassButton variant="ghost">Back to review</GlassButton>
+          </Link>
+          <Link href="/shopreel/render-queue">
+            <GlassButton variant="secondary">Render queue</GlassButton>
+          </Link>
+        </>
+      }
+      className="max-w-[1800px]"
+    >
+      <EditorClient
+        generationId={generation.id}
+        initialDraft={storyDraft}
+        initialStatus={generation.status}
+        initialRenderUrl={renderUrl}
+        mediaItems={mediaItems}
+      />
+    </GlassShell>
+  );
+}
+
+
+----- src/app/api/shopreel/create/research-script/route.ts -----
+import { NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
+import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
+import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import type { StorySource } from "@/features/shopreel/story-sources";
+
+type Body = {
+  topic: string;
+  audience?: string;
+  platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
+  tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
+};
+
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json()) as Body;
+    const shopId = await getCurrentShopId();
+
+    if (!body.topic || body.topic.trim().length < 3) {
+      return NextResponse.json(
+        { ok: false, error: "Topic required" },
+        { status: 400 },
+      );
+    }
+
+    const ai = await generateCreatorScript({
+      topic: body.topic,
+      audience: body.audience ?? null,
+      tone: body.tone ?? null,
+    });
+
+    const now = new Date().toISOString();
+
+    const source: StorySource = {
+      id: `creator:${Date.now()}`,
+      shopId,
+      title: body.topic.trim(),
+      description: ai.summary,
+      kind: "creator_idea",
+      origin: "creator_mode",
+      generationMode: "manual",
+      occurredAt: now,
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      projectName: null,
+      vehicleLabel: null,
+      customerLabel: null,
+      technicianLabel: null,
+      tags: ["creator_mode", "research_script"],
+      notes: ai.bullets,
+      facts: {
+        hook: ai.hook,
+        context: ai.context,
+        explanation: ai.explanation,
+        takeaway: ai.takeaway,
+        cta: ai.cta,
+      },
+      metadata: {
+        creatorMode: true,
+        aiSummary: ai.summary,
+      },
+      assets: [],
+      refs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const savedSource = await saveStorySource(source);
+
+    const draft = buildCreatorResearchDraft({
+      shopId,
+      sourceId: savedSource.id,
+      topic: body.topic,
+      audience: body.audience ?? null,
+      platformFocus: body.platformFocus ?? "multi",
+      tone: body.tone ?? "confident",
+      researchSummary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      contextLine: ai.context,
+      explanationLine: ai.explanation,
+      takeawayLine: ai.takeaway,
+      ctaLine: ai.cta,
+    });
+
+    const contentPiece = await createContentPieceFromStoryDraft({
+      shopId,
+      draft,
+      sourceSystem: "creator_mode",
+    });
+
+    const generation = await saveStoryGeneration({
+      shopId,
+      storySourceId: savedSource.id,
+      contentPieceId: contentPiece.id,
+      draft,
+      status: "draft",
+      metadata: {
+        creator_mode: true,
+        research_summary: ai.summary,
+        research_bullets: ai.bullets,
+        generated_script: {
+          hook: ai.hook,
+          context: ai.context,
+          explanation: ai.explanation,
+          takeaway: ai.takeaway,
+          cta: ai.cta,
+        },
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      generationId: generation.id,
+      editorUrl: `/shopreel/editor/${generation.id}`,
+      researchSummary: ai.summary,
+      researchBullets: ai.bullets,
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "script generation failed";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+
+----- src/features/shopreel/creator/buildCreatorResearchDraft.ts -----
+import crypto from "crypto";
+import type { StoryDraft } from "@/features/shopreel/story-builder/types";
+
+export type CreatorResearchInput = {
+  shopId: string;
+  sourceId: string;
+  topic: string;
+  audience?: string | null;
+  platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
+  tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
+  researchSummary?: string | null;
+  bullets?: string[];
+  hook?: string | null;
+  contextLine?: string | null;
+  explanationLine?: string | null;
+  takeawayLine?: string | null;
+  ctaLine?: string | null;
+};
+
+function makeId(prefix: string) {
+  return `${prefix}:${crypto.randomUUID()}`;
+}
+
+function cleanTopic(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function buildTitle(topic: string) {
+  const cleaned = cleanTopic(topic);
+  return cleaned.length <= 68 ? cleaned : `${cleaned.slice(0, 65).trim()}...`;
+}
+
+function defaultHook(topic: string) {
+  const cleaned = cleanTopic(topic);
+  if (!cleaned) return "Here’s what you need to know.";
+  return `${cleaned} — here’s what you need to know.`;
+}
+
+function buildTargetChannels(platformFocus: NonNullable<CreatorResearchInput["platformFocus"]>) {
+  if (platformFocus === "instagram") return ["instagram_reel"] as const;
+  if (platformFocus === "tiktok") return ["tiktok_video"] as const;
+  if (platformFocus === "youtube") return ["youtube_short"] as const;
+  if (platformFocus === "facebook") return ["facebook_video"] as const;
+  return ["instagram_reel", "tiktok_video", "youtube_short", "facebook_video"] as const;
+}
+
+function lineOrFallback(value: string | null | undefined, fallback: string) {
+  return value && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+export function buildCreatorResearchDraft(input: CreatorResearchInput): StoryDraft {
+  const topic = cleanTopic(input.topic);
+  const title = buildTitle(topic);
+  const bullets = (input.bullets ?? []).filter(Boolean).slice(0, 5);
+
+  const hook = lineOrFallback(input.hook, defaultHook(topic));
+  const contextLine = lineOrFallback(
+    input.contextLine,
+    bullets[0] ?? `What people are saying about ${topic}.`,
+  );
+  const explanationLine = lineOrFallback(
+    input.explanationLine,
+    bullets[1] ?? "Here is what appears credible and what still feels uncertain.",
+  );
+  const takeawayLine = lineOrFallback(
+    input.takeawayLine,
+    bullets[2] ?? "Here is why this matters for viewers right now.",
+  );
+  const ctaLine = lineOrFallback(
+    input.ctaLine,
+    "Follow for more updates, and check back for the next breakdown.",
+  );
+
+  const scenes = [
+    {
+      id: makeId("scene"),
+      role: "hook" as const,
+      title: "Hook",
+      overlayText: hook,
+      voiceoverText: hook,
+      durationSeconds: 3,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+    {
+      id: makeId("scene"),
+      role: "context" as const,
+      title: "Context",
+      overlayText: "What’s being said",
+      voiceoverText: contextLine,
+      durationSeconds: 5,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+    {
+      id: makeId("scene"),
+      role: "explanation" as const,
+      title: "What matters",
+      overlayText: "What matters most",
+      voiceoverText: explanationLine,
+      durationSeconds: 6,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+    {
+      id: makeId("scene"),
+      role: "takeaway" as const,
+      title: "Takeaway",
+      overlayText: "Bottom line",
+      voiceoverText: takeawayLine,
+      durationSeconds: 4,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+    {
+      id: makeId("scene"),
+      role: "cta" as const,
+      title: "CTA",
+      overlayText: "Follow for more updates",
+      voiceoverText: ctaLine,
+      durationSeconds: 3,
+      media: [],
+      metadata: { creatorMode: true, sourceAssetCount: 0 },
+    },
+  ];
+
+  const voiceoverText = scenes
+    .map((scene) => scene.voiceoverText ?? "")
+    .filter(Boolean)
+    .join(" ");
+
+  const scriptText = scenes
+    .map((scene) => `${scene.title.toUpperCase()}\n${scene.voiceoverText ?? ""}`)
+    .join("\n\n");
+
+  const audience = input.audience?.trim() ?? "";
+
+  return {
+    id: makeId("draft"),
+    shopId: input.shopId,
+    sourceId: input.sourceId,
+    sourceKind: "creator_idea",
+    title,
+    hook,
+    caption: audience ? `${topic}\n\nMade for: ${audience}` : topic,
+    cta: ctaLine,
+    hashtags: [],
+    tone: input.tone ?? "confident",
+    targetChannels: [...buildTargetChannels(input.platformFocus ?? "multi")],
+    targetDurationSeconds: 21,
+    summary: input.researchSummary?.trim() || topic,
+    voiceoverText,
+    scriptText,
+    scenes,
+    metadata: {
+      creatorMode: true,
+      audience: audience || null,
+      platformFocus: input.platformFocus ?? "multi",
+      researchSummary: input.researchSummary ?? null,
+      bullets,
+      sourceOrigin: "creator_mode",
+      script: {
+        hook,
+        context: contextLine,
+        explanation: explanationLine,
+        takeaway: takeawayLine,
+        cta: ctaLine,
+      },
+    },
+  };
+}
+
+
+----- src/features/shopreel/creator/generateCreatorScript.ts -----
+import { openai } from "@/features/ai/server/openai";
+
+export type CreatorScriptInput = {
+  topic: string;
+  audience?: string | null;
+  tone?: string | null;
+};
+
+export type CreatorScriptResult = {
+  hook: string;
+  context: string;
+  explanation: string;
+  takeaway: string;
+  cta: string;
+  summary: string;
+  bullets: string[];
+};
+
+function fallbackCreatorScript(input: CreatorScriptInput): CreatorScriptResult {
+  const topic = input.topic.trim();
+
+  return {
+    hook: `${topic} — here’s what you need to know.`,
+    context: `Here is the main conversation happening around ${topic}.`,
+    explanation: `Here is what looks credible, what still sounds uncertain, and what people should pay attention to.`,
+    takeaway: `The real takeaway is what changes for the viewer, buyer, or follower.`,
+    cta: "Follow for more updates, and check back for the next breakdown.",
+    summary: `Fast breakdown of ${topic} for short-form creator content.`,
+    bullets: [
+      `What people are saying about ${topic}`,
+      "Which claims appear strongest right now",
+      "Why this matters for viewers",
+    ],
+  };
+}
+
+function safeString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function safeBullets(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback;
+  const cleaned = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+export async function generateCreatorScript(
+  input: CreatorScriptInput,
+): Promise<CreatorScriptResult> {
+  const fallback = fallbackCreatorScript(input);
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4.1-mini",
+    temperature: 0.7,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "creator_script",
+        strict: true,
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            hook: { type: "string" },
+            context: { type: "string" },
+            explanation: { type: "string" },
+            takeaway: { type: "string" },
+            cta: { type: "string" },
+            summary: { type: "string" },
+            bullets: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 3,
+              maxItems: 5,
+            },
+          },
+          required: [
+            "hook",
+            "context",
+            "explanation",
+            "takeaway",
+            "cta",
+            "summary",
+            "bullets",
+          ],
+        },
+      },
+    },
+    messages: [
+      {
+        role: "developer",
+        content:
+          "You write clear, short-form creator scripts for vertical video. " +
+          "Return valid JSON only. Keep each script line concise, specific, and natural to speak aloud. " +
+          "Avoid filler, hype spam, and clickbait phrasing.",
+      },
+      {
+        role: "user",
+        content:
+          `Topic: ${input.topic}\n` +
+          `Audience: ${input.audience ?? "general audience"}\n` +
+          `Tone: ${input.tone ?? "confident"}\n\n` +
+          "Write a 5-scene short-form creator script.\n" +
+          "Scene 1 = hook.\n" +
+          "Scene 2 = context.\n" +
+          "Scene 3 = explanation.\n" +
+          "Scene 4 = takeaway.\n" +
+          "Scene 5 = CTA.\n\n" +
+          "Also provide a short summary and 3 to 5 research bullets.\n" +
+          "Make this sound like a real creator talking on camera.",
+      },
+    ],
+  });
+
+  const text = response.choices[0]?.message?.content ?? "{}";
+
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+
+    return {
+      hook: safeString(parsed.hook, fallback.hook),
+      context: safeString(parsed.context, fallback.context),
+      explanation: safeString(parsed.explanation, fallback.explanation),
+      takeaway: safeString(parsed.takeaway, fallback.takeaway),
+      cta: safeString(parsed.cta, fallback.cta),
+      summary: safeString(parsed.summary, fallback.summary),
+      bullets: safeBullets(parsed.bullets, fallback.bullets),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+
+----- src/features/shopreel/story-sources/types.ts -----
+export type StorySourceKind =
+  | "job_completed"
+  | "inspection_completed"
+  | "repair_completed"
+  | "before_after"
+  | "project_progress"
+  | "project_completed"
+  | "educational_insight"
+  | "expert_tip"
+  | "customer_result"
+  | "product_launch"
+  | "service_highlight"
+  | "milestone"
+  | "manual_upload"
+  | "daily_timeline"
+  | "creator_idea";
+
+export type StorySourceOrigin =
+  | "shop_data"
+  | "manual_upload"
+  | "project"
+  | "creator_mode"
+  | "future_operational_event"
+  | "imported_media"
+  | "day_timeline";
+
+export type StoryGenerationMode =
+  | "assisted"
+  | "manual"
+  | "automatic"
+  | "autopilot";
+
+export type StorySourceAssetType =
+  | "photo"
+  | "video"
+  | "note"
+  | "text"
+  | "other";
+
+export type StorySourceAsset = {
+  id: string;
+  assetType: StorySourceAssetType;
+  contentAssetId?: string | null;
+  manualAssetId?: string | null;
+  url?: string | null;
+  title?: string | null;
+  caption?: string | null;
+  note?: string | null;
+  takenAt?: string | null;
+  sortOrder: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type StorySourceRef = {
+  type:
+    | "content_asset"
+    | "manual_asset"
+    | "content_event"
+    | "content_piece"
+    | "project"
+    | "day_bucket"
+    | "future_work_order"
+    | "future_inspection";
+  id: string;
+};
+
+export type StorySourceFactMap = {
+  hook?: string;
+  contentType?: string;
+  [key: string]: unknown;
+};
+
+export type StorySourceCandidate = {
+  title: string;
+  kind: StorySourceKind;
+  confidence: number;
+  reason?: string | null;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type StorySource = {
+  id: string;
+  shopId: string;
+
+  title: string;
+  description?: string | null;
+
+  kind: StorySourceKind;
+  origin: StorySourceOrigin;
+  generationMode: StoryGenerationMode;
+
+  occurredAt?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+
+  projectId?: string | null;
+  projectName?: string | null;
+
+  vehicleLabel?: string | null;
+  customerLabel?: string | null;
+  technicianLabel?: string | null;
+
+  tags: string[];
+  notes: string[];
+
+  facts: StorySourceFactMap;
+  metadata: Record<string, unknown>;
+
+  assets: StorySourceAsset[];
+  refs: StorySourceRef[];
+
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+
+----- src/features/shopreel/story-builder/types.ts -----
+import type { StorySourceKind } from "../story-sources/types"
+
+export type StoryTone =
+  | "professional"
+  | "educational"
+  | "friendly"
+  | "direct"
+  | "confident"
+  | "high-energy"
+
+export type StoryOutputChannel =
+  | "instagram_reel"
+  | "facebook_video"
+  | "youtube_short"
+  | "tiktok_video"
+  | "blog_post"
+  | "google_business_post"
+  | "email"
+
+export type StorySceneRole =
+  | "hook"
+  | "problem"
+  | "finding"
+  | "before"
+  | "process"
+  | "repair"
+  | "result"
+  | "after"
+  | "explanation"
+  | "recommendation"
+  | "teaching"
+  | "example"
+  | "takeaway"
+  | "current_state"
+  | "milestone"
+  | "gratitude"
+  | "demo"
+  | "context"
+  | "service"
+  | "what_it_is"
+  | "what_we_do"
+  | "why_it_matters"
+  | "start"
+  | "start_of_day"
+  | "progress"
+  | "end_of_day"
+  | "cta"
+
+export type StorySceneMedia = {
+  contentAssetId?: string | null
+  manualAssetId?: string | null
+  url?: string | null
+  startSeconds?: number | null
+  endSeconds?: number | null
+  metadata: Record<string, unknown>
+}
+
+export type StoryScene = {
+  id: string
+  role: StorySceneRole
+  title: string
+  overlayText?: string | null
+  voiceoverText?: string | null
+  durationSeconds?: number | null
+  media: StorySceneMedia[]
+  metadata: Record<string, unknown>
+}
+
+export type StoryDraft = {
+  id: string
+  shopId: string
+  sourceId: string
+  sourceKind: StorySourceKind
+
+  title: string
+  hook?: string | null
+  caption?: string | null
+  cta?: string | null
+  hashtags: string[]
+
+  tone: StoryTone
+  targetChannels: StoryOutputChannel[]
+  targetDurationSeconds?: number | null
+
+  summary?: string | null
+  voiceoverText?: string | null
+  scriptText?: string | null
+
+  scenes: StoryScene[]
+  metadata: Record<string, unknown>
+
+  createdAt?: string
+  updatedAt?: string
+}
+
+
+----- src/features/shopreel/story-builder/buildContentPieceInsertFromDraft.ts -----
+import type { Json, TablesInsert } from "@/types/supabase";
+import type { StoryDraft } from "./types";
+
+type ContentPieceInsert = TablesInsert<"content_pieces">;
+
+function mapChannelsToPlatforms(
+  channels: StoryDraft["targetChannels"],
+): ContentPieceInsert["platform_targets"] {
+  const platforms = new Set<string>();
+
+  for (const channel of channels) {
+    switch (channel) {
+      case "instagram_reel":
+        platforms.add("instagram");
+        break;
+      case "facebook_video":
+        platforms.add("facebook");
+        break;
+      case "youtube_short":
+        platforms.add("youtube");
+        break;
+      case "tiktok_video":
+        platforms.add("tiktok");
+        break;
+      default:
+        break;
+    }
+  }
+
+  return Array.from(platforms);
+}
+
+function mapSourceKindToContentType(sourceKind: StoryDraft["sourceKind"]): string {
+  switch (sourceKind) {
+    case "repair_completed":
+      return "repair_story";
+    case "inspection_completed":
+      return "inspection_highlight";
+    case "before_after":
+      return "before_after";
+    case "educational_insight":
+    case "expert_tip":
+      return "educational_tip";
+    default:
+      return "workflow_demo";
+  }
+}
+
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value)) as Json;
+}
+
+export function buildContentPieceInsertFromDraft(input: {
+  shopId: string;
+  draft: StoryDraft;
+  templateId?: string | null;
+  sourceSystem?: string | null;
+}): ContentPieceInsert {
+  const { shopId, draft } = input;
+
+  return {
+    tenant_shop_id: shopId,
+    source_shop_id: shopId,
+    source_system: input.sourceSystem ?? "shopreel",
+    title: draft.title,
+    status: "draft",
+    content_type: mapSourceKindToContentType(draft.sourceKind),
+    hook: draft.hook ?? null,
+    caption: draft.caption ?? null,
+    cta: draft.cta ?? null,
+    script_text: draft.scriptText ?? null,
+    voiceover_text: draft.voiceoverText ?? null,
+    platform_targets: mapChannelsToPlatforms(draft.targetChannels),
+    template_id: input.templateId ?? null,
+    metadata: toJson({
+      story_source_id: draft.sourceId,
+      story_source_kind: draft.sourceKind,
+      story_draft: draft,
+      story_scene_count: draft.scenes.length,
+      story_target_duration_seconds: draft.targetDurationSeconds ?? null,
+      story_tone: draft.tone,
+    }),
+  };
+}
+
+
+----- src/features/shopreel/story-builder/generateStoryPipeline.ts -----
+import { createRenderJob } from "../render/createRenderJob";
+import { saveStoryGeneration, saveStorySource } from "../story-sources/server";
+import type { StorySource } from "../story-sources";
+import { buildStoryDraftFromSource } from "./buildStoryDraftFromSource";
+import { createContentPieceFromStoryDraft } from "./createContentPieceFromStoryDraft";
+
+export async function generateStoryPipeline(input: {
+  shopId: string;
+  source: StorySource;
+  templateId?: string | null;
+  sourceSystem?: string | null;
+  createRenderJobNow?: boolean;
+  createdBy?: string | null;
+}) {
+  const savedSource = await saveStorySource(input.source);
+
+  const draft = buildStoryDraftFromSource(input.source);
+
+  const contentPiece = await createContentPieceFromStoryDraft({
+    shopId: input.shopId,
+    draft,
+    templateId: input.templateId ?? null,
+    sourceSystem: input.sourceSystem ?? "shopreel",
+  });
+
+  const renderJob = input.createRenderJobNow
+    ? await createRenderJob({
+        shopId: input.shopId,
+        contentPieceId: contentPiece.id,
+        sourceType: input.source.kind,
+        sourceId: savedSource.id,
+        createdBy: input.createdBy ?? null,
+        storySource: input.source,
+        storyDraft: draft,
+        renderPayload: {
+          mode: "story_draft",
+          title: draft.title,
+          hook: draft.hook ?? null,
+          caption: draft.caption ?? null,
+          cta: draft.cta ?? null,
+          scenes: draft.scenes,
+        },
+      })
+    : null;
+
+  const generation = await saveStoryGeneration({
+    shopId: input.shopId,
+    storySourceId: savedSource.id,
+    contentPieceId: contentPiece.id,
+    renderJobId: renderJob?.id ?? null,
+    draft,
+    status: renderJob ? "queued" : "draft",
+    createdBy: input.createdBy ?? null,
+    metadata: {
+      deduped_source: savedSource.deduped,
+      source_system: input.sourceSystem ?? "shopreel",
+    },
+  });
+
+  return {
+    savedSource,
+    source: input.source,
+    draft,
+    contentPiece,
+    renderJob,
+    generation,
+  };
+}
+
+
+----- src/features/shopreel/story-sources/server/saveStoryGeneration.ts -----
+import { createAdminClient } from "@/lib/supabase/server";
+import type { StoryDraft } from "../../story-builder";
+
+function toJson(value: unknown) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+export async function saveStoryGeneration(input: {
+  shopId: string;
+  storySourceId: string;
+  contentPieceId?: string | null;
+  reelPlanId?: string | null;
+  renderJobId?: string | null;
+  draft: StoryDraft;
+  status?: string;
+  createdBy?: string | null;
+  metadata?: Record<string, unknown>;
+}) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("shopreel_story_generations")
+    .insert({
+      shop_id: input.shopId,
+      story_source_id: input.storySourceId,
+      content_piece_id: input.contentPieceId ?? null,
+      reel_plan_id: input.reelPlanId ?? null,
+      render_job_id: input.renderJobId ?? null,
+      status: input.status ?? "draft",
+      story_draft: toJson(input.draft),
+      generation_metadata: toJson(input.metadata ?? {}),
+      created_by: input.createdBy ?? null,
+    } as never)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to save story generation");
+  }
+
+  return data;
+}
+
+
+----- src/lib/supabase/server.ts -----
+import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+import type { CookieOptions } from "@supabase/ssr";
+import type { Database } from "@/types/supabase";
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+};
+
+function getSupabaseUrl(): string {
+  const value = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!value) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
+  }
+  return value;
+}
+
+function getSupabasePublishableKey(): string {
+  const value =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!value) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    );
+  }
+
+  return value;
+}
+
+function getSupabaseServiceRoleKey(): string {
+  const value = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!value) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+  return value;
+}
+
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient<Database>(
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet: CookieToSet[]) {
+          for (const { name, value, options } of cookiesToSet) {
+            try {
+              cookieStore.set(name, value, options);
+            } catch {
+              // ignore in contexts where setting cookies is not allowed
+            }
+          }
+        },
+      },
+    },
+  );
+}
+
+export function createAdminClient() {
+  return createSupabaseClient<Database>(
+    getSupabaseUrl(),
+    getSupabaseServiceRoleKey(),
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    },
+  );
+}
+
+----- SUPABASE MIGRATIONS -----
+supabase/migrations/0001_extensions.sql
+supabase/migrations/0002_enums.sql
+supabase/migrations/0003_core_content_tables.sql
+supabase/migrations/0004_indexes.sql
+supabase/migrations/0005_functions.sql
+supabase/migrations/0006_triggers.sql
+supabase/migrations/0007_rls.sql
+supabase/migrations/0008_storage.sql
+supabase/migrations/0009_integration_support.sql
+supabase/migrations/0010_shopreel_compatibility_objects.sql
+supabase/migrations/0011_shopreel_manual_assets.sql
+supabase/migrations/20260312000000_add_shopreel_story_sources.sql
+supabase/migrations/202603120530_add_shopreel_content_opportunities.sql
+
+
+----- SHOPREEL CREATOR DIRECTORY -----
+src/features/shopreel/creator/buildCreatorResearchDraft.ts
+src/features/shopreel/creator/generateCreatorScript.ts
+
+
+----- SHOPREEL API DIRECTORY -----
+src/app/api/shopreel/autopilot/route.ts
+src/app/api/shopreel/calendar/route.ts
+src/app/api/shopreel/connections/route.ts
+src/app/api/shopreel/create/from-idea/route.ts
+src/app/api/shopreel/create/research-script/route.ts
+src/app/api/shopreel/discover/route.ts
+src/app/api/shopreel/discovery/route.ts
+src/app/api/shopreel/hooks/route.ts
+src/app/api/shopreel/manual-assets/complete/route.ts
+src/app/api/shopreel/manual-assets/create/route.ts
+src/app/api/shopreel/manual-assets/sign/route.ts
+src/app/api/shopreel/manual/generate/route.ts
+src/app/api/shopreel/media/route.ts
+src/app/api/shopreel/memory/route.ts
+src/app/api/shopreel/metrics/route.ts
+src/app/api/shopreel/moments/route.ts
+src/app/api/shopreel/oauth/callback/route.ts
+src/app/api/shopreel/oauth/connect/route.ts
+src/app/api/shopreel/opportunities/generate/route.ts
+src/app/api/shopreel/opportunities/route.ts
+src/app/api/shopreel/publications/[id]/route.ts
+src/app/api/shopreel/publications/route.ts
+src/app/api/shopreel/publish-queue/route.ts
+src/app/api/shopreel/publish-worker/route.ts
+src/app/api/shopreel/publish/route.ts
+src/app/api/shopreel/reel-plan/route.ts
+src/app/api/shopreel/reels/route.ts
+src/app/api/shopreel/render-job/[id]/route.ts
+src/app/api/shopreel/render-job/route.ts
+src/app/api/shopreel/render-jobs/route.ts
+src/app/api/shopreel/render-worker/route.ts
+src/app/api/shopreel/settings/route.ts
+src/app/api/shopreel/signals/route.ts
+src/app/api/shopreel/story-generations/[id]/route.ts
+src/app/api/shopreel/story-generations/route.ts
+src/app/api/shopreel/story-pipeline/test/route.ts
+src/app/api/shopreel/story-sources/generate/route.ts
+src/app/api/shopreel/story-sources/route.ts
+src/app/api/shopreel/story-sources/seed/route.ts
+src/app/api/shopreel/suggestions/route.ts
+src/app/api/shopreel/worker/publish/route.ts
+src/app/api/shopreel/worker/route.ts
+
+

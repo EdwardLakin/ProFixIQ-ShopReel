@@ -11,14 +11,30 @@ import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
+type CreatorMode =
+  | "research_script"
+  | "angle_pack"
+  | "debunk"
+  | "stitch";
+
+type CreatorAngle = {
+  title: string;
+  angle: string;
+  hook: string;
+  whyItWorks: string;
+  suggestedCta: string;
+};
+
 type CreateResponse =
   | {
       ok: true;
-      sourceId: string;
-      contentPieceId: string;
-      generationId: string;
-      editorUrl: string;
-      reviewUrl: string;
+      mode: CreatorMode;
+      generationId?: string;
+      editorUrl?: string;
+      expandedTopic?: string;
+      researchSummary?: string;
+      researchBullets?: string[];
+      angles?: CreatorAngle[];
     }
   | {
       ok?: false;
@@ -27,7 +43,8 @@ type CreateResponse =
 
 export default function ShopReelCreatePage() {
   const router = useRouter();
-  const [idea, setIdea] = useState("");
+  const [mode, setMode] = useState<CreatorMode>("research_script");
+  const [topic, setTopic] = useState("");
   const [audience, setAudience] = useState("");
   const [platformFocus, setPlatformFocus] = useState<
     "instagram" | "tiktok" | "youtube" | "facebook" | "multi"
@@ -35,24 +52,36 @@ export default function ShopReelCreatePage() {
   const [tone, setTone] = useState<
     "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy"
   >("confident");
+  const [sourceText, setSourceText] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [preview, setPreview] = useState<{
+    expandedTopic?: string;
+    summary: string;
+    bullets: string[];
+    angles: CreatorAngle[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function createFromIdea() {
+  async function submitCreatorRequest() {
     try {
       setError(null);
       setIsSubmitting(true);
+      setPreview(null);
 
-      const res = await fetch("/api/shopreel/create/from-idea", {
+      const res = await fetch("/api/shopreel/create/research-script", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          idea,
+          mode,
+          topic,
           audience,
           platformFocus,
           tone,
+          sourceText,
+          sourceUrl,
         }),
       });
 
@@ -62,7 +91,16 @@ export default function ShopReelCreatePage() {
         throw new Error(("error" in json && json.error) || "Failed to create story");
       }
 
-      router.push(json.editorUrl);
+      setPreview({
+        expandedTopic: json.expandedTopic,
+        summary: json.researchSummary ?? "",
+        bullets: json.researchBullets ?? [],
+        angles: json.angles ?? [],
+      });
+
+      if (json.editorUrl) {
+        router.push(json.editorUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create story");
     } finally {
@@ -70,47 +108,77 @@ export default function ShopReelCreatePage() {
     }
   }
 
+  const primaryButtonLabel =
+    mode === "angle_pack"
+      ? "Generate angle pack"
+      : mode === "debunk"
+      ? "Build debunk script"
+      : mode === "stitch"
+      ? "Build stitch script"
+      : "Build creator script";
+
   return (
     <GlassShell
       eyebrow="ShopReel"
       title="Creator Mode"
-      subtitle="Start from an idea, topic, review, or script concept. ShopReel turns it into a story draft and opens the editor."
-      actions={
-        <GlassBadge tone="copper">Multi-market mode</GlassBadge>
-      }
+      subtitle="Topic expansion, angle generation, debunk mode, stitch responses, and creator-first scripting."
+      actions={<GlassBadge tone="copper">Creator research + script</GlassBadge>}
     >
       <ShopReelNav />
 
       <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
         <GlassCard
-          label="Start From Idea"
-          title="Idea → Story → Editor"
-          description="This is the Creator Mode entry point. Describe what you want to make and ShopReel builds the first draft."
+          label="Start From Topic"
+          title="Topic → research → angles → script → editor"
+          description="Use one creator workflow for explainers, rumors, debunks, stitches, and multi-post angle packs."
           strong
           footer={
             <div className="flex flex-wrap gap-3">
               <GlassButton
                 variant="primary"
-                onClick={() => void createFromIdea()}
+                onClick={() => void submitCreatorRequest()}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Creating..." : "Create story"}
+                {isSubmitting ? "Working..." : primaryButtonLabel}
               </GlassButton>
             </div>
           }
         >
+          <div className="grid gap-2 md:grid-cols-2">
+            {[
+              { value: "research_script", label: "Research + script" },
+              { value: "angle_pack", label: "Story angle generator" },
+              { value: "debunk", label: "Debunk" },
+              { value: "stitch", label: "Stitch response" },
+            ].map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setMode(item.value as CreatorMode)}
+                className={cx(
+                  "rounded-2xl border px-4 py-3 text-left text-sm transition",
+                  mode === item.value
+                    ? "border-sky-400/30 bg-sky-400/10 text-white"
+                    : "border-white/10 bg-white/[0.04] text-white/75 hover:bg-white/[0.08]",
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
           <GlassTextarea
-            label="What do you want to make?"
-            value={idea}
-            onChange={(e) => setIdea(e.target.value)}
-            placeholder="Example: Review the new iPhone camera in a short creator-style breakdown with a strong hook and quick verdict."
+            label="Topic or prompt"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="Example: iPhone 18 leaks and rumors"
           />
 
           <GlassInput
             label="Audience"
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
-            placeholder="Example: tech buyers, truck owners, moms, fitness beginners"
+            placeholder="Example: Apple fans, smartphone buyers, creators"
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -162,6 +230,28 @@ export default function ShopReelCreatePage() {
             </label>
           </div>
 
+          {(mode === "debunk" || mode === "stitch") ? (
+            <>
+              <GlassTextarea
+                label={mode === "debunk" ? "Claim to challenge" : "Original take to respond to"}
+                value={sourceText}
+                onChange={(e) => setSourceText(e.target.value)}
+                placeholder={
+                  mode === "debunk"
+                    ? "Paste the claim, rumor, or talking point you want to challenge."
+                    : "Paste the original statement or transcript you want to stitch against."
+                }
+              />
+
+              <GlassInput
+                label="Source URL"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="Optional video, post, or article URL"
+              />
+            </>
+          ) : null}
+
           {error ? (
             <div
               className={cx(
@@ -177,19 +267,19 @@ export default function ShopReelCreatePage() {
         </GlassCard>
 
         <GlassCard
-          label="Creator Mode"
+          label="Creator Engine"
           title="What this unlocks"
-          description="Same engine, different entry point."
+          description="One creator workspace for short-form scripting and expansion."
           strong
         >
           <div className="grid gap-3">
             {[
-              "Product reviews",
-              "Daily creator content",
-              "Topic explainers",
-              "Unboxings",
-              "Talking-head breakdowns",
-              "Short-form educational clips",
+              "Topic expansion",
+              "Angle packs",
+              "Debunk videos",
+              "Stitch responses",
+              "Review / rumor explainers",
+              "Multiple post ideas from one prompt",
             ].map((item) => (
               <div
                 key={item}
@@ -205,33 +295,82 @@ export default function ShopReelCreatePage() {
             ))}
           </div>
 
-          <div className="grid gap-3 pt-2 md:grid-cols-2">
-            <div
-              className={cx(
-                "rounded-2xl border p-4",
-                glassTheme.border.copper,
-                glassTheme.glass.panelSoft,
-              )}
-            >
-              <div className={cx("text-sm", glassTheme.text.secondary)}>Flow</div>
-              <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
-                Idea → Draft → Editor
-              </div>
-            </div>
+          {preview ? (
+            <div className="space-y-3 pt-2">
+              {preview.expandedTopic ? (
+                <div
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.copper,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>Expanded topic</div>
+                  <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                    {preview.expandedTopic}
+                  </div>
+                </div>
+              ) : null}
 
-            <div
-              className={cx(
-                "rounded-2xl border p-4",
-                glassTheme.border.copper,
-                glassTheme.glass.panelSoft,
-              )}
-            >
-              <div className={cx("text-sm", glassTheme.text.secondary)}>Works with</div>
-              <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
-                Any visual niche
+              <div
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Research summary</div>
+                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                  {preview.summary}
+                </div>
               </div>
+
+              {preview.bullets.map((bullet) => (
+                <div
+                  key={bullet}
+                  className={cx(
+                    "rounded-2xl border p-4 text-sm",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.primary,
+                  )}
+                >
+                  {bullet}
+                </div>
+              ))}
+
+              {preview.angles.length > 0 ? (
+                <div className="grid gap-3">
+                  {preview.angles.map((angle, index) => (
+                    <div
+                      key={`${angle.title}-${index}`}
+                      className={cx(
+                        "rounded-2xl border p-4",
+                        glassTheme.border.copper,
+                        glassTheme.glass.panelSoft,
+                      )}
+                    >
+                      <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                        {angle.title}
+                      </div>
+                      <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
+                        {angle.angle}
+                      </div>
+                      <div className={cx("mt-3 text-sm", glassTheme.text.primary)}>
+                        Hook: {angle.hook}
+                      </div>
+                      <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+                        Why it works: {angle.whyItWorks}
+                      </div>
+                      <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+                        CTA: {angle.suggestedCta}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
-          </div>
+          ) : null}
         </GlassCard>
       </section>
     </GlassShell>

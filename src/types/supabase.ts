@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       content_analytics_events: {
@@ -930,6 +955,104 @@ export type Database = {
           },
         ]
       }
+      shopreel_creator_requests: {
+        Row: {
+          audience: string | null
+          created_at: string
+          created_by: string | null
+          error_text: string | null
+          id: string
+          mode: string
+          platform_focus: string | null
+          request_payload: Json
+          result_payload: Json
+          shop_id: string
+          source_asset_id: string | null
+          source_generation_id: string | null
+          source_publication_id: string | null
+          source_story_source_id: string | null
+          source_url: string | null
+          status: string
+          title: string | null
+          tone: string | null
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          audience?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_text?: string | null
+          id?: string
+          mode: string
+          platform_focus?: string | null
+          request_payload?: Json
+          result_payload?: Json
+          shop_id: string
+          source_asset_id?: string | null
+          source_generation_id?: string | null
+          source_publication_id?: string | null
+          source_story_source_id?: string | null
+          source_url?: string | null
+          status?: string
+          title?: string | null
+          tone?: string | null
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audience?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_text?: string | null
+          id?: string
+          mode?: string
+          platform_focus?: string | null
+          request_payload?: Json
+          result_payload?: Json
+          shop_id?: string
+          source_asset_id?: string | null
+          source_generation_id?: string | null
+          source_publication_id?: string | null
+          source_story_source_id?: string | null
+          source_url?: string | null
+          status?: string
+          title?: string | null
+          tone?: string | null
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_creator_requests_source_generation_id_fkey"
+            columns: ["source_generation_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_story_generations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_creator_requests_source_publication_id_fkey"
+            columns: ["source_publication_id"]
+            isOneToOne: false
+            referencedRelation: "content_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_creator_requests_source_publication_id_fkey"
+            columns: ["source_publication_id"]
+            isOneToOne: false
+            referencedRelation: "video_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_creator_requests_source_story_source_id_fkey"
+            columns: ["source_story_source_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_story_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopreel_manual_asset_files: {
         Row: {
           asset_id: string
@@ -1800,6 +1923,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       content_asset_type: [
