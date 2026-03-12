@@ -3,66 +3,129 @@ import GlassNav from "@/features/shopreel/ui/system/GlassNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { createAdminClient } from "@/lib/supabase/server";
 
-const jobs = [
-  { title: "Brake inspection story", state: "Rendering", eta: "02:14" },
-  { title: "Wheel seal before / after", state: "Queued", eta: "05:40" },
-  { title: "Air brake safety tip", state: "Queued", eta: "07:05" },
-  { title: "Suspension repair recap", state: "Needs asset", eta: "--" },
-];
+function timeAgoLabel(value: string) {
+  const now = Date.now();
+  const then = new Date(value).getTime();
+  const diffMs = Math.max(0, now - then);
 
-export default function ShopReelRenderQueuePage() {
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+
+  if (diffMinutes < 1) return "just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  return new Date(value).toLocaleDateString();
+}
+
+export default async function ShopReelRenderQueuePage() {
+  const supabase = createAdminClient();
+
+  const { data } = await supabase
+    .from("reel_render_jobs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  const jobs = data ?? [];
+
   return (
     <GlassShell
       eyebrow="ShopReel"
       title="Render queue"
-      subtitle="A single queue surface with stronger depth and warmer glass."
+      subtitle="Rendering pipeline for generated ShopReel stories."
     >
       <GlassNav />
 
       <GlassCard
         label="Renderer"
         title="Active and pending jobs"
-        description="Keep this page operational, dense, and warm."
+        description="Jobs move from queued → rendering → ready."
         strong
       >
-        <div className="grid gap-3">
-          {jobs.map((job) => (
-            <div
-              key={job.title}
-              className={cx(
-                "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto_auto]",
-                job.state === "Rendering" ? glassTheme.border.copper : glassTheme.border.softer,
-                glassTheme.glass.panelSoft,
-              )}
-            >
-              <div>
-                <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                  {job.title}
-                </div>
-                <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>ETA {job.eta}</div>
-              </div>
+        {jobs.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary
+            )}
+          >
+            No render jobs yet.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {jobs.map((job) => (
+              <div
+                key={job.id}
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto_auto]",
+                  job.status === "rendering"
+                    ? glassTheme.border.copper
+                    : glassTheme.border.softer,
+                  glassTheme.glass.panelSoft
+                )}
+              >
+                <div>
+                  <div
+                    className={cx(
+                      "text-base font-medium",
+                      glassTheme.text.primary
+                    )}
+                  >
+                    Render Job
+                  </div>
 
-              <div className="md:self-center">
-                <GlassBadge
-                  tone={
-                    job.state === "Rendering"
-                      ? "copper"
-                      : job.state === "Queued"
+                  <div
+                    className={cx(
+                      "mt-1 text-sm",
+                      glassTheme.text.secondary
+                    )}
+                  >
+                    Content Piece: {job.content_piece_id ?? "unknown"}
+                  </div>
+
+                  <div
+                    className={cx(
+                      "mt-1 text-xs",
+                      glassTheme.text.muted
+                    )}
+                  >
+                    Created {timeAgoLabel(job.created_at)}
+                  </div>
+                </div>
+
+                <div className="md:self-center">
+                  <GlassBadge
+                    tone={
+                      job.status === "rendering"
+                        ? "copper"
+                        : job.status === "queued"
+                        ? "default"
+                        : job.status === "ready"
                         ? "default"
                         : "muted"
-                  }
-                >
-                  {job.state}
-                </GlassBadge>
-              </div>
+                    }
+                  >
+                    {job.status}
+                  </GlassBadge>
+                </div>
 
-              <div className={cx("text-sm md:self-center", glassTheme.text.muted)}>
-                Queue surface
+                <div
+                  className={cx(
+                    "text-sm md:self-center",
+                    glassTheme.text.muted
+                  )}
+                >
+                  Attempts {job.attempt_count ?? 0}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </GlassCard>
     </GlassShell>
   );

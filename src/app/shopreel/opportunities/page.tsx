@@ -1,5 +1,3 @@
-// src/app/shopreel/opportunities/page.tsx
-
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import GlassNav from "@/features/shopreel/ui/system/GlassNav";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
@@ -9,8 +7,8 @@ export default function ShopReelOpportunitiesPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Opportunities"
-      subtitle="Surface the best candidate content across manual uploads and shop-generated content in one queue."
+      title="Story Sources"
+      subtitle="Discover, save, and generate from the business events and uploads that power ShopReel."
       actions={<GlassButton variant="primary">Generate selected</GlassButton>}
     >
       <GlassNav />

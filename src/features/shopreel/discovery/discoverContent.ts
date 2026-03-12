@@ -1,59 +1,30 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { storySourceFromOpportunity } from "../story-sources";
 import type { StorySource } from "../story-sources";
+import type { Tables } from "@/types/supabase";
 
-type DiscoverableWorkOrder = {
-  id: string;
-  custom_id: string | null;
-  vehicle_make: string | null;
-  vehicle_model: string | null;
-  vehicle_year: number | null;
-};
-
-type DiscoverableLine = {
-  id: string;
-  work_order_id: string;
-  description: string | null;
-  cause: string | null;
-  correction: string | null;
-  status: string | null;
-  job_type: string | null;
-};
-
-type InspectionItemRow = {
-  id: string;
-  inspection_id: string | null;
-  label?: string | null;
-  name?: string | null;
-  status?: string | null;
-  notes?: string | null;
-};
-
-type InspectionPhotoRow = {
-  id: string;
-  inspection_id: string | null;
-  photo_url?: string | null;
-  url?: string | null;
-  created_at?: string | null;
-};
-
-type VehicleMediaRow = {
-  id: string;
-  vehicle_id: string | null;
-  media_url?: string | null;
-  url?: string | null;
-  kind?: string | null;
-  created_at?: string | null;
-};
+type ContentAssetRow = Pick<
+  Tables<"content_assets">,
+  | "id"
+  | "title"
+  | "caption"
+  | "asset_type"
+  | "public_url"
+  | "created_at"
+  | "metadata"
+  | "source_media_upload_id"
+  | "source_work_order_id"
+  | "source_inspection_id"
+  | "source_vehicle_id"
+>;
 
 export type ContentOpportunity = {
   sourceType:
-    | "inspection_item"
-    | "inspection_photo"
-    | "vehicle_media"
-    | "repair_story"
-    | "mechanic_tip"
-    | "workflow_demo";
+    | "manual_upload"
+    | "content_asset"
+    | "before_after_candidate"
+    | "educational_candidate"
+    | "video_story";
   workOrderId: string | null;
   sourceId: string;
   title: string;
@@ -68,205 +39,150 @@ export type ContentOpportunity = {
   visualUrls: string[];
 };
 
-function vehicleLabel(workOrder: DiscoverableWorkOrder): string {
-  return (
-    `${workOrder.vehicle_year ?? ""} ${workOrder.vehicle_make ?? ""} ${workOrder.vehicle_model ?? ""}`.trim() ||
-    "vehicle"
-  );
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
 }
 
-function getInspectionItemLabel(item: InspectionItemRow): string {
-  return (
-    (typeof item.label === "string" && item.label.length > 0 ? item.label : null) ||
-    (typeof item.name === "string" && item.name.length > 0 ? item.name : null) ||
-    "inspection finding"
-  );
+function getStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
-function getPhotoUrl(photo: InspectionPhotoRow): string | null {
-  return (
-    (typeof photo.photo_url === "string" && photo.photo_url.length > 0 ? photo.photo_url : null) ||
-    (typeof photo.url === "string" && photo.url.length > 0 ? photo.url : null)
-  );
+function chooseContentType(row: ContentAssetRow): ContentOpportunity["contentType"] {
+  const metadata = objectRecord(row.metadata);
+  const explicit = typeof metadata.content_type === "string" ? metadata.content_type : null;
+  const tags = getStringList(metadata.tags).map((tag) => tag.toLowerCase());
+
+  if (explicit === "before_after" || tags.includes("before_after")) {
+    return "before_after";
+  }
+
+  if (
+    explicit === "educational_tip" ||
+    explicit === "inspection_highlight" ||
+    tags.includes("educational") ||
+    tags.includes("tip")
+  ) {
+    return "educational_tip";
+  }
+
+  if (explicit === "repair_story" || tags.includes("repair")) {
+    return "repair_story";
+  }
+
+  return row.asset_type === "video" ? "workflow_demo" : "before_after";
 }
 
-function getVehicleMediaUrl(media: VehicleMediaRow): string | null {
-  return (
-    (typeof media.media_url === "string" && media.media_url.length > 0 ? media.media_url : null) ||
-    (typeof media.url === "string" && media.url.length > 0 ? media.url : null)
-  );
+function chooseSourceType(
+  row: ContentAssetRow,
+  contentType: ContentOpportunity["contentType"],
+): ContentOpportunity["sourceType"] {
+  if (row.source_media_upload_id) return "manual_upload";
+  if (contentType === "before_after") return "before_after_candidate";
+  if (contentType === "educational_tip") return "educational_candidate";
+  if (row.asset_type === "video") return "video_story";
+  return "content_asset";
+}
+
+function buildTitle(row: ContentAssetRow, contentType: ContentOpportunity["contentType"]): string {
+  if (row.title && row.title.trim().length > 0) return row.title.trim();
+
+  switch (contentType) {
+    case "before_after":
+      return "Before / after story";
+    case "educational_tip":
+      return "Educational story";
+    case "repair_story":
+      return "Repair story";
+    default:
+      return row.asset_type === "video" ? "Video story" : "Photo story";
+  }
+}
+
+function buildHook(
+  row: ContentAssetRow,
+  title: string,
+  contentType: ContentOpportunity["contentType"],
+): string {
+  const metadata = objectRecord(row.metadata);
+  const explicitHook = typeof metadata.hook === "string" ? metadata.hook.trim() : "";
+
+  if (explicitHook.length > 0) return explicitHook;
+  if (row.caption && row.caption.trim().length > 0) return row.caption.trim();
+
+  switch (contentType) {
+    case "before_after":
+      return `${title} — here’s the transformation.`;
+    case "educational_tip":
+      return `${title} — here’s what to know.`;
+    case "repair_story":
+      return `${title} — here’s what happened.`;
+    default:
+      return `${title} — here’s the story.`;
+  }
+}
+
+function buildReason(
+  row: ContentAssetRow,
+  sourceType: ContentOpportunity["sourceType"],
+  contentType: ContentOpportunity["contentType"],
+): string {
+  if (sourceType === "manual_upload") return "Manual upload asset ready for story generation";
+  if (contentType === "before_after") return "Asset metadata suggests a before/after story";
+  if (contentType === "educational_tip") return "Asset metadata suggests an educational story";
+  if (row.asset_type === "video") return "Video asset can be turned into a workflow story";
+  return "Content asset available for story generation";
 }
 
 export async function discoverContent(shopId: string): Promise<ContentOpportunity[]> {
   const supabase = createAdminClient();
-  const legacy = supabase as any;
 
-  const { data: workOrders, error: woError } = await legacy
-    .from("work_orders")
-    .select("id, custom_id, vehicle_make, vehicle_model, vehicle_year")
-    .eq("shop_id", shopId)
+  const { data, error } = await supabase
+    .from("content_assets")
+    .select(`
+      id,
+      title,
+      caption,
+      asset_type,
+      public_url,
+      created_at,
+      metadata,
+      source_media_upload_id,
+      source_work_order_id,
+      source_inspection_id,
+      source_vehicle_id
+    `)
+    .eq("tenant_shop_id", shopId)
+    .in("asset_type", ["photo", "video"])
     .order("created_at", { ascending: false })
-    .limit(25);
+    .limit(50);
 
-  if (woError) {
-    throw new Error(woError.message);
+  if (error) {
+    throw new Error(error.message);
   }
 
-  const { data: lines, error: lineError } = await legacy
-    .from("work_order_lines")
-    .select("id, work_order_id, description, cause, correction, status, job_type")
-    .eq("shop_id", shopId)
-    .order("created_at", { ascending: false })
-    .limit(150);
+  const rows: ContentAssetRow[] = data ?? [];
 
-  if (lineError) {
-    throw new Error(lineError.message);
-  }
+  const opportunities = rows.map((row) => {
+    const contentType = chooseContentType(row);
+    const sourceType = chooseSourceType(row, contentType);
+    const title = buildTitle(row, contentType);
 
-  const inspectionItemsResult = await legacy
-    .from("inspection_items")
-    .select("*")
-    .limit(150);
-
-  const inspectionPhotosResult = await legacy
-    .from("inspection_photos")
-    .select("*")
-    .limit(150);
-
-  const vehicleMediaResult = await legacy
-    .from("vehicle_media")
-    .select("*")
-    .limit(150);
-
-  const workOrderRows = (workOrders ?? []) as DiscoverableWorkOrder[];
-  const lineRows = (lines ?? []) as DiscoverableLine[];
-  const inspectionItems = (inspectionItemsResult.data ?? []) as InspectionItemRow[];
-  const inspectionPhotos = (inspectionPhotosResult.data ?? []) as InspectionPhotoRow[];
-  const vehicleMedia = (vehicleMediaResult.data ?? []) as VehicleMediaRow[];
-
-  const opportunities: ContentOpportunity[] = [];
-
-  for (const workOrder of workOrderRows) {
-    const relatedLines = lineRows.filter((line) => line.work_order_id === workOrder.id);
-    const vehicle = vehicleLabel(workOrder);
-
-    const completedRepair = relatedLines.find(
-      (line) =>
-        line.status === "completed" &&
-        (line.job_type === "repair" || line.job_type === "maintenance"),
-    );
-
-    if (completedRepair) {
-      opportunities.push({
-        sourceType: "repair_story",
-        workOrderId: workOrder.id,
-        sourceId: completedRepair.id,
-        title: completedRepair.description ?? `Repair completed on ${vehicle}`,
-        contentType: "repair_story",
-        hook:
-          completedRepair.cause && completedRepair.correction
-            ? `${vehicle} came in with ${completedRepair.cause.toLowerCase()} — here’s how we fixed it.`
-            : `Here’s how this ${vehicle} repair moved through the shop.`,
-        reason: "Completed repair line found",
-        visualUrls: [],
-      });
-    }
-
-    const mechanicTip = relatedLines.find(
-      (line) =>
-        typeof line.cause === "string" &&
-        line.cause.length > 0 &&
-        typeof line.correction === "string" &&
-        line.correction.length > 0,
-    );
-
-    if (mechanicTip) {
-      opportunities.push({
-        sourceType: "mechanic_tip",
-        workOrderId: workOrder.id,
-        sourceId: mechanicTip.id,
-        title: mechanicTip.description ?? `Mechanic tip from ${vehicle}`,
-        contentType: "educational_tip",
-        hook: `A quick mechanic tip from this ${vehicle} job: what caused it, and what fixed it.`,
-        reason: "Cause/correction pair found",
-        visualUrls: [],
-      });
-    }
-
-    const inspectionFinding = inspectionItems.find(
-      (item) =>
-        typeof item.status === "string" &&
-        ["fail", "failed", "warning", "recommended"].includes(item.status.toLowerCase()),
-    );
-
-    if (inspectionFinding) {
-      opportunities.push({
-        sourceType: "inspection_item",
-        workOrderId: workOrder.id,
-        sourceId: inspectionFinding.id,
-        title: getInspectionItemLabel(inspectionFinding),
-        contentType: "inspection_highlight",
-        hook: `We found this during an inspection on a ${vehicle}.`,
-        reason: "Inspection item with fail/warning/recommended status found",
-        visualUrls: [],
-      });
-    }
-
-    const photoUrls = inspectionPhotos
-      .map(getPhotoUrl)
-      .filter((url): url is string => typeof url === "string" && url.length > 0)
-      .slice(0, 2);
-
-    if (photoUrls.length > 0) {
-      opportunities.push({
-        sourceType: "inspection_photo",
-        workOrderId: workOrder.id,
-        sourceId: inspectionPhotos[0]?.id ?? workOrder.id,
-        title: `Before/after candidate for ${vehicle}`,
-        contentType: "before_after",
-        hook: `This ${vehicle} looked very different before we were done.`,
-        reason: "Inspection photos found",
-        visualUrls: photoUrls,
-      });
-    }
-
-    const mediaUrls = vehicleMedia
-      .map(getVehicleMediaUrl)
-      .filter((url): url is string => typeof url === "string" && url.length > 0)
-      .slice(0, 3);
-
-    if (mediaUrls.length > 0) {
-      opportunities.push({
-        sourceType: "vehicle_media",
-        workOrderId: workOrder.id,
-        sourceId: vehicleMedia[0]?.id ?? workOrder.id,
-        title: `Walkaround video for ${vehicle}`,
-        contentType: "workflow_demo",
-        hook: `Take a quick walk around this ${vehicle} in the shop.`,
-        reason: "Vehicle media found",
-        visualUrls: mediaUrls,
-      });
-    }
-
-    if (
-      !completedRepair &&
-      !mechanicTip &&
-      !inspectionFinding &&
-      photoUrls.length === 0 &&
-      mediaUrls.length === 0
-    ) {
-      opportunities.push({
-        sourceType: "workflow_demo",
-        workOrderId: workOrder.id,
-        sourceId: workOrder.id,
-        title: `${vehicle} workflow demo`,
-        contentType: "workflow_demo",
-        hook: `See how this ${vehicle} moved through the shop without the usual chaos.`,
-        reason: "Fallback workflow opportunity",
-        visualUrls: [],
-      });
-    }
-  }
+    return {
+      sourceType,
+      workOrderId: row.source_work_order_id,
+      sourceId: row.id,
+      title,
+      contentType,
+      hook: buildHook(row, title, contentType),
+      reason: buildReason(row, sourceType, contentType),
+      visualUrls: row.public_url ? [row.public_url] : [],
+    } satisfies ContentOpportunity;
+  });
 
   return opportunities.slice(0, 20);
 }

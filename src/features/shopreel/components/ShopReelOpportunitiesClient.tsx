@@ -90,21 +90,52 @@ export default function ShopReelOpportunitiesClient() {
       setError(null);
       setIsRefreshing(true);
 
-      const res = await fetch("/api/shopreel/story-pipeline/test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          limit: 3,
-          createRenderJobNow: false,
-        }),
+      const existingRes = await fetch("/api/shopreel/story-sources?mode=saved&limit=1", {
+        method: "GET",
+        cache: "no-store",
       });
 
-      const json = (await res.json()) as { ok?: boolean; error?: string };
+      const existingJson = (await existingRes.json()) as
+        | { ok: true; count: number }
+        | { ok?: false; error?: string };
 
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error ?? "Failed to discover story sources");
+      if (!existingRes.ok || !("ok" in existingJson) || !existingJson.ok) {
+        throw new Error(("error" in existingJson && existingJson.error) || "Failed to inspect story sources");
+      }
+
+      if ((existingJson.count ?? 0) === 0) {
+        const seedRes = await fetch("/api/shopreel/story-sources/seed", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            createRenderJobNow: false,
+          }),
+        });
+
+        const seedJson = (await seedRes.json()) as { ok?: boolean; error?: string };
+
+        if (!seedRes.ok || !seedJson.ok) {
+          throw new Error(seedJson.error ?? "Failed to seed story sources");
+        }
+      } else {
+        const res = await fetch("/api/shopreel/story-pipeline/test", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            limit: 3,
+            createRenderJobNow: false,
+          }),
+        });
+
+        const json = (await res.json()) as { ok?: boolean; error?: string };
+
+        if (!res.ok || !json.ok) {
+          throw new Error(json.error ?? "Failed to discover story sources");
+        }
       }
 
       await loadItems(true);
