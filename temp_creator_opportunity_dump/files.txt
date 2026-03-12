@@ -1,3 +1,104 @@
+----- src/app/api/shopreel/opportunities/route.ts -----
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+export async function GET(req: Request) {
+  try {
+    const shopId = await getCurrentShopId();
+    const { searchParams } = new URL(req.url);
+    const limitRaw = searchParams.get("limit");
+    const limit = limitRaw ? Number(limitRaw) : 50;
+
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data, error } = await legacy
+      .from("shopreel_content_opportunities")
+      .select(`
+        id,
+        score,
+        status,
+        reason,
+        created_at,
+        story_source_id,
+        metadata,
+        shopreel_story_sources!inner (
+          id,
+          title,
+          kind,
+          origin,
+          created_at
+        )
+      `)
+      .eq("shop_id", shopId)
+      .order("score", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const items = (data ?? []).map((row: any) => ({
+      id: row.id,
+      title: row.shopreel_story_sources?.title ?? "Untitled",
+      contentType: row.shopreel_story_sources?.kind ?? "story_source",
+      score: typeof row.score === "number" ? row.score : Number(row.score ?? 0),
+      status: row.status,
+      source: row.shopreel_story_sources?.origin ?? "shopreel",
+      sourceType:
+        row.shopreel_story_sources?.origin === "manual_upload"
+          ? "manual_upload"
+          : "shop_data",
+      createdAt: row.shopreel_story_sources?.created_at ?? row.created_at,
+    }));
+
+    return NextResponse.json({
+      ok: true,
+      items,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load opportunities";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+
+----- src/app/shopreel/opportunities/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+
+export default function ShopReelOpportunitiesPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Opportunities"
+      subtitle="Discover, score, generate, and move strong story candidates into editing and publishing."
+      actions={
+        <>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="ghost">View generations</GlassButton>
+          </Link>
+          <GlassButton variant="primary">Generate selected</GlassButton>
+        </>
+      }
+    >
+      <ShopReelNav />
+      <ShopReelOpportunitiesClient />
+    </GlassShell>
+  );
+}
+
+
+----- src/features/shopreel/components/ShopReelOpportunitiesClient.tsx -----
 "use client";
 
 import Link from "next/link";
@@ -10,35 +111,28 @@ import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 type OpportunityItem = {
   id: string;
-  kind: "story_opportunity" | "creator_request";
   title: string;
   contentType: string;
   score: number | null;
   status: string;
   source: string;
-  sourceType: "manual_upload" | "shop_data" | "creator_prompt";
+  sourceType: "manual_upload" | "shop_data";
   createdAt: string;
-  generationId: string | null;
-  creatorMode: string | null;
-  summary: string | null;
 };
 
 type OpportunitiesResponse =
   | { ok: true; items: OpportunityItem[] }
   | { ok?: false; error?: string };
 
-type GenerationResult =
-  | {
-      ok: true;
-      generated: {
-        opportunityId?: string;
-        creatorRequestId?: string;
-        contentPieceId?: string;
-        renderJobId?: string | null;
-        generationId: string;
-      };
-    }
-  | { ok?: boolean; error?: string };
+type GenerationResult = {
+  ok: true;
+  generated: {
+    opportunityId: string;
+    contentPieceId: string;
+    renderJobId: string | null;
+    generationId: string;
+  };
+};
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
@@ -65,7 +159,7 @@ export default function ShopReelOpportunitiesClient() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [isScoring, setIsScoring] = useState(false);
-  const [generatedByItem, setGeneratedByItem] = useState<Record<string, string>>({});
+  const [generatedByOpportunity, setGeneratedByOpportunity] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const loadItems = useCallback(async (refresh = false) => {
@@ -122,58 +216,43 @@ export default function ShopReelOpportunitiesClient() {
       await loadItems(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to refresh opportunities");
+      setIsScoring(false);
     } finally {
       setIsScoring(false);
     }
   }, [loadItems]);
 
-  const generateFromItem = useCallback(
-    async (item: OpportunityItem) => {
+  const generateFromOpportunity = useCallback(
+    async (opportunityId: string) => {
       try {
         setError(null);
-        setIsGenerating(item.id);
+        setIsGenerating(opportunityId);
 
-        if (item.generationId) {
-          router.push(`/shopreel/editor/${item.generationId}`);
-          return;
-        }
-
-        const endpoint =
-          item.kind === "creator_request"
-            ? `/api/shopreel/creator-requests/${item.id}/generate`
-            : `/api/shopreel/opportunities/${item.id}/generate`;
-
-        const body =
-          item.kind === "creator_request"
-            ? undefined
-            : JSON.stringify({
-                createRenderJobNow: true,
-              });
-
-        const res = await fetch(endpoint, {
+        const res = await fetch(`/api/shopreel/opportunities/${opportunityId}/generate`, {
           method: "POST",
-          headers:
-            item.kind === "creator_request"
-              ? undefined
-              : {
-                  "Content-Type": "application/json",
-                },
-          body,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            createRenderJobNow: true,
+          }),
         });
 
-        const json = (await res.json()) as GenerationResult;
+        const json = (await res.json()) as
+  | GenerationResult
+  | { ok?: boolean; error?: string };
 
-        if (!res.ok || !("generated" in json)) {
-          throw new Error(("error" in json && json.error) || "Failed to generate story");
-        }
+if (!res.ok || !("generated" in json)) {
+  throw new Error(("error" in json && json.error) || "Failed to generate story");
+}
 
-        setGeneratedByItem((prev) => ({
-          ...prev,
-          [item.id]: json.generated.generationId,
-        }));
+setGeneratedByOpportunity((prev) => ({
+  ...prev,
+  [opportunityId]: json.generated.generationId,
+}));
 
         await loadItems(true);
-        router.push(`/shopreel/editor/${json.generated.generationId}`);
+        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to generate story");
       } finally {
@@ -189,14 +268,12 @@ export default function ShopReelOpportunitiesClient() {
 
   const summary = useMemo(() => {
     const manualCount = items.filter((item) => item.sourceType === "manual_upload").length;
-    const creatorCount = items.filter((item) => item.sourceType === "creator_prompt").length;
     const highScoreCount = items.filter((item) => (item.score ?? 0) >= 85).length;
     const readyCount = items.filter((item) => item.status === "ready").length;
 
     return {
       total: items.length,
       manualCount,
-      creatorCount,
       highScoreCount,
       readyCount,
     };
@@ -207,14 +284,13 @@ export default function ShopReelOpportunitiesClient() {
       <GlassCard
         label="Opportunities"
         title="Ranked story opportunities"
-        description="Business story opportunities and saved creator prompts now live in one queue."
+        description="Discovery feeds Story Sources, then the Opportunity Engine scores what should be generated first."
         strong
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
               <GlassBadge tone="default">{summary.total} total</GlassBadge>
               <GlassBadge tone="copper">{summary.manualCount} manual</GlassBadge>
-              <GlassBadge tone="default">{summary.creatorCount} creator prompts</GlassBadge>
               <GlassBadge tone="default">{summary.highScoreCount} high score</GlassBadge>
               <GlassBadge tone="muted">{summary.readyCount} ready</GlassBadge>
             </div>
@@ -283,14 +359,14 @@ export default function ShopReelOpportunitiesClient() {
         {!isLoading && !error ? (
           <div className="grid gap-3">
             {items.map((item) => {
-              const generationId = generatedByItem[item.id] ?? item.generationId ?? null;
+              const generationId = generatedByOpportunity[item.id] ?? null;
 
               return (
                 <div
                   key={item.id}
                   className={cx(
                     "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
-                    item.sourceType === "creator_prompt" || (item.score ?? 0) >= 85
+                    (item.score ?? 0) >= 85
                       ? glassTheme.border.copper
                       : glassTheme.border.softer,
                     glassTheme.glass.panelSoft,
@@ -304,29 +380,16 @@ export default function ShopReelOpportunitiesClient() {
                       {formatLabel(item.contentType)} • {formatLabel(item.source)} •{" "}
                       {timeAgoLabel(item.createdAt)}
                     </div>
-
-                    {item.summary ? (
-                      <div className={cx("pt-1 text-sm", glassTheme.text.secondary)}>
-                        {item.summary}
-                      </div>
-                    ) : null}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                    <GlassBadge tone={item.sourceType === "creator_prompt" ? "copper" : "default"}>
+                    <GlassBadge tone={item.sourceType === "manual_upload" ? "copper" : "default"}>
                       {formatLabel(item.sourceType)}
                     </GlassBadge>
                     <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
-
-                    {item.sourceType !== "creator_prompt" ? (
-                      <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
-                        Score {item.score != null ? Math.round(item.score) : "--"}
-                      </GlassBadge>
-                    ) : (
-                      <GlassBadge tone="muted">
-                        {formatLabel(item.creatorMode ?? "creator_request")}
-                      </GlassBadge>
-                    )}
+                    <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
+                      Score {item.score != null ? Math.round(item.score) : "--"}
+                    </GlassBadge>
 
                     {generationId ? (
                       <>
@@ -341,14 +404,10 @@ export default function ShopReelOpportunitiesClient() {
 
                     <GlassButton
                       variant="primary"
-                      onClick={() => void generateFromItem(item)}
+                      onClick={() => void generateFromOpportunity(item.id)}
                       disabled={isGenerating === item.id}
                     >
-                      {isGenerating === item.id
-                        ? "Generating..."
-                        : item.sourceType === "creator_prompt"
-                          ? "Reuse"
-                          : "Generate"}
+                      {isGenerating === item.id ? "Generating..." : "Generate"}
                     </GlassButton>
                   </div>
                 </div>
@@ -360,3 +419,107 @@ export default function ShopReelOpportunitiesClient() {
     </div>
   );
 }
+
+
+----- src/app/api/shopreel/opportunities/generate/route.ts -----
+import { NextResponse } from "next/server";
+import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+
+export async function POST() {
+  try {
+    const result = await createOpportunities();
+
+    return NextResponse.json({
+      ok: true,
+      opportunitiesCreated: result.created,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 }
+    );
+  }
+}
+
+
+----- src/features/shopreel/opportunities/createOpportunities.ts -----
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { scoreStorySource } from "./scoreStorySource";
+
+type StorySourceRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  kind: string;
+  tags: string[] | null;
+  notes: string[] | null;
+};
+
+export async function createOpportunities() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+  const shopId = await getCurrentShopId();
+
+  const { data: sources, error } = await legacy
+    .from("shopreel_story_sources")
+    .select("id, title, description, kind, tags, notes")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!sources?.length) {
+    return { created: 0 };
+  }
+
+  let created = 0;
+
+  for (const source of sources as StorySourceRow[]) {
+    const score = scoreStorySource(source);
+
+    const reason =
+      score >= 85
+        ? "High-priority story candidate"
+        : score >= 65
+          ? "Strong story candidate"
+          : score >= 45
+            ? "Moderate story candidate"
+            : "Low-priority story candidate";
+
+    const { error: upsertError } = await legacy
+      .from("shopreel_content_opportunities")
+      .upsert(
+        {
+          shop_id: shopId,
+          story_source_id: source.id,
+          score,
+          status: "ready",
+          reason,
+          metadata: {
+            source_kind: source.kind,
+            source_title: source.title,
+          },
+        },
+        {
+          onConflict: "shop_id,story_source_id",
+        },
+      );
+
+    if (upsertError) {
+      throw new Error(upsertError.message);
+    }
+
+    created++;
+  }
+
+  return { created };
+}
+
+
