@@ -2,7 +2,7 @@
 
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import type { TimelineClip } from "@/features/shopreel/editor/lib/timeline";
-import { msToTimelinePx } from "@/features/shopreel/editor/lib/timeline";
+import { msToTimelinePx, PX_PER_SECOND } from "@/features/shopreel/editor/lib/timeline";
 
 type Props = {
   label: string;
@@ -25,6 +25,52 @@ export default function TimelineLane(props: Props) {
     onResizeScene,
   } = props;
 
+  function beginPointerAction(
+    e: React.PointerEvent<HTMLElement>,
+    sceneId: string,
+    action: "drag" | "resize",
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.clientX;
+    let lastStep = 0;
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore if unsupported
+    }
+
+    function handleMove(ev: PointerEvent) {
+      const deltaPx = ev.clientX - startX;
+      const currentStep = Math.trunc(deltaPx / PX_PER_SECOND);
+
+      if (currentStep === lastStep) return;
+
+      const stepDelta = currentStep - lastStep;
+      lastStep = currentStep;
+
+      if (action === "drag" && onDragScene) {
+        onDragScene(sceneId, stepDelta * PX_PER_SECOND);
+      }
+
+      if (action === "resize" && onResizeScene) {
+        onResizeScene(sceneId, stepDelta * PX_PER_SECOND);
+      }
+    }
+
+    function handleUp() {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
+    }
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
+  }
+
   return (
     <div
       className={cx(
@@ -44,7 +90,7 @@ export default function TimelineLane(props: Props) {
           {label}
         </div>
 
-        <div className="relative min-h-[72px]">
+        <div className="relative min-h-[72px] touch-none">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:28px_100%]" />
 
           {clips
@@ -71,24 +117,8 @@ export default function TimelineLane(props: Props) {
                   <button
                     type="button"
                     onClick={() => onSelectClip(clip.id, clip.sceneId, clip.lane)}
-                    onMouseDown={(e) => {
-                      if (!onDragScene) return;
-                      const dragScene = onDragScene;
-                      const startX = e.clientX;
-
-                      function onMove(ev: MouseEvent) {
-                        dragScene(clip.sceneId, ev.clientX - startX);
-                      }
-
-                      function onUp() {
-                        window.removeEventListener("mousemove", onMove);
-                        window.removeEventListener("mouseup", onUp);
-                      }
-
-                      window.addEventListener("mousemove", onMove);
-                      window.addEventListener("mouseup", onUp);
-                    }}
-                    className="h-full w-full cursor-grab rounded-xl px-3 text-left active:cursor-grabbing"
+                    onPointerDown={(e) => beginPointerAction(e, clip.sceneId, "drag")}
+                    className="h-full w-full cursor-grab touch-none rounded-xl px-3 text-left active:cursor-grabbing"
                   >
                     <div className="truncate text-xs font-medium text-white">{clip.label}</div>
                   </button>
@@ -97,24 +127,8 @@ export default function TimelineLane(props: Props) {
                     <button
                       type="button"
                       aria-label="Resize clip"
-                      className="absolute right-0 top-0 h-full w-3 rounded-r-xl bg-white/10 hover:bg-white/20"
-                      onMouseDown={(e) => {
-                        e.stopPropagation();
-                        const resizeScene = onResizeScene;
-                        const startX = e.clientX;
-
-                        function onMove(ev: MouseEvent) {
-                          resizeScene(clip.sceneId, ev.clientX - startX);
-                        }
-
-                        function onUp() {
-                          window.removeEventListener("mousemove", onMove);
-                          window.removeEventListener("mouseup", onUp);
-                        }
-
-                        window.addEventListener("mousemove", onMove);
-                        window.addEventListener("mouseup", onUp);
-                      }}
+                      className="absolute right-0 top-0 h-full w-3 touch-none rounded-r-xl bg-white/10 hover:bg-white/20"
+                      onPointerDown={(e) => beginPointerAction(e, clip.sceneId, "resize")}
                     />
                   ) : null}
                 </div>
