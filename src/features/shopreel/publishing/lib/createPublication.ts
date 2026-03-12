@@ -1,8 +1,20 @@
-
 import { createAdminClient } from "@/lib/supabase/server";
 import type { CreatePublicationInput } from "../types";
 
 export async function createPublication(input: CreatePublicationInput) {
+  if (!input.contentPieceId) {
+    throw new Error("contentPieceId is required");
+  }
+
+  if (
+    input.platform !== "instagram" &&
+    input.platform !== "facebook" &&
+    input.platform !== "tiktok" &&
+    input.platform !== "youtube"
+  ) {
+    throw new Error(`Unsupported platform for content_publications: ${input.platform}`);
+  }
+
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -10,7 +22,7 @@ export async function createPublication(input: CreatePublicationInput) {
     .insert({
       tenant_shop_id: input.shopId,
       source_shop_id: input.shopId,
-      source_system: "profixiq",
+      source_system: "shopreel",
       content_piece_id: input.contentPieceId,
       platform_account_id: input.platformAccountId ?? null,
       platform: input.platform,
@@ -28,6 +40,8 @@ export async function createPublication(input: CreatePublicationInput) {
         title: input.title ?? null,
         caption: input.caption ?? null,
         video_id: input.videoId ?? null,
+        story_source_id: input.storySourceId ?? null,
+        story_source_kind: input.storySourceKind ?? null,
       },
     } as never)
     .select("*")

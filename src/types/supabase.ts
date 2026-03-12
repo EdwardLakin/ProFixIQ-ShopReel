@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       content_analytics_events: {
@@ -1072,6 +1047,273 @@ export type Database = {
           },
         ]
       }
+      shopreel_story_generations: {
+        Row: {
+          content_piece_id: string | null
+          created_at: string
+          created_by: string | null
+          generation_metadata: Json
+          id: string
+          reel_plan_id: string | null
+          render_job_id: string | null
+          shop_id: string
+          status: string
+          story_draft: Json
+          story_source_id: string
+          updated_at: string
+        }
+        Insert: {
+          content_piece_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          generation_metadata?: Json
+          id?: string
+          reel_plan_id?: string | null
+          render_job_id?: string | null
+          shop_id: string
+          status?: string
+          story_draft?: Json
+          story_source_id: string
+          updated_at?: string
+        }
+        Update: {
+          content_piece_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          generation_metadata?: Json
+          id?: string
+          reel_plan_id?: string | null
+          render_job_id?: string | null
+          shop_id?: string
+          status?: string
+          story_draft?: Json
+          story_source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_story_generations_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_story_generations_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_story_generations_reel_plan_id_fkey"
+            columns: ["reel_plan_id"]
+            isOneToOne: false
+            referencedRelation: "reel_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_story_generations_render_job_id_fkey"
+            columns: ["render_job_id"]
+            isOneToOne: false
+            referencedRelation: "reel_render_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_story_generations_story_source_id_fkey"
+            columns: ["story_source_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_story_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_story_source_assets: {
+        Row: {
+          asset_type: string
+          caption: string | null
+          content_asset_id: string | null
+          created_at: string
+          id: string
+          manual_asset_id: string | null
+          metadata: Json
+          note: string | null
+          shop_id: string
+          sort_order: number
+          story_source_id: string
+          taken_at: string | null
+          title: string | null
+          url: string | null
+        }
+        Insert: {
+          asset_type: string
+          caption?: string | null
+          content_asset_id?: string | null
+          created_at?: string
+          id?: string
+          manual_asset_id?: string | null
+          metadata?: Json
+          note?: string | null
+          shop_id: string
+          sort_order?: number
+          story_source_id: string
+          taken_at?: string | null
+          title?: string | null
+          url?: string | null
+        }
+        Update: {
+          asset_type?: string
+          caption?: string | null
+          content_asset_id?: string | null
+          created_at?: string
+          id?: string
+          manual_asset_id?: string | null
+          metadata?: Json
+          note?: string | null
+          shop_id?: string
+          sort_order?: number
+          story_source_id?: string
+          taken_at?: string | null
+          title?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_story_source_assets_content_asset_id_fkey"
+            columns: ["content_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_story_source_assets_manual_asset_id_fkey"
+            columns: ["manual_asset_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_manual_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_story_source_assets_story_source_id_fkey"
+            columns: ["story_source_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_story_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_story_source_refs: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          ref_id: string
+          ref_type: string
+          shop_id: string
+          story_source_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          ref_id: string
+          ref_type: string
+          shop_id: string
+          story_source_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          ref_id?: string
+          ref_type?: string
+          shop_id?: string
+          story_source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_story_source_refs_story_source_id_fkey"
+            columns: ["story_source_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_story_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_story_sources: {
+        Row: {
+          created_at: string
+          customer_label: string | null
+          description: string | null
+          ended_at: string | null
+          facts: Json
+          generation_mode: string
+          id: string
+          kind: string
+          metadata: Json
+          notes: string[]
+          occurred_at: string | null
+          origin: string
+          project_id: string | null
+          project_name: string | null
+          shop_id: string
+          source_key: string | null
+          started_at: string | null
+          tags: string[]
+          technician_label: string | null
+          title: string
+          updated_at: string
+          vehicle_label: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_label?: string | null
+          description?: string | null
+          ended_at?: string | null
+          facts?: Json
+          generation_mode?: string
+          id?: string
+          kind: string
+          metadata?: Json
+          notes?: string[]
+          occurred_at?: string | null
+          origin: string
+          project_id?: string | null
+          project_name?: string | null
+          shop_id: string
+          source_key?: string | null
+          started_at?: string | null
+          tags?: string[]
+          technician_label?: string | null
+          title: string
+          updated_at?: string
+          vehicle_label?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_label?: string | null
+          description?: string | null
+          ended_at?: string | null
+          facts?: Json
+          generation_mode?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          notes?: string[]
+          occurred_at?: string | null
+          origin?: string
+          project_id?: string | null
+          project_name?: string | null
+          shop_id?: string
+          source_key?: string | null
+          started_at?: string | null
+          tags?: string[]
+          technician_label?: string | null
+          title?: string
+          updated_at?: string
+          vehicle_label?: string | null
+        }
+        Relationships: []
+      }
       source_shop_links: {
         Row: {
           created_at: string
@@ -1514,9 +1756,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       content_asset_type: [

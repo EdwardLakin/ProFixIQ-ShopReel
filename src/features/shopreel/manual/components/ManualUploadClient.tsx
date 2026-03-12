@@ -14,11 +14,14 @@ type UploadFileMeta = {
   fileType: "image" | "video";
 };
 
-type GeneratedVideoResult = {
+type GeneratedManualResponse = {
   ok: true;
-  assetId: string;
-  videoId: string;
-  renderJobId: string | null;
+  generated: {
+    storySource: { id: string; title: string; kind: string };
+    draft: { id: string; title: string };
+    contentPiece: { id: string; title: string };
+  };
+  renderJob: { id: string; status: string } | null;
 };
 
 function inferAssetType(files: UploadFileMeta[]): "image" | "video" | "mixed" {
@@ -174,27 +177,28 @@ export default function ManualUploadClient() {
         throw new Error(completeJson.error ?? "Finalize failed");
       }
 
-      const generateRes = await fetch(`/api/shopreel/manual-assets/${assetId}/generate`, {
+      const generateRes = await fetch("/api/shopreel/manual/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          enqueueRender: true,
+          assetId,
+          createRenderJobNow: true,
         }),
       });
 
-      const generateJson = await generateRes.json();
+      const generateJson = (await generateRes.json()) as
+        | GeneratedManualResponse
+        | { ok?: false; error?: string };
 
-      if (!generateRes.ok) {
-        throw new Error(generateJson.error ?? "Generation failed");
+      if (!generateRes.ok || !("ok" in generateJson) || !generateJson.ok) {
+        throw new Error(("error" in generateJson && generateJson.error) || "Generation failed");
       }
 
-      const generated = generateJson as GeneratedVideoResult;
-
       setResult(
-        `Upload complete. Video ${generated.videoId} created${
-          generated.renderJobId ? ` • Render job ${generated.renderJobId}` : ""
+        `Story source ${generateJson.generated.storySource.id} created • Content piece ${generateJson.generated.contentPiece.id} created${
+          generateJson.renderJob ? ` • Render job ${generateJson.renderJob.id}` : ""
         }`,
       );
 
@@ -214,7 +218,7 @@ export default function ManualUploadClient() {
       <GlassCard
         label="Upload Content"
         title="Manual media intake"
-        description="Add photos or videos not tied to work orders or inspections."
+        description="Add photos or videos and generate a Story Source, Story Draft, Content Piece, and Render Job."
         strong
       >
         <div className="grid gap-4 md:grid-cols-2">

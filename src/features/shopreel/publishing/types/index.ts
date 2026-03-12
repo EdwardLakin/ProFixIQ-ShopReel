@@ -1,39 +1,36 @@
-export type ShopReelPublishPlatform =
+import type { Tables } from "@/types/supabase";
+
+export type PublishPlatform =
   | "instagram"
   | "facebook"
-  | "youtube"
   | "tiktok"
+  | "youtube"
+  | "email"
   | "blog"
   | "linkedin"
-  | "google_business"
-  | "email";
+  | "google_business";
 
-export type ShopReelPublicationStatus =
-  | "draft"
-  | "queued"
-  | "publishing"
-  | "published"
-  | "failed"
-  | "skipped";
+export type PublishMode =
+  | "manual"
+  | "assisted"
+  | "autopilot"
+  | "scheduled";
 
 export type CreatePublicationInput = {
   shopId: string;
-  contentEventId: string;
-  platform: ShopReelPublishPlatform;
-
-  contentPieceId?: string | null;
-  contentAssetId?: string | null;
+  contentPieceId: string | null;
+  platform: PublishPlatform;
   platformAccountId?: string | null;
-
-  createdBy?: string | null;
   scheduledFor?: string | null;
-  publishMode?: "manual" | "scheduled" | "autopilot";
-
+  publishMode?: PublishMode | null;
+  contentEventId?: string | null;
+  contentAssetId?: string | null;
+  createdBy?: string | null;
   title?: string | null;
   caption?: string | null;
-
-  // temporary bridge while old video-driven pipeline still exists
   videoId?: string | null;
+  storySourceId?: string | null;
+  storySourceKind?: string | null;
 };
 
 export type EnqueuePublishJobInput = {
@@ -41,3 +38,5 @@ export type EnqueuePublishJobInput = {
   publicationId: string;
   runAfter?: string | null;
 };
+
+export type ContentPublicationRow = Tables<"content_publications">;

@@ -10,7 +10,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/shopreel", label: "Overview" },
-  { href: "/shopreel/opportunities", label: "Opportunities" },
+  { href: "/shopreel/opportunities", label: "Story Sources" },
   { href: "/shopreel/calendar", label: "Calendar" },
   { href: "/shopreel/render-queue", label: "Render Queue" },
   { href: "/shopreel/published", label: "Published" },

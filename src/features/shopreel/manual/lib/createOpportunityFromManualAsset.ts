@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { buildStoryDraftFromSource, createContentPieceFromStoryDraft } from "../../story-builder";
 import type { StorySource } from "../../story-sources";
 
 export type ManualAssetOpportunity = {
@@ -144,5 +145,27 @@ export async function createStorySourceFromManualAsset(
     },
     createdAt: data.created_at ?? undefined,
     updatedAt: data.created_at ?? undefined,
+  };
+}
+
+export async function createContentPieceFromManualAsset(input: {
+  shopId: string;
+  assetId: string;
+  templateId?: string | null;
+}) {
+  const storySource = await createStorySourceFromManualAsset(input.shopId, input.assetId);
+  const draft = buildStoryDraftFromSource(storySource);
+
+  const contentPiece = await createContentPieceFromStoryDraft({
+    shopId: input.shopId,
+    draft,
+    templateId: input.templateId ?? null,
+    sourceSystem: "shopreel",
+  });
+
+  return {
+    storySource,
+    draft,
+    contentPiece,
   };
 }
