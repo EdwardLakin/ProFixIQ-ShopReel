@@ -1,5 +1,5 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassStat from "@/features/shopreel/ui/system/GlassStat";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
@@ -11,7 +11,7 @@ export default function ShopReelAnalyticsPage() {
       title="Analytics"
       subtitle="Warm, legible metrics with stronger hierarchy and less washed-out grey."
     >
-      <GlassNav />
+      <ShopReelNav />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <GlassStat label="Views" value="128.4K" hint="Last 30 days" trend="+21%" />

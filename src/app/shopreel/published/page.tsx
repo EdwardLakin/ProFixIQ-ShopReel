@@ -1,5 +1,5 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
@@ -20,16 +20,10 @@ function timeAgoLabel(value: string | null) {
   return new Date(value).toLocaleDateString();
 }
 
-function objectRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
-}
-
 export default async function ShopReelPublishedPage() {
   const supabase = createAdminClient();
-  const legacy = supabase as any;
 
-  const { data } = await legacy
+  const { data } = await supabase
     .from("content_publications")
     .select("*")
     .order("created_at", { ascending: false })
@@ -43,7 +37,7 @@ export default async function ShopReelPublishedPage() {
       title="Published"
       subtitle="Content distributed through the ShopReel publishing engine."
     >
-      <GlassNav />
+      <ShopReelNav />
 
       <GlassCard
         label="History"
@@ -64,46 +58,31 @@ export default async function ShopReelPublishedPage() {
           </div>
         ) : (
           <div className="grid gap-3">
-            {publications.map((item: any) => {
-              const metadata = objectRecord(item.metadata ?? {});
-              const title =
-                typeof metadata.title === "string" && metadata.title.length > 0
-                  ? metadata.title
-                  : item.platform;
-
-              return (
-                <div
-                  key={item.id}
-                  className={cx(
-                    "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
-                    item.status === "published"
-                      ? glassTheme.border.copper
-                      : glassTheme.border.softer,
-                    glassTheme.glass.panelSoft,
-                  )}
-                >
-                  <div className="space-y-1">
-                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                      {title}
-                    </div>
-                    <div className={cx("text-sm", glassTheme.text.secondary)}>
-                      {item.platform} • {timeAgoLabel(item.published_at ?? item.created_at)}
-                    </div>
-                    {item.platform_post_url ? (
-                      <div className={cx("text-xs", glassTheme.text.muted)}>
-                        {item.platform_post_url}
-                      </div>
-                    ) : null}
+            {publications.map((item) => (
+              <div
+                key={item.id}
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className="space-y-1">
+                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    {(item.metadata as any)?.title ?? item.platform}
                   </div>
-
-                  <div className="flex items-center gap-3 md:justify-end">
-                    <GlassBadge tone={item.status === "published" ? "copper" : "default"}>
-                      {item.status}
-                    </GlassBadge>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+                    {item.platform} • {timeAgoLabel(item.published_at ?? item.created_at)}
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex items-center gap-3 md:justify-end">
+                  <GlassBadge tone={item.status === "published" ? "copper" : "default"}>
+                    {item.status}
+                  </GlassBadge>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </GlassCard>

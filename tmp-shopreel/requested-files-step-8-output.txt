@@ -1,0 +1,755 @@
+SHOPREEL REQUESTED FILE BUNDLE STEP 8
+GENERATED: Thu Mar 12 13:49:03 UTC 2026
+
+==================================================================
+FILE: src/app/shopreel/layout.tsx
+==================================================================
+import type { ReactNode } from "react";
+
+export default function ShopReelLayout(props: { children: ReactNode }) {
+  return props.children;
+}
+
+
+==================================================================
+FILE: src/app/shopreel/opportunities/page.tsx
+==================================================================
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+
+export default function ShopReelOpportunitiesPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Story Sources"
+      subtitle="Discover, save, and generate from the business events and uploads that power ShopReel."
+      actions={<GlassButton variant="primary">Generate selected</GlassButton>}
+    >
+      <GlassNav />
+      <ShopReelOpportunitiesClient />
+    </GlassShell>
+  );
+}
+
+
+==================================================================
+FILE: src/features/shopreel/ui/system/GlassShell.tsx
+==================================================================
+import type { ReactNode } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+export default function GlassShell(props: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  const { eyebrow, title, subtitle, actions, children, className } = props;
+
+  return (
+    <div
+      className={cx(
+        "relative min-h-screen overflow-hidden",
+        glassTheme.bg.base,
+        glassTheme.bg.overlay,
+      )}
+    >
+      <div className={glassTheme.bg.grid} />
+
+      <div className="shopreel-floating-light-a" />
+      <div className="shopreel-floating-light-b" />
+      <div className="shopreel-floating-light-c" />
+
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_20%,transparent_80%,rgba(255,255,255,0.02))]" />
+
+      <div className="relative mx-auto max-w-7xl">
+        <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
+          <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              {eyebrow ? (
+                <div
+                  className={cx(
+                    "text-xs font-medium uppercase tracking-[0.24em]",
+                    glassTheme.text.copper,
+                  )}
+                >
+                  {eyebrow}
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
+                <h1
+                  className={cx(
+                    "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
+                    glassTheme.text.primary,
+                  )}
+                >
+                  {title}
+                </h1>
+
+                {subtitle ? (
+                  <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            {actions ? (
+              <div className="flex flex-wrap items-center gap-3">{actions}</div>
+            ) : null}
+          </header>
+
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==================================================================
+FILE: src/features/shopreel/ui/system/GlassCard.tsx
+==================================================================
+import type { ReactNode } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+export default function GlassCard(props: {
+  label?: string;
+  title?: string;
+  description?: string;
+  children?: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+  strong?: boolean;
+}) {
+  const { label, title, description, children, footer, className, strong = false } = props;
+
+  return (
+    <section
+      className={cx(
+        "rounded-3xl border p-5 md:p-6",
+        strong ? glassTheme.border.strong : glassTheme.border.soft,
+        strong ? glassTheme.glass.panelStrong : glassTheme.glass.panel,
+        className,
+      )}
+    >
+      {(label || title || description) && (
+        <header className="mb-5 space-y-2">
+          {label ? (
+            <div
+              className={cx(
+                "text-[11px] font-semibold uppercase tracking-[0.24em]",
+                glassTheme.text.copper,
+              )}
+            >
+              {label}
+            </div>
+          ) : null}
+
+          {title ? (
+            <h2
+              className={cx(
+                "text-lg tracking-[0.01em] md:text-xl font-semibold",
+                glassTheme.text.primary,
+              )}
+            >
+              {title}
+            </h2>
+          ) : null}
+
+          {description ? (
+            <p className={cx("text-sm leading-6", glassTheme.text.secondary)}>
+              {description}
+            </p>
+          ) : null}
+        </header>
+      )}
+
+      {children ? <div className="space-y-4">{children}</div> : null}
+      {footer ? (
+        <div className="mt-5 border-t border-[rgba(255,255,255,0.06)] pt-4">
+          {footer}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+
+==================================================================
+FILE: src/features/shopreel/ui/system/GlassButton.tsx
+==================================================================
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+type Variant = "primary" | "secondary" | "ghost";
+
+export default function GlassButton(
+  props: ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: Variant;
+    children: ReactNode;
+  },
+) {
+  const {
+    className,
+    variant = "secondary",
+    children,
+    type = "button",
+    ...rest
+  } = props;
+
+  return (
+    <button
+      type={type}
+      className={cx(
+        "inline-flex items-center justify-center rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
+        glassTheme.accent.copperRing,
+        variant === "primary" &&
+          "border-sky-400/30 bg-[linear-gradient(180deg,rgba(59,130,246,0.20),rgba(99,102,241,0.16))] text-white shadow-[0_10px_24px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-sky-300/40 hover:bg-[linear-gradient(180deg,rgba(96,165,250,0.24),rgba(129,140,248,0.20))]",
+        variant === "secondary" &&
+          "border-white/10 bg-white/[0.05] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-white/15 hover:bg-white/[0.08]",
+        variant === "ghost" &&
+          "border-transparent bg-transparent text-white/72 hover:border-white/10 hover:bg-white/[0.04] hover:text-white",
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
+
+==================================================================
+FILE: src/features/shopreel/ui/system/GlassInput.tsx
+==================================================================
+import type { InputHTMLAttributes } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+export default function GlassInput(
+  props: InputHTMLAttributes<HTMLInputElement> & {
+    label?: string;
+    hint?: string;
+    error?: string;
+  },
+) {
+  const { label, hint, error, className, id, ...rest } = props;
+
+  return (
+    <label className="block space-y-2">
+      {label ? (
+        <div className="flex items-center justify-between gap-3">
+          <span className={cx("text-sm font-medium", glassTheme.text.primary)}>
+            {label}
+          </span>
+          {hint ? <span className={cx("text-xs", glassTheme.text.muted)}>{hint}</span> : null}
+        </div>
+      ) : null}
+
+      <input
+        id={id}
+        className={cx(
+          "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition placeholder:text-[rgba(245,238,231,0.34)]",
+          glassTheme.text.primary,
+          glassTheme.glass.input,
+          glassTheme.border.softer,
+          "focus:border-[rgba(201,139,92,0.32)] focus:ring-2 focus:ring-[rgba(201,139,92,0.22)]",
+          className,
+        )}
+        {...rest}
+      />
+
+      {error ? <p className="text-xs text-[color:#d9a089]">{error}</p> : null}
+    </label>
+  );
+}
+
+
+==================================================================
+FILE: src/features/shopreel/ui/system/GlassTextarea.tsx
+==================================================================
+import type { TextareaHTMLAttributes } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+export default function GlassTextarea(
+  props: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+    label?: string;
+    hint?: string;
+    error?: string;
+  },
+) {
+  const { label, hint, error, className, id, ...rest } = props;
+
+  return (
+    <label className="block space-y-2">
+      {label ? (
+        <div className="flex items-center justify-between gap-3">
+          <span className={cx("text-sm font-medium", glassTheme.text.primary)}>
+            {label}
+          </span>
+          {hint ? <span className={cx("text-xs", glassTheme.text.muted)}>{hint}</span> : null}
+        </div>
+      ) : null}
+
+      <textarea
+        id={id}
+        className={cx(
+          "min-h-[120px] w-full rounded-2xl border px-4 py-3 text-sm outline-none transition placeholder:text-[rgba(245,238,231,0.34)]",
+          glassTheme.text.primary,
+          glassTheme.glass.input,
+          glassTheme.border.softer,
+          "focus:border-[rgba(201,139,92,0.32)] focus:ring-2 focus:ring-[rgba(201,139,92,0.22)]",
+          className,
+        )}
+        {...rest}
+      />
+
+      {error ? <p className="text-xs text-[color:#d9a089]">{error}</p> : null}
+    </label>
+  );
+}
+
+
+==================================================================
+FILE: src/features/shopreel/ui/system/GlassBadge.tsx
+==================================================================
+import type { ReactNode } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+export default function GlassBadge(props: {
+  children: ReactNode;
+  tone?: "default" | "copper" | "muted";
+}) {
+  const { children, tone = "default" } = props;
+
+  return (
+    <span
+      className={cx(
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium tracking-[0.01em] backdrop-blur-md",
+
+        tone === "default" &&
+          cx(
+            glassTheme.border.softer,
+            "bg-white/[0.05]",
+            glassTheme.text.primary,
+          ),
+
+        tone === "copper" &&
+          cx(
+            glassTheme.accent.copperBorder,
+            "bg-[linear-gradient(180deg,rgba(59,130,246,0.14),rgba(99,102,241,0.12))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+            glassTheme.text.copperSoft,
+          ),
+
+        tone === "muted" &&
+          cx(
+            glassTheme.border.softer,
+            "bg-white/[0.03]",
+            glassTheme.text.secondary,
+          )
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+
+==================================================================
+FILE: src/features/shopreel/ui/system/glassTheme.ts
+==================================================================
+export const glassTheme = {
+  bg: {
+    base: "bg-[#050816]",
+    overlay:
+      "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.10),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.10),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_22%,transparent_78%,rgba(255,255,255,0.03))] before:content-['']",
+    grid: "absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:18px_18px]",
+  },
+
+  text: {
+    primary: "text-white",
+    secondary: "text-white/72",
+    muted: "text-white/48",
+    copper: "text-sky-300/90",
+    copperSoft: "text-indigo-200/90",
+  },
+
+  border: {
+    soft: "border-white/10",
+    softer: "border-white/8",
+    strong: "border-white/15",
+    copper: "border-sky-400/30",
+  },
+
+  glass: {
+    panel:
+      "bg-white/[0.045] backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.42)]",
+    panelStrong:
+      "bg-white/[0.06] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.52)]",
+    panelSoft:
+      "bg-white/[0.035] backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.34)]",
+    input:
+      "bg-white/[0.04] backdrop-blur-md border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+  },
+
+  accent: {
+    copperBg: "bg-sky-400/12",
+    copperBgStrong: "bg-indigo-400/18",
+    copperLine: "bg-sky-400/40",
+    copperRing: "focus-visible:ring-sky-400/30",
+    copperBorder: "border-sky-400/35",
+  },
+
+  radius: {
+    xl: "rounded-3xl",
+    lg: "rounded-2xl",
+    md: "rounded-xl",
+  },
+
+  spacing: {
+    shell: "px-4 py-6 md:px-6 md:py-8 xl:px-8",
+    section: "space-y-6",
+    grid: "gap-4 md:gap-5 xl:gap-6",
+  },
+} as const;
+
+export function cx(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
+
+
+==================================================================
+FILE: src/features/shopreel/story-builder/types.ts
+==================================================================
+import type { StorySourceKind } from "../story-sources/types"
+
+export type StoryTone =
+  | "professional"
+  | "educational"
+  | "friendly"
+  | "direct"
+  | "confident"
+  | "high-energy"
+
+export type StoryOutputChannel =
+  | "instagram_reel"
+  | "facebook_video"
+  | "youtube_short"
+  | "tiktok_video"
+  | "blog_post"
+  | "google_business_post"
+  | "email"
+
+export type StorySceneRole =
+  | "hook"
+  | "problem"
+  | "finding"
+  | "before"
+  | "process"
+  | "repair"
+  | "result"
+  | "after"
+  | "explanation"
+  | "recommendation"
+  | "teaching"
+  | "example"
+  | "takeaway"
+  | "current_state"
+  | "milestone"
+  | "gratitude"
+  | "demo"
+  | "context"
+  | "service"
+  | "what_it_is"
+  | "what_we_do"
+  | "why_it_matters"
+  | "start"
+  | "start_of_day"
+  | "progress"
+  | "end_of_day"
+  | "cta"
+
+export type StorySceneMedia = {
+  contentAssetId?: string | null
+  manualAssetId?: string | null
+  url?: string | null
+  startSeconds?: number | null
+  endSeconds?: number | null
+  metadata: Record<string, unknown>
+}
+
+export type StoryScene = {
+  id: string
+  role: StorySceneRole
+  title: string
+  overlayText?: string | null
+  voiceoverText?: string | null
+  durationSeconds?: number | null
+  media: StorySceneMedia[]
+  metadata: Record<string, unknown>
+}
+
+export type StoryDraft = {
+  id: string
+  shopId: string
+  sourceId: string
+  sourceKind: StorySourceKind
+
+  title: string
+  hook?: string | null
+  caption?: string | null
+  cta?: string | null
+  hashtags: string[]
+
+  tone: StoryTone
+  targetChannels: StoryOutputChannel[]
+  targetDurationSeconds?: number | null
+
+  summary?: string | null
+  voiceoverText?: string | null
+  scriptText?: string | null
+
+  scenes: StoryScene[]
+  metadata: Record<string, unknown>
+
+  createdAt?: string
+  updatedAt?: string
+}
+
+
+==================================================================
+FILE: src/features/shopreel/story-sources/server/listStoryGenerations.ts
+==================================================================
+import { createAdminClient } from "@/lib/supabase/server";
+
+export async function listStoryGenerations(input: {
+  shopId: string;
+  limit?: number;
+}) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("shopreel_story_generations")
+    .select("*")
+    .eq("shop_id", input.shopId)
+    .order("created_at", { ascending: false })
+    .limit(input.limit ?? 25);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ?? [];
+}
+
+
+==================================================================
+FILE: src/features/shopreel/story-sources/server/getStorySourceWithAssets.ts
+==================================================================
+import { createAdminClient } from "@/lib/supabase/server";
+
+export async function getStorySourceWithAssets(input: {
+  shopId: string;
+  storySourceId: string;
+}) {
+  const supabase = createAdminClient();
+
+  const { data: source, error: sourceError } = await supabase
+    .from("shopreel_story_sources")
+    .select("*")
+    .eq("shop_id", input.shopId)
+    .eq("id", input.storySourceId)
+    .maybeSingle();
+
+  if (sourceError) {
+    throw new Error(sourceError.message);
+  }
+
+  if (!source) {
+    return null;
+  }
+
+  const [{ data: assets, error: assetsError }, { data: refs, error: refsError }] =
+    await Promise.all([
+      supabase
+        .from("shopreel_story_source_assets")
+        .select("*")
+        .eq("shop_id", input.shopId)
+        .eq("story_source_id", input.storySourceId)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("shopreel_story_source_refs")
+        .select("*")
+        .eq("shop_id", input.shopId)
+        .eq("story_source_id", input.storySourceId)
+        .order("created_at", { ascending: true }),
+    ]);
+
+  if (assetsError) {
+    throw new Error(assetsError.message);
+  }
+
+  if (refsError) {
+    throw new Error(refsError.message);
+  }
+
+  return {
+    source,
+    assets: assets ?? [],
+    refs: refs ?? [],
+  };
+}
+
+
+==================================================================
+FILE: src/features/shopreel/render/buildRenderPayload.ts
+==================================================================
+import type { SubtitleBlock } from "@/features/shopreel/subtitles/buildSubtitleBlocks";
+
+export type RenderPayloadInput = {
+  title: string;
+  hook: string;
+  caption: string;
+  cta: string;
+  transcript: string;
+  durationMs: number;
+  visualUrls: string[];
+  subtitleBlocks: SubtitleBlock[];
+};
+
+export type RenderPayload = {
+  aspectRatio: "9:16";
+  durationMs: number;
+  scenes: Array<{
+    kind: "hook" | "problem" | "repair" | "result";
+    startMs: number;
+    endMs: number;
+    overlayText: string;
+    visualUrl: string | null;
+  }>;
+  subtitles: SubtitleBlock[];
+  exportTargets: Array<"tiktok" | "instagram" | "youtube">;
+  metadata: {
+    title: string;
+    caption: string;
+    cta: string;
+    transcript: string;
+  };
+};
+
+export function buildRenderPayload(input: RenderPayloadInput): RenderPayload {
+  const quarter = Math.max(1000, Math.floor(input.durationMs / 4));
+
+  const visuals = [...input.visualUrls];
+  while (visuals.length < 4) {
+    visuals.push(visuals[visuals.length - 1] ?? null);
+  }
+
+  return {
+    aspectRatio: "9:16",
+    durationMs: input.durationMs,
+    scenes: [
+      {
+        kind: "hook",
+        startMs: 0,
+        endMs: quarter,
+        overlayText: input.hook,
+        visualUrl: visuals[0] ?? null,
+      },
+      {
+        kind: "problem",
+        startMs: quarter,
+        endMs: quarter * 2,
+        overlayText: "Here’s what we found",
+        visualUrl: visuals[1] ?? null,
+      },
+      {
+        kind: "repair",
+        startMs: quarter * 2,
+        endMs: quarter * 3,
+        overlayText: "Here’s how we fixed it",
+        visualUrl: visuals[2] ?? null,
+      },
+      {
+        kind: "result",
+        startMs: quarter * 3,
+        endMs: input.durationMs,
+        overlayText: input.cta,
+        visualUrl: visuals[3] ?? null,
+      },
+    ],
+    subtitles: input.subtitleBlocks,
+    exportTargets: ["tiktok", "instagram", "youtube"],
+    metadata: {
+      title: input.title,
+      caption: input.caption,
+      cta: input.cta,
+      transcript: input.transcript,
+    },
+  };
+}
+
+
+==================================================================
+FILE: src/features/shopreel/subtitles/buildSubtitleBlocks.ts
+==================================================================
+export type SubtitleBlock = {
+  startMs: number;
+  endMs: number;
+  text: string;
+};
+
+function splitIntoCaptionChunks(text: string, wordsPerChunk = 5): string[] {
+  const words = text
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+
+  const chunks: string[] = [];
+
+  for (let i = 0; i < words.length; i += wordsPerChunk) {
+    chunks.push(words.slice(i, i + wordsPerChunk).join(" "));
+  }
+
+  return chunks;
+}
+
+export function buildSubtitleBlocks(
+  transcript: string,
+  durationMs: number,
+): SubtitleBlock[] {
+  const cleaned = transcript.trim();
+
+  if (!cleaned) {
+    return [];
+  }
+
+  const chunks = splitIntoCaptionChunks(cleaned, 5);
+
+  if (chunks.length === 0) {
+    return [];
+  }
+
+  const chunkDuration = Math.max(900, Math.floor(durationMs / chunks.length));
+
+  return chunks.map((chunk, index) => {
+    const startMs = index * chunkDuration;
+    const endMs =
+      index === chunks.length - 1
+        ? durationMs
+        : Math.min(durationMs, startMs + chunkDuration);
+
+    return {
+      startMs,
+      endMs,
+      text: chunk,
+    };
+  });
+}
+
+

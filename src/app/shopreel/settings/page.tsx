@@ -1,5 +1,5 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import ShopReelSettingsClient from "@/features/shopreel/ui/ShopReelSettingsClient";
 
 export default function ShopReelSettingsPage() {
@@ -9,7 +9,7 @@ export default function ShopReelSettingsPage() {
       title="Settings"
       subtitle="Connection, publishing, tone, and automation defaults — all through the shared glass control system."
     >
-      <GlassNav />
+      <ShopReelNav />
       <ShopReelSettingsClient />
     </GlassShell>
   );

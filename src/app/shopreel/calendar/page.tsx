@@ -1,5 +1,5 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
@@ -21,7 +21,7 @@ export default function ShopReelCalendarPage() {
       title="Calendar"
       subtitle="Publishing cadence and visibility with warmer, more dimensional glass surfaces."
     >
-      <GlassNav />
+      <ShopReelNav />
 
       <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <GlassCard

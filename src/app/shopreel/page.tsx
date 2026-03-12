@@ -1,98 +1,82 @@
 import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassStat from "@/features/shopreel/ui/system/GlassStat";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import {
-  listStoryGenerations,
-  listStorySources,
-} from "@/features/shopreel/story-sources/server";
-
-function formatLabel(value: string) {
-  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function timeAgoLabel(value: string) {
-  const now = Date.now();
-  const then = new Date(value).getTime();
-  const diffMs = Math.max(0, now - then);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffHours < 1) return "Just now";
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return new Date(value).toLocaleDateString();
-}
+import { createAdminClient } from "@/lib/supabase/server";
 
 export default async function ShopReelPage() {
-  const shopId = await getCurrentShopId();
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
 
-  const [storySources, storyGenerations] = await Promise.all([
-    listStorySources({ shopId, limit: 50 }),
-    listStoryGenerations({ shopId, limit: 50 }),
-  ]);
+  const [{ count: sourceCount }, { count: generationCount }, { count: readyCount }, { count: queuedRenderCount }] =
+    await Promise.all([
+      legacy.from("shopreel_story_sources").select("*", { count: "exact", head: true }),
+      legacy.from("shopreel_story_generations").select("*", { count: "exact", head: true }),
+      legacy
+        .from("shopreel_story_generations")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "ready"),
+      legacy
+        .from("reel_render_jobs")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["queued", "rendering"]),
+    ]);
 
-  const renderQueuedCount = storyGenerations.filter(
-    (item) => item.status === "queued",
-  ).length;
-
-  const draftCount = storyGenerations.filter(
-    (item) => item.status === "draft",
-  ).length;
-
-  const recentSources = storySources.slice(0, 5);
+  const { data: recentSources } = await legacy
+    .from("shopreel_story_sources")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(5);
 
   return (
     <GlassShell
       eyebrow="ShopReel"
       title="Content automation cockpit"
-      subtitle="Story Sources now drive the pipeline: discover what happened, turn it into a story, then generate content."
+      subtitle="Story Sources drive the pipeline: discover what happened, turn it into a story, then generate content."
       actions={
         <>
           <Link href="/shopreel/opportunities">
-            <GlassButton variant="ghost">Open story sources</GlassButton>
+            <GlassButton variant="ghost">Open opportunities</GlassButton>
           </Link>
           <Link href="/shopreel/upload">
             <GlassButton variant="secondary">Upload content</GlassButton>
           </Link>
-          <Link href="/shopreel/opportunities">
-            <GlassButton variant="primary">Generate content</GlassButton>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="primary">Open generations</GlassButton>
           </Link>
         </>
       }
     >
-      <GlassNav />
+      <ShopReelNav />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <GlassStat
           label="Story Sources"
-          value={String(storySources.length)}
+          value={String(sourceCount ?? 0)}
           hint="Saved source queue"
-          trend={storySources.length > 0 ? "Active" : "Empty"}
+          trend="Active"
         />
         <GlassStat
           label="Story Generations"
-          value={String(storyGenerations.length)}
-          hint="Draft + queued generations"
-          trend={storyGenerations.length > 0 ? "Building" : "Idle"}
+          value={String(generationCount ?? 0)}
+          hint="Draft + queued + ready"
+          trend="Building"
         />
         <GlassStat
           label="Queued Renders"
-          value={String(renderQueuedCount)}
-          hint="Generations waiting for render"
-          trend={renderQueuedCount > 0 ? "Queued" : "None"}
+          value={String(queuedRenderCount ?? 0)}
+          hint="Jobs waiting or rendering"
+          trend="Pipeline"
         />
         <GlassStat
-          label="Draft Stories"
-          value={String(draftCount)}
-          hint="Generated and ready to continue"
-          trend={draftCount > 0 ? "Ready" : "None"}
+          label="Ready Stories"
+          value={String(readyCount ?? 0)}
+          hint="Generated and ready"
+          trend="Continue editing"
         />
       </section>
 
@@ -103,20 +87,20 @@ export default async function ShopReelPage() {
           description="These are the latest saved sources in the ShopReel story pipeline."
           strong
         >
-          {recentSources.length === 0 ? (
-            <div
-              className={cx(
-                "rounded-2xl border p-4 text-sm",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft,
-                glassTheme.text.secondary,
-              )}
-            >
-              No saved story sources yet. Go to Story Sources and click Discover stories to seed the first item.
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {recentSources.map((item) => (
+          <div className="grid gap-3">
+            {(recentSources ?? []).length === 0 ? (
+              <div
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.secondary,
+                )}
+              >
+                No saved story sources yet.
+              </div>
+            ) : (
+              (recentSources ?? []).map((item: any) => (
                 <div
                   key={item.id}
                   className={cx(
@@ -130,22 +114,22 @@ export default async function ShopReelPage() {
                       {item.title}
                     </div>
                     <div className={cx("text-sm", glassTheme.text.secondary)}>
-                      {formatLabel(item.kind)} • {formatLabel(item.origin)} •{" "}
-                      {timeAgoLabel(item.created_at)}
+                      {String(item.kind).replaceAll("_", " ")} • {String(item.origin).replaceAll("_", " ")}
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <GlassBadge tone="default">{formatLabel(item.generation_mode)}</GlassBadge>
-                    {item.tags?.slice(0, 1).map((tag) => (
-                      <GlassBadge key={tag} tone="copper">
-                        {tag}
-                      </GlassBadge>
-                    ))}
+
+                  <div className="flex gap-2">
+                    <GlassBadge tone="default">
+                      {String(item.generation_mode ?? "assisted")}
+                    </GlassBadge>
+                    {Array.isArray(item.tags) && item.tags[0] ? (
+                      <GlassBadge tone="copper">{String(item.tags[0])}</GlassBadge>
+                    ) : null}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </GlassCard>
 
         <GlassCard
@@ -155,9 +139,9 @@ export default async function ShopReelPage() {
         >
           <div className="space-y-4">
             {[
-              ["Saved story sources", String(storySources.length)],
-              ["Saved generations", String(storyGenerations.length)],
-              ["Next action", storySources.length > 0 ? "Generate from Story Sources" : "Seed first Story Source"],
+              ["Saved story sources", String(sourceCount ?? 0)],
+              ["Saved generations", String(generationCount ?? 0)],
+              ["Next action", "Open opportunities or editor"],
             ].map(([label, value]) => (
               <div
                 key={label}

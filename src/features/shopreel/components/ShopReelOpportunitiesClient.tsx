@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
@@ -21,6 +22,16 @@ type OpportunityItem = {
 type OpportunitiesResponse =
   | { ok: true; items: OpportunityItem[] }
   | { ok?: false; error?: string };
+
+type GenerationResult = {
+  ok: true;
+  generated: {
+    opportunityId: string;
+    contentPieceId: string;
+    renderJobId: string | null;
+    generationId: string;
+  };
+};
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
@@ -47,6 +58,7 @@ export default function ShopReelOpportunitiesClient() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [isScoring, setIsScoring] = useState(false);
+  const [generatedByOpportunity, setGeneratedByOpportunity] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   const loadItems = useCallback(async (refresh = false) => {
@@ -125,11 +137,18 @@ export default function ShopReelOpportunitiesClient() {
           }),
         });
 
-        const json = (await res.json()) as { ok?: boolean; error?: string };
+        const json = (await res.json()) as
+  | GenerationResult
+  | { ok?: boolean; error?: string };
 
-        if (!res.ok || !json.ok) {
-          throw new Error(json.error ?? "Failed to generate story");
-        }
+if (!res.ok || !("generated" in json)) {
+  throw new Error(("error" in json && json.error) || "Failed to generate story");
+}
+
+setGeneratedByOpportunity((prev) => ({
+  ...prev,
+  [opportunityId]: json.generated.generationId,
+}));
 
         await loadItems(true);
         router.refresh();
@@ -238,45 +257,61 @@ export default function ShopReelOpportunitiesClient() {
 
         {!isLoading && !error ? (
           <div className="grid gap-3">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className={cx(
-                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
-                  (item.score ?? 0) >= 85
-                    ? glassTheme.border.copper
-                    : glassTheme.border.softer,
-                  glassTheme.glass.panelSoft,
-                )}
-              >
-                <div className="space-y-1">
-                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                    {item.title}
-                  </div>
-                  <div className={cx("text-sm", glassTheme.text.secondary)}>
-                    {formatLabel(item.contentType)} • {formatLabel(item.source)} •{" "}
-                    {timeAgoLabel(item.createdAt)}
-                  </div>
-                </div>
+            {items.map((item) => {
+              const generationId = generatedByOpportunity[item.id] ?? null;
 
-                <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                  <GlassBadge tone={item.sourceType === "manual_upload" ? "copper" : "default"}>
-                    {formatLabel(item.sourceType)}
-                  </GlassBadge>
-                  <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
-                  <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
-                    Score {item.score != null ? Math.round(item.score) : "--"}
-                  </GlassBadge>
-                  <GlassButton
-                    variant="secondary"
-                    onClick={() => void generateFromOpportunity(item.id)}
-                    disabled={isGenerating === item.id}
-                  >
-                    {isGenerating === item.id ? "Generating..." : "Generate"}
-                  </GlassButton>
+              return (
+                <div
+                  key={item.id}
+                  className={cx(
+                    "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                    (item.score ?? 0) >= 85
+                      ? glassTheme.border.copper
+                      : glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {item.title}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      {formatLabel(item.contentType)} • {formatLabel(item.source)} •{" "}
+                      {timeAgoLabel(item.createdAt)}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                    <GlassBadge tone={item.sourceType === "manual_upload" ? "copper" : "default"}>
+                      {formatLabel(item.sourceType)}
+                    </GlassBadge>
+                    <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+                    <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
+                      Score {item.score != null ? Math.round(item.score) : "--"}
+                    </GlassBadge>
+
+                    {generationId ? (
+                      <>
+                        <Link href={`/shopreel/generations/${generationId}`}>
+                          <GlassButton variant="ghost">Review</GlassButton>
+                        </Link>
+                        <Link href={`/shopreel/editor/${generationId}`}>
+                          <GlassButton variant="secondary">Edit</GlassButton>
+                        </Link>
+                      </>
+                    ) : null}
+
+                    <GlassButton
+                      variant="primary"
+                      onClick={() => void generateFromOpportunity(item.id)}
+                      disabled={isGenerating === item.id}
+                    >
+                      {isGenerating === item.id ? "Generating..." : "Generate"}
+                    </GlassButton>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : null}
       </GlassCard>
