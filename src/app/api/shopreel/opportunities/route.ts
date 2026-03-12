@@ -1,78 +1,55 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
-const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
-
-type OpportunityRow = {
-  id: string;
-  title: string | null;
-  status: string | null;
-  content_type: string | null;
-  ai_score: number | null;
-  source_asset_id: string | null;
-  created_at: string | null;
-};
-
-type ShopUserLite = {
-  shop_id: string;
-};
-
-async function resolveShopId() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return DEFAULT_SHOP_ID;
-  }
-
-  const admin = createAdminClient();
-
-  const { data: membership } = await (admin as any)
-    .from("shop_users")
-    .select("shop_id")
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  return (membership as ShopUserLite | null)?.shop_id ?? DEFAULT_SHOP_ID;
-}
-
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const shopId = await resolveShopId();
+    const shopId = await getCurrentShopId();
+    const { searchParams } = new URL(req.url);
+    const limitRaw = searchParams.get("limit");
+    const limit = limitRaw ? Number(limitRaw) : 50;
+
     const supabase = createAdminClient();
+    const legacy = supabase as any;
 
-    const url = new URL(req.url);
-    const limit = Math.min(
-      Math.max(Number(url.searchParams.get("limit") ?? 50), 1),
-      100,
-    );
-
-    const { data, error } = await supabase
-      .from("videos")
-      .select("id,title,status,content_type,ai_score,source_asset_id,created_at")
+    const { data, error } = await legacy
+      .from("shopreel_content_opportunities")
+      .select(`
+        id,
+        score,
+        status,
+        reason,
+        created_at,
+        story_source_id,
+        metadata,
+        shopreel_story_sources!inner (
+          id,
+          title,
+          kind,
+          origin,
+          created_at
+        )
+      `)
       .eq("shop_id", shopId)
-      .in("status", ["draft", "queued", "processing", "ready"])
-      .order("created_at", { ascending: false })
+      .order("score", { ascending: false })
       .limit(limit);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      throw new Error(error.message);
     }
 
-    const items = ((data ?? []) as OpportunityRow[]).map((row) => ({
+    const items = (data ?? []).map((row: any) => ({
       id: row.id,
-      title: row.title ?? "Untitled",
-      contentType: row.content_type ?? "workflow_demo",
-      score: row.ai_score,
-      status: row.status ?? "draft",
-      source: row.source_asset_id ? "Manual Upload" : "Shop Data",
-      sourceType: row.source_asset_id ? "manual_upload" : "shop_data",
-      createdAt: row.created_at ?? new Date().toISOString(),
+      title: row.shopreel_story_sources?.title ?? "Untitled",
+      contentType: row.shopreel_story_sources?.kind ?? "story_source",
+      score: typeof row.score === "number" ? row.score : Number(row.score ?? 0),
+      status: row.status,
+      source: row.shopreel_story_sources?.origin ?? "shopreel",
+      sourceType:
+        row.shopreel_story_sources?.origin === "manual_upload"
+          ? "manual_upload"
+          : "shop_data",
+      createdAt: row.shopreel_story_sources?.created_at ?? row.created_at,
     }));
 
     return NextResponse.json({
@@ -80,10 +57,11 @@ export async function GET(req: NextRequest) {
       items,
     });
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load opportunities";
+
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
+      { ok: false, error: message },
       { status: 500 },
     );
   }

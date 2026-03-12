@@ -886,6 +886,50 @@ export type Database = {
         }
         Relationships: []
       }
+      shopreel_content_opportunities: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          reason: string | null
+          score: number
+          shop_id: string
+          status: string
+          story_source_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          score?: number
+          shop_id: string
+          status?: string
+          story_source_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          score?: number
+          shop_id?: string
+          status?: string
+          story_source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_content_opportunities_story_source_id_fkey"
+            columns: ["story_source_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_story_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopreel_manual_asset_files: {
         Row: {
           asset_id: string

@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
-import { discoverStorySources } from "@/features/shopreel/discovery/discoverStorySources";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+import { saveStorySource } from "@/features/shopreel/story-sources/server";
 
 export async function POST() {
   try {
-    const result = await discoverStorySources();
+    const shopId = await getCurrentShopId();
+    const discovered = await discoverStorySources(shopId);
+
+    let created = 0;
+
+    for (const source of discovered) {
+      const result = await saveStorySource(source);
+      if (!result.deduped) created++;
+    }
 
     return NextResponse.json({
       ok: true,
-      sourcesCreated: result.sourcesCreated,
+      sourcesCreated: created,
     });
   } catch (error) {
     const message =
