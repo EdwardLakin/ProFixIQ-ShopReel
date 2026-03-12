@@ -1,0 +1,6 @@
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx
+src/features/shopreel/worker/processRenderJobs.ts
+src/features/shopreel/publishing/lib/getPublicationPayload.ts
+src/features/shopreel/publishing/lib/processPublishJob.ts
+src/features/shopreel/render/createRenderJob.ts
+src/features/shopreel/story-builder/generateStoryPipeline.ts

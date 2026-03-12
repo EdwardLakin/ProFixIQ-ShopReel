@@ -7,30 +7,19 @@ import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
-type StorySourceItem = {
+type OpportunityItem = {
   id: string;
   title: string;
-  kind: string;
-  origin: string;
-  generation_mode: string;
-  created_at: string;
-  tags: string[] | null;
+  contentType: string;
+  score: number | null;
+  status: string;
+  source: string;
+  sourceType: "manual_upload" | "shop_data";
+  createdAt: string;
 };
 
-type StorySourceResponse =
-  | {
-      ok: true;
-      mode: string;
-      count: number;
-      sources?: StorySourceItem[];
-      candidates?: Array<{
-        title: string;
-        kind: string;
-        confidence: number;
-        reason: string;
-        tags: string[];
-      }>;
-    }
+type OpportunitiesResponse =
+  | { ok: true; items: OpportunityItem[] }
   | { ok?: false; error?: string };
 
 function formatLabel(value: string) {
@@ -53,10 +42,11 @@ function timeAgoLabel(value: string) {
 
 export default function ShopReelOpportunitiesClient() {
   const router = useRouter();
-  const [items, setItems] = useState<StorySourceItem[]>([]);
+  const [items, setItems] = useState<OpportunityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
+  const [isScoring, setIsScoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadItems = useCallback(async (refresh = false) => {
@@ -65,99 +55,72 @@ export default function ShopReelOpportunitiesClient() {
       if (refresh) setIsRefreshing(true);
       else setIsLoading(true);
 
-      const res = await fetch("/api/shopreel/story-sources?mode=saved&limit=50", {
+      const res = await fetch("/api/shopreel/opportunities?limit=50", {
         method: "GET",
         cache: "no-store",
       });
 
-      const json = (await res.json()) as StorySourceResponse;
+      const json = (await res.json()) as OpportunitiesResponse;
 
       if (!res.ok || !json.ok) {
-        throw new Error(("error" in json && json.error) || "Failed to load story sources");
+        throw new Error(("error" in json && json.error) || "Failed to load opportunities");
       }
 
-      setItems(json.sources ?? []);
+      setItems(json.items ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load story sources");
+      setError(err instanceof Error ? err.message : "Failed to load opportunities");
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   }, []);
 
-  const discoverNow = useCallback(async () => {
+  const discoverAndScore = useCallback(async () => {
     try {
       setError(null);
-      setIsRefreshing(true);
+      setIsScoring(true);
 
-      const existingRes = await fetch("/api/shopreel/story-sources?mode=saved&limit=1", {
-        method: "GET",
-        cache: "no-store",
+      const discoverRes = await fetch("/api/shopreel/discovery", {
+        method: "POST",
       });
 
-      const existingJson = (await existingRes.json()) as
-        | { ok: true; count: number }
-        | { ok?: false; error?: string };
+      const discoverJson = (await discoverRes.json()) as { ok?: boolean; error?: string };
 
-      if (!existingRes.ok || !("ok" in existingJson) || !existingJson.ok) {
-        throw new Error(("error" in existingJson && existingJson.error) || "Failed to inspect story sources");
+      if (!discoverRes.ok || !discoverJson.ok) {
+        throw new Error(discoverJson.error ?? "Failed discovery");
       }
 
-      if ((existingJson.count ?? 0) === 0) {
-        const seedRes = await fetch("/api/shopreel/story-sources/seed", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            createRenderJobNow: false,
-          }),
-        });
+      const scoreRes = await fetch("/api/shopreel/opportunities/generate", {
+        method: "POST",
+      });
 
-        const seedJson = (await seedRes.json()) as { ok?: boolean; error?: string };
+      const scoreJson = (await scoreRes.json()) as { ok?: boolean; error?: string };
 
-        if (!seedRes.ok || !seedJson.ok) {
-          throw new Error(seedJson.error ?? "Failed to seed story sources");
-        }
-      } else {
-        const res = await fetch("/api/shopreel/story-pipeline/test", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            limit: 3,
-            createRenderJobNow: false,
-          }),
-        });
-
-        const json = (await res.json()) as { ok?: boolean; error?: string };
-
-        if (!res.ok || !json.ok) {
-          throw new Error(json.error ?? "Failed to discover story sources");
-        }
+      if (!scoreRes.ok || !scoreJson.ok) {
+        throw new Error(scoreJson.error ?? "Failed opportunity scoring");
       }
 
       await loadItems(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to discover story sources");
-      setIsRefreshing(false);
+      setError(err instanceof Error ? err.message : "Failed to refresh opportunities");
+      setIsScoring(false);
+    } finally {
+      setIsScoring(false);
     }
   }, [loadItems]);
 
-  const generateFromSavedSource = useCallback(
-    async (storySourceId: string) => {
+  const generateFromOpportunity = useCallback(
+    async (opportunityId: string) => {
       try {
         setError(null);
-        setIsGenerating(storySourceId);
+        setIsGenerating(opportunityId);
 
-        const res = await fetch("/api/shopreel/story-sources/generate", {
+        const res = await fetch(`/api/shopreel/opportunities/${opportunityId}/generate`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            storySourceId,
             createRenderJobNow: true,
           }),
         });
@@ -168,6 +131,7 @@ export default function ShopReelOpportunitiesClient() {
           throw new Error(json.error ?? "Failed to generate story");
         }
 
+        await loadItems(true);
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to generate story");
@@ -175,7 +139,7 @@ export default function ShopReelOpportunitiesClient() {
         setIsGenerating(null);
       }
     },
-    [router],
+    [loadItems, router],
   );
 
   useEffect(() => {
@@ -183,32 +147,32 @@ export default function ShopReelOpportunitiesClient() {
   }, [loadItems]);
 
   const summary = useMemo(() => {
-    const manualCount = items.filter((item) => item.origin === "manual_upload").length;
-    const projectCount = items.filter((item) => item.origin === "project").length;
-    const assistedCount = items.filter((item) => item.generation_mode === "assisted").length;
+    const manualCount = items.filter((item) => item.sourceType === "manual_upload").length;
+    const highScoreCount = items.filter((item) => (item.score ?? 0) >= 85).length;
+    const readyCount = items.filter((item) => item.status === "ready").length;
 
     return {
       total: items.length,
       manualCount,
-      projectCount,
-      assistedCount,
+      highScoreCount,
+      readyCount,
     };
   }, [items]);
 
   return (
     <div className="space-y-5">
       <GlassCard
-        label="Story Sources"
-        title="Ranked business story opportunities"
-        description="Story Sources are now the primary queue. Discovery finds what happened, then generation turns it into content."
+        label="Opportunities"
+        title="Ranked story opportunities"
+        description="Discovery feeds Story Sources, then the Opportunity Engine scores what should be generated first."
         strong
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
               <GlassBadge tone="default">{summary.total} total</GlassBadge>
               <GlassBadge tone="copper">{summary.manualCount} manual</GlassBadge>
-              <GlassBadge tone="default">{summary.projectCount} project</GlassBadge>
-              <GlassBadge tone="muted">{summary.assistedCount} assisted</GlassBadge>
+              <GlassBadge tone="default">{summary.highScoreCount} high score</GlassBadge>
+              <GlassBadge tone="muted">{summary.readyCount} ready</GlassBadge>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -224,10 +188,10 @@ export default function ShopReelOpportunitiesClient() {
               </GlassButton>
               <GlassButton
                 variant="primary"
-                onClick={() => void discoverNow()}
-                disabled={isRefreshing}
+                onClick={() => void discoverAndScore()}
+                disabled={isScoring}
               >
-                {isRefreshing ? "Discovering..." : "Discover stories"}
+                {isScoring ? "Running..." : "Discover + score"}
               </GlassButton>
             </div>
           </div>
@@ -242,7 +206,7 @@ export default function ShopReelOpportunitiesClient() {
               glassTheme.text.secondary,
             )}
           >
-            Loading story sources...
+            Loading opportunities...
           </div>
         ) : null}
 
@@ -268,7 +232,7 @@ export default function ShopReelOpportunitiesClient() {
               glassTheme.text.secondary,
             )}
           >
-            No story sources yet. Click Discover stories to generate the first saved queue entries.
+            No opportunities yet. Click Discover + score to build the ranked queue.
           </div>
         ) : null}
 
@@ -279,7 +243,7 @@ export default function ShopReelOpportunitiesClient() {
                 key={item.id}
                 className={cx(
                   "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
-                  item.origin === "manual_upload"
+                  (item.score ?? 0) >= 85
                     ? glassTheme.border.copper
                     : glassTheme.border.softer,
                   glassTheme.glass.panelSoft,
@@ -290,28 +254,22 @@ export default function ShopReelOpportunitiesClient() {
                     {item.title}
                   </div>
                   <div className={cx("text-sm", glassTheme.text.secondary)}>
-                    {formatLabel(item.kind)} • {formatLabel(item.origin)} •{" "}
-                    {timeAgoLabel(item.created_at)}
+                    {formatLabel(item.contentType)} • {formatLabel(item.source)} •{" "}
+                    {timeAgoLabel(item.createdAt)}
                   </div>
-                  {item.tags && item.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {item.tags.slice(0, 4).map((tag) => (
-                        <GlassBadge key={tag} tone="muted">
-                          {tag}
-                        </GlassBadge>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                  <GlassBadge tone={item.origin === "manual_upload" ? "copper" : "default"}>
-                    {formatLabel(item.origin)}
+                  <GlassBadge tone={item.sourceType === "manual_upload" ? "copper" : "default"}>
+                    {formatLabel(item.sourceType)}
                   </GlassBadge>
-                  <GlassBadge tone="default">{formatLabel(item.generation_mode)}</GlassBadge>
+                  <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+                  <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
+                    Score {item.score != null ? Math.round(item.score) : "--"}
+                  </GlassBadge>
                   <GlassButton
                     variant="secondary"
-                    onClick={() => void generateFromSavedSource(item.id)}
+                    onClick={() => void generateFromOpportunity(item.id)}
                     disabled={isGenerating === item.id}
                   >
                     {isGenerating === item.id ? "Generating..." : "Generate"}
