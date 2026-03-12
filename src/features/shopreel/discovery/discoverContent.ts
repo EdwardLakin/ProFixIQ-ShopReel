@@ -1,4 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { storySourceFromOpportunity } from "../story-sources";
+import type { StorySource } from "../story-sources";
 
 type DiscoverableWorkOrder = {
   id: string;
@@ -267,4 +269,9 @@ export async function discoverContent(shopId: string): Promise<ContentOpportunit
   }
 
   return opportunities.slice(0, 20);
+}
+
+export async function discoverStorySources(shopId: string): Promise<StorySource[]> {
+  const opportunities = await discoverContent(shopId);
+  return opportunities.map((opportunity) => storySourceFromOpportunity(shopId, opportunity));
 }
