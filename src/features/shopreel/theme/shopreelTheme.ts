@@ -9,4 +9,4 @@ export const shopreelTheme = {
   primaryButton:
     "bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-200",
 };
-eof
+
