@@ -75,6 +75,7 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
   const router = useRouter();
   const [items, setItems] = useState<CreatorRequestRow[]>(initialItems);
   const [runningKey, setRunningKey] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const totalAngles = useMemo(
@@ -85,6 +86,32 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
       }, 0),
     [items],
   );
+
+  async function deleteRequest(requestId: string, label: string) {
+    const confirmed = window.confirm(`Delete "${label}"?`);
+    if (!confirmed) return;
+
+    try {
+      setError(null);
+      setDeletingId(requestId);
+
+      const res = await fetch(`/api/shopreel/creator-requests/${requestId}`, {
+        method: "DELETE",
+      });
+
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to delete creator request");
+      }
+
+      setItems((prev) => prev.filter((item) => item.id !== requestId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete creator request");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function createFromAngle(
     requestId: string,
@@ -260,6 +287,16 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
                         </Link>
                       </>
                     ) : null}
+
+                    <GlassButton
+                      variant="ghost"
+                      onClick={() =>
+                        void deleteRequest(item.id, item.title ?? item.topic ?? "Creator request")
+                      }
+                      disabled={deletingId === item.id}
+                    >
+                      {deletingId === item.id ? "Deleting..." : "Delete"}
+                    </GlassButton>
                   </div>
 
                   {angles.length > 0 ? (

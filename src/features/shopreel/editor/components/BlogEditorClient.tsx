@@ -41,6 +41,8 @@ const REWRITE_OPTIONS: RewriteOption[] = [
   { value: "simpler_explanation", label: "Simpler explanation" },
 ];
 
+const DEFAULT_REWRITE_STYLE: BlogRewriteStyle = "more_conversational";
+
 function rebuildBodyFromSections(sections: BlogSection[]) {
   return sections
     .map((section, index) => {
@@ -50,15 +52,24 @@ function rebuildBodyFromSections(sections: BlogSection[]) {
     .join("\n\n");
 }
 
+function nextSectionKey() {
+  return `section-${Date.now()}`;
+}
+
 export default function BlogEditorClient(props: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [title, setTitle] = useState(props.initialTitle);
   const [sections, setSections] = useState<BlogSection[]>(props.initialSections);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [runningSectionKey, setRunningSectionKey] = useState<string | null>(null);
-  const [selectedRewriteStyle, setSelectedRewriteStyle] =
-    useState<BlogRewriteStyle>("more_conversational");
+  const [sectionRewriteStyles, setSectionRewriteStyles] = useState<Record<string, BlogRewriteStyle>>(
+    () =>
+      Object.fromEntries(
+        props.initialSections.map((section) => [section.key, DEFAULT_REWRITE_STYLE]),
+      ),
+  );
   const [error, setError] = useState<string | null>(null);
 
   const selectedKey = searchParams.get("section");
@@ -77,6 +88,43 @@ export default function BlogEditorClient(props: Props) {
         section.key === sectionKey ? { ...section, ...patch } : section,
       ),
     );
+  }
+
+  function setSectionRewriteStyle(sectionKey: string, style: BlogRewriteStyle) {
+    setSectionRewriteStyles((current) => ({
+      ...current,
+      [sectionKey]: style,
+    }));
+  }
+
+  function getSectionRewriteStyle(sectionKey: string) {
+    return sectionRewriteStyles[sectionKey] ?? DEFAULT_REWRITE_STYLE;
+  }
+
+  function addSection() {
+    const section: BlogSection = {
+      key: nextSectionKey(),
+      title: "New section",
+      body: "",
+    };
+
+    setSections((current) => [...current, section]);
+    setSectionRewriteStyle(section.key, DEFAULT_REWRITE_STYLE);
+  }
+
+  function deleteSection(sectionKey: string) {
+    const target = sections.find((section) => section.key === sectionKey);
+    const confirmed = window.confirm(
+      `Delete section "${target?.title ?? sectionKey}"? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setSections((current) => current.filter((section) => section.key !== sectionKey));
+    setSectionRewriteStyles((current) => {
+      const next = { ...current };
+      delete next[sectionKey];
+      return next;
+    });
   }
 
   async function saveBlog() {
@@ -106,6 +154,35 @@ export default function BlogEditorClient(props: Props) {
       setError(err instanceof Error ? err.message : "Failed to save blog");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function deleteGeneration() {
+    const confirmed = window.confirm(
+      "Delete this blog generation? This will remove this generated item.",
+    );
+    if (!confirmed) return;
+
+    try {
+      setError(null);
+      setIsDeleting(true);
+
+      const res = await fetch(`/api/shopreel/story-generations/${props.generationId}`, {
+        method: "DELETE",
+      });
+
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to delete generation");
+      }
+
+      router.push("/shopreel/content");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete generation");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -156,14 +233,14 @@ export default function BlogEditorClient(props: Props) {
       };
 
       if (!res.ok || !json.ok) {
-        throw new Error(json.error ?? "Failed to regenerate section");
+        throw new Error(json.error ?? "Failed to rewrite section");
       }
 
       if (json.blog?.title) setTitle(json.blog.title);
       if (Array.isArray(json.blog?.sections)) setSections(json.blog.sections);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to regenerate section");
+      setError(err instanceof Error ? err.message : "Failed to rewrite section");
     } finally {
       setRunningSectionKey(null);
     }
@@ -174,12 +251,15 @@ export default function BlogEditorClient(props: Props) {
       <GlassCard
         label="Sections"
         title="Blog structure"
-        description="Edit and rewrite sections without leaving the blog editor."
+        description="Edit, rewrite, add, and delete sections without leaving the blog editor."
         strong
         footer={
           <div className="flex flex-wrap gap-3">
             <GlassBadge tone="default">{sections.length} sections</GlassBadge>
             <GlassBadge tone="copper">Blog editor</GlassBadge>
+            <GlassButton variant="ghost" onClick={addSection}>
+              Add section
+            </GlassButton>
           </div>
         }
       >
@@ -187,6 +267,7 @@ export default function BlogEditorClient(props: Props) {
           {sections.map((section) => {
             const selected = selectedSection?.key === section.key;
             const busy = runningSectionKey === section.key;
+            const rewriteStyle = getSectionRewriteStyle(section.key);
 
             return (
               <div
@@ -208,40 +289,71 @@ export default function BlogEditorClient(props: Props) {
                     </div>
                   </div>
 
-                  <a
-                    href={`?section=${section.key}`}
-                    className={cx("text-xs", glassTheme.text.secondary)}
-                  >
-                    Edit
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={`?section=${section.key}`}
+                      className={cx("text-xs", glassTheme.text.secondary)}
+                    >
+                      Edit
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => deleteSection(section.key)}
+                      className={cx("text-xs", glassTheme.text.copperSoft)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
 
                 <div className={cx("mt-3 line-clamp-4 text-sm", glassTheme.text.secondary)}>
                   {section.body}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <GlassButton
-                    variant="secondary"
-                    onClick={() =>
-                      void runSectionAction(
-                        section.key,
-                        "regenerate_section",
-                        selectedRewriteStyle,
-                      )
+                <div className="mt-4 grid gap-2">
+                  <select
+                    value={rewriteStyle}
+                    onChange={(e) =>
+                      setSectionRewriteStyle(section.key, e.target.value as BlogRewriteStyle)
                     }
-                    disabled={busy}
+                    className={cx(
+                      "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                      glassTheme.text.primary,
+                      glassTheme.glass.input,
+                      glassTheme.border.softer,
+                      "bg-transparent",
+                    )}
                   >
-                    {busy ? "Rewriting..." : "Rewrite with style"}
-                  </GlassButton>
+                    {REWRITE_OPTIONS.map((option) => (
+                      <option key={`${section.key}:${option.value}`} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
 
-                  <GlassButton
-                    variant="ghost"
-                    onClick={() => void runSectionAction(section.key, "improve_section")}
-                    disabled={busy}
-                  >
-                    {busy ? "Improving..." : "Improve writing"}
-                  </GlassButton>
+                  <div className="flex flex-wrap gap-2">
+                    <GlassButton
+                      variant="secondary"
+                      onClick={() =>
+                        void runSectionAction(
+                          section.key,
+                          "regenerate_section",
+                          getSectionRewriteStyle(section.key),
+                        )
+                      }
+                      disabled={busy}
+                    >
+                      {busy ? "Rewriting..." : "Rewrite with style"}
+                    </GlassButton>
+
+                    <GlassButton
+                      variant="ghost"
+                      onClick={() => void runSectionAction(section.key, "improve_section")}
+                      disabled={busy}
+                    >
+                      {busy ? "Improving..." : "Improve writing"}
+                    </GlassButton>
+                  </div>
                 </div>
               </div>
             );
@@ -259,6 +371,9 @@ export default function BlogEditorClient(props: Props) {
             <div className="flex flex-wrap gap-3">
               <GlassButton variant="primary" onClick={() => void saveBlog()} disabled={isSaving}>
                 {isSaving ? "Saving..." : "Save blog"}
+              </GlassButton>
+              <GlassButton variant="ghost" onClick={() => void deleteGeneration()} disabled={isDeleting}>
+                {isDeleting ? "Deleting..." : "Delete blog"}
               </GlassButton>
             </div>
           }
@@ -298,9 +413,12 @@ export default function BlogEditorClient(props: Props) {
                     Rewrite with style
                   </div>
                   <select
-                    value={selectedRewriteStyle}
+                    value={getSectionRewriteStyle(selectedSection.key)}
                     onChange={(e) =>
-                      setSelectedRewriteStyle(e.target.value as BlogRewriteStyle)
+                      setSectionRewriteStyle(
+                        selectedSection.key,
+                        e.target.value as BlogRewriteStyle,
+                      )
                     }
                     className={cx(
                       "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
@@ -311,7 +429,7 @@ export default function BlogEditorClient(props: Props) {
                     )}
                   >
                     {REWRITE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
+                      <option key={`selected:${option.value}`} value={option.value}>
                         {option.label}
                       </option>
                     ))}
@@ -325,7 +443,7 @@ export default function BlogEditorClient(props: Props) {
                       void runSectionAction(
                         selectedSection.key,
                         "regenerate_section",
-                        selectedRewriteStyle,
+                        getSectionRewriteStyle(selectedSection.key),
                       )
                     }
                     disabled={runningSectionKey === selectedSection.key}
@@ -339,6 +457,13 @@ export default function BlogEditorClient(props: Props) {
                     disabled={runningSectionKey === selectedSection.key}
                   >
                     {runningSectionKey === selectedSection.key ? "Improving..." : "Improve writing"}
+                  </GlassButton>
+
+                  <GlassButton
+                    variant="ghost"
+                    onClick={() => deleteSection(selectedSection.key)}
+                  >
+                    Delete section
                   </GlassButton>
                 </div>
               </div>
@@ -366,12 +491,12 @@ export default function BlogEditorClient(props: Props) {
                 <div className="grid gap-2 md:grid-cols-2">
                   {REWRITE_OPTIONS.map((option) => (
                     <button
-                      key={option.value}
+                      key={`recommend:${option.value}`}
                       type="button"
-                      onClick={() => setSelectedRewriteStyle(option.value)}
+                      onClick={() => setSectionRewriteStyle(selectedSection.key, option.value)}
                       className={cx(
                         "rounded-xl border px-3 py-2 text-left text-sm transition",
-                        selectedRewriteStyle === option.value
+                        getSectionRewriteStyle(selectedSection.key) === option.value
                           ? glassTheme.border.copper
                           : glassTheme.border.softer,
                         glassTheme.glass.panelSoft,
@@ -384,7 +509,18 @@ export default function BlogEditorClient(props: Props) {
                 </div>
               </div>
             </>
-          ) : null}
+          ) : (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.secondary,
+              )}
+            >
+              No section selected.
+            </div>
+          )}
         </GlassCard>
 
         <GlassCard

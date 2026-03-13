@@ -36,6 +36,7 @@ type GenerationResult =
         contentPieceId?: string;
         renderJobId?: string | null;
         generationId: string;
+        editorUrl?: string;
       };
     }
   | { ok?: boolean; error?: string };
@@ -76,12 +77,24 @@ function dedupeItems(items: OpportunityItem[]): OpportunityItem[] {
   return result;
 }
 
+function editorPathFromItem(item: OpportunityItem, generationId: string) {
+  const type = item.contentType.toLowerCase();
+
+  if (type === "blog") return `/shopreel/editor/blog/${generationId}`;
+  if (type === "email") return `/shopreel/editor/email/${generationId}`;
+  if (type === "post") return `/shopreel/editor/post/${generationId}`;
+  if (type === "vlog") return `/shopreel/editor/vlog/${generationId}`;
+
+  return `/shopreel/editor/${generationId}`;
+}
+
 export default function ShopReelOpportunitiesClient() {
   const router = useRouter();
   const [items, setItems] = useState<OpportunityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isScoring, setIsScoring] = useState(false);
   const [generatedByItem, setGeneratedByItem] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +158,41 @@ export default function ShopReelOpportunitiesClient() {
     }
   }, [loadItems]);
 
+  const deleteItem = useCallback(
+    async (item: OpportunityItem) => {
+      const itemKey = itemKeyFor(item);
+      const confirmed = window.confirm(`Delete "${item.title}" from opportunities?`);
+      if (!confirmed) return;
+
+      try {
+        setError(null);
+        setIsDeleting(itemKey);
+
+        const endpoint =
+          item.kind === "creator_request"
+            ? `/api/shopreel/creator-requests/${item.id}`
+            : `/api/shopreel/opportunities/${item.id}`;
+
+        const res = await fetch(endpoint, {
+          method: "DELETE",
+        });
+
+        const json = (await res.json()) as { ok?: boolean; error?: string };
+
+        if (!res.ok || !json.ok) {
+          throw new Error(json.error ?? "Failed to delete item");
+        }
+
+        setItems((current) => current.filter((candidate) => itemKeyFor(candidate) !== itemKey));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to delete item");
+      } finally {
+        setIsDeleting(null);
+      }
+    },
+    [],
+  );
+
   const generateFromItem = useCallback(
     async (item: OpportunityItem) => {
       const itemKey = itemKeyFor(item);
@@ -154,7 +202,7 @@ export default function ShopReelOpportunitiesClient() {
         setIsGenerating(itemKey);
 
         if (item.generationId) {
-          router.push(`/shopreel/editor/${item.generationId}`);
+          router.push(editorPathFromItem(item, item.generationId));
           return;
         }
 
@@ -193,7 +241,7 @@ export default function ShopReelOpportunitiesClient() {
         }));
 
         await loadItems(true);
-        router.push(`/shopreel/editor/${json.generated.generationId}`);
+        router.push(json.generated.editorUrl ?? editorPathFromItem(item, json.generated.generationId));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to generate story");
       } finally {
@@ -305,6 +353,7 @@ export default function ShopReelOpportunitiesClient() {
             {items.map((item) => {
               const itemKey = itemKeyFor(item);
               const generationId = generatedByItem[itemKey] ?? item.generationId ?? null;
+              const busyDelete = isDeleting === itemKey;
 
               return (
                 <div
@@ -354,11 +403,19 @@ export default function ShopReelOpportunitiesClient() {
                         <Link href={`/shopreel/generations/${generationId}`}>
                           <GlassButton variant="ghost">Review</GlassButton>
                         </Link>
-                        <Link href={`/shopreel/editor/${generationId}`}>
+                        <Link href={editorPathFromItem(item, generationId)}>
                           <GlassButton variant="secondary">Edit</GlassButton>
                         </Link>
                       </>
                     ) : null}
+
+                    <GlassButton
+                      variant="ghost"
+                      onClick={() => void deleteItem(item)}
+                      disabled={busyDelete}
+                    >
+                      {busyDelete ? "Deleting..." : "Delete"}
+                    </GlassButton>
 
                     <GlassButton
                       variant="primary"

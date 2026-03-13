@@ -1,0 +1,1866 @@
+===== src/features/shopreel/editor/components/BlogEditorClient.tsx =====
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassInput from "@/features/shopreel/ui/system/GlassInput";
+import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import type { BlogRewriteStyle } from "@/features/shopreel/creator/generateBlogSection";
+
+type BlogSection = {
+  key: string;
+  title: string;
+  body: string;
+};
+
+type Props = {
+  generationId: string;
+  initialTitle: string;
+  initialSections: BlogSection[];
+  initialBody: string;
+};
+
+type RewriteOption = {
+  value: BlogRewriteStyle;
+  label: string;
+};
+
+const REWRITE_OPTIONS: RewriteOption[] = [
+  { value: "more_conversational", label: "Conversational" },
+  { value: "more_technical", label: "Technical" },
+  { value: "more_storytelling", label: "Storytelling" },
+  { value: "more_persuasive", label: "Persuasive" },
+  { value: "expand", label: "Expand" },
+  { value: "shorter", label: "Shorten" },
+  { value: "add_example", label: "Add example" },
+  { value: "add_shop_floor_detail", label: "Add shop-floor detail" },
+  { value: "stronger_hook", label: "Stronger hook" },
+  { value: "simpler_explanation", label: "Simpler explanation" },
+];
+
+function rebuildBodyFromSections(sections: BlogSection[]) {
+  return sections
+    .map((section, index) => {
+      if (index === 0) return section.body;
+      return `## ${section.title}\n\n${section.body}`;
+    })
+    .join("\n\n");
+}
+
+export default function BlogEditorClient(props: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [title, setTitle] = useState(props.initialTitle);
+  const [sections, setSections] = useState<BlogSection[]>(props.initialSections);
+  const [isSaving, setIsSaving] = useState(false);
+  const [runningSectionKey, setRunningSectionKey] = useState<string | null>(null);
+  const [selectedRewriteStyle, setSelectedRewriteStyle] =
+    useState<BlogRewriteStyle>("more_conversational");
+  const [error, setError] = useState<string | null>(null);
+
+  const selectedKey = searchParams.get("section");
+  const selectedSection = useMemo(() => {
+    if (selectedKey) {
+      return sections.find((section) => section.key === selectedKey) ?? sections[0] ?? null;
+    }
+    return sections[0] ?? null;
+  }, [sections, selectedKey]);
+
+  const bodyPreview = useMemo(() => rebuildBodyFromSections(sections), [sections]);
+
+  function patchSection(sectionKey: string, patch: Partial<BlogSection>) {
+    setSections((current) =>
+      current.map((section) =>
+        section.key === sectionKey ? { ...section, ...patch } : section,
+      ),
+    );
+  }
+
+  async function saveBlog() {
+    try {
+      setError(null);
+      setIsSaving(true);
+
+      const res = await fetch(`/api/shopreel/story-generations/${props.generationId}/blog`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          sections,
+        }),
+      });
+
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to save blog");
+      }
+
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save blog");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function runSectionAction(
+    sectionKey: string,
+    action: "regenerate_section" | "improve_section",
+    rewriteStyle?: BlogRewriteStyle,
+  ) {
+    try {
+      setError(null);
+      setRunningSectionKey(sectionKey);
+
+      const saveRes = await fetch(`/api/shopreel/story-generations/${props.generationId}/blog`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          sections,
+        }),
+      });
+
+      const saveJson = (await saveRes.json()) as { ok?: boolean; error?: string };
+      if (!saveRes.ok || !saveJson.ok) {
+        throw new Error(saveJson.error ?? "Failed to save before regeneration");
+      }
+
+      const res = await fetch(`/api/shopreel/story-generations/${props.generationId}/blog`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action,
+          sectionKey,
+          rewriteStyle,
+        }),
+      });
+
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        blog?: {
+          title?: string;
+          sections?: BlogSection[];
+        };
+      };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to regenerate section");
+      }
+
+      if (json.blog?.title) setTitle(json.blog.title);
+      if (Array.isArray(json.blog?.sections)) setSections(json.blog.sections);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to regenerate section");
+    } finally {
+      setRunningSectionKey(null);
+    }
+  }
+
+  return (
+    <section className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
+      <GlassCard
+        label="Sections"
+        title="Blog structure"
+        description="Edit and rewrite sections without leaving the blog editor."
+        strong
+        footer={
+          <div className="flex flex-wrap gap-3">
+            <GlassBadge tone="default">{sections.length} sections</GlassBadge>
+            <GlassBadge tone="copper">Blog editor</GlassBadge>
+          </div>
+        }
+      >
+        <div className="grid gap-3">
+          {sections.map((section) => {
+            const selected = selectedSection?.key === section.key;
+            const busy = runningSectionKey === section.key;
+
+            return (
+              <div
+                key={section.key}
+                className={cx(
+                  "rounded-2xl border p-4",
+                  selected ? glassTheme.border.copper : glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  selected ? "ring-2 ring-sky-300/20" : "",
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                      {section.title}
+                    </div>
+                    <div className={cx("text-xs", glassTheme.text.secondary)}>
+                      {section.key}
+                    </div>
+                  </div>
+
+                  <a
+                    href={`?section=${section.key}`}
+                    className={cx("text-xs", glassTheme.text.secondary)}
+                  >
+                    Edit
+                  </a>
+                </div>
+
+                <div className={cx("mt-3 line-clamp-4 text-sm", glassTheme.text.secondary)}>
+                  {section.body}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <GlassButton
+                    variant="secondary"
+                    onClick={() =>
+                      void runSectionAction(
+                        section.key,
+                        "regenerate_section",
+                        selectedRewriteStyle,
+                      )
+                    }
+                    disabled={busy}
+                  >
+                    {busy ? "Rewriting..." : "Rewrite with style"}
+                  </GlassButton>
+
+                  <GlassButton
+                    variant="ghost"
+                    onClick={() => void runSectionAction(section.key, "improve_section")}
+                    disabled={busy}
+                  >
+                    {busy ? "Improving..." : "Improve writing"}
+                  </GlassButton>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </GlassCard>
+
+      <div className="space-y-5">
+        <GlassCard
+          label="Editor"
+          title="Blog content"
+          description="Section-based editing for long-form output."
+          strong
+          footer={
+            <div className="flex flex-wrap gap-3">
+              <GlassButton variant="primary" onClick={() => void saveBlog()} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save blog"}
+              </GlassButton>
+            </div>
+          }
+        >
+          {error ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.copper,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.copperSoft,
+              )}
+            >
+              {error}
+            </div>
+          ) : null}
+
+          <GlassInput
+            label="Blog title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+
+          {selectedSection ? (
+            <>
+              <GlassInput
+                label="Section heading"
+                value={selectedSection.title}
+                onChange={(e) =>
+                  patchSection(selectedSection.key, { title: e.target.value })
+                }
+              />
+
+              <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                <div className="space-y-2">
+                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                    Rewrite with style
+                  </div>
+                  <select
+                    value={selectedRewriteStyle}
+                    onChange={(e) =>
+                      setSelectedRewriteStyle(e.target.value as BlogRewriteStyle)
+                    }
+                    className={cx(
+                      "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                      glassTheme.text.primary,
+                      glassTheme.glass.input,
+                      glassTheme.border.softer,
+                      "bg-transparent",
+                    )}
+                  >
+                    {REWRITE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <GlassButton
+                    variant="secondary"
+                    onClick={() =>
+                      void runSectionAction(
+                        selectedSection.key,
+                        "regenerate_section",
+                        selectedRewriteStyle,
+                      )
+                    }
+                    disabled={runningSectionKey === selectedSection.key}
+                  >
+                    {runningSectionKey === selectedSection.key ? "Rewriting..." : "Rewrite with style"}
+                  </GlassButton>
+
+                  <GlassButton
+                    variant="ghost"
+                    onClick={() => void runSectionAction(selectedSection.key, "improve_section")}
+                    disabled={runningSectionKey === selectedSection.key}
+                  >
+                    {runningSectionKey === selectedSection.key ? "Improving..." : "Improve writing"}
+                  </GlassButton>
+                </div>
+              </div>
+
+              <GlassTextarea
+                label="Section body"
+                value={selectedSection.body}
+                onChange={(e) =>
+                  patchSection(selectedSection.key, { body: e.target.value })
+                }
+                className="min-h-[280px]"
+              />
+
+              <div
+                className={cx(
+                  "rounded-2xl border p-4 text-sm",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.secondary,
+                )}
+              >
+                <div className={cx("mb-2 text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                  Recommended rewrite options
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {REWRITE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setSelectedRewriteStyle(option.value)}
+                      className={cx(
+                        "rounded-xl border px-3 py-2 text-left text-sm transition",
+                        selectedRewriteStyle === option.value
+                          ? glassTheme.border.copper
+                          : glassTheme.border.softer,
+                        glassTheme.glass.panelSoft,
+                        glassTheme.text.primary,
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : null}
+        </GlassCard>
+
+        <GlassCard
+          label="Preview"
+          title="Full blog preview"
+          description="Live article preview built from the current sections."
+          strong
+        >
+          <div className={cx("text-sm leading-7 whitespace-pre-wrap", glassTheme.text.primary)}>
+            {bodyPreview}
+          </div>
+        </GlassCard>
+      </div>
+    </section>
+  );
+}
+
+
+
+===== src/app/api/shopreel/story-generations/[id]/blog/route.ts =====
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  generateBlogSection,
+  type BlogRewriteStyle,
+} from "@/features/shopreel/creator/generateBlogSection";
+
+type BlogSection = {
+  key: string;
+  title: string;
+  body: string;
+};
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function asSections(value: unknown): BlogSection[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((section) => {
+      if (!section || typeof section !== "object" || Array.isArray(section)) return null;
+      const record = section as Record<string, unknown>;
+      if (
+        typeof record.key !== "string" ||
+        typeof record.title !== "string" ||
+        typeof record.body !== "string"
+      ) {
+        return null;
+      }
+      return {
+        key: record.key,
+        title: record.title,
+        body: record.body,
+      };
+    })
+    .filter((section): section is BlogSection => !!section);
+}
+
+function rebuildBodyFromSections(sections: BlogSection[]) {
+  return sections
+    .map((section, index) => {
+      if (index === 0) return section.body;
+      return `## ${section.title}\n\n${section.body}`;
+    })
+    .join("\n\n");
+}
+
+export async function PATCH(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await ctx.params;
+    const body = (await req.json()) as {
+      title?: string;
+      sections?: BlogSection[];
+    };
+
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data: generation, error } = await legacy
+      .from("shopreel_story_generations")
+      .select("*")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!generation) {
+      return NextResponse.json({ ok: false, error: "Generation not found" }, { status: 404 });
+    }
+
+    const metadata = objectRecord(generation.generation_metadata);
+    const textOutputs = objectRecord(metadata.text_outputs);
+    const blog = objectRecord(textOutputs.blog);
+    const sections = Array.isArray(body.sections) ? body.sections : asSections(blog.sections);
+
+    const nextBlog = {
+      ...blog,
+      title:
+        typeof body.title === "string" && body.title.trim().length > 0
+          ? body.title.trim()
+          : typeof blog.title === "string"
+            ? blog.title
+            : "Blog draft",
+      sections,
+      body: rebuildBodyFromSections(sections),
+    };
+
+    const nextMetadata = {
+      ...metadata,
+      text_outputs: {
+        ...textOutputs,
+        blog: nextBlog,
+      },
+    };
+
+    const { error: updateError } = await legacy
+      .from("shopreel_story_generations")
+      .update({
+        generation_metadata: nextMetadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("shop_id", shopId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    return NextResponse.json({
+      ok: true,
+      blog: nextBlog,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to save blog",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await ctx.params;
+    const body = (await req.json()) as {
+      action?: "regenerate_section" | "improve_section";
+      sectionKey?: string;
+      rewriteStyle?: BlogRewriteStyle;
+    };
+
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data: generation, error } = await legacy
+      .from("shopreel_story_generations")
+      .select("*")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!generation) {
+      return NextResponse.json({ ok: false, error: "Generation not found" }, { status: 404 });
+    }
+
+    const metadata = objectRecord(generation.generation_metadata);
+    const textOutputs = objectRecord(metadata.text_outputs);
+    const blog = objectRecord(textOutputs.blog);
+    const sections = asSections(blog.sections);
+
+    const validAction =
+      body.action === "regenerate_section" || body.action === "improve_section";
+
+    if (!validAction || !body.sectionKey) {
+      return NextResponse.json({ ok: false, error: "Invalid action" }, { status: 400 });
+    }
+
+    const sectionIndex = sections.findIndex((section) => section.key === body.sectionKey);
+    if (sectionIndex === -1) {
+      return NextResponse.json({ ok: false, error: "Section not found" }, { status: 404 });
+    }
+
+    const generatedScript =
+      typeof metadata.generated_script === "object" &&
+      metadata.generated_script &&
+      !Array.isArray(metadata.generated_script)
+        ? (metadata.generated_script as Record<string, unknown>)
+        : {};
+
+    const nextBody = await generateBlogSection({
+      topic:
+        typeof blog.title === "string" && blog.title.trim().length > 0
+          ? blog.title
+          : "Blog draft",
+      sectionTitle: sections[sectionIndex]!.title,
+      existingBody: sections[sectionIndex]!.body,
+      allSections: sections,
+      summary:
+        typeof metadata.research_summary === "string" ? metadata.research_summary : "",
+      hook: typeof generatedScript.hook === "string" ? generatedScript.hook : "",
+      context: typeof generatedScript.context === "string" ? generatedScript.context : "",
+      explanation:
+        typeof generatedScript.explanation === "string" ? generatedScript.explanation : "",
+      takeaway:
+        typeof generatedScript.takeaway === "string" ? generatedScript.takeaway : "",
+      cta: typeof generatedScript.cta === "string" ? generatedScript.cta : "",
+      audience:
+        typeof metadata.audience === "string" ? metadata.audience : null,
+      blogStyle:
+        typeof metadata.blog_style === "string" ? (metadata.blog_style as any) : "auto",
+      blogLengthMode:
+        typeof metadata.blog_length_mode === "string"
+          ? (metadata.blog_length_mode as any)
+          : "standard",
+      rewriteStyle:
+        body.action === "improve_section"
+          ? "improve_writing"
+          : body.rewriteStyle ?? null,
+    });
+
+    const nextSections = sections.map((section, index) =>
+      index === sectionIndex ? { ...section, body: nextBody } : section,
+    );
+
+    const nextBlog = {
+      ...blog,
+      sections: nextSections,
+      body: rebuildBodyFromSections(nextSections),
+    };
+
+    const nextMetadata = {
+      ...metadata,
+      text_outputs: {
+        ...textOutputs,
+        blog: nextBlog,
+      },
+    };
+
+    const { error: updateError } = await legacy
+      .from("shopreel_story_generations")
+      .update({
+        generation_metadata: nextMetadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("shop_id", shopId);
+
+    if (updateError) throw new Error(updateError.message);
+
+    return NextResponse.json({
+      ok: true,
+      blog: nextBlog,
+      regeneratedSectionKey: body.sectionKey,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error instanceof Error ? error.message : "Failed to regenerate section",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+
+===== src/features/shopreel/creator/generateBlogSection.ts =====
+import { openai } from "@/features/ai/server/openai";
+import type { BlogLengthMode, BlogStyle } from "./buildCreatorOutputs";
+
+export type BlogRewriteStyle =
+  | "more_conversational"
+  | "more_technical"
+  | "more_storytelling"
+  | "more_persuasive"
+  | "shorter"
+  | "expand"
+  | "add_example"
+  | "add_shop_floor_detail"
+  | "stronger_hook"
+  | "simpler_explanation"
+  | "improve_writing";
+
+type Input = {
+  topic: string;
+  sectionTitle: string;
+  existingBody: string;
+  allSections: Array<{ key: string; title: string; body: string }>;
+  summary: string;
+  hook: string;
+  context: string;
+  explanation: string;
+  takeaway: string;
+  cta: string;
+  audience?: string | null;
+  blogStyle?: BlogStyle;
+  blogLengthMode?: BlogLengthMode;
+  rewriteStyle?: BlogRewriteStyle | null;
+};
+
+function clean(value: string) {
+  return value
+    .replace(/SYSTEM INSTRUCTIONS[\s\S]*/gi, "")
+    .replace(/^Topic:\s.*$/gim, "")
+    .replace(/^Instructions:\s.*$/gim, "")
+    .replace(/^Structure:\s.*$/gim, "")
+    .replace(/^Only output.*$/gim, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function rewriteInstruction(style: BlogRewriteStyle | null | undefined) {
+  switch (style) {
+    case "more_conversational":
+      return "Rewrite this section to sound more conversational and natural.";
+    case "more_technical":
+      return "Rewrite this section to sound a bit more technical and industry-specific without becoming robotic.";
+    case "more_storytelling":
+      return "Rewrite this section with stronger storytelling and a more vivid real-world feel.";
+    case "more_persuasive":
+      return "Rewrite this section to be more persuasive and compelling without sounding salesy.";
+    case "shorter":
+      return "Rewrite this section to be tighter and shorter while keeping the core meaning.";
+    case "expand":
+      return "Rewrite this section by expanding it with more useful detail and smoother explanation.";
+    case "add_example":
+      return "Rewrite this section and add one grounded real-world example.";
+    case "add_shop_floor_detail":
+      return "Rewrite this section and add concrete shop-floor detail that makes it feel lived-in and real.";
+    case "stronger_hook":
+      return "Rewrite this section with a stronger opening hook and better first sentence.";
+    case "simpler_explanation":
+      return "Rewrite this section so the explanation is simpler, clearer, and easier to follow.";
+    case "improve_writing":
+      return "Improve this section so it reads clearer, smoother, and more engaging without changing the meaning too much.";
+    default:
+      return "Rewrite only the requested section so it feels like finished article prose.";
+  }
+}
+
+export async function generateBlogSection(input: Input): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4.1-mini",
+    temperature: 0.9,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "blog_section_regeneration",
+        strict: true,
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            body: { type: "string" },
+          },
+          required: ["body"],
+        },
+      },
+    },
+    messages: [
+      {
+        role: "developer",
+        content:
+          "You are rewriting one section of a blog article for ShopReel. " +
+          "Return JSON only. " +
+          "Do not include instructions, labels, headings about the prompt, or meta commentary. " +
+          "Write in a practical, conversational, industry-aware tone. " +
+          "Avoid sounding like notes or summaries. " +
+          "Keep the section cohesive with the rest of the article.",
+      },
+      {
+        role: "user",
+        content:
+          `Topic: ${input.topic}\n` +
+          `Section title: ${input.sectionTitle}\n` +
+          `Blog style: ${input.blogStyle ?? "auto"}\n` +
+          `Blog length mode: ${input.blogLengthMode ?? "standard"}\n` +
+          `Audience: ${input.audience ?? "general audience"}\n` +
+          `Summary: ${input.summary}\n` +
+          `Hook: ${input.hook}\n` +
+          `Context: ${input.context}\n` +
+          `Explanation: ${input.explanation}\n` +
+          `Takeaway: ${input.takeaway}\n` +
+          `CTA: ${input.cta}\n` +
+          `Rewrite mode: ${input.rewriteStyle ?? "default_regenerate"}\n` +
+          `Instruction: ${rewriteInstruction(input.rewriteStyle)}\n` +
+          `Current section body: ${input.existingBody}\n\n` +
+          `All sections:\n${input.allSections
+            .map((section) => `${section.title}: ${section.body}`)
+            .join("\n\n")}\n\n` +
+          rewriteInstruction(input.rewriteStyle),
+      },
+    ],
+  });
+
+  const text = response.choices[0]?.message?.content ?? "{}";
+
+  try {
+    const parsed = JSON.parse(text) as { body?: string };
+    return clean(parsed.body ?? input.existingBody);
+  } catch {
+    return clean(input.existingBody);
+  }
+}
+
+
+
+===== src/features/shopreel/components/ShopReelOpportunitiesClient.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+
+type OpportunityItem = {
+  id: string;
+  kind: "story_opportunity" | "creator_request";
+  title: string;
+  contentType: string;
+  score: number | null;
+  status: string;
+  source: string;
+  sourceType: "manual_upload" | "shop_data" | "creator_prompt";
+  createdAt: string;
+  generationId: string | null;
+  creatorMode: string | null;
+  summary: string | null;
+};
+
+type OpportunitiesResponse =
+  | { ok: true; items: OpportunityItem[] }
+  | { ok?: false; error?: string };
+
+type GenerationResult =
+  | {
+      ok: true;
+      generated: {
+        opportunityId?: string;
+        creatorRequestId?: string;
+        contentPieceId?: string;
+        renderJobId?: string | null;
+        generationId: string;
+      };
+    }
+  | { ok?: boolean; error?: string };
+
+function formatLabel(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function timeAgoLabel(value: string) {
+  const now = Date.now();
+  const then = new Date(value).getTime();
+  const diffMs = Math.max(0, now - then);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffHours < 1) return "Just now";
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return new Date(value).toLocaleDateString();
+}
+
+function itemKeyFor(item: Pick<OpportunityItem, "kind" | "id">) {
+  return `${item.kind}:${item.id}`;
+}
+
+function dedupeItems(items: OpportunityItem[]): OpportunityItem[] {
+  const seen = new Set<string>();
+  const result: OpportunityItem[] = [];
+
+  for (const item of items) {
+    const key = itemKeyFor(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+}
+
+export default function ShopReelOpportunitiesClient() {
+  const router = useRouter();
+  const [items, setItems] = useState<OpportunityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<string | null>(null);
+  const [isScoring, setIsScoring] = useState(false);
+  const [generatedByItem, setGeneratedByItem] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const loadItems = useCallback(async (refresh = false) => {
+    try {
+      setError(null);
+      if (refresh) setIsRefreshing(true);
+      else setIsLoading(true);
+
+      const res = await fetch("/api/shopreel/opportunities?limit=50", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const json = (await res.json()) as OpportunitiesResponse;
+
+      if (!res.ok || !json.ok) {
+        throw new Error(("error" in json && json.error) || "Failed to load opportunities");
+      }
+
+      setItems(dedupeItems(json.items ?? []));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load opportunities");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  const discoverAndScore = useCallback(async () => {
+    try {
+      setError(null);
+      setIsScoring(true);
+
+      const discoverRes = await fetch("/api/shopreel/discovery", {
+        method: "POST",
+      });
+
+      const discoverJson = (await discoverRes.json()) as { ok?: boolean; error?: string };
+
+      if (!discoverRes.ok || !discoverJson.ok) {
+        throw new Error(discoverJson.error ?? "Failed discovery");
+      }
+
+      const scoreRes = await fetch("/api/shopreel/opportunities/generate", {
+        method: "POST",
+      });
+
+      const scoreJson = (await scoreRes.json()) as { ok?: boolean; error?: string };
+
+      if (!scoreRes.ok || !scoreJson.ok) {
+        throw new Error(scoreJson.error ?? "Failed opportunity scoring");
+      }
+
+      await loadItems(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to refresh opportunities");
+    } finally {
+      setIsScoring(false);
+    }
+  }, [loadItems]);
+
+  const generateFromItem = useCallback(
+    async (item: OpportunityItem) => {
+      const itemKey = itemKeyFor(item);
+
+      try {
+        setError(null);
+        setIsGenerating(itemKey);
+
+        if (item.generationId) {
+          router.push(`/shopreel/editor/${item.generationId}`);
+          return;
+        }
+
+        const endpoint =
+          item.kind === "creator_request"
+            ? `/api/shopreel/creator-requests/${item.id}/generate`
+            : `/api/shopreel/opportunities/${item.id}/generate`;
+
+        const body =
+          item.kind === "creator_request"
+            ? undefined
+            : JSON.stringify({
+                createRenderJobNow: true,
+              });
+
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers:
+            item.kind === "creator_request"
+              ? undefined
+              : {
+                  "Content-Type": "application/json",
+                },
+          body,
+        });
+
+        const json = (await res.json()) as GenerationResult;
+
+        if (!res.ok || !("generated" in json)) {
+          throw new Error(("error" in json && json.error) || "Failed to generate story");
+        }
+
+        setGeneratedByItem((prev) => ({
+          ...prev,
+          [itemKey]: json.generated.generationId,
+        }));
+
+        await loadItems(true);
+        router.push(`/shopreel/editor/${json.generated.generationId}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to generate story");
+      } finally {
+        setIsGenerating(null);
+      }
+    },
+    [loadItems, router],
+  );
+
+  useEffect(() => {
+    void loadItems();
+  }, [loadItems]);
+
+  const summary = useMemo(() => {
+    const manualCount = items.filter((item) => item.sourceType === "manual_upload").length;
+    const creatorCount = items.filter((item) => item.sourceType === "creator_prompt").length;
+    const highScoreCount = items.filter((item) => (item.score ?? 0) >= 85).length;
+    const readyCount = items.filter((item) => item.status === "ready").length;
+
+    return {
+      total: items.length,
+      manualCount,
+      creatorCount,
+      highScoreCount,
+      readyCount,
+    };
+  }, [items]);
+
+  return (
+    <div className="space-y-5">
+      <GlassCard
+        label="Opportunities"
+        title="Ranked story opportunities"
+        description="Business story opportunities and saved creator prompts now live in one queue."
+        strong
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              <GlassBadge tone="default">{summary.total} total</GlassBadge>
+              <GlassBadge tone="copper">{summary.manualCount} manual</GlassBadge>
+              <GlassBadge tone="default">{summary.creatorCount} creator prompts</GlassBadge>
+              <GlassBadge tone="default">{summary.highScoreCount} high score</GlassBadge>
+              <GlassBadge tone="muted">{summary.readyCount} ready</GlassBadge>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <GlassButton variant="ghost" onClick={() => router.refresh()}>
+                Refresh layout
+              </GlassButton>
+              <GlassButton
+                variant="secondary"
+                onClick={() => void loadItems(true)}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? "Refreshing..." : "Refresh queue"}
+              </GlassButton>
+              <GlassButton
+                variant="primary"
+                onClick={() => void discoverAndScore()}
+                disabled={isScoring}
+              >
+                {isScoring ? "Running..." : "Discover + score"}
+              </GlassButton>
+            </div>
+          </div>
+        }
+      >
+        {isLoading ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            Loading opportunities...
+          </div>
+        ) : null}
+
+        {error ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        {!isLoading && !error && items.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            No opportunities yet. Click Discover + score to build the ranked queue.
+          </div>
+        ) : null}
+
+        {!isLoading && !error ? (
+          <div className="grid gap-3">
+            {items.map((item) => {
+              const itemKey = itemKeyFor(item);
+              const generationId = generatedByItem[itemKey] ?? item.generationId ?? null;
+
+              return (
+                <div
+                  key={itemKey}
+                  className={cx(
+                    "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                    item.sourceType === "creator_prompt" || (item.score ?? 0) >= 85
+                      ? glassTheme.border.copper
+                      : glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {item.title}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      {formatLabel(item.contentType)} • {formatLabel(item.source)} •{" "}
+                      {timeAgoLabel(item.createdAt)}
+                    </div>
+
+                    {item.summary ? (
+                      <div className={cx("pt-1 text-sm", glassTheme.text.secondary)}>
+                        {item.summary}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                    <GlassBadge tone={item.sourceType === "creator_prompt" ? "copper" : "default"}>
+                      {formatLabel(item.sourceType)}
+                    </GlassBadge>
+                    <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+
+                    {item.sourceType !== "creator_prompt" ? (
+                      <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
+                        Score {item.score != null ? Math.round(item.score) : "--"}
+                      </GlassBadge>
+                    ) : (
+                      <GlassBadge tone="muted">
+                        {formatLabel(item.creatorMode ?? "creator_request")}
+                      </GlassBadge>
+                    )}
+
+                    {generationId ? (
+                      <>
+                        <Link href={`/shopreel/generations/${generationId}`}>
+                          <GlassButton variant="ghost">Review</GlassButton>
+                        </Link>
+                        <Link href={`/shopreel/editor/${generationId}`}>
+                          <GlassButton variant="secondary">Edit</GlassButton>
+                        </Link>
+                      </>
+                    ) : null}
+
+                    <GlassButton
+                      variant="primary"
+                      onClick={() => void generateFromItem(item)}
+                      disabled={isGenerating === itemKey}
+                    >
+                      {isGenerating === itemKey
+                        ? "Generating..."
+                        : item.sourceType === "creator_prompt"
+                          ? "Reuse"
+                          : "Generate"}
+                    </GlassButton>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </GlassCard>
+    </div>
+  );
+}
+
+
+
+===== src/app/shopreel/opportunities/page.tsx =====
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+
+export default function ShopReelOpportunitiesPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Opportunities"
+      subtitle="Discover, score, generate, and move strong story candidates into editing and publishing."
+      actions={
+        <>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="ghost">View generations</GlassButton>
+          </Link>
+          <GlassButton variant="primary">Generate selected</GlassButton>
+        </>
+      }
+    >
+      <ShopReelNav />
+      <ShopReelOpportunitiesClient />
+    </GlassShell>
+  );
+}
+
+
+
+===== src/features/shopreel/creator/components/CreatorRequestsClient.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import type {
+  BlogLengthMode,
+  BlogStyle,
+  OutputType,
+} from "@/features/shopreel/creator/buildCreatorOutputs";
+
+type Angle = {
+  title: string;
+  angle: string;
+  hook: string;
+  whyItWorks: string;
+  suggestedCta: string;
+};
+
+type CreatorRequestRow = {
+  id: string;
+  title: string | null;
+  topic: string | null;
+  audience: string | null;
+  tone: string | null;
+  platform_focus: "instagram" | "tiktok" | "youtube" | "facebook" | "multi" | null;
+  mode: string;
+  status: string;
+  created_at: string;
+  source_generation_id: string | null;
+  result_payload: {
+    expandedTopic?: string;
+    summary?: string;
+    bullets?: string[];
+    angles?: Angle[];
+    derivedPosts?: Array<{
+      title: string;
+      generationId: string;
+      createdAt: string;
+      angleTitle: string;
+    }>;
+  } | null;
+};
+
+type Props = {
+  initialItems: CreatorRequestRow[];
+};
+
+function formatLabel(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function timeAgoLabel(value: string | null) {
+  if (!value) return "Unknown";
+
+  const now = Date.now();
+  const then = new Date(value).getTime();
+  const diffMs = Math.max(0, now - then);
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMinutes < 60) return `${diffMinutes || 1}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return new Date(value).toLocaleDateString();
+}
+
+export default function CreatorRequestsClient({ initialItems }: Props) {
+  const router = useRouter();
+  const [items, setItems] = useState<CreatorRequestRow[]>(initialItems);
+  const [runningKey, setRunningKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const totalAngles = useMemo(
+    () =>
+      items.reduce((sum, item) => {
+        const count = Array.isArray(item.result_payload?.angles) ? item.result_payload?.angles.length ?? 0 : 0;
+        return sum + count;
+      }, 0),
+    [items],
+  );
+
+  async function createFromAngle(
+    requestId: string,
+    angleIndex: number,
+    outputType: OutputType = "video",
+    blogStyle?: BlogStyle,
+    blogLengthMode?: BlogLengthMode,
+  ) {
+    const key = `${requestId}:${angleIndex}:${outputType}`;
+    try {
+      setError(null);
+      setRunningKey(key);
+
+      const res = await fetch(`/api/shopreel/creator-requests/${requestId}/angles/${angleIndex}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ outputType, blogStyle, blogLengthMode }),
+      });
+
+      const json = (await res.json()) as
+        | {
+            ok: true;
+            generated: {
+              generationId: string;
+              editorUrl?: string;
+            };
+          }
+        | {
+            ok?: false;
+            error?: string;
+          };
+
+      if (!res.ok || !("generated" in json)) {
+        throw new Error(("error" in json && json.error) || "Failed to create from angle");
+      }
+
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== requestId) return item;
+
+          const angles = Array.isArray(item.result_payload?.angles) ? item.result_payload.angles : [];
+          const angle = angles[angleIndex];
+
+          return {
+            ...item,
+            result_payload: {
+              ...(item.result_payload ?? {}),
+              derivedPosts: [
+                ...((item.result_payload?.derivedPosts ?? []) as Array<{
+                  title: string;
+                  generationId: string;
+                  createdAt: string;
+                  angleTitle: string;
+                }>),
+                {
+                  title: `${item.topic ?? item.title ?? "Creator request"} — ${angle?.title ?? `Angle ${angleIndex + 1}`}`,
+                  generationId: json.generated.generationId,
+                  createdAt: new Date().toISOString(),
+                  angleTitle: angle?.title ?? `Angle ${angleIndex + 1}`,
+                },
+              ],
+            },
+          };
+        }),
+      );
+
+      router.push(json.generated.editorUrl ?? `/shopreel/editor/${json.generated.generationId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create from angle");
+    } finally {
+      setRunningKey(null);
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <GlassCard
+        label="Creator memory"
+        title="Saved prompt requests"
+        description="Every creator prompt can become a reusable request, a future opportunity, or a blog seed."
+        strong
+        footer={
+          <div className="flex flex-wrap gap-2">
+            <GlassBadge tone="default">{items.length} requests</GlassBadge>
+            <GlassBadge tone="copper">{totalAngles} angles</GlassBadge>
+          </div>
+        }
+      >
+        {error ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        {items.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            No creator requests yet.
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {items.map((item) => {
+              const angles = Array.isArray(item.result_payload?.angles) ? item.result_payload?.angles : [];
+              const derivedPosts = Array.isArray(item.result_payload?.derivedPosts)
+                ? item.result_payload?.derivedPosts
+                : [];
+
+              return (
+                <div
+                  key={item.id}
+                  className={cx(
+                    "rounded-3xl border p-5",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className={cx("text-2xl font-semibold", glassTheme.text.primary)}>
+                        {item.title ?? item.topic ?? "Untitled request"}
+                      </div>
+
+                      <div className={cx("text-sm", glassTheme.text.secondary)}>
+                        {formatLabel(item.mode)} • {formatLabel(item.status)} • {timeAgoLabel(item.created_at)}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <GlassBadge tone="default">{formatLabel(item.mode)}</GlassBadge>
+                      <GlassBadge tone={item.status === "ready" ? "copper" : "muted"}>
+                        {formatLabel(item.status)}
+                      </GlassBadge>
+                      <GlassBadge tone="default">{angles.length} angles</GlassBadge>
+                      <GlassBadge tone="muted">{derivedPosts.length} derived posts</GlassBadge>
+                    </div>
+                  </div>
+
+                  {item.topic ? (
+                    <div className={cx("mt-4 text-lg", glassTheme.text.primary)}>
+                      {item.topic}
+                    </div>
+                  ) : null}
+
+                  {item.result_payload?.summary ? (
+                    <div className={cx("mt-4 text-sm leading-7", glassTheme.text.secondary)}>
+                      {item.result_payload.summary}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    {item.source_generation_id ? (
+                      <>
+                        <Link href={`/shopreel/generations/${item.source_generation_id}`}>
+                          <GlassButton variant="ghost">Review</GlassButton>
+                        </Link>
+                        <Link href={`/shopreel/editor/${item.source_generation_id}`}>
+                          <GlassButton variant="secondary">Open editor</GlassButton>
+                        </Link>
+                      </>
+                    ) : null}
+                  </div>
+
+                  {angles.length > 0 ? (
+                    <div className="mt-6 grid gap-4">
+                      {angles.map((angle, index) => {
+                        const busyVideo = runningKey === `${item.id}:${index}:video`;
+                        const busyBlog = runningKey === `${item.id}:${index}:blog`;
+                        const busyVlog = runningKey === `${item.id}:${index}:vlog`;
+
+                        return (
+                          <div
+                            key={`${item.id}:${angle.title}:${index}`}
+                            className={cx(
+                              "rounded-2xl border p-5",
+                              glassTheme.border.copper,
+                              glassTheme.glass.panel,
+                            )}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="space-y-2">
+                                <div className={cx("text-xl font-semibold", glassTheme.text.primary)}>
+                                  {angle.title}
+                                </div>
+                                <div className={cx("text-sm", glassTheme.text.secondary)}>
+                                  {angle.angle}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                <GlassButton
+                                  variant="primary"
+                                  onClick={() => void createFromAngle(item.id, index, "video")}
+                                  disabled={busyVideo}
+                                >
+                                  {busyVideo ? "Creating..." : "Video"}
+                                </GlassButton>
+                                <GlassButton
+                                  variant="secondary"
+                                  onClick={() =>
+                                    void createFromAngle(item.id, index, "vlog")
+                                  }
+                                  disabled={busyVlog}
+                                >
+                                  {busyVlog ? "Creating..." : "Vlog"}
+                                </GlassButton>
+                                <GlassButton
+                                  variant="secondary"
+                                  onClick={() =>
+                                    void createFromAngle(
+                                      item.id,
+                                      index,
+                                      "blog",
+                                      "auto",
+                                      "standard",
+                                    )
+                                  }
+                                  disabled={busyBlog}
+                                >
+                                  {busyBlog ? "Creating..." : "Blog"}
+                                </GlassButton>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 space-y-2 text-sm">
+                              <div className={glassTheme.text.primary}>
+                                <span className={glassTheme.text.secondary}>Hook:</span> {angle.hook}
+                              </div>
+                              <div className={glassTheme.text.secondary}>
+                                <span className="text-white/85">Why it works:</span> {angle.whyItWorks}
+                              </div>
+                              <div className={glassTheme.text.secondary}>
+                                <span className="text-white/85">CTA:</span> {angle.suggestedCta}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+
+                  {derivedPosts.length > 0 ? (
+                    <div className="mt-6 grid gap-3">
+                      {derivedPosts.map((post) => (
+                        <div
+                          key={`${item.id}:${post.generationId}`}
+                          className={cx(
+                            "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                            glassTheme.border.softer,
+                            glassTheme.glass.panelSoft,
+                          )}
+                        >
+                          <div className="space-y-1">
+                            <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                              {post.title}
+                            </div>
+                            <div className={cx("text-sm", glassTheme.text.secondary)}>
+                              {post.angleTitle} • {timeAgoLabel(post.createdAt)}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 md:justify-end">
+                            <Link href={`/shopreel/generations/${post.generationId}`}>
+                              <GlassButton variant="ghost">Review</GlassButton>
+                            </Link>
+                            <Link href={`/shopreel/editor/${post.generationId}`}>
+                              <GlassButton variant="secondary">Edit</GlassButton>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </GlassCard>
+    </div>
+  );
+}
+
+
+
+===== src/app/shopreel/creator-requests/page.tsx =====
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import { createAdminClient } from "@/lib/supabase/server";
+import CreatorRequestsClient from "@/features/shopreel/creator/components/CreatorRequestsClient";
+
+type Angle = {
+  title: string;
+  angle: string;
+  hook: string;
+  whyItWorks: string;
+  suggestedCta: string;
+};
+
+type CreatorRequestRow = {
+  id: string;
+  title: string | null;
+  topic: string | null;
+  audience: string | null;
+  tone: string | null;
+  platform_focus: "instagram" | "tiktok" | "youtube" | "facebook" | "multi" | null;
+  mode: string;
+  status: string;
+  created_at: string;
+  source_generation_id: string | null;
+  result_payload: {
+    expandedTopic?: string;
+    summary?: string;
+    bullets?: string[];
+    angles?: Angle[];
+    derivedPosts?: Array<{
+      title: string;
+      generationId: string;
+      createdAt: string;
+      angleTitle: string;
+    }>;
+  } | null;
+};
+
+export default async function ShopReelCreatorRequestsPage() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data, error } = await legacy
+    .from("shopreel_creator_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Creator requests"
+      subtitle="Stored creator prompts, research runs, angle packs, debunks, and stitch requests."
+    >
+      <ShopReelNav />
+      <CreatorRequestsClient initialItems={(data ?? []) as CreatorRequestRow[]} />
+    </GlassShell>
+  );
+}
+
+
+
+===== src/features/shopreel/ui/system/GlassShell.tsx =====
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+export default function GlassShell(props: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  const { eyebrow, title, subtitle, actions, children, className } = props;
+
+  return (
+    <div
+      className={cx(
+        "relative min-h-screen overflow-hidden",
+        glassTheme.bg.base,
+        glassTheme.bg.overlay,
+      )}
+    >
+      <div className={glassTheme.bg.grid} />
+
+      <div className="shopreel-floating-light-a" />
+      <div className="shopreel-floating-light-b" />
+      <div className="shopreel-floating-light-c" />
+
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_20%,transparent_80%,rgba(255,255,255,0.02))]" />
+
+      <div className="relative mx-auto max-w-7xl">
+        <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
+          <header className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/"
+                  className={cx(
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition no-underline",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.primary,
+                    "hover:bg-white/[0.06]",
+                  )}
+                >
+                  Home
+                </Link>
+
+                <Link
+                  href="/shopreel"
+                  className={cx(
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition no-underline",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.secondary,
+                    "hover:text-white hover:bg-white/[0.06]",
+                  )}
+                >
+                  ShopReel
+                </Link>
+
+                <form action="/auth/sign-out" method="post" className="ml-1">
+                  <button
+                    type="submit"
+                    className={cx(
+                      "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft,
+                      glassTheme.text.secondary,
+                      "hover:text-white hover:bg-white/[0.06]",
+                    )}
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
+
+              {actions ? (
+                <div className="flex flex-wrap items-center gap-3">{actions}</div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-2">
+                {eyebrow ? (
+                  <div
+                    className={cx(
+                      "text-xs font-medium uppercase tracking-[0.24em]",
+                      glassTheme.text.copper,
+                    )}
+                  >
+                    {eyebrow}
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <h1
+                    className={cx(
+                      "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
+                      glassTheme.text.primary,
+                    )}
+                  >
+                    {title}
+                  </h1>
+
+                  {subtitle ? (
+                    <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
+                      {subtitle}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+===== src/features/shopreel/ui/system/glassTheme.ts =====
+export const glassTheme = {
+  bg: {
+    base: "bg-[#050816]",
+    overlay:
+      "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(37,99,235,0.10),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.10),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_22%,transparent_78%,rgba(255,255,255,0.03))] before:content-['']",
+    grid: "absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:18px_18px]",
+  },
+
+  text: {
+    primary: "text-white",
+    secondary: "text-white/72",
+    muted: "text-white/48",
+    copper: "text-sky-300/90",
+    copperSoft: "text-indigo-200/90",
+  },
+
+  border: {
+    soft: "border-white/10",
+    softer: "border-white/8",
+    strong: "border-white/15",
+    copper: "border-sky-400/30",
+  },
+
+  glass: {
+    panel:
+      "bg-white/[0.045] backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.42)]",
+    panelStrong:
+      "bg-white/[0.06] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.52)]",
+    panelSoft:
+      "bg-white/[0.035] backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.34)]",
+    input:
+      "bg-white/[0.04] backdrop-blur-md border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+  },
+
+  accent: {
+    copperBg: "bg-sky-400/12",
+    copperBgStrong: "bg-indigo-400/18",
+    copperLine: "bg-sky-400/40",
+    copperRing: "focus-visible:ring-sky-400/30",
+    copperBorder: "border-sky-400/35",
+  },
+
+  radius: {
+    xl: "rounded-3xl",
+    lg: "rounded-2xl",
+    md: "rounded-xl",
+  },
+
+  spacing: {
+    shell: "px-4 py-6 md:px-6 md:py-8 xl:px-8",
+    section: "space-y-6",
+    grid: "gap-4 md:gap-5 xl:gap-6",
+  },
+} as const;
+
+export function cx(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
+
+
+
