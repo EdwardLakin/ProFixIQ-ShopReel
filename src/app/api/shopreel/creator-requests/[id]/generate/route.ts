@@ -2,19 +2,25 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import { generateCreatorContentOutputs } from "@/features/shopreel/creator/generateCreatorContentOutputs";
 import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
 import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
 import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
 import type { StorySource } from "@/features/shopreel/story-sources";
 import {
-  buildCreatorTextOutputs,
   editorUrlForOutputType,
+  normalizeBlogLengthMode,
+  normalizeBlogStyle,
   normalizeOutputType,
   type OutputType,
+  type BlogStyle,
+  type BlogLengthMode,
 } from "@/features/shopreel/creator/buildCreatorOutputs";
 
 type Body = {
   outputType?: OutputType;
+  blogStyle?: BlogStyle;
+  blogLengthMode?: BlogLengthMode;
 };
 
 export async function POST(
@@ -55,6 +61,12 @@ export async function POST(
 
     const outputType = normalizeOutputType(
       body.outputType ?? (requestPayload as { outputType?: unknown }).outputType,
+    );
+    const blogStyle = normalizeBlogStyle(
+      body.blogStyle ?? (requestPayload as { blogStyle?: unknown }).blogStyle,
+    );
+    const blogLengthMode = normalizeBlogLengthMode(
+      body.blogLengthMode ?? (requestPayload as { blogLengthMode?: unknown }).blogLengthMode,
     );
 
     if (creatorRequest.source_generation_id && outputType === "video") {
@@ -114,6 +126,8 @@ export async function POST(
         creatorRequestId: creatorRequest.id,
         anglePack: ai.angles,
         outputType,
+        blogStyle,
+        blogLengthMode,
       },
       assets: [],
       refs: [],
@@ -147,7 +161,7 @@ export async function POST(
       sourceSystem: "creator_mode",
     });
 
-    const textOutputs = buildCreatorTextOutputs({
+    const textOutputs = await generateCreatorContentOutputs({
       topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
       summary: ai.summary,
       bullets: ai.bullets,
@@ -157,6 +171,8 @@ export async function POST(
       takeaway: ai.takeaway,
       cta: ai.cta,
       audience: creatorRequest.audience ?? null,
+      blogStyle,
+      blogLengthMode,
     });
 
     const generation = await saveStoryGeneration({
@@ -170,6 +186,8 @@ export async function POST(
         creator_mode_type: creatorRequest.mode ?? "research_script",
         creator_request_id: creatorRequest.id,
         output_type: outputType,
+        blog_style: blogStyle,
+        blog_length_mode: blogLengthMode,
         text_outputs: textOutputs,
         expanded_topic: ai.expandedTopic,
         research_summary: ai.summary,
@@ -182,7 +200,8 @@ export async function POST(
       .from("shopreel_creator_requests")
       .update({
         source_story_source_id: savedSource.id,
-        source_generation_id: outputType === "video" ? generation.id : creatorRequest.source_generation_id,
+        source_generation_id:
+          outputType === "video" ? generation.id : creatorRequest.source_generation_id,
         status: "generated",
         result_payload: {
           ...(creatorRequest.result_payload ?? {}),

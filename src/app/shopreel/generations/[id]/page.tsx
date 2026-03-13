@@ -8,6 +8,12 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { StoryDraft, StoryScene } from "@/features/shopreel/story-builder/types";
 
+type BlogSection = {
+  key: string;
+  title: string;
+  body: string;
+};
+
 function objectRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
@@ -18,8 +24,38 @@ function asStoryDraft(value: unknown): StoryDraft | null {
   return value as StoryDraft;
 }
 
+function asBlogSections(value: unknown): BlogSection[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((section) => {
+      if (!section || typeof section !== "object" || Array.isArray(section)) return null;
+      const record = section as Record<string, unknown>;
+      if (
+        typeof record.key !== "string" ||
+        typeof record.title !== "string" ||
+        typeof record.body !== "string"
+      ) {
+        return null;
+      }
+      return {
+        key: record.key,
+        title: record.title,
+        body: record.body,
+      };
+    })
+    .filter((section): section is BlogSection => !!section);
+}
+
 function formatLabel(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function editorPathForOutputType(outputType: string | null, generationId: string) {
+  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
+  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
+  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
+  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
+  return `/shopreel/editor/${generationId}`;
 }
 
 export default async function ShopReelGenerationDetailPage(
@@ -59,6 +95,11 @@ export default async function ShopReelGenerationDetailPage(
 
   const draft = asStoryDraft(generation.story_draft);
   const metadata = objectRecord(generation.generation_metadata);
+  const outputType =
+    typeof metadata.output_type === "string" ? metadata.output_type : "video";
+  const textOutputs = objectRecord(metadata.text_outputs);
+  const blog = objectRecord(textOutputs.blog);
+  const blogSections = asBlogSections(blog.sections);
 
   const renderUrl =
     typeof metadata.render_url === "string" ? metadata.render_url : null;
@@ -66,15 +107,20 @@ export default async function ShopReelGenerationDetailPage(
     typeof metadata.thumbnail_url === "string" ? metadata.thumbnail_url : null;
   const publicationId =
     typeof metadata.publication_id === "string" ? metadata.publication_id : null;
+  const editorPath = editorPathForOutputType(outputType, generation.id);
 
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title={draft?.title ?? "Story generation"}
+      title={
+        outputType === "blog" && typeof blog.title === "string" && blog.title.trim().length > 0
+          ? blog.title
+          : draft?.title ?? "Story generation"
+      }
       subtitle="Review generated story structure, preview render output, and open the editor."
       actions={
         <>
-          <Link href={`/shopreel/editor/${generation.id}`}>
+          <Link href={editorPath}>
             <GlassButton variant="secondary">Open editor</GlassButton>
           </Link>
           {generation.status === "ready" ? (
@@ -94,6 +140,7 @@ export default async function ShopReelGenerationDetailPage(
         >
           <div className="flex flex-wrap gap-2">
             <GlassBadge tone="default">{formatLabel(generation.status)}</GlassBadge>
+            <GlassBadge tone="copper">{formatLabel(outputType)}</GlassBadge>
             {draft?.sourceKind ? (
               <GlassBadge tone="muted">{formatLabel(draft.sourceKind)}</GlassBadge>
             ) : null}
@@ -149,20 +196,37 @@ export default async function ShopReelGenerationDetailPage(
             </div>
           </div>
 
-          <div
-            className={cx(
-              "rounded-2xl border p-4",
-              glassTheme.border.softer,
-              glassTheme.glass.panelSoft,
-            )}
-          >
-            <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
-              Voiceover / Script
+          {outputType === "blog" && typeof blog.body === "string" ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Blog preview
+              </div>
+              <div className={cx("mt-2 text-sm whitespace-pre-wrap", glassTheme.text.secondary)}>
+                {blog.body}
+              </div>
             </div>
-            <div className={cx("mt-2 text-sm whitespace-pre-wrap", glassTheme.text.secondary)}>
-              {draft?.voiceoverText ?? draft?.scriptText ?? "—"}
+          ) : (
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Voiceover / Script
+              </div>
+              <div className={cx("mt-2 text-sm whitespace-pre-wrap", glassTheme.text.secondary)}>
+                {draft?.voiceoverText ?? draft?.scriptText ?? "—"}
+              </div>
             </div>
-          </div>
+          )}
         </GlassCard>
 
         <GlassCard
@@ -224,54 +288,98 @@ export default async function ShopReelGenerationDetailPage(
         </GlassCard>
       </section>
 
-      <GlassCard
-        label="Scenes"
-        title="Story structure"
-        description="Scene-level story layout before timeline editing."
-        strong
-      >
-        <div className="grid gap-3">
-          {(draft?.scenes ?? []).map((scene: StoryScene, index: number) => (
-            <div
-              key={scene.id}
-              className={cx(
-                "grid gap-3 rounded-2xl border p-4 lg:grid-cols-[auto_1fr_auto]",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft,
-              )}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/80">
-                {index + 1}
-              </div>
+      {outputType === "blog" ? (
+        <GlassCard
+          label="Sections"
+          title="Blog structure"
+          description="Section-based article layout before editing."
+          strong
+        >
+          <div className="grid gap-3">
+            {blogSections.map((section, index) => (
+              <div
+                key={section.key}
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 lg:grid-cols-[auto_1fr_auto]",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/80">
+                  {index + 1}
+                </div>
 
-              <div className="space-y-1">
-                <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
-                  {scene.title}
-                </div>
-                <div className={cx("text-xs", glassTheme.text.secondary)}>
-                  {formatLabel(scene.role)} • {scene.durationSeconds ?? 0}s • {scene.media.length} media
-                </div>
-                {scene.overlayText ? (
-                  <div className={cx("text-sm", glassTheme.text.primary)}>
-                    {scene.overlayText}
+                <div className="space-y-1">
+                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                    {section.title}
                   </div>
-                ) : null}
-                {scene.voiceoverText ? (
                   <div className={cx("text-xs", glassTheme.text.secondary)}>
-                    {scene.voiceoverText}
+                    {section.key}
                   </div>
-                ) : null}
-              </div>
+                  <div className={cx("text-sm whitespace-pre-wrap", glassTheme.text.primary)}>
+                    {section.body}
+                  </div>
+                </div>
 
-              <div className="flex items-start justify-end">
-                <Link href={`/shopreel/editor/${generation.id}?scene=${scene.id}`}>
-                  <GlassButton variant="ghost">Edit scene</GlassButton>
-                </Link>
+                <div className="flex items-start justify-end">
+                  <Link href={`/shopreel/editor/blog/${generation.id}?section=${section.key}`}>
+                    <GlassButton variant="ghost">Edit section</GlassButton>
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </GlassCard>
+            ))}
+          </div>
+        </GlassCard>
+      ) : (
+        <GlassCard
+          label="Scenes"
+          title="Story structure"
+          description="Scene-level story layout before timeline editing."
+          strong
+        >
+          <div className="grid gap-3">
+            {(draft?.scenes ?? []).map((scene: StoryScene, index: number) => (
+              <div
+                key={scene.id}
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 lg:grid-cols-[auto_1fr_auto]",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/80">
+                  {index + 1}
+                </div>
+
+                <div className="space-y-1">
+                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                    {scene.title}
+                  </div>
+                  <div className={cx("text-xs", glassTheme.text.secondary)}>
+                    {formatLabel(scene.role)} • {scene.durationSeconds ?? 0}s • {scene.media.length} media
+                  </div>
+                  {scene.overlayText ? (
+                    <div className={cx("text-sm", glassTheme.text.primary)}>
+                      {scene.overlayText}
+                    </div>
+                  ) : null}
+                  {scene.voiceoverText ? (
+                    <div className={cx("text-xs", glassTheme.text.secondary)}>
+                      {scene.voiceoverText}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex items-start justify-end">
+                  <Link href={`/shopreel/editor/${generation.id}?scene=${scene.id}`}>
+                    <GlassButton variant="ghost">Edit scene</GlassButton>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
     </GlassShell>
   );
 }

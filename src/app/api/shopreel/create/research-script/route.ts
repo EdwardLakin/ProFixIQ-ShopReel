@@ -4,18 +4,24 @@ import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCrea
 import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
 import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
 import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import { generateCreatorContentOutputs } from "@/features/shopreel/creator/generateCreatorContentOutputs";
 import type { StorySource } from "@/features/shopreel/story-sources";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
-  buildCreatorTextOutputs,
   editorUrlForOutputType,
+  normalizeBlogLengthMode,
+  normalizeBlogStyle,
   normalizeOutputType,
   type OutputType,
+  type BlogStyle,
+  type BlogLengthMode,
 } from "@/features/shopreel/creator/buildCreatorOutputs";
 
 type Body = {
   mode?: "research_script" | "angle_pack" | "debunk" | "stitch";
   outputType?: OutputType;
+  blogStyle?: BlogStyle;
+  blogLengthMode?: BlogLengthMode;
   topic: string;
   audience?: string;
   platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
@@ -60,6 +66,8 @@ export async function POST(req: Request) {
     const legacy = supabase as any;
     const mode = body.mode ?? "research_script";
     const outputType = normalizeOutputType(body.outputType);
+    const blogStyle = normalizeBlogStyle(body.blogStyle);
+    const blogLengthMode = normalizeBlogLengthMode(body.blogLengthMode);
 
     if (!body.topic || body.topic.trim().length < 3) {
       return NextResponse.json(
@@ -110,6 +118,8 @@ export async function POST(req: Request) {
         creatorMode: true,
         creatorModeType: mode,
         outputType,
+        blogStyle,
+        blogLengthMode,
         aiSummary: ai.summary,
         anglePack: ai.angles,
         sourceText: body.sourceText ?? null,
@@ -139,6 +149,8 @@ export async function POST(req: Request) {
         request_payload: {
           mode,
           outputType,
+          blogStyle,
+          blogLengthMode,
           topic: body.topic,
           audience: body.audience ?? null,
           tone: body.tone ?? null,
@@ -182,6 +194,8 @@ export async function POST(req: Request) {
             source_origin: "creator_mode",
             creator_mode_type: mode,
             output_type: outputType,
+            blog_style: blogStyle,
+            blog_length_mode: blogLengthMode,
             expanded_topic: ai.expandedTopic,
             angle_pack: ai.angles,
           },
@@ -228,7 +242,7 @@ export async function POST(req: Request) {
       sourceSystem: "creator_mode",
     });
 
-    const textOutputs = buildCreatorTextOutputs({
+    const textOutputs = await generateCreatorContentOutputs({
       topic: body.topic,
       summary: ai.summary,
       bullets: ai.bullets,
@@ -238,6 +252,8 @@ export async function POST(req: Request) {
       takeaway: ai.takeaway,
       cta: ai.cta,
       audience: body.audience ?? null,
+      blogStyle,
+      blogLengthMode,
     });
 
     const generation = await saveStoryGeneration({
@@ -251,6 +267,8 @@ export async function POST(req: Request) {
         creator_mode_type: mode,
         creator_request_id: creatorRequest?.id ?? null,
         output_type: outputType,
+        blog_style: blogStyle,
+        blog_length_mode: blogLengthMode,
         text_outputs: textOutputs,
         expanded_topic: ai.expandedTopic,
         research_summary: ai.summary,
@@ -287,6 +305,8 @@ export async function POST(req: Request) {
           source_origin: "creator_mode",
           creator_mode_type: mode,
           output_type: outputType,
+          blog_style: blogStyle,
+          blog_length_mode: blogLengthMode,
           expanded_topic: ai.expandedTopic,
           angle_pack: ai.angles,
         },

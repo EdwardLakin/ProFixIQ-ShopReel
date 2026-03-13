@@ -1,28 +1,32 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
-import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
 import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
-import type { StorySource } from "@/features/shopreel/story-sources";
+import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
+import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
+import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import { generateCreatorContentOutputs } from "@/features/shopreel/creator/generateCreatorContentOutputs";
 import {
-  buildCreatorTextOutputs,
   editorUrlForOutputType,
+  normalizeBlogLengthMode,
+  normalizeBlogStyle,
   normalizeOutputType,
   type OutputType,
+  type BlogStyle,
+  type BlogLengthMode,
 } from "@/features/shopreel/creator/buildCreatorOutputs";
+import type { StorySource } from "@/features/shopreel/story-sources";
 
 type Body = {
   outputType?: OutputType;
+  blogStyle?: BlogStyle;
+  blogLengthMode?: BlogLengthMode;
 };
 
-type Angle = {
-  title: string;
-  angle: string;
-  hook: string;
-  whyItWorks: string;
-  suggestedCta: string;
-};
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
 
 export async function POST(
   req: Request,
@@ -62,18 +66,11 @@ export async function POST(
       );
     }
 
-    const resultPayload =
-      creatorRequest.result_payload &&
-      typeof creatorRequest.result_payload === "object" &&
-      !Array.isArray(creatorRequest.result_payload)
-        ? creatorRequest.result_payload
-        : {};
-
-    const angles = Array.isArray((resultPayload as { angles?: unknown }).angles)
-      ? (((resultPayload as { angles?: unknown[] }).angles ?? []) as unknown[])
-      : [];
-
+    const requestPayload = objectRecord(creatorRequest.request_payload);
+    const resultPayload = objectRecord(creatorRequest.result_payload);
+    const angles = Array.isArray(resultPayload.angles) ? resultPayload.angles : [];
     const rawAngle = angles[angleIndex];
+
     if (!rawAngle || typeof rawAngle !== "object" || Array.isArray(rawAngle)) {
       return NextResponse.json(
         { ok: false, error: "Angle not found" },
@@ -81,18 +78,41 @@ export async function POST(
       );
     }
 
-    const angle = rawAngle as Angle;
-    const outputType = normalizeOutputType(body.outputType);
+    const angle = rawAngle as {
+      title?: string;
+      angle?: string;
+      hook?: string;
+      whyItWorks?: string;
+      suggestedCta?: string;
+    };
+
+    const outputType = normalizeOutputType(body.outputType ?? requestPayload.outputType);
+    const blogStyle = normalizeBlogStyle(body.blogStyle ?? requestPayload.blogStyle);
+    const blogLengthMode = normalizeBlogLengthMode(
+      body.blogLengthMode ?? requestPayload.blogLengthMode,
+    );
+
+    const topicBase = creatorRequest.topic ?? creatorRequest.title ?? "Creator request";
+    const topic = `${topicBase} — ${angle.title ?? `Angle ${angleIndex + 1}`}`;
+
+    const ai = await generateCreatorScript({
+      mode: creatorRequest.mode ?? "research_script",
+      topic,
+      audience: creatorRequest.audience ?? null,
+      tone: creatorRequest.tone ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      sourceText:
+        typeof requestPayload.sourceText === "string" ? requestPayload.sourceText : null,
+      sourceUrl: creatorRequest.source_url ?? null,
+    });
 
     const now = new Date().toISOString();
-    const baseTopic = creatorRequest.topic ?? creatorRequest.title ?? "Creator angle";
-    const generationTitle = `${baseTopic} — ${angle.title}`;
 
     const source: StorySource = {
       id: `creator-angle:${Date.now()}`,
       shopId,
-      title: generationTitle,
-      description: angle.angle,
+      title: topic,
+      description: ai.summary,
       kind: "creator_idea",
       origin: "creator_mode",
       generationMode: "manual",
@@ -104,21 +124,30 @@ export async function POST(
       vehicleLabel: null,
       customerLabel: null,
       technicianLabel: null,
-      tags: ["creator_mode", "angle_post", creatorRequest.mode ?? "angle_pack", outputType],
-      notes: [angle.angle, angle.whyItWorks],
+      tags: [
+        "creator_mode",
+        creatorRequest.mode ?? "research_script",
+        "derived_angle",
+        outputType,
+      ],
+      notes: ai.bullets,
       facts: {
-        hook: angle.hook,
-        explanation: angle.whyItWorks,
-        cta: angle.suggestedCta,
-        creator_request_id: creatorRequest.id,
-        angle_index: angleIndex,
+        hook: angle.hook ?? ai.hook,
+        context: ai.context,
+        explanation: ai.explanation,
+        takeaway: ai.takeaway,
+        cta: angle.suggestedCta ?? ai.cta,
+        expanded_topic: ai.expandedTopic,
       },
       metadata: {
         creatorMode: true,
         creatorRequestId: creatorRequest.id,
-        angleIndex,
-        angleTitle: angle.title,
+        derivedFromAngleIndex: angleIndex,
+        derivedFromAngleTitle: angle.title ?? null,
+        derivedFromAngleDescription: angle.angle ?? null,
         outputType,
+        blogStyle,
+        blogLengthMode,
       },
       assets: [],
       refs: [],
@@ -131,29 +160,19 @@ export async function POST(
     const draft = buildCreatorResearchDraft({
       shopId,
       sourceId: savedSource.id,
-      topic: generationTitle,
+      topic,
       audience: creatorRequest.audience ?? null,
       platformFocus: creatorRequest.platform_focus ?? "multi",
       tone: creatorRequest.tone ?? "confident",
-      researchSummary:
-        typeof (resultPayload as { summary?: unknown }).summary === "string"
-          ? ((resultPayload as { summary?: string }).summary ?? angle.angle)
-          : angle.angle,
-      bullets: [
-        angle.angle,
-        angle.whyItWorks,
-        `CTA: ${angle.suggestedCta}`,
-      ],
-      hook: angle.hook,
-      contextLine: angle.angle,
-      explanationLine: angle.whyItWorks,
-      takeawayLine: angle.angle,
-      ctaLine: angle.suggestedCta,
-      expandedTopic:
-        typeof (resultPayload as { expandedTopic?: unknown }).expandedTopic === "string"
-          ? ((resultPayload as { expandedTopic?: string }).expandedTopic ?? generationTitle)
-          : generationTitle,
-      mode: "angle_pack",
+      researchSummary: ai.summary,
+      bullets: ai.bullets,
+      hook: angle.hook ?? ai.hook,
+      contextLine: ai.context,
+      explanationLine: ai.explanation,
+      takeawayLine: ai.takeaway,
+      ctaLine: angle.suggestedCta ?? ai.cta,
+      expandedTopic: ai.expandedTopic,
+      mode: creatorRequest.mode ?? "research_script",
     });
 
     const contentPiece = await createContentPieceFromStoryDraft({
@@ -162,18 +181,20 @@ export async function POST(
       sourceSystem: "creator_mode",
     });
 
-    const textOutputs = buildCreatorTextOutputs({
-      topic: generationTitle,
-      summary: angle.angle,
-      bullets: [angle.angle, angle.whyItWorks],
-      hook: angle.hook,
-      context: angle.angle,
-      explanation: angle.whyItWorks,
-      takeaway: angle.angle,
-      cta: angle.suggestedCta,
-      angleTitle: angle.title,
-      angleDescription: angle.angle,
+    const textOutputs = await generateCreatorContentOutputs({
+      topic,
+      summary: ai.summary,
+      bullets: ai.bullets,
+      hook: angle.hook ?? ai.hook,
+      context: ai.context,
+      explanation: ai.explanation,
+      takeaway: ai.takeaway,
+      cta: angle.suggestedCta ?? ai.cta,
+      angleTitle: angle.title ?? null,
+      angleDescription: angle.angle ?? null,
       audience: creatorRequest.audience ?? null,
+      blogStyle,
+      blogLengthMode,
     });
 
     const generation = await saveStoryGeneration({
@@ -184,40 +205,20 @@ export async function POST(
       status: "draft",
       metadata: {
         creator_mode: true,
-        creator_mode_type: "angle_post",
+        creator_mode_type: creatorRequest.mode ?? "research_script",
         creator_request_id: creatorRequest.id,
         output_type: outputType,
-        angle_index: angleIndex,
-        angle_title: angle.title,
+        blog_style: blogStyle,
+        blog_length_mode: blogLengthMode,
         text_outputs: textOutputs,
+        derived_from_angle_index: angleIndex,
+        derived_from_angle_title: angle.title ?? null,
+        derived_from_angle_description: angle.angle ?? null,
+        expanded_topic: ai.expandedTopic,
+        research_summary: ai.summary,
+        research_bullets: ai.bullets,
       },
     });
-
-    const existingDerivedPosts = Array.isArray((resultPayload as { derivedPosts?: unknown }).derivedPosts)
-      ? (((resultPayload as { derivedPosts?: unknown[] }).derivedPosts ?? []) as Array<Record<string, unknown>>)
-      : [];
-
-    const nextDerivedPosts = [
-      ...existingDerivedPosts,
-      {
-        title: generationTitle,
-        generationId: generation.id,
-        createdAt: now,
-        angleTitle: angle.title,
-      },
-    ];
-
-    await legacy
-      .from("shopreel_creator_requests")
-      .update({
-        status: "ready",
-        result_payload: {
-          ...(resultPayload ?? {}),
-          derivedPosts: nextDerivedPosts,
-        },
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", creatorRequest.id);
 
     return NextResponse.json({
       ok: true,

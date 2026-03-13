@@ -1,4 +1,14 @@
-export type OutputType = "video" | "blog" | "email" | "post";
+export type OutputType = "video" | "blog" | "email" | "post" | "vlog";
+
+export type BlogStyle =
+  | "auto"
+  | "story_driven"
+  | "educational"
+  | "opinion"
+  | "case_study"
+  | "problem_solution";
+
+export type BlogLengthMode = "short" | "standard" | "long";
 
 export type CreatorAngle = {
   title: string;
@@ -8,117 +18,74 @@ export type CreatorAngle = {
   suggestedCta: string;
 };
 
+export type EditorSection = {
+  key: string;
+  title: string;
+  body: string;
+};
+
 export type CreatorTextOutputs = {
   blog: {
     title: string;
+    style: Exclude<BlogStyle, "auto">;
+    lengthMode: BlogLengthMode;
     body: string;
+    sections: EditorSection[];
   };
   email: {
     subject: string;
     body: string;
+    sections: EditorSection[];
   };
   post: {
     title: string;
     body: string;
+    sections: EditorSection[];
+  };
+  vlog: {
+    title: string;
+    hook: string;
+    talkingPoints: string[];
+    bRoll: string[];
+    sceneOrder: Array<{
+      title: string;
+      description: string;
+      durationLabel: string;
+    }>;
+    closingCta: string;
+    script: string;
   };
 };
 
 export function normalizeOutputType(value: unknown): OutputType {
-  if (value === "blog" || value === "email" || value === "post") return value;
+  if (value === "blog" || value === "email" || value === "post" || value === "vlog") {
+    return value;
+  }
   return "video";
+}
+
+export function normalizeBlogStyle(value: unknown): BlogStyle {
+  if (
+    value === "story_driven" ||
+    value === "educational" ||
+    value === "opinion" ||
+    value === "case_study" ||
+    value === "problem_solution"
+  ) {
+    return value;
+  }
+  return "auto";
+}
+
+export function normalizeBlogLengthMode(value: unknown): BlogLengthMode {
+  if (value === "short" || value === "long") return value;
+  return "standard";
 }
 
 export function editorUrlForOutputType(outputType: OutputType, generationId: string): string {
   if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
   if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
   if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
+  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
   return `/shopreel/editor/${generationId}`;
-}
-
-export function buildCreatorTextOutputs(input: {
-  topic: string;
-  summary: string;
-  bullets: string[];
-  hook: string;
-  context: string;
-  explanation: string;
-  takeaway: string;
-  cta: string;
-  angleTitle?: string | null;
-  angleDescription?: string | null;
-  audience?: string | null;
-}): CreatorTextOutputs {
-  const titleBase = input.angleTitle?.trim() || input.topic.trim() || "Generated content";
-  const audienceLine = input.audience?.trim() ? `Audience: ${input.audience.trim()}` : null;
-  const bulletLines = input.bullets.filter(Boolean).map((bullet) => `- ${bullet}`).join("\n");
-
-  const blogTitle = titleBase;
-  const blogBody = [
-    `# ${blogTitle}`,
-    "",
-    input.summary,
-    "",
-    "## Key points",
-    bulletLines || "- No key points available yet.",
-    "",
-    "## Breakdown",
-    input.context,
-    "",
-    input.explanation,
-    "",
-    "## Why it matters",
-    input.takeaway,
-    "",
-    "## Call to action",
-    input.cta,
-    audienceLine ? `\n${audienceLine}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  const emailSubject = titleBase;
-  const emailBody = [
-    `Subject: ${emailSubject}`,
-    "",
-    input.hook,
-    "",
-    input.summary,
-    "",
-    input.context,
-    "",
-    input.explanation,
-    "",
-    "Why it matters:",
-    input.takeaway,
-    "",
-    input.cta,
-  ].join("\n");
-
-  const postTitle = titleBase;
-  const postBody = [
-    input.hook,
-    "",
-    input.angleDescription?.trim() || input.summary,
-    "",
-    input.explanation,
-    "",
-    input.takeaway,
-    "",
-    input.cta,
-  ].join("\n");
-
-  return {
-    blog: {
-      title: blogTitle,
-      body: blogBody,
-    },
-    email: {
-      subject: emailSubject,
-      body: emailBody,
-    },
-    post: {
-      title: postTitle,
-      body: postBody,
-    },
-  };
 }

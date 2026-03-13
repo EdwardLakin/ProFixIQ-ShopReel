@@ -1,0 +1,1194 @@
+===== src/features/shopreel/story-builder/buildStoryDraftFromSource.ts =====
+import type { StoryDraft, StoryScene, StorySceneRole } from "./types"
+import type { StorySource, StorySourceAsset } from "../story-sources"
+import { DEFAULT_SCENE_SHAPE_BY_SOURCE_KIND } from "../story-sources"
+
+function toTitleCase(value: string): string {
+  return value
+    .split("_")
+    .map((part) => (part.length > 0 ? part[0]!.toUpperCase() + part.slice(1) : part))
+    .join(" ")
+}
+
+function buildSceneTitle(role: StorySceneRole): string {
+  switch (role) {
+    case "cta":
+      return "Call to action"
+    case "why_it_matters":
+      return "Why it matters"
+    case "what_it_is":
+      return "What it is"
+    case "what_we_do":
+      return "What we do"
+    case "start_of_day":
+      return "Start of day"
+    case "end_of_day":
+      return "End of day"
+    case "current_state":
+      return "Current state"
+    default:
+      return toTitleCase(role)
+  }
+}
+
+function inferHook(source: StorySource): string {
+  const factHook =
+    typeof source.facts.hook === "string" && source.facts.hook.trim().length > 0
+      ? source.facts.hook.trim()
+      : null
+
+  if (factHook) return factHook
+
+  switch (source.kind) {
+    case "before_after":
+      return `${source.title} — here’s the transformation.`
+    case "repair_completed":
+      return `${source.title} — here’s what we fixed.`
+    case "inspection_completed":
+      return `${source.title} — here’s what we found.`
+    case "educational_insight":
+      return `${source.title} — here’s what to know.`
+    case "daily_timeline":
+      return `${source.title} — here’s how the day went.`
+    default:
+      return source.title
+  }
+}
+
+function inferCaption(source: StorySource, hook: string): string {
+  const noteLine = source.notes.find((note) => note.trim().length > 0)
+  return [hook, noteLine].filter(Boolean).join(" ")
+}
+
+function inferCta(source: StorySource): string {
+  switch (source.kind) {
+    case "educational_insight":
+    case "expert_tip":
+      return "Follow for more practical tips."
+    case "before_after":
+    case "repair_completed":
+    case "project_completed":
+      return "Message us if you want results like this."
+    case "inspection_completed":
+      return "Book an inspection before it turns into a bigger repair."
+    default:
+      return "Reach out if you want help with a job like this."
+  }
+}
+
+function assetToMedia(asset: StorySourceAsset) {
+  return {
+    contentAssetId: asset.contentAssetId ?? null,
+    manualAssetId: asset.manualAssetId ?? null,
+    url: asset.url ?? null,
+    startSeconds: null,
+    endSeconds: null,
+    metadata: asset.metadata ?? {},
+  }
+}
+
+function pickAssetsForRole(source: StorySource, role: StorySceneRole): StorySourceAsset[] {
+  if (source.assets.length === 0) return []
+
+  if (role === "hook") return source.assets.slice(0, 1)
+  if (role === "before") return source.assets.slice(0, 1)
+  if (role === "after") return source.assets.slice(-1)
+  if (role === "result" || role === "cta") return source.assets.slice(-1)
+
+  return source.assets.slice(0, Math.min(2, source.assets.length))
+}
+
+function buildOverlayText(
+  source: StorySource,
+  role: StorySceneRole,
+  index: number,
+  hook: string,
+): string {
+  if (role === "hook") return hook
+  if (role === "cta") return inferCta(source)
+
+  const note = source.notes[index]
+  if (typeof note === "string" && note.trim().length > 0) {
+    return note.trim()
+  }
+
+  return buildSceneTitle(role)
+}
+
+function buildVoiceoverText(
+  source: StorySource,
+  role: StorySceneRole,
+  overlayText: string,
+): string {
+  if (role === "hook") {
+    return overlayText
+  }
+
+  if (role === "cta") {
+    return inferCta(source)
+  }
+
+  if (source.description && source.description.trim().length > 0) {
+    return `${overlayText}. ${source.description.trim()}`
+  }
+
+  return overlayText
+}
+
+function buildScenes(source: StorySource, hook: string): StoryScene[] {
+  const roles = DEFAULT_SCENE_SHAPE_BY_SOURCE_KIND[source.kind] ?? [
+    "hook",
+    "context",
+    "story",
+    "result",
+    "cta",
+  ]
+
+  return roles.map((role, index) => {
+    const typedRole = role as StorySceneRole
+    const selectedAssets = pickAssetsForRole(source, typedRole)
+    const overlayText = buildOverlayText(source, typedRole, index, hook)
+
+    return {
+      id: `${source.id}:scene:${index + 1}`,
+      role: typedRole,
+      title: buildSceneTitle(typedRole),
+      overlayText,
+      voiceoverText: buildVoiceoverText(source, typedRole, overlayText),
+      durationSeconds: typedRole === "hook" ? 3 : typedRole === "cta" ? 3 : 4,
+      media: selectedAssets.map(assetToMedia),
+      metadata: {
+        sourceAssetCount: selectedAssets.length,
+      },
+    }
+  })
+}
+
+export function buildStoryDraftFromSource(source: StorySource): StoryDraft {
+  const hook = inferHook(source)
+  const caption = inferCaption(source, hook)
+  const cta = inferCta(source)
+  const scenes = buildScenes(source, hook)
+
+  return {
+    id: `draft:${source.id}`,
+    shopId: source.shopId,
+    sourceId: source.id,
+    sourceKind: source.kind,
+    title: source.title,
+    hook,
+    caption,
+    cta,
+    hashtags: [],
+    tone: "professional",
+    targetChannels: ["instagram_reel", "facebook_video", "youtube_short", "tiktok_video"],
+    targetDurationSeconds: scenes.reduce(
+      (sum, scene) => sum + (scene.durationSeconds ?? 0),
+      0,
+    ),
+    summary: source.description ?? null,
+    voiceoverText: scenes
+      .map((scene) => scene.voiceoverText)
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .join(" "),
+    scriptText: scenes
+      .map((scene) => scene.voiceoverText)
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .join("\n"),
+    scenes,
+    metadata: {
+      sourceOrigin: source.origin,
+      sourceTags: source.tags,
+      sourceRefs: source.refs,
+    },
+  }
+}
+
+
+
+===== src/features/shopreel/story-builder/buildContentPieceInsertFromDraft.ts =====
+import type { Json, TablesInsert } from "@/types/supabase";
+import type { StoryDraft } from "./types";
+
+type ContentPieceInsert = TablesInsert<"content_pieces">;
+
+function mapChannelsToPlatforms(
+  channels: StoryDraft["targetChannels"],
+): ContentPieceInsert["platform_targets"] {
+  const platforms = new Set<string>();
+
+  for (const channel of channels) {
+    switch (channel) {
+      case "instagram_reel":
+        platforms.add("instagram");
+        break;
+      case "facebook_video":
+        platforms.add("facebook");
+        break;
+      case "youtube_short":
+        platforms.add("youtube");
+        break;
+      case "tiktok_video":
+        platforms.add("tiktok");
+        break;
+      default:
+        break;
+    }
+  }
+
+  return Array.from(platforms);
+}
+
+function mapSourceKindToContentType(sourceKind: StoryDraft["sourceKind"]): string {
+  switch (sourceKind) {
+    case "repair_completed":
+      return "repair_story";
+    case "inspection_completed":
+      return "inspection_highlight";
+    case "before_after":
+      return "before_after";
+    case "educational_insight":
+    case "expert_tip":
+      return "educational_tip";
+    default:
+      return "workflow_demo";
+  }
+}
+
+function toJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value)) as Json;
+}
+
+export function buildContentPieceInsertFromDraft(input: {
+  shopId: string;
+  draft: StoryDraft;
+  templateId?: string | null;
+  sourceSystem?: string | null;
+}): ContentPieceInsert {
+  const { shopId, draft } = input;
+
+  return {
+    tenant_shop_id: shopId,
+    source_shop_id: shopId,
+    source_system: input.sourceSystem ?? "shopreel",
+    title: draft.title,
+    status: "draft",
+    content_type: mapSourceKindToContentType(draft.sourceKind),
+    hook: draft.hook ?? null,
+    caption: draft.caption ?? null,
+    cta: draft.cta ?? null,
+    script_text: draft.scriptText ?? null,
+    voiceover_text: draft.voiceoverText ?? null,
+    platform_targets: mapChannelsToPlatforms(draft.targetChannels),
+    template_id: input.templateId ?? null,
+    metadata: toJson({
+      story_source_id: draft.sourceId,
+      story_source_kind: draft.sourceKind,
+      story_draft: draft,
+      story_scene_count: draft.scenes.length,
+      story_target_duration_seconds: draft.targetDurationSeconds ?? null,
+      story_tone: draft.tone,
+    }),
+  };
+}
+
+
+
+===== src/features/shopreel/story-builder/generateStoryPipeline.ts =====
+import { createRenderJob } from "../render/createRenderJob";
+import { saveStoryGeneration, saveStorySource } from "../story-sources/server";
+import type { StorySource } from "../story-sources";
+import { buildStoryDraftFromSource } from "./buildStoryDraftFromSource";
+import { createContentPieceFromStoryDraft } from "./createContentPieceFromStoryDraft";
+
+export async function generateStoryPipeline(input: {
+  shopId: string;
+  source: StorySource;
+  templateId?: string | null;
+  sourceSystem?: string | null;
+  createRenderJobNow?: boolean;
+  createdBy?: string | null;
+}) {
+  const savedSource = await saveStorySource(input.source);
+
+  const draft = buildStoryDraftFromSource(input.source);
+
+  const contentPiece = await createContentPieceFromStoryDraft({
+    shopId: input.shopId,
+    draft,
+    templateId: input.templateId ?? null,
+    sourceSystem: input.sourceSystem ?? "shopreel",
+  });
+
+  const renderJob = input.createRenderJobNow
+    ? await createRenderJob({
+        shopId: input.shopId,
+        contentPieceId: contentPiece.id,
+        sourceType: input.source.kind,
+        sourceId: savedSource.id,
+        createdBy: input.createdBy ?? null,
+        storySource: input.source,
+        storyDraft: draft,
+        renderPayload: {
+          mode: "story_draft",
+          title: draft.title,
+          hook: draft.hook ?? null,
+          caption: draft.caption ?? null,
+          cta: draft.cta ?? null,
+          scenes: draft.scenes,
+        },
+      })
+    : null;
+
+  const generation = await saveStoryGeneration({
+    shopId: input.shopId,
+    storySourceId: savedSource.id,
+    contentPieceId: contentPiece.id,
+    renderJobId: renderJob?.id ?? null,
+    draft,
+    status: renderJob ? "queued" : "draft",
+    createdBy: input.createdBy ?? null,
+    metadata: {
+      deduped_source: savedSource.deduped,
+      source_system: input.sourceSystem ?? "shopreel",
+    },
+  });
+
+  return {
+    savedSource,
+    source: input.source,
+    draft,
+    contentPiece,
+    renderJob,
+    generation,
+  };
+}
+
+
+
+===== src/features/shopreel/content/server/loadGenerationForEditor.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { StoryDraft } from "@/features/shopreel/story-builder/types";
+
+function asStoryDraft(value: unknown): StoryDraft | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as StoryDraft;
+}
+
+export async function loadGenerationForEditor(id: string) {
+  const shopId = await getCurrentShopId();
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data: generation, error } = await legacy
+    .from("shopreel_story_generations")
+    .select("*")
+    .eq("id", id)
+    .eq("shop_id", shopId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const draft = asStoryDraft(generation?.story_draft ?? null);
+
+  return {
+    generation,
+    draft,
+  };
+}
+
+
+
+===== src/features/shopreel/editor/components/EditorClient.tsx =====
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassInput from "@/features/shopreel/ui/system/GlassInput";
+import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import type { StoryDraft, StoryScene } from "@/features/shopreel/story-builder/types";
+import MediaBin, { type MediaBinItem } from "@/features/shopreel/editor/components/MediaBin";
+import TimelineLane from "@/features/shopreel/editor/components/TimelineLane";
+import TimelineRuler from "@/features/shopreel/editor/components/TimelineRuler";
+import {
+  buildTimelineClips,
+  draftDurationMs,
+  formatSecondsLabel,
+  PX_PER_SECOND,
+  type TimelineSelection,
+} from "@/features/shopreel/editor/lib/timeline";
+import { buildSubtitleBlocks } from "@/features/shopreel/subtitles/buildSubtitleBlocks";
+
+type Props = {
+  generationId: string;
+  initialDraft: StoryDraft;
+  initialStatus: string;
+  initialRenderUrl: string | null;
+  mediaItems: MediaBinItem[];
+};
+
+function cloneDraft(draft: StoryDraft): StoryDraft {
+  return JSON.parse(JSON.stringify(draft)) as StoryDraft;
+}
+
+function selectedSceneFromSelection(
+  scenes: StoryScene[],
+  selection: TimelineSelection,
+): StoryScene | null {
+  if (!selection) return scenes[0] ?? null;
+  if (selection.type === "scene") return scenes.find((scene) => scene.id === selection.id) ?? null;
+  if (selection.type === "clip") return scenes.find((scene) => scene.id === selection.id) ?? null;
+  return scenes[0] ?? null;
+}
+
+function buildDraftTextFromScenes(scenes: StoryScene[]) {
+  const voiceLines = scenes
+    .map((scene) => (scene.voiceoverText ?? "").trim())
+    .filter(Boolean);
+
+  const scriptBlocks = scenes.map((scene) => {
+    const heading = scene.role.replaceAll("_", " ").toUpperCase();
+    const body = (scene.voiceoverText ?? scene.overlayText ?? "").trim();
+    return `${heading}\n${body}`;
+  });
+
+  return {
+    voiceoverText: voiceLines.join(" "),
+    scriptText: scriptBlocks.join("\n\n"),
+  };
+}
+
+function syncDraftText(draft: StoryDraft): StoryDraft {
+  const text = buildDraftTextFromScenes(draft.scenes);
+  return {
+    ...draft,
+    voiceoverText: text.voiceoverText,
+    scriptText: text.scriptText,
+    targetDurationSeconds: draft.scenes.reduce(
+      (sum, scene) => sum + Math.max(1, Number(scene.durationSeconds ?? 0)),
+      0,
+    ),
+  };
+}
+
+function buildScriptPanelValue(draft: StoryDraft) {
+  return draft.scenes
+    .map((scene) => {
+      const heading = scene.role.replaceAll("_", " ").toUpperCase();
+      const body = (scene.voiceoverText ?? scene.overlayText ?? "").trim();
+      return `${heading}\n${body}`;
+    })
+    .join("\n\n");
+}
+
+function applyScriptPanelValue(draft: StoryDraft, value: string): StoryDraft {
+  const blocks = value
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  const nextScenes = draft.scenes.map((scene, index) => {
+    const block = blocks[index];
+    if (!block) return scene;
+
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const body = lines.slice(1).join(" ").trim();
+    if (!body) return scene;
+
+    return {
+      ...scene,
+      voiceoverText: body,
+    };
+  });
+
+  return syncDraftText({
+    ...draft,
+    scenes: nextScenes,
+  });
+}
+
+function IconAction(props: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      className={cx(
+        "inline-flex h-8 w-8 items-center justify-center rounded-full border text-sm transition",
+        glassTheme.border.softer,
+        glassTheme.glass.panelSoft,
+        glassTheme.text.secondary,
+        "hover:text-white hover:bg-white/[0.06]",
+      )}
+      aria-label={props.label}
+      title={props.label}
+    >
+      {props.label}
+    </button>
+  );
+}
+
+export default function EditorClient(props: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [draft, setDraft] = useState<StoryDraft>(() => syncDraftText(cloneDraft(props.initialDraft)));
+  const [selection, setSelection] = useState<TimelineSelection>(() => {
+    const sceneId = searchParams.get("scene");
+    return sceneId ? { type: "scene", id: sceneId } : null;
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRendering, setIsRendering] = useState(false);
+  const [isRegeneratingScript, setIsRegeneratingScript] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const timelineClips = useMemo(() => buildTimelineClips(draft), [draft]);
+  const totalMs = useMemo(() => draftDurationMs(draft), [draft]);
+  const totalSeconds = Math.round(totalMs / 1000);
+
+  const selectedScene = useMemo(
+    () => selectedSceneFromSelection(draft.scenes, selection),
+    [draft.scenes, selection],
+  );
+
+  const selectedClip = useMemo(() => {
+    if (!selection || selection.type !== "clip") return null;
+    return timelineClips.find((clip) => clip.id === selection.id) ?? null;
+  }, [selection, timelineClips]);
+
+  const subtitleBlocks = useMemo(
+    () => buildSubtitleBlocks(draft.voiceoverText ?? draft.scriptText ?? "", totalMs),
+    [draft.voiceoverText, draft.scriptText, totalMs],
+  );
+
+  const scriptPanelValue = useMemo(() => buildScriptPanelValue(draft), [draft]);
+
+  function updateDraft(updater: (prev: StoryDraft) => StoryDraft) {
+    setDraft((prev) => syncDraftText(updater(prev)));
+  }
+
+  function updateScene(sceneId: string, updater: (scene: StoryScene) => StoryScene) {
+    updateDraft((prev) => ({
+      ...prev,
+      scenes: prev.scenes.map((scene) => (scene.id === sceneId ? updater(scene) : scene)),
+    }));
+  }
+
+  function moveScene(sceneId: string, direction: -1 | 1) {
+    updateDraft((prev) => {
+      const index = prev.scenes.findIndex((scene) => scene.id === sceneId);
+      if (index < 0) return prev;
+
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= prev.scenes.length) return prev;
+
+      const nextScenes = [...prev.scenes];
+      const [moved] = nextScenes.splice(index, 1);
+      nextScenes.splice(nextIndex, 0, moved);
+
+      return {
+        ...prev,
+        scenes: nextScenes,
+      };
+    });
+  }
+
+  function dragScene(sceneId: string, deltaPx: number) {
+    if (Math.abs(deltaPx) < PX_PER_SECOND) return;
+    moveScene(sceneId, deltaPx > 0 ? 1 : -1);
+  }
+
+  function resizeScene(sceneId: string, deltaPx: number) {
+    const deltaSeconds = Math.round(deltaPx / PX_PER_SECOND);
+    if (deltaSeconds === 0) return;
+
+    updateScene(sceneId, (scene) => ({
+      ...scene,
+      durationSeconds: Math.max(1, Number(scene.durationSeconds ?? 3) + deltaSeconds),
+    }));
+  }
+
+  function regenerateScriptFromScenes() {
+    setIsRegeneratingScript(true);
+    setError(null);
+
+    updateDraft((prev) => ({
+      ...prev,
+      scenes: prev.scenes.map((scene) => ({
+        ...scene,
+        voiceoverText:
+          (scene.voiceoverText ?? "").trim() ||
+          (scene.overlayText ?? "").trim() ||
+          scene.title,
+      })),
+    }));
+
+    window.setTimeout(() => {
+      setIsRegeneratingScript(false);
+    }, 250);
+  }
+
+  async function saveDraft() {
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      const res = await fetch(`/api/shopreel/story-generations/${props.generationId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          storyDraft: draft,
+        }),
+      });
+
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to save draft");
+      }
+
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save draft");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function renderAgain() {
+    try {
+      setIsRendering(true);
+      setError(null);
+
+      const saveRes = await fetch(`/api/shopreel/story-generations/${props.generationId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          storyDraft: draft,
+        }),
+      });
+
+      const saveJson = (await saveRes.json()) as { ok?: boolean; error?: string };
+      if (!saveRes.ok || !saveJson.ok) {
+        throw new Error(saveJson.error ?? "Failed to save draft");
+      }
+
+      const res = await fetch(`/api/shopreel/story-generations/${props.generationId}/render`, {
+        method: "POST",
+      });
+
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to queue render");
+      }
+
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to queue render");
+    } finally {
+      setIsRendering(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+      <div className="space-y-5">
+        <GlassCard
+          label="Scenes"
+          title="Scene stack"
+          description="Select, reorder, and inspect scenes before deeper clip editing."
+          strong
+        >
+          <div className="grid gap-3">
+            {draft.scenes.map((scene, index) => {
+              const isSelected = selectedScene?.id === scene.id;
+
+              return (
+                <div
+                  key={scene.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelection({ type: "scene", id: scene.id })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelection({ type: "scene", id: scene.id });
+                    }
+                  }}
+                  className={cx(
+                    "rounded-2xl border p-4 text-left transition cursor-pointer",
+                    isSelected ? glassTheme.border.copper : glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    isSelected ? "ring-2 ring-sky-300/20" : "hover:ring-1 hover:ring-white/10",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium text-white">
+                        {index + 1}. {scene.title}
+                      </div>
+                      <div className={cx("text-xs", glassTheme.text.secondary)}>
+                        {scene.role} • {scene.durationSeconds ?? 0}s
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <IconAction label="↑" onClick={() => moveScene(scene.id, -1)} />
+                      <IconAction label="↓" onClick={() => moveScene(scene.id, 1)} />
+                    </div>
+                  </div>
+
+                  {scene.overlayText ? (
+                    <div className={cx("mt-3 text-sm", glassTheme.text.secondary)}>
+                      {scene.overlayText}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </GlassCard>
+
+        <MediaBin items={props.mediaItems} />
+
+        <GlassCard
+          label="Subtitles"
+          title="Generated subtitle chunks"
+          description="These chunks are derived from the current transcript and total duration."
+        >
+          <div className="grid gap-2">
+            {subtitleBlocks.length === 0 ? (
+              <div className={cx("text-sm", glassTheme.text.secondary)}>
+                No subtitle blocks yet.
+              </div>
+            ) : (
+              subtitleBlocks.map((block, index) => (
+                <div
+                  key={`${block.startMs}-${block.endMs}-${index}`}
+                  className={cx(
+                    "rounded-2xl border p-3 text-sm",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.primary,
+                  )}
+                >
+                  <div className={cx("mb-1 text-xs", glassTheme.text.secondary)}>
+                    {formatSecondsLabel(Math.floor(block.startMs / 1000))} →{" "}
+                    {formatSecondsLabel(Math.ceil(block.endMs / 1000))}
+                  </div>
+                  {block.text}
+                </div>
+              ))
+            )}
+          </div>
+        </GlassCard>
+      </div>
+
+      <div className="space-y-5 min-w-0">
+        <GlassCard
+          label="Preview"
+          title="Program monitor"
+          description="Render preview and timeline context."
+          strong
+        >
+          {props.initialRenderUrl ? (
+            <div className="mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-[28px] border border-white/10 bg-black/40">
+              <video
+                src={props.initialRenderUrl}
+                controls
+                playsInline
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="mx-auto flex aspect-[9/16] w-full max-w-[360px] items-center justify-center rounded-[28px] border border-white/10 bg-white/[0.04] text-white/70">
+              No render preview yet.
+            </div>
+          )}
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Total duration
+              </div>
+              <div className="mt-2 text-base font-medium text-white">
+                {formatSecondsLabel(totalSeconds)}
+              </div>
+            </div>
+
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Scene count
+              </div>
+              <div className="mt-2 text-base font-medium text-white">{draft.scenes.length}</div>
+            </div>
+
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Status
+              </div>
+              <div className="mt-2 text-base font-medium text-white">
+                {props.initialStatus}
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="Script"
+          title="AI script panel"
+          description="Edit the full scene-by-scene script. Subtitle chunks rebuild automatically from these scene voice lines."
+          strong
+          footer={
+            <div className="flex flex-wrap gap-3">
+              <GlassButton
+                variant="secondary"
+                onClick={() => regenerateScriptFromScenes()}
+                disabled={isRegeneratingScript}
+              >
+                {isRegeneratingScript ? "Regenerating..." : "Regenerate script"}
+              </GlassButton>
+            </div>
+          }
+        >
+          <GlassTextarea
+            label="Structured script"
+            value={scriptPanelValue}
+            onChange={(e) => {
+              const value = e.target.value;
+              setDraft((prev) => applyScriptPanelValue(prev, value));
+            }}
+            className="min-h-[320px]"
+          />
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Voiceover transcript
+              </div>
+              <div className="mt-2 text-sm text-white whitespace-pre-wrap">
+                {draft.voiceoverText ?? ""}
+              </div>
+            </div>
+
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Script blocks
+              </div>
+              <div className="mt-2 text-sm text-white whitespace-pre-wrap">
+                {draft.scriptText ?? ""}
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="Timeline"
+          title="Sequence lanes"
+          description="Visual timeline with ruler, drag reorder, and resize handles."
+          strong
+        >
+          <div className="space-y-3 overflow-x-auto pb-1">
+            <div className="min-w-[900px] space-y-3 pr-2">
+              <TimelineRuler durationMs={totalMs} />
+              <TimelineLane
+                label="Video"
+                lane="video"
+                clips={timelineClips}
+                selectedClipId={selectedClip?.id ?? null}
+                onSelectClip={(clipId, _sceneId, lane) =>
+                  setSelection({ type: "clip", id: clipId, lane })
+                }
+                onDragScene={dragScene}
+                onResizeScene={resizeScene}
+              />
+              <TimelineLane
+                label="Overlay"
+                lane="overlay"
+                clips={timelineClips}
+                selectedClipId={selectedClip?.id ?? null}
+                onSelectClip={(clipId, _sceneId, lane) =>
+                  setSelection({ type: "clip", id: clipId, lane })
+                }
+                onDragScene={dragScene}
+                onResizeScene={resizeScene}
+              />
+              <TimelineLane
+                label="Voice"
+                lane="voiceover"
+                clips={timelineClips}
+                selectedClipId={selectedClip?.id ?? null}
+                onSelectClip={(clipId, _sceneId, lane) =>
+                  setSelection({ type: "clip", id: clipId, lane })
+                }
+                onDragScene={dragScene}
+                onResizeScene={resizeScene}
+              />
+              <TimelineLane
+                label="Subs"
+                lane="subtitles"
+                clips={timelineClips}
+                selectedClipId={selectedClip?.id ?? null}
+                onSelectClip={(clipId, _sceneId, lane) =>
+                  setSelection({ type: "clip", id: clipId, lane })
+                }
+                onDragScene={dragScene}
+                onResizeScene={resizeScene}
+              />
+            </div>
+          </div>
+        </GlassCard>
+      </div>
+
+      <GlassCard
+        label="Inspector"
+        title="Story and scene controls"
+        description="Edit story-level metadata and the selected scene."
+        strong
+        footer={
+          <div className="flex flex-wrap gap-3">
+            <GlassButton variant="secondary" onClick={() => void saveDraft()} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save draft"}
+            </GlassButton>
+            <GlassButton variant="primary" onClick={() => void renderAgain()} disabled={isRendering}>
+              {isRendering ? "Queueing..." : "Render again"}
+            </GlassButton>
+          </div>
+        }
+      >
+        {error ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        <GlassInput
+          label="Title"
+          value={draft.title}
+          onChange={(e) => updateDraft((prev) => ({ ...prev, title: e.target.value }))}
+        />
+
+        <GlassTextarea
+          label="Hook"
+          value={draft.hook ?? ""}
+          onChange={(e) => updateDraft((prev) => ({ ...prev, hook: e.target.value }))}
+        />
+
+        <GlassTextarea
+          label="Caption"
+          value={draft.caption ?? ""}
+          onChange={(e) => updateDraft((prev) => ({ ...prev, caption: e.target.value }))}
+        />
+
+        <GlassTextarea
+          label="CTA"
+          value={draft.cta ?? ""}
+          onChange={(e) => updateDraft((prev) => ({ ...prev, cta: e.target.value }))}
+        />
+
+        {selectedScene ? (
+          <>
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium text-white">Selected scene</div>
+              <GlassBadge tone="default">{selectedScene.role}</GlassBadge>
+            </div>
+
+            {selectedClip ? (
+              <div
+                className={cx(
+                  "rounded-2xl border p-3 text-sm",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.secondary,
+                )}
+              >
+                Editing clip lane: {selectedClip.lane}
+              </div>
+            ) : null}
+
+            <GlassInput
+              label="Scene title"
+              value={selectedScene.title}
+              onChange={(e) =>
+                updateScene(selectedScene.id, (scene) => ({
+                  ...scene,
+                  title: e.target.value,
+                }))
+              }
+            />
+
+            <GlassTextarea
+              label="Overlay text"
+              value={selectedScene.overlayText ?? ""}
+              onChange={(e) =>
+                updateScene(selectedScene.id, (scene) => ({
+                  ...scene,
+                  overlayText: e.target.value,
+                }))
+              }
+            />
+
+            <GlassTextarea
+              label="Voiceover text"
+              value={selectedScene.voiceoverText ?? ""}
+              onChange={(e) =>
+                updateScene(selectedScene.id, (scene) => ({
+                  ...scene,
+                  voiceoverText: e.target.value,
+                }))
+              }
+            />
+
+            <GlassInput
+              label="Duration seconds"
+              type="number"
+              min={1}
+              value={String(selectedScene.durationSeconds ?? 0)}
+              onChange={(e) =>
+                updateScene(selectedScene.id, (scene) => ({
+                  ...scene,
+                  durationSeconds: Math.max(1, Number(e.target.value || 1)),
+                }))
+              }
+            />
+          </>
+        ) : null}
+      </GlassCard>
+    </div>
+  );
+}
+
+
+
+===== src/features/shopreel/reelbuilder/buildReelPlan.ts =====
+import type { StoryDraft } from "../story-builder"
+
+export type ReelBuilderConcept = {
+  hook?: string | null
+  caption?: string | null
+  cta?: string | null
+}
+
+function sceneDirection(role: string): string {
+  switch (role) {
+    case "hook":
+      return "Strong opening visual that immediately shows the job or result"
+    case "problem":
+    case "finding":
+      return "Close-up visual showing the issue, wear, or failed component"
+    case "inspection":
+      return "Technician inspecting or verifying the condition"
+    case "repair":
+    case "process":
+      return "Hands-on work in progress with clear movement"
+    case "before":
+      return "Clear before visual from the start of the job"
+    case "after":
+    case "result":
+      return "Finished result reveal with stable framing"
+    case "cta":
+      return "Final branded shot or completed result held long enough for CTA"
+    default:
+      return "Relevant supporting visual for this part of the story"
+  }
+}
+
+export function buildReelPlan(concept: ReelBuilderConcept | StoryDraft) {
+  const draft = concept as StoryDraft
+  const scenes = Array.isArray(draft?.scenes) ? draft.scenes : null
+
+  if (scenes && scenes.length > 0) {
+    return {
+      hookShot: scenes[0]?.title ?? "Hook",
+      problemShot: scenes.find((scene) => scene.role === "problem" || scene.role === "finding")?.title ??
+        "Problem",
+      inspectionShot: scenes.find((scene) => scene.role === "context" || scene.role === "explanation")?.title ??
+        "Inspection",
+      repairShot: scenes.find((scene) => scene.role === "repair" || scene.role === "process")?.title ??
+        "Process",
+      resultShot: scenes.find((scene) => scene.role === "result" || scene.role === "after")?.title ??
+        "Result",
+      overlayText: draft.hook ?? scenes[0]?.overlayText ?? "",
+      caption: draft.caption ?? "",
+      cta: draft.cta ?? "",
+      scenePlan: scenes.map((scene, index) => ({
+        order: index + 1,
+        role: scene.role,
+        title: scene.title,
+        direction: sceneDirection(scene.role),
+        overlayText: scene.overlayText ?? scene.title,
+        durationSeconds: scene.durationSeconds ?? 4,
+        media: scene.media,
+      })),
+    }
+  }
+
+  return {
+    hookShot: "Vehicle reveal in shop bay",
+    problemShot: "Show worn or broken part",
+    inspectionShot: "Technician inspecting vehicle",
+    repairShot: "Repair work in progress",
+    resultShot: "Vehicle finished and ready",
+    overlayText: concept.hook ?? "",
+    caption: concept.caption ?? "",
+    cta: concept.cta ?? "",
+    scenePlan: [],
+  }
+}
+
+
+

@@ -7,7 +7,11 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
-import type { OutputType } from "@/features/shopreel/creator/buildCreatorOutputs";
+import type {
+  BlogLengthMode,
+  BlogStyle,
+  OutputType,
+} from "@/features/shopreel/creator/buildCreatorOutputs";
 
 type Angle = {
   title: string;
@@ -86,6 +90,8 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
     requestId: string,
     angleIndex: number,
     outputType: OutputType = "video",
+    blogStyle?: BlogStyle,
+    blogLengthMode?: BlogLengthMode,
   ) {
     const key = `${requestId}:${angleIndex}:${outputType}`;
     try {
@@ -97,7 +103,7 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ outputType }),
+        body: JSON.stringify({ outputType, blogStyle, blogLengthMode }),
       });
 
       const json = (await res.json()) as
@@ -259,7 +265,9 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
                   {angles.length > 0 ? (
                     <div className="mt-6 grid gap-4">
                       {angles.map((angle, index) => {
-                        const busy = runningKey === `${item.id}:${index}:video`;
+                        const busyVideo = runningKey === `${item.id}:${index}:video`;
+                        const busyBlog = runningKey === `${item.id}:${index}:blog`;
+                        const busyVlog = runningKey === `${item.id}:${index}:vlog`;
 
                         return (
                           <div
@@ -280,13 +288,39 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
                                 </div>
                               </div>
 
-                              <GlassButton
-                                variant="primary"
-                                onClick={() => void createFromAngle(item.id, index, "video")}
-                                disabled={busy}
-                              >
-                                {busy ? "Creating..." : "Create from angle"}
-                              </GlassButton>
+                              <div className="flex flex-wrap gap-2">
+                                <GlassButton
+                                  variant="primary"
+                                  onClick={() => void createFromAngle(item.id, index, "video")}
+                                  disabled={busyVideo}
+                                >
+                                  {busyVideo ? "Creating..." : "Video"}
+                                </GlassButton>
+                                <GlassButton
+                                  variant="secondary"
+                                  onClick={() =>
+                                    void createFromAngle(item.id, index, "vlog")
+                                  }
+                                  disabled={busyVlog}
+                                >
+                                  {busyVlog ? "Creating..." : "Vlog"}
+                                </GlassButton>
+                                <GlassButton
+                                  variant="secondary"
+                                  onClick={() =>
+                                    void createFromAngle(
+                                      item.id,
+                                      index,
+                                      "blog",
+                                      "auto",
+                                      "standard",
+                                    )
+                                  }
+                                  disabled={busyBlog}
+                                >
+                                  {busyBlog ? "Creating..." : "Blog"}
+                                </GlassButton>
+                              </div>
                             </div>
 
                             <div className="mt-4 space-y-2 text-sm">

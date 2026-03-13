@@ -10,14 +10,17 @@ import GlassInput from "@/features/shopreel/ui/system/GlassInput";
 import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import type {
+  BlogLengthMode,
+  BlogStyle,
+  OutputType,
+} from "@/features/shopreel/creator/buildCreatorOutputs";
 
 type CreatorMode =
   | "research_script"
   | "angle_pack"
   | "debunk"
   | "stitch";
-
-type OutputType = "video" | "blog" | "email" | "post";
 
 type Angle = {
   title: string;
@@ -53,15 +56,33 @@ const MODE_OPTIONS: Array<{ value: CreatorMode; label: string }> = [
 
 const OUTPUT_OPTIONS: Array<{ value: OutputType; label: string }> = [
   { value: "video", label: "Video" },
+  { value: "vlog", label: "Vlog" },
   { value: "blog", label: "Blog" },
   { value: "email", label: "Email" },
   { value: "post", label: "Social post" },
+];
+
+const BLOG_STYLE_OPTIONS: Array<{ value: BlogStyle; label: string }> = [
+  { value: "auto", label: "Auto rotate" },
+  { value: "story_driven", label: "Story-driven" },
+  { value: "educational", label: "Educational" },
+  { value: "opinion", label: "Opinion piece" },
+  { value: "case_study", label: "Case study" },
+  { value: "problem_solution", label: "Problem → Solution" },
+];
+
+const BLOG_LENGTH_OPTIONS: Array<{ value: BlogLengthMode; label: string }> = [
+  { value: "short", label: "Short" },
+  { value: "standard", label: "Standard" },
+  { value: "long", label: "Long form" },
 ];
 
 export default function ShopReelCreatePage() {
   const router = useRouter();
   const [mode, setMode] = useState<CreatorMode>("research_script");
   const [outputType, setOutputType] = useState<OutputType>("video");
+  const [blogStyle, setBlogStyle] = useState<BlogStyle>("auto");
+  const [blogLengthMode, setBlogLengthMode] = useState<BlogLengthMode>("standard");
   const [topic, setTopic] = useState("");
   const [audience, setAudience] = useState("");
   const [platformFocus, setPlatformFocus] = useState<
@@ -81,6 +102,8 @@ export default function ShopReelCreatePage() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const isBlogOutput = outputType === "blog";
+
   async function createFromTopic() {
     try {
       setError(null);
@@ -95,6 +118,8 @@ export default function ShopReelCreatePage() {
         body: JSON.stringify({
           mode,
           outputType,
+          blogStyle,
+          blogLengthMode,
           topic,
           audience,
           platformFocus,
@@ -132,7 +157,7 @@ export default function ShopReelCreatePage() {
       eyebrow="ShopReel"
       title="Creator Mode"
       subtitle="Start from a topic, angle pack, debunk, or stitch prompt. ShopReel expands the topic, builds creator angles, and writes the script."
-      actions={<GlassBadge tone="copper">Creator research + script</GlassBadge>}
+      actions={<GlassBadge tone="copper">Creator research + multi-format output</GlassBadge>}
     >
       <ShopReelNav />
 
@@ -140,7 +165,7 @@ export default function ShopReelCreatePage() {
         <GlassCard
           label="Start From Topic"
           title="Topic -> Research -> Angles -> Output"
-          description="Create video, blog, email, or social post outputs from one creator prompt."
+          description="Create video, vlog, blog, email, or social post outputs from one creator prompt."
           strong
           footer={
             <div className="flex flex-wrap gap-3">
@@ -203,6 +228,56 @@ export default function ShopReelCreatePage() {
               ))}
             </select>
           </label>
+
+          {isBlogOutput ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-2">
+                <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                  Blog style
+                </div>
+                <select
+                  value={blogStyle}
+                  onChange={(e) => setBlogStyle(e.target.value as BlogStyle)}
+                  className={cx(
+                    "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                    glassTheme.text.primary,
+                    glassTheme.glass.input,
+                    glassTheme.border.softer,
+                    "bg-transparent",
+                  )}
+                >
+                  {BLOG_STYLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                  Blog length
+                </div>
+                <select
+                  value={blogLengthMode}
+                  onChange={(e) => setBlogLengthMode(e.target.value as BlogLengthMode)}
+                  className={cx(
+                    "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                    glassTheme.text.primary,
+                    glassTheme.glass.input,
+                    glassTheme.border.softer,
+                    "bg-transparent",
+                  )}
+                >
+                  {BLOG_LENGTH_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : null}
 
           <GlassTextarea
             label="Topic or prompt"
@@ -381,6 +456,7 @@ export default function ShopReelCreatePage() {
                 "Angle pack for multiple follow-up posts",
                 "Debunk mode for wild social claims",
                 "Stitch mode for creator responses",
+                "Vlog scripting for longer-form creator content",
               ].map((item) => (
                 <div
                   key={item}

@@ -7,12 +7,14 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
 
+type OutputType = "video" | "blog" | "email" | "post" | "vlog";
+
 type ContentLibraryItem = {
   id: string;
   title: string;
   status: string;
   createdAt: string;
-  outputType: "video" | "blog" | "email" | "post";
+  outputType: OutputType;
   sourceKind: string;
 };
 
@@ -20,15 +22,16 @@ function formatLabel(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function normalizeOutputType(value: unknown): ContentLibraryItem["outputType"] {
-  if (value === "blog" || value === "email" || value === "post") return value;
+function normalizeOutputType(value: unknown): OutputType {
+  if (value === "blog" || value === "email" || value === "post" || value === "vlog") return value;
   return "video";
 }
 
-function editorPath(outputType: ContentLibraryItem["outputType"], generationId: string) {
+function editorPath(outputType: OutputType, generationId: string) {
   if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
   if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
   if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
+  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
   return `/shopreel/editor/${generationId}`;
 }
 
@@ -72,7 +75,7 @@ export default async function ShopReelContentLibraryPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Content Library"
-      subtitle="Unified library for videos, blogs, emails, and social posts."
+      subtitle="Unified library for videos, vlogs, blogs, emails, and social posts."
       actions={
         <Link href="/shopreel/create">
           <GlassButton variant="primary">Create content</GlassButton>
