@@ -7,6 +7,7 @@ import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { StoryDraft, StoryScene } from "@/features/shopreel/story-builder/types";
+import GenerationDeleteButton from "@/features/shopreel/generations/components/GenerationDeleteButton";
 
 type BlogSection = {
   key: string;
@@ -123,9 +124,7 @@ export default async function ShopReelGenerationDetailPage(
           <Link href={editorPath}>
             <GlassButton variant="secondary">Open editor</GlassButton>
           </Link>
-          <Link href={`${editorPath}?delete=1`}>
-            <GlassButton variant="ghost">Delete</GlassButton>
-          </Link>
+          <GenerationDeleteButton generationId={generation.id} />
           {generation.status === "ready" ? (
             <Link href={`/shopreel/published`}>
               <GlassButton variant="ghost">Published view</GlassButton>

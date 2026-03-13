@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cx } from "./system/glassTheme";
+import { glassTheme, cx } from "./system/glassTheme";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/shopreel" },
@@ -34,9 +34,18 @@ export default function ShopReelNav() {
             href={item.href}
             className={cx(
               "rounded-full border px-4 py-2 text-sm transition",
+              glassTheme.glass.panelSoft,
               active
-                ? "border-white/20 bg-white/20 text-white"
-                : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.1]"
+                ? cx(
+                    glassTheme.border.copper,
+                    glassTheme.text.primary,
+                    "bg-white/[0.09] ring-1 ring-sky-300/20",
+                  )
+                : cx(
+                    glassTheme.border.softer,
+                    glassTheme.text.secondary,
+                    "hover:bg-white/[0.06] hover:text-white",
+                  ),
             )}
           >
             {item.label}
