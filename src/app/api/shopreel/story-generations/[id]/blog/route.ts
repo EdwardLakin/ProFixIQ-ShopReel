@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import { generateBlogSection } from "@/features/shopreel/creator/generateBlogSection";
+import {
+  generateBlogSection,
+  type BlogRewriteStyle,
+} from "@/features/shopreel/creator/generateBlogSection";
 
 type BlogSection = {
   key: string;
@@ -130,8 +133,9 @@ export async function POST(
   try {
     const { id } = await ctx.params;
     const body = (await req.json()) as {
-      action?: "regenerate_section";
+      action?: "regenerate_section" | "improve_section";
       sectionKey?: string;
+      rewriteStyle?: BlogRewriteStyle;
     };
 
     const shopId = await getCurrentShopId();
@@ -155,7 +159,10 @@ export async function POST(
     const blog = objectRecord(textOutputs.blog);
     const sections = asSections(blog.sections);
 
-    if (body.action !== "regenerate_section" || !body.sectionKey) {
+    const validAction =
+      body.action === "regenerate_section" || body.action === "improve_section";
+
+    if (!validAction || !body.sectionKey) {
       return NextResponse.json({ ok: false, error: "Invalid action" }, { status: 400 });
     }
 
@@ -163,6 +170,13 @@ export async function POST(
     if (sectionIndex === -1) {
       return NextResponse.json({ ok: false, error: "Section not found" }, { status: 404 });
     }
+
+    const generatedScript =
+      typeof metadata.generated_script === "object" &&
+      metadata.generated_script &&
+      !Array.isArray(metadata.generated_script)
+        ? (metadata.generated_script as Record<string, unknown>)
+        : {};
 
     const nextBody = await generateBlogSection({
       topic:
@@ -174,49 +188,25 @@ export async function POST(
       allSections: sections,
       summary:
         typeof metadata.research_summary === "string" ? metadata.research_summary : "",
-      hook:
-        typeof metadata.generated_script === "object" &&
-        metadata.generated_script &&
-        !Array.isArray(metadata.generated_script) &&
-        typeof (metadata.generated_script as Record<string, unknown>).hook === "string"
-          ? ((metadata.generated_script as Record<string, unknown>).hook as string)
-          : "",
-      context:
-        typeof metadata.generated_script === "object" &&
-        metadata.generated_script &&
-        !Array.isArray(metadata.generated_script) &&
-        typeof (metadata.generated_script as Record<string, unknown>).context === "string"
-          ? ((metadata.generated_script as Record<string, unknown>).context as string)
-          : "",
+      hook: typeof generatedScript.hook === "string" ? generatedScript.hook : "",
+      context: typeof generatedScript.context === "string" ? generatedScript.context : "",
       explanation:
-        typeof metadata.generated_script === "object" &&
-        metadata.generated_script &&
-        !Array.isArray(metadata.generated_script) &&
-        typeof (metadata.generated_script as Record<string, unknown>).explanation === "string"
-          ? ((metadata.generated_script as Record<string, unknown>).explanation as string)
-          : "",
+        typeof generatedScript.explanation === "string" ? generatedScript.explanation : "",
       takeaway:
-        typeof metadata.generated_script === "object" &&
-        metadata.generated_script &&
-        !Array.isArray(metadata.generated_script) &&
-        typeof (metadata.generated_script as Record<string, unknown>).takeaway === "string"
-          ? ((metadata.generated_script as Record<string, unknown>).takeaway as string)
-          : "",
-      cta:
-        typeof metadata.generated_script === "object" &&
-        metadata.generated_script &&
-        !Array.isArray(metadata.generated_script) &&
-        typeof (metadata.generated_script as Record<string, unknown>).cta === "string"
-          ? ((metadata.generated_script as Record<string, unknown>).cta as string)
-          : "",
+        typeof generatedScript.takeaway === "string" ? generatedScript.takeaway : "",
+      cta: typeof generatedScript.cta === "string" ? generatedScript.cta : "",
       audience:
         typeof metadata.audience === "string" ? metadata.audience : null,
       blogStyle:
-        typeof metadata.blog_style === "string" ? metadata.blog_style as any : "auto",
+        typeof metadata.blog_style === "string" ? (metadata.blog_style as any) : "auto",
       blogLengthMode:
         typeof metadata.blog_length_mode === "string"
-          ? metadata.blog_length_mode as any
+          ? (metadata.blog_length_mode as any)
           : "standard",
+      rewriteStyle:
+        body.action === "improve_section"
+          ? "improve_writing"
+          : body.rewriteStyle ?? null,
     });
 
     const nextSections = sections.map((section, index) =>

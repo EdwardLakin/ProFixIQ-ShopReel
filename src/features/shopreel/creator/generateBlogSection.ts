@@ -1,6 +1,19 @@
 import { openai } from "@/features/ai/server/openai";
 import type { BlogLengthMode, BlogStyle } from "./buildCreatorOutputs";
 
+export type BlogRewriteStyle =
+  | "more_conversational"
+  | "more_technical"
+  | "more_storytelling"
+  | "more_persuasive"
+  | "shorter"
+  | "expand"
+  | "add_example"
+  | "add_shop_floor_detail"
+  | "stronger_hook"
+  | "simpler_explanation"
+  | "improve_writing";
+
 type Input = {
   topic: string;
   sectionTitle: string;
@@ -15,6 +28,7 @@ type Input = {
   audience?: string | null;
   blogStyle?: BlogStyle;
   blogLengthMode?: BlogLengthMode;
+  rewriteStyle?: BlogRewriteStyle | null;
 };
 
 function clean(value: string) {
@@ -26,6 +40,35 @@ function clean(value: string) {
     .replace(/^Only output.*$/gim, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function rewriteInstruction(style: BlogRewriteStyle | null | undefined) {
+  switch (style) {
+    case "more_conversational":
+      return "Rewrite this section to sound more conversational and natural.";
+    case "more_technical":
+      return "Rewrite this section to sound a bit more technical and industry-specific without becoming robotic.";
+    case "more_storytelling":
+      return "Rewrite this section with stronger storytelling and a more vivid real-world feel.";
+    case "more_persuasive":
+      return "Rewrite this section to be more persuasive and compelling without sounding salesy.";
+    case "shorter":
+      return "Rewrite this section to be tighter and shorter while keeping the core meaning.";
+    case "expand":
+      return "Rewrite this section by expanding it with more useful detail and smoother explanation.";
+    case "add_example":
+      return "Rewrite this section and add one grounded real-world example.";
+    case "add_shop_floor_detail":
+      return "Rewrite this section and add concrete shop-floor detail that makes it feel lived-in and real.";
+    case "stronger_hook":
+      return "Rewrite this section with a stronger opening hook and better first sentence.";
+    case "simpler_explanation":
+      return "Rewrite this section so the explanation is simpler, clearer, and easier to follow.";
+    case "improve_writing":
+      return "Improve this section so it reads clearer, smoother, and more engaging without changing the meaning too much.";
+    default:
+      return "Rewrite only the requested section so it feels like finished article prose.";
+  }
 }
 
 export async function generateBlogSection(input: Input): Promise<string> {
@@ -72,11 +115,13 @@ export async function generateBlogSection(input: Input): Promise<string> {
           `Explanation: ${input.explanation}\n` +
           `Takeaway: ${input.takeaway}\n` +
           `CTA: ${input.cta}\n` +
+          `Rewrite mode: ${input.rewriteStyle ?? "default_regenerate"}\n` +
+          `Instruction: ${rewriteInstruction(input.rewriteStyle)}\n` +
           `Current section body: ${input.existingBody}\n\n` +
           `All sections:\n${input.allSections
             .map((section) => `${section.title}: ${section.body}`)
             .join("\n\n")}\n\n` +
-          "Rewrite only the requested section so it feels like finished article prose.",
+          rewriteInstruction(input.rewriteStyle),
       },
     ],
   });
