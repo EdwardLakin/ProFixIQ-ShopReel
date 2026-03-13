@@ -6,9 +6,16 @@ import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-
 import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
 import type { StorySource } from "@/features/shopreel/story-sources";
 import { createAdminClient } from "@/lib/supabase/server";
+import {
+  buildCreatorTextOutputs,
+  editorUrlForOutputType,
+  normalizeOutputType,
+  type OutputType,
+} from "@/features/shopreel/creator/buildCreatorOutputs";
 
 type Body = {
   mode?: "research_script" | "angle_pack" | "debunk" | "stitch";
+  outputType?: OutputType;
   topic: string;
   audience?: string;
   platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
@@ -52,6 +59,7 @@ export async function POST(req: Request) {
     const supabase = createAdminClient();
     const legacy = supabase as any;
     const mode = body.mode ?? "research_script";
+    const outputType = normalizeOutputType(body.outputType);
 
     if (!body.topic || body.topic.trim().length < 3) {
       return NextResponse.json(
@@ -88,7 +96,7 @@ export async function POST(req: Request) {
       vehicleLabel: null,
       customerLabel: null,
       technicianLabel: null,
-      tags: ["creator_mode", mode],
+      tags: ["creator_mode", mode, outputType],
       notes: ai.bullets,
       facts: {
         hook: ai.hook,
@@ -101,6 +109,7 @@ export async function POST(req: Request) {
       metadata: {
         creatorMode: true,
         creatorModeType: mode,
+        outputType,
         aiSummary: ai.summary,
         anglePack: ai.angles,
         sourceText: body.sourceText ?? null,
@@ -113,29 +122,6 @@ export async function POST(req: Request) {
     };
 
     const savedSource = await saveStorySource(source);
-
-    await legacy
-      .from("shopreel_content_opportunities")
-      .upsert(
-        {
-          shop_id: shopId,
-          story_source_id: savedSource.id,
-          score: scoreCreatorMode(mode),
-          status: "ready",
-          reason: reasonForMode(mode),
-          metadata: {
-            source_kind: "creator_idea",
-            source_title: body.topic.trim(),
-            source_origin: "creator_mode",
-            creator_mode_type: mode,
-            expanded_topic: ai.expandedTopic,
-            angle_pack: ai.angles,
-          },
-        },
-        {
-          onConflict: "shop_id,story_source_id",
-        },
-      );
 
     const { data: creatorRequest } = await legacy
       .from("shopreel_creator_requests")
@@ -152,6 +138,7 @@ export async function POST(req: Request) {
         source_url: body.sourceUrl ?? null,
         request_payload: {
           mode,
+          outputType,
           topic: body.topic,
           audience: body.audience ?? null,
           tone: body.tone ?? null,
@@ -178,10 +165,37 @@ export async function POST(req: Request) {
       .select("id")
       .single();
 
+    await legacy
+      .from("shopreel_content_opportunities")
+      .upsert(
+        {
+          shop_id: shopId,
+          story_source_id: savedSource.id,
+          score: scoreCreatorMode(mode),
+          status: "ready",
+          reason: reasonForMode(mode),
+          metadata: {
+            source_type: "creator_request",
+            creator_request_id: creatorRequest?.id ?? null,
+            source_kind: "creator_idea",
+            source_title: body.topic.trim(),
+            source_origin: "creator_mode",
+            creator_mode_type: mode,
+            output_type: outputType,
+            expanded_topic: ai.expandedTopic,
+            angle_pack: ai.angles,
+          },
+        },
+        {
+          onConflict: "shop_id,story_source_id",
+        },
+      );
+
     if (mode === "angle_pack") {
       return NextResponse.json({
         ok: true,
         mode,
+        outputType,
         creatorRequestId: creatorRequest?.id ?? null,
         expandedTopic: ai.expandedTopic,
         researchSummary: ai.summary,
@@ -214,6 +228,18 @@ export async function POST(req: Request) {
       sourceSystem: "creator_mode",
     });
 
+    const textOutputs = buildCreatorTextOutputs({
+      topic: body.topic,
+      summary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      context: ai.context,
+      explanation: ai.explanation,
+      takeaway: ai.takeaway,
+      cta: ai.cta,
+      audience: body.audience ?? null,
+    });
+
     const generation = await saveStoryGeneration({
       shopId,
       storySourceId: savedSource.id,
@@ -224,6 +250,8 @@ export async function POST(req: Request) {
         creator_mode: true,
         creator_mode_type: mode,
         creator_request_id: creatorRequest?.id ?? null,
+        output_type: outputType,
+        text_outputs: textOutputs,
         expanded_topic: ai.expandedTopic,
         research_summary: ai.summary,
         research_bullets: ai.bullets,
@@ -247,11 +275,32 @@ export async function POST(req: Request) {
       })
       .eq("id", creatorRequest?.id ?? "");
 
+    await legacy
+      .from("shopreel_content_opportunities")
+      .update({
+        metadata: {
+          source_type: "creator_request",
+          creator_request_id: creatorRequest?.id ?? null,
+          generation_id: generation.id,
+          source_kind: "creator_idea",
+          source_title: body.topic.trim(),
+          source_origin: "creator_mode",
+          creator_mode_type: mode,
+          output_type: outputType,
+          expanded_topic: ai.expandedTopic,
+          angle_pack: ai.angles,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("shop_id", shopId)
+      .eq("story_source_id", savedSource.id);
+
     return NextResponse.json({
       ok: true,
       mode,
+      outputType,
       generationId: generation.id,
-      editorUrl: `/shopreel/editor/${generation.id}`,
+      editorUrl: editorUrlForOutputType(outputType, generation.id),
       expandedTopic: ai.expandedTopic,
       researchSummary: ai.summary,
       researchBullets: ai.bullets,

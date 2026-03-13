@@ -7,6 +7,7 @@ import { cx } from "./system/glassTheme";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/shopreel" },
   { label: "Create", href: "/shopreel/create" },
+  { label: "Content", href: "/shopreel/content" },
   { label: "Upload", href: "/shopreel/upload" },
   { label: "Opportunities", href: "/shopreel/opportunities" },
   { label: "Creator Requests", href: "/shopreel/creator-requests" },

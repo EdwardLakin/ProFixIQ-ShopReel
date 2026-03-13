@@ -1,0 +1,2838 @@
+----- src/app/shopreel/creator-requests/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import { createAdminClient } from "@/lib/supabase/server";
+import CreatorRequestsClient from "@/features/shopreel/creator/components/CreatorRequestsClient";
+
+type Angle = {
+  title: string;
+  angle: string;
+  hook: string;
+  whyItWorks: string;
+  suggestedCta: string;
+};
+
+type CreatorRequestRow = {
+  id: string;
+  title: string | null;
+  topic: string | null;
+  audience: string | null;
+  tone: string | null;
+  platform_focus: "instagram" | "tiktok" | "youtube" | "facebook" | "multi" | null;
+  mode: string;
+  status: string;
+  created_at: string;
+  source_generation_id: string | null;
+  result_payload: {
+    expandedTopic?: string;
+    summary?: string;
+    bullets?: string[];
+    angles?: Angle[];
+    derivedPosts?: Array<{
+      title: string;
+      generationId: string;
+      createdAt: string;
+      angleTitle: string;
+    }>;
+  } | null;
+};
+
+export default async function ShopReelCreatorRequestsPage() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data, error } = await legacy
+    .from("shopreel_creator_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Creator requests"
+      subtitle="Stored creator prompts, research runs, angle packs, debunks, and stitch requests."
+    >
+      <ShopReelNav />
+      <CreatorRequestsClient initialItems={(data ?? []) as CreatorRequestRow[]} />
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/opportunities/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+
+export default function ShopReelOpportunitiesPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Opportunities"
+      subtitle="Discover, score, generate, and move strong story candidates into editing and publishing."
+      actions={
+        <>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="ghost">View generations</GlassButton>
+          </Link>
+          <GlassButton variant="primary">Generate selected</GlassButton>
+        </>
+      }
+    >
+      <ShopReelNav />
+      <ShopReelOpportunitiesClient />
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/content/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { createAdminClient } from "@/lib/supabase/server";
+
+type ContentLibraryItem = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  outputType: "video" | "blog" | "email" | "post";
+  sourceKind: string;
+};
+
+function formatLabel(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizeOutputType(value: unknown): ContentLibraryItem["outputType"] {
+  if (value === "blog" || value === "email" || value === "post") return value;
+  return "video";
+}
+
+function editorPath(outputType: ContentLibraryItem["outputType"], generationId: string) {
+  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
+  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
+  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
+  return `/shopreel/editor/${generationId}`;
+}
+
+export default async function ShopReelContentLibraryPage() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data, error } = await legacy
+    .from("shopreel_story_generations")
+    .select("id, status, created_at, generation_metadata, story_draft")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const items: ContentLibraryItem[] = (data ?? []).map((row: any) => {
+    const metadata =
+      row.generation_metadata && typeof row.generation_metadata === "object"
+        ? row.generation_metadata
+        : {};
+    const draft =
+      row.story_draft && typeof row.story_draft === "object"
+        ? row.story_draft
+        : {};
+
+    return {
+      id: String(row.id),
+      title: typeof draft.title === "string" ? draft.title : "Untitled",
+      status: typeof row.status === "string" ? row.status : "draft",
+      createdAt:
+        typeof row.created_at === "string" ? row.created_at : new Date().toISOString(),
+      outputType: normalizeOutputType(metadata.output_type),
+      sourceKind:
+        typeof draft.sourceKind === "string" ? draft.sourceKind : "creator_idea",
+    };
+  });
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Content Library"
+      subtitle="Unified library for videos, blogs, emails, and social posts."
+      actions={
+        <Link href="/shopreel/create">
+          <GlassButton variant="primary">Create content</GlassButton>
+        </Link>
+      }
+    >
+      <ShopReelNav />
+
+      <GlassCard
+        label="Library"
+        title="All generated content"
+        description="Browse every generated content item regardless of output type."
+        strong
+      >
+        {items.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            No content yet.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className="space-y-1">
+                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    {item.title}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+                    {formatLabel(item.outputType)} • {formatLabel(item.sourceKind)} •{" "}
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                  <GlassBadge tone="copper">{formatLabel(item.outputType)}</GlassBadge>
+                  <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+
+                  <Link href={`/shopreel/generations/${item.id}`}>
+                    <GlassButton variant="ghost">Review</GlassButton>
+                  </Link>
+                  <Link href={editorPath(item.outputType, item.id)}>
+                    <GlassButton variant="secondary">Edit</GlassButton>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+    </GlassShell>
+  );
+}
+
+
+----- src/features/shopreel/ui/ShopReelNav.tsx -----
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cx } from "./system/glassTheme";
+
+const NAV_ITEMS = [
+  { label: "Dashboard", href: "/shopreel" },
+  { label: "Create", href: "/shopreel/create" },
+  { label: "Content", href: "/shopreel/content" },
+  { label: "Upload", href: "/shopreel/upload" },
+  { label: "Opportunities", href: "/shopreel/opportunities" },
+  { label: "Creator Requests", href: "/shopreel/creator-requests" },
+  { label: "Calendar", href: "/shopreel/calendar" },
+  { label: "Render Queue", href: "/shopreel/render-queue" },
+  { label: "Published", href: "/shopreel/published" },
+  { label: "Analytics", href: "/shopreel/analytics" },
+  { label: "Settings", href: "/shopreel/settings" },
+] as const;
+
+export default function ShopReelNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="mb-6 flex flex-wrap gap-2">
+      {NAV_ITEMS.map((item) => {
+        const active =
+          pathname === item.href ||
+          (item.href !== "/shopreel" && pathname.startsWith(item.href + "/"));
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cx(
+              "rounded-full border px-4 py-2 text-sm transition",
+              active
+                ? "border-white/20 bg-white/20 text-white"
+                : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.1]"
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+
+----- src/features/shopreel/ui/system/GlassShell.tsx -----
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+export default function GlassShell(props: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  const { eyebrow, title, subtitle, actions, children, className } = props;
+
+  return (
+    <div
+      className={cx(
+        "relative min-h-screen overflow-hidden",
+        glassTheme.bg.base,
+        glassTheme.bg.overlay,
+      )}
+    >
+      <div className={glassTheme.bg.grid} />
+
+      <div className="shopreel-floating-light-a" />
+      <div className="shopreel-floating-light-b" />
+      <div className="shopreel-floating-light-c" />
+
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_20%,transparent_80%,rgba(255,255,255,0.02))]" />
+
+      <div className="relative mx-auto max-w-7xl">
+        <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
+          <header className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/"
+                  className={cx(
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition no-underline",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.primary,
+                    "hover:bg-white/[0.06]",
+                  )}
+                >
+                  Home
+                </Link>
+
+                <Link
+                  href="/shopreel"
+                  className={cx(
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition no-underline",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.secondary,
+                    "hover:text-white hover:bg-white/[0.06]",
+                  )}
+                >
+                  ShopReel
+                </Link>
+
+                <form action="/auth/sign-out" method="post" className="ml-1">
+                  <button
+                    type="submit"
+                    className={cx(
+                      "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft,
+                      glassTheme.text.secondary,
+                      "hover:text-white hover:bg-white/[0.06]",
+                    )}
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
+
+              {actions ? (
+                <div className="flex flex-wrap items-center gap-3">{actions}</div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-2">
+                {eyebrow ? (
+                  <div
+                    className={cx(
+                      "text-xs font-medium uppercase tracking-[0.24em]",
+                      glassTheme.text.copper,
+                    )}
+                  >
+                    {eyebrow}
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <h1
+                    className={cx(
+                      "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
+                      glassTheme.text.primary,
+                    )}
+                  >
+                    {title}
+                  </h1>
+
+                  {subtitle ? (
+                    <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
+                      {subtitle}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+----- src/features/shopreel/ui/system/glassTheme.ts -----
+export const glassTheme = {
+  bg: {
+    base: "bg-[#050816]",
+    overlay:
+      "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.10),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.10),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_22%,transparent_78%,rgba(255,255,255,0.03))] before:content-['']",
+    grid: "absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:18px_18px]",
+  },
+
+  text: {
+    primary: "text-white",
+    secondary: "text-white/72",
+    muted: "text-white/48",
+    copper: "text-sky-300/90",
+    copperSoft: "text-indigo-200/90",
+  },
+
+  border: {
+    soft: "border-white/10",
+    softer: "border-white/8",
+    strong: "border-white/15",
+    copper: "border-sky-400/30",
+  },
+
+  glass: {
+    panel:
+      "bg-white/[0.045] backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.42)]",
+    panelStrong:
+      "bg-white/[0.06] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.52)]",
+    panelSoft:
+      "bg-white/[0.035] backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.34)]",
+    input:
+      "bg-white/[0.04] backdrop-blur-md border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+  },
+
+  accent: {
+    copperBg: "bg-sky-400/12",
+    copperBgStrong: "bg-indigo-400/18",
+    copperLine: "bg-sky-400/40",
+    copperRing: "focus-visible:ring-sky-400/30",
+    copperBorder: "border-sky-400/35",
+  },
+
+  radius: {
+    xl: "rounded-3xl",
+    lg: "rounded-2xl",
+    md: "rounded-xl",
+  },
+
+  spacing: {
+    shell: "px-4 py-6 md:px-6 md:py-8 xl:px-8",
+    section: "space-y-6",
+    grid: "gap-4 md:gap-5 xl:gap-6",
+  },
+} as const;
+
+export function cx(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
+
+
+----- src/app/api/shopreel/creator-requests/[id]/generate/route.ts -----
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
+import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
+import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+import type { StorySource } from "@/features/shopreel/story-sources";
+
+export async function POST(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await ctx.params;
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data: creatorRequest, error } = await legacy
+      .from("shopreel_creator_requests")
+      .select("*")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!creatorRequest) {
+      return NextResponse.json(
+        { ok: false, error: "Creator request not found" },
+        { status: 404 },
+      );
+    }
+
+    if (creatorRequest.source_generation_id) {
+      return NextResponse.json({
+        ok: true,
+        generated: {
+          creatorRequestId: creatorRequest.id,
+          generationId: creatorRequest.source_generation_id,
+        },
+      });
+    }
+
+    const requestPayload =
+      creatorRequest.request_payload &&
+      typeof creatorRequest.request_payload === "object" &&
+      !Array.isArray(creatorRequest.request_payload)
+        ? creatorRequest.request_payload
+        : {};
+
+    const ai = await generateCreatorScript({
+      mode: creatorRequest.mode ?? "research_script",
+      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+      audience: creatorRequest.audience ?? null,
+      tone: creatorRequest.tone ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      sourceText:
+        typeof requestPayload.sourceText === "string" ? requestPayload.sourceText : null,
+      sourceUrl: creatorRequest.source_url ?? null,
+    });
+
+    const now = new Date().toISOString();
+
+    const source: StorySource = {
+      id: `creator:${Date.now()}`,
+      shopId,
+      title: creatorRequest.title ?? creatorRequest.topic ?? "Creator prompt",
+      description: ai.summary,
+      kind: "creator_idea",
+      origin: "creator_mode",
+      generationMode: "manual",
+      occurredAt: now,
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      projectName: null,
+      vehicleLabel: null,
+      customerLabel: null,
+      technicianLabel: null,
+      tags: ["creator_mode", creatorRequest.mode ?? "research_script"],
+      notes: ai.bullets,
+      facts: {
+        hook: ai.hook,
+        context: ai.context,
+        explanation: ai.explanation,
+        takeaway: ai.takeaway,
+        cta: ai.cta,
+        expanded_topic: ai.expandedTopic,
+      },
+      metadata: {
+        creatorMode: true,
+        creatorRequestId: creatorRequest.id,
+        anglePack: ai.angles,
+      },
+      assets: [],
+      refs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const savedSource = await saveStorySource(source);
+
+    const draft = buildCreatorResearchDraft({
+      shopId,
+      sourceId: savedSource.id,
+      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+      audience: creatorRequest.audience ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      tone: creatorRequest.tone ?? "confident",
+      researchSummary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      contextLine: ai.context,
+      explanationLine: ai.explanation,
+      takeawayLine: ai.takeaway,
+      ctaLine: ai.cta,
+      expandedTopic: ai.expandedTopic,
+      mode: creatorRequest.mode ?? "research_script",
+    });
+
+    const contentPiece = await createContentPieceFromStoryDraft({
+      shopId,
+      draft,
+      sourceSystem: "creator_mode",
+    });
+
+    const generation = await saveStoryGeneration({
+      shopId,
+      storySourceId: savedSource.id,
+      contentPieceId: contentPiece.id,
+      draft,
+      status: "draft",
+      metadata: {
+        creator_mode: true,
+        creator_mode_type: creatorRequest.mode ?? "research_script",
+        creator_request_id: creatorRequest.id,
+        expanded_topic: ai.expandedTopic,
+        research_summary: ai.summary,
+        research_bullets: ai.bullets,
+        angle_pack: ai.angles,
+      },
+    });
+
+    await legacy
+      .from("shopreel_creator_requests")
+      .update({
+        source_story_source_id: savedSource.id,
+        source_generation_id: generation.id,
+        status: "ready",
+        result_payload: {
+          ...(creatorRequest.result_payload ?? {}),
+          expandedTopic: ai.expandedTopic,
+          summary: ai.summary,
+          bullets: ai.bullets,
+          angles: ai.angles,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", creatorRequest.id);
+
+    return NextResponse.json({
+      ok: true,
+      generated: {
+        creatorRequestId: creatorRequest.id,
+        generationId: generation.id,
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to generate from creator request";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+
+----- src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts -----
+[missing file]
+
+
+----- src/app/api/shopreel/opportunities/route.ts -----
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+export async function GET(req: Request) {
+  try {
+    const shopId = await getCurrentShopId();
+    const { searchParams } = new URL(req.url);
+    const limitRaw = searchParams.get("limit");
+    const limit = limitRaw ? Number(limitRaw) : 50;
+
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data, error } = await legacy
+      .from("shopreel_content_opportunities")
+      .select(`
+        id,
+        score,
+        status,
+        reason,
+        created_at,
+        story_source_id,
+        metadata,
+        shopreel_story_sources!inner (
+          id,
+          title,
+          kind,
+          origin,
+          created_at
+        )
+      `)
+      .eq("shop_id", shopId)
+      .order("score", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const items = (data ?? []).map((row: any) => {
+      const metadata =
+        row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+          ? row.metadata
+          : {};
+
+      const isCreator = metadata.source_type === "creator_request" || row.shopreel_story_sources?.origin === "creator_mode";
+      const creatorRequestId =
+        typeof metadata.creator_request_id === "string" ? metadata.creator_request_id : null;
+      const creatorMode =
+        typeof metadata.creator_mode === "string"
+          ? metadata.creator_mode
+          : typeof metadata.creator_mode_type === "string"
+            ? metadata.creator_mode_type
+            : null;
+
+      return {
+        id: isCreator && creatorRequestId ? creatorRequestId : row.id,
+        kind: isCreator ? "creator_request" : "story_opportunity",
+        title: row.shopreel_story_sources?.title ?? metadata.creator_title ?? "Untitled",
+        contentType:
+          creatorMode ??
+          row.shopreel_story_sources?.kind ??
+          "story_source",
+        score: typeof row.score === "number" ? row.score : Number(row.score ?? 0),
+        status: row.status,
+        source: row.shopreel_story_sources?.origin ?? "shopreel",
+        sourceType: isCreator
+          ? "creator_prompt"
+          : row.shopreel_story_sources?.origin === "manual_upload"
+            ? "manual_upload"
+            : "shop_data",
+        createdAt: row.shopreel_story_sources?.created_at ?? row.created_at,
+        generationId:
+          typeof metadata.generation_id === "string"
+            ? metadata.generation_id
+            : null,
+        creatorMode,
+        summary: typeof row.reason === "string" ? row.reason : null,
+      };
+    });
+
+    return NextResponse.json({
+      ok: true,
+      items,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load opportunities";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+
+----- src/app/api/shopreel/create/research-script/route.ts -----
+import { NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
+import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
+import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import type { StorySource } from "@/features/shopreel/story-sources";
+import { createAdminClient } from "@/lib/supabase/server";
+
+type Body = {
+  mode?: "research_script" | "angle_pack" | "debunk" | "stitch";
+  topic: string;
+  audience?: string;
+  platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
+  tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
+  sourceText?: string;
+  sourceUrl?: string;
+};
+
+function scoreCreatorMode(mode: Body["mode"]) {
+  switch (mode) {
+    case "debunk":
+      return 93;
+    case "stitch":
+      return 90;
+    case "angle_pack":
+      return 88;
+    case "research_script":
+    default:
+      return 91;
+  }
+}
+
+function reasonForMode(mode: Body["mode"]) {
+  switch (mode) {
+    case "debunk":
+      return "Creator debunk opportunity ready for fast response content";
+    case "stitch":
+      return "Creator stitch opportunity ready for response content";
+    case "angle_pack":
+      return "Creator angle pack ready for multiple follow-up posts";
+    case "research_script":
+    default:
+      return "Creator research opportunity ready for script generation";
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json()) as Body;
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+    const mode = body.mode ?? "research_script";
+
+    if (!body.topic || body.topic.trim().length < 3) {
+      return NextResponse.json(
+        { ok: false, error: "Topic required" },
+        { status: 400 },
+      );
+    }
+
+    const ai = await generateCreatorScript({
+      mode,
+      topic: body.topic,
+      audience: body.audience ?? null,
+      tone: body.tone ?? null,
+      platformFocus: body.platformFocus ?? "multi",
+      sourceText: body.sourceText ?? null,
+      sourceUrl: body.sourceUrl ?? null,
+    });
+
+    const now = new Date().toISOString();
+
+    const source: StorySource = {
+      id: `creator:${Date.now()}`,
+      shopId,
+      title: body.topic.trim(),
+      description: ai.summary,
+      kind: "creator_idea",
+      origin: "creator_mode",
+      generationMode: "manual",
+      occurredAt: now,
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      projectName: null,
+      vehicleLabel: null,
+      customerLabel: null,
+      technicianLabel: null,
+      tags: ["creator_mode", mode],
+      notes: ai.bullets,
+      facts: {
+        hook: ai.hook,
+        context: ai.context,
+        explanation: ai.explanation,
+        takeaway: ai.takeaway,
+        cta: ai.cta,
+        expanded_topic: ai.expandedTopic,
+      },
+      metadata: {
+        creatorMode: true,
+        creatorModeType: mode,
+        aiSummary: ai.summary,
+        anglePack: ai.angles,
+        sourceText: body.sourceText ?? null,
+        sourceUrl: body.sourceUrl ?? null,
+      },
+      assets: [],
+      refs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const savedSource = await saveStorySource(source);
+
+    await legacy
+      .from("shopreel_content_opportunities")
+      .upsert(
+        {
+          shop_id: shopId,
+          story_source_id: savedSource.id,
+          score: scoreCreatorMode(mode),
+          status: "ready",
+          reason: reasonForMode(mode),
+          metadata: {
+            source_kind: "creator_idea",
+            source_title: body.topic.trim(),
+            source_origin: "creator_mode",
+            creator_mode_type: mode,
+            expanded_topic: ai.expandedTopic,
+            angle_pack: ai.angles,
+          },
+        },
+        {
+          onConflict: "shop_id,story_source_id",
+        },
+      );
+
+    const { data: creatorRequest } = await legacy
+      .from("shopreel_creator_requests")
+      .insert({
+        shop_id: shopId,
+        mode,
+        status: mode === "angle_pack" ? "ready" : "draft",
+        title: body.topic.trim(),
+        topic: body.topic.trim(),
+        audience: body.audience ?? null,
+        tone: body.tone ?? null,
+        platform_focus: body.platformFocus ?? "multi",
+        source_story_source_id: savedSource.id,
+        source_url: body.sourceUrl ?? null,
+        request_payload: {
+          mode,
+          topic: body.topic,
+          audience: body.audience ?? null,
+          tone: body.tone ?? null,
+          platformFocus: body.platformFocus ?? "multi",
+          sourceText: body.sourceText ?? null,
+          sourceUrl: body.sourceUrl ?? null,
+        },
+        result_payload: {
+          expandedTopic: ai.expandedTopic,
+          summary: ai.summary,
+          bullets: ai.bullets,
+          angles: ai.angles,
+          script: {
+            hook: ai.hook,
+            context: ai.context,
+            explanation: ai.explanation,
+            takeaway: ai.takeaway,
+            cta: ai.cta,
+          },
+        },
+        created_at: now,
+        updated_at: now,
+      })
+      .select("id")
+      .single();
+
+    if (mode === "angle_pack") {
+      return NextResponse.json({
+        ok: true,
+        mode,
+        creatorRequestId: creatorRequest?.id ?? null,
+        expandedTopic: ai.expandedTopic,
+        researchSummary: ai.summary,
+        researchBullets: ai.bullets,
+        angles: ai.angles,
+      });
+    }
+
+    const draft = buildCreatorResearchDraft({
+      shopId,
+      sourceId: savedSource.id,
+      topic: body.topic,
+      audience: body.audience ?? null,
+      platformFocus: body.platformFocus ?? "multi",
+      tone: body.tone ?? "confident",
+      researchSummary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      contextLine: ai.context,
+      explanationLine: ai.explanation,
+      takeawayLine: ai.takeaway,
+      ctaLine: ai.cta,
+      expandedTopic: ai.expandedTopic,
+      mode,
+    });
+
+    const contentPiece = await createContentPieceFromStoryDraft({
+      shopId,
+      draft,
+      sourceSystem: "creator_mode",
+    });
+
+    const generation = await saveStoryGeneration({
+      shopId,
+      storySourceId: savedSource.id,
+      contentPieceId: contentPiece.id,
+      draft,
+      status: "draft",
+      metadata: {
+        creator_mode: true,
+        creator_mode_type: mode,
+        creator_request_id: creatorRequest?.id ?? null,
+        expanded_topic: ai.expandedTopic,
+        research_summary: ai.summary,
+        research_bullets: ai.bullets,
+        generated_script: {
+          hook: ai.hook,
+          context: ai.context,
+          explanation: ai.explanation,
+          takeaway: ai.takeaway,
+          cta: ai.cta,
+        },
+        angle_pack: ai.angles,
+      },
+    });
+
+    await legacy
+      .from("shopreel_creator_requests")
+      .update({
+        status: "generated",
+        source_generation_id: generation.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", creatorRequest?.id ?? "");
+
+    return NextResponse.json({
+      ok: true,
+      mode,
+      generationId: generation.id,
+      editorUrl: `/shopreel/editor/${generation.id}`,
+      expandedTopic: ai.expandedTopic,
+      researchSummary: ai.summary,
+      researchBullets: ai.bullets,
+      angles: ai.angles,
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "script generation failed";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+
+----- src/features/shopreel/components/ShopReelOpportunitiesClient.tsx -----
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+
+type OpportunityItem = {
+  id: string;
+  kind: "story_opportunity" | "creator_request";
+  title: string;
+  contentType: string;
+  score: number | null;
+  status: string;
+  source: string;
+  sourceType: "manual_upload" | "shop_data" | "creator_prompt";
+  createdAt: string;
+  generationId: string | null;
+  creatorMode: string | null;
+  summary: string | null;
+};
+
+type OpportunitiesResponse =
+  | { ok: true; items: OpportunityItem[] }
+  | { ok?: false; error?: string };
+
+type GenerationResult =
+  | {
+      ok: true;
+      generated: {
+        opportunityId?: string;
+        creatorRequestId?: string;
+        contentPieceId?: string;
+        renderJobId?: string | null;
+        generationId: string;
+      };
+    }
+  | { ok?: boolean; error?: string };
+
+function formatLabel(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function timeAgoLabel(value: string) {
+  const now = Date.now();
+  const then = new Date(value).getTime();
+  const diffMs = Math.max(0, now - then);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffHours < 1) return "Just now";
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return new Date(value).toLocaleDateString();
+}
+
+function itemKeyFor(item: Pick<OpportunityItem, "kind" | "id">) {
+  return `${item.kind}:${item.id}`;
+}
+
+function dedupeItems(items: OpportunityItem[]): OpportunityItem[] {
+  const seen = new Set<string>();
+  const result: OpportunityItem[] = [];
+
+  for (const item of items) {
+    const key = itemKeyFor(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+}
+
+export default function ShopReelOpportunitiesClient() {
+  const router = useRouter();
+  const [items, setItems] = useState<OpportunityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<string | null>(null);
+  const [isScoring, setIsScoring] = useState(false);
+  const [generatedByItem, setGeneratedByItem] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const loadItems = useCallback(async (refresh = false) => {
+    try {
+      setError(null);
+      if (refresh) setIsRefreshing(true);
+      else setIsLoading(true);
+
+      const res = await fetch("/api/shopreel/opportunities?limit=50", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const json = (await res.json()) as OpportunitiesResponse;
+
+      if (!res.ok || !json.ok) {
+        throw new Error(("error" in json && json.error) || "Failed to load opportunities");
+      }
+
+      setItems(dedupeItems(json.items ?? []));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load opportunities");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  const discoverAndScore = useCallback(async () => {
+    try {
+      setError(null);
+      setIsScoring(true);
+
+      const discoverRes = await fetch("/api/shopreel/discovery", {
+        method: "POST",
+      });
+
+      const discoverJson = (await discoverRes.json()) as { ok?: boolean; error?: string };
+
+      if (!discoverRes.ok || !discoverJson.ok) {
+        throw new Error(discoverJson.error ?? "Failed discovery");
+      }
+
+      const scoreRes = await fetch("/api/shopreel/opportunities/generate", {
+        method: "POST",
+      });
+
+      const scoreJson = (await scoreRes.json()) as { ok?: boolean; error?: string };
+
+      if (!scoreRes.ok || !scoreJson.ok) {
+        throw new Error(scoreJson.error ?? "Failed opportunity scoring");
+      }
+
+      await loadItems(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to refresh opportunities");
+    } finally {
+      setIsScoring(false);
+    }
+  }, [loadItems]);
+
+  const generateFromItem = useCallback(
+    async (item: OpportunityItem) => {
+      const itemKey = itemKeyFor(item);
+
+      try {
+        setError(null);
+        setIsGenerating(itemKey);
+
+        if (item.generationId) {
+          router.push(`/shopreel/editor/${item.generationId}`);
+          return;
+        }
+
+        const endpoint =
+          item.kind === "creator_request"
+            ? `/api/shopreel/creator-requests/${item.id}/generate`
+            : `/api/shopreel/opportunities/${item.id}/generate`;
+
+        const body =
+          item.kind === "creator_request"
+            ? undefined
+            : JSON.stringify({
+                createRenderJobNow: true,
+              });
+
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers:
+            item.kind === "creator_request"
+              ? undefined
+              : {
+                  "Content-Type": "application/json",
+                },
+          body,
+        });
+
+        const json = (await res.json()) as GenerationResult;
+
+        if (!res.ok || !("generated" in json)) {
+          throw new Error(("error" in json && json.error) || "Failed to generate story");
+        }
+
+        setGeneratedByItem((prev) => ({
+          ...prev,
+          [itemKey]: json.generated.generationId,
+        }));
+
+        await loadItems(true);
+        router.push(`/shopreel/editor/${json.generated.generationId}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to generate story");
+      } finally {
+        setIsGenerating(null);
+      }
+    },
+    [loadItems, router],
+  );
+
+  useEffect(() => {
+    void loadItems();
+  }, [loadItems]);
+
+  const summary = useMemo(() => {
+    const manualCount = items.filter((item) => item.sourceType === "manual_upload").length;
+    const creatorCount = items.filter((item) => item.sourceType === "creator_prompt").length;
+    const highScoreCount = items.filter((item) => (item.score ?? 0) >= 85).length;
+    const readyCount = items.filter((item) => item.status === "ready").length;
+
+    return {
+      total: items.length,
+      manualCount,
+      creatorCount,
+      highScoreCount,
+      readyCount,
+    };
+  }, [items]);
+
+  return (
+    <div className="space-y-5">
+      <GlassCard
+        label="Opportunities"
+        title="Ranked story opportunities"
+        description="Business story opportunities and saved creator prompts now live in one queue."
+        strong
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              <GlassBadge tone="default">{summary.total} total</GlassBadge>
+              <GlassBadge tone="copper">{summary.manualCount} manual</GlassBadge>
+              <GlassBadge tone="default">{summary.creatorCount} creator prompts</GlassBadge>
+              <GlassBadge tone="default">{summary.highScoreCount} high score</GlassBadge>
+              <GlassBadge tone="muted">{summary.readyCount} ready</GlassBadge>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <GlassButton variant="ghost" onClick={() => router.refresh()}>
+                Refresh layout
+              </GlassButton>
+              <GlassButton
+                variant="secondary"
+                onClick={() => void loadItems(true)}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? "Refreshing..." : "Refresh queue"}
+              </GlassButton>
+              <GlassButton
+                variant="primary"
+                onClick={() => void discoverAndScore()}
+                disabled={isScoring}
+              >
+                {isScoring ? "Running..." : "Discover + score"}
+              </GlassButton>
+            </div>
+          </div>
+        }
+      >
+        {isLoading ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            Loading opportunities...
+          </div>
+        ) : null}
+
+        {error ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        {!isLoading && !error && items.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            No opportunities yet. Click Discover + score to build the ranked queue.
+          </div>
+        ) : null}
+
+        {!isLoading && !error ? (
+          <div className="grid gap-3">
+            {items.map((item) => {
+              const itemKey = itemKeyFor(item);
+              const generationId = generatedByItem[itemKey] ?? item.generationId ?? null;
+
+              return (
+                <div
+                  key={itemKey}
+                  className={cx(
+                    "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                    item.sourceType === "creator_prompt" || (item.score ?? 0) >= 85
+                      ? glassTheme.border.copper
+                      : glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {item.title}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      {formatLabel(item.contentType)} • {formatLabel(item.source)} •{" "}
+                      {timeAgoLabel(item.createdAt)}
+                    </div>
+
+                    {item.summary ? (
+                      <div className={cx("pt-1 text-sm", glassTheme.text.secondary)}>
+                        {item.summary}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                    <GlassBadge tone={item.sourceType === "creator_prompt" ? "copper" : "default"}>
+                      {formatLabel(item.sourceType)}
+                    </GlassBadge>
+                    <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+
+                    {item.sourceType !== "creator_prompt" ? (
+                      <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
+                        Score {item.score != null ? Math.round(item.score) : "--"}
+                      </GlassBadge>
+                    ) : (
+                      <GlassBadge tone="muted">
+                        {formatLabel(item.creatorMode ?? "creator_request")}
+                      </GlassBadge>
+                    )}
+
+                    {generationId ? (
+                      <>
+                        <Link href={`/shopreel/generations/${generationId}`}>
+                          <GlassButton variant="ghost">Review</GlassButton>
+                        </Link>
+                        <Link href={`/shopreel/editor/${generationId}`}>
+                          <GlassButton variant="secondary">Edit</GlassButton>
+                        </Link>
+                      </>
+                    ) : null}
+
+                    <GlassButton
+                      variant="primary"
+                      onClick={() => void generateFromItem(item)}
+                      disabled={isGenerating === itemKey}
+                    >
+                      {isGenerating === itemKey
+                        ? "Generating..."
+                        : item.sourceType === "creator_prompt"
+                          ? "Reuse"
+                          : "Generate"}
+                    </GlassButton>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </GlassCard>
+    </div>
+  );
+}
+
+
+----- src/app/shopreel/creator-requests/page.tsx -----
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import { createAdminClient } from "@/lib/supabase/server";
+import CreatorRequestsClient from "@/features/shopreel/creator/components/CreatorRequestsClient";
+
+type Angle = {
+  title: string;
+  angle: string;
+  hook: string;
+  whyItWorks: string;
+  suggestedCta: string;
+};
+
+type CreatorRequestRow = {
+  id: string;
+  title: string | null;
+  topic: string | null;
+  audience: string | null;
+  tone: string | null;
+  platform_focus: "instagram" | "tiktok" | "youtube" | "facebook" | "multi" | null;
+  mode: string;
+  status: string;
+  created_at: string;
+  source_generation_id: string | null;
+  result_payload: {
+    expandedTopic?: string;
+    summary?: string;
+    bullets?: string[];
+    angles?: Angle[];
+    derivedPosts?: Array<{
+      title: string;
+      generationId: string;
+      createdAt: string;
+      angleTitle: string;
+    }>;
+  } | null;
+};
+
+export default async function ShopReelCreatorRequestsPage() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data, error } = await legacy
+    .from("shopreel_creator_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Creator requests"
+      subtitle="Stored creator prompts, research runs, angle packs, debunks, and stitch requests."
+    >
+      <ShopReelNav />
+      <CreatorRequestsClient initialItems={(data ?? []) as CreatorRequestRow[]} />
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/opportunities/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+
+export default function ShopReelOpportunitiesPage() {
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Opportunities"
+      subtitle="Discover, score, generate, and move strong story candidates into editing and publishing."
+      actions={
+        <>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="ghost">View generations</GlassButton>
+          </Link>
+          <GlassButton variant="primary">Generate selected</GlassButton>
+        </>
+      }
+    >
+      <ShopReelNav />
+      <ShopReelOpportunitiesClient />
+    </GlassShell>
+  );
+}
+
+
+----- src/app/shopreel/content/page.tsx -----
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { createAdminClient } from "@/lib/supabase/server";
+
+type ContentLibraryItem = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  outputType: "video" | "blog" | "email" | "post";
+  sourceKind: string;
+};
+
+function formatLabel(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizeOutputType(value: unknown): ContentLibraryItem["outputType"] {
+  if (value === "blog" || value === "email" || value === "post") return value;
+  return "video";
+}
+
+function editorPath(outputType: ContentLibraryItem["outputType"], generationId: string) {
+  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
+  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
+  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
+  return `/shopreel/editor/${generationId}`;
+}
+
+export default async function ShopReelContentLibraryPage() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data, error } = await legacy
+    .from("shopreel_story_generations")
+    .select("id, status, created_at, generation_metadata, story_draft")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const items: ContentLibraryItem[] = (data ?? []).map((row: any) => {
+    const metadata =
+      row.generation_metadata && typeof row.generation_metadata === "object"
+        ? row.generation_metadata
+        : {};
+    const draft =
+      row.story_draft && typeof row.story_draft === "object"
+        ? row.story_draft
+        : {};
+
+    return {
+      id: String(row.id),
+      title: typeof draft.title === "string" ? draft.title : "Untitled",
+      status: typeof row.status === "string" ? row.status : "draft",
+      createdAt:
+        typeof row.created_at === "string" ? row.created_at : new Date().toISOString(),
+      outputType: normalizeOutputType(metadata.output_type),
+      sourceKind:
+        typeof draft.sourceKind === "string" ? draft.sourceKind : "creator_idea",
+    };
+  });
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Content Library"
+      subtitle="Unified library for videos, blogs, emails, and social posts."
+      actions={
+        <Link href="/shopreel/create">
+          <GlassButton variant="primary">Create content</GlassButton>
+        </Link>
+      }
+    >
+      <ShopReelNav />
+
+      <GlassCard
+        label="Library"
+        title="All generated content"
+        description="Browse every generated content item regardless of output type."
+        strong
+      >
+        {items.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            No content yet.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className="space-y-1">
+                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    {item.title}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+                    {formatLabel(item.outputType)} • {formatLabel(item.sourceKind)} •{" "}
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                  <GlassBadge tone="copper">{formatLabel(item.outputType)}</GlassBadge>
+                  <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+
+                  <Link href={`/shopreel/generations/${item.id}`}>
+                    <GlassButton variant="ghost">Review</GlassButton>
+                  </Link>
+                  <Link href={editorPath(item.outputType, item.id)}>
+                    <GlassButton variant="secondary">Edit</GlassButton>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+    </GlassShell>
+  );
+}
+
+
+----- src/features/shopreel/ui/ShopReelNav.tsx -----
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cx } from "./system/glassTheme";
+
+const NAV_ITEMS = [
+  { label: "Dashboard", href: "/shopreel" },
+  { label: "Create", href: "/shopreel/create" },
+  { label: "Content", href: "/shopreel/content" },
+  { label: "Upload", href: "/shopreel/upload" },
+  { label: "Opportunities", href: "/shopreel/opportunities" },
+  { label: "Creator Requests", href: "/shopreel/creator-requests" },
+  { label: "Calendar", href: "/shopreel/calendar" },
+  { label: "Render Queue", href: "/shopreel/render-queue" },
+  { label: "Published", href: "/shopreel/published" },
+  { label: "Analytics", href: "/shopreel/analytics" },
+  { label: "Settings", href: "/shopreel/settings" },
+] as const;
+
+export default function ShopReelNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="mb-6 flex flex-wrap gap-2">
+      {NAV_ITEMS.map((item) => {
+        const active =
+          pathname === item.href ||
+          (item.href !== "/shopreel" && pathname.startsWith(item.href + "/"));
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cx(
+              "rounded-full border px-4 py-2 text-sm transition",
+              active
+                ? "border-white/20 bg-white/20 text-white"
+                : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.1]"
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+
+----- src/features/shopreel/ui/system/GlassShell.tsx -----
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { glassTheme, cx } from "./glassTheme";
+
+export default function GlassShell(props: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  const { eyebrow, title, subtitle, actions, children, className } = props;
+
+  return (
+    <div
+      className={cx(
+        "relative min-h-screen overflow-hidden",
+        glassTheme.bg.base,
+        glassTheme.bg.overlay,
+      )}
+    >
+      <div className={glassTheme.bg.grid} />
+
+      <div className="shopreel-floating-light-a" />
+      <div className="shopreel-floating-light-b" />
+      <div className="shopreel-floating-light-c" />
+
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_20%,transparent_80%,rgba(255,255,255,0.02))]" />
+
+      <div className="relative mx-auto max-w-7xl">
+        <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
+          <header className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/"
+                  className={cx(
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition no-underline",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.primary,
+                    "hover:bg-white/[0.06]",
+                  )}
+                >
+                  Home
+                </Link>
+
+                <Link
+                  href="/shopreel"
+                  className={cx(
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition no-underline",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.secondary,
+                    "hover:text-white hover:bg-white/[0.06]",
+                  )}
+                >
+                  ShopReel
+                </Link>
+
+                <form action="/auth/sign-out" method="post" className="ml-1">
+                  <button
+                    type="submit"
+                    className={cx(
+                      "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft,
+                      glassTheme.text.secondary,
+                      "hover:text-white hover:bg-white/[0.06]",
+                    )}
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
+
+              {actions ? (
+                <div className="flex flex-wrap items-center gap-3">{actions}</div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-2">
+                {eyebrow ? (
+                  <div
+                    className={cx(
+                      "text-xs font-medium uppercase tracking-[0.24em]",
+                      glassTheme.text.copper,
+                    )}
+                  >
+                    {eyebrow}
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <h1
+                    className={cx(
+                      "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
+                      glassTheme.text.primary,
+                    )}
+                  >
+                    {title}
+                  </h1>
+
+                  {subtitle ? (
+                    <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
+                      {subtitle}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+----- src/features/shopreel/ui/system/glassTheme.ts -----
+export const glassTheme = {
+  bg: {
+    base: "bg-[#050816]",
+    overlay:
+      "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.10),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.10),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_22%,transparent_78%,rgba(255,255,255,0.03))] before:content-['']",
+    grid: "absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:18px_18px]",
+  },
+
+  text: {
+    primary: "text-white",
+    secondary: "text-white/72",
+    muted: "text-white/48",
+    copper: "text-sky-300/90",
+    copperSoft: "text-indigo-200/90",
+  },
+
+  border: {
+    soft: "border-white/10",
+    softer: "border-white/8",
+    strong: "border-white/15",
+    copper: "border-sky-400/30",
+  },
+
+  glass: {
+    panel:
+      "bg-white/[0.045] backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.42)]",
+    panelStrong:
+      "bg-white/[0.06] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.52)]",
+    panelSoft:
+      "bg-white/[0.035] backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.34)]",
+    input:
+      "bg-white/[0.04] backdrop-blur-md border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+  },
+
+  accent: {
+    copperBg: "bg-sky-400/12",
+    copperBgStrong: "bg-indigo-400/18",
+    copperLine: "bg-sky-400/40",
+    copperRing: "focus-visible:ring-sky-400/30",
+    copperBorder: "border-sky-400/35",
+  },
+
+  radius: {
+    xl: "rounded-3xl",
+    lg: "rounded-2xl",
+    md: "rounded-xl",
+  },
+
+  spacing: {
+    shell: "px-4 py-6 md:px-6 md:py-8 xl:px-8",
+    section: "space-y-6",
+    grid: "gap-4 md:gap-5 xl:gap-6",
+  },
+} as const;
+
+export function cx(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
+
+
+----- src/app/api/shopreel/creator-requests/[id]/generate/route.ts -----
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
+import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
+import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+import type { StorySource } from "@/features/shopreel/story-sources";
+
+export async function POST(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await ctx.params;
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data: creatorRequest, error } = await legacy
+      .from("shopreel_creator_requests")
+      .select("*")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!creatorRequest) {
+      return NextResponse.json(
+        { ok: false, error: "Creator request not found" },
+        { status: 404 },
+      );
+    }
+
+    if (creatorRequest.source_generation_id) {
+      return NextResponse.json({
+        ok: true,
+        generated: {
+          creatorRequestId: creatorRequest.id,
+          generationId: creatorRequest.source_generation_id,
+        },
+      });
+    }
+
+    const requestPayload =
+      creatorRequest.request_payload &&
+      typeof creatorRequest.request_payload === "object" &&
+      !Array.isArray(creatorRequest.request_payload)
+        ? creatorRequest.request_payload
+        : {};
+
+    const ai = await generateCreatorScript({
+      mode: creatorRequest.mode ?? "research_script",
+      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+      audience: creatorRequest.audience ?? null,
+      tone: creatorRequest.tone ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      sourceText:
+        typeof requestPayload.sourceText === "string" ? requestPayload.sourceText : null,
+      sourceUrl: creatorRequest.source_url ?? null,
+    });
+
+    const now = new Date().toISOString();
+
+    const source: StorySource = {
+      id: `creator:${Date.now()}`,
+      shopId,
+      title: creatorRequest.title ?? creatorRequest.topic ?? "Creator prompt",
+      description: ai.summary,
+      kind: "creator_idea",
+      origin: "creator_mode",
+      generationMode: "manual",
+      occurredAt: now,
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      projectName: null,
+      vehicleLabel: null,
+      customerLabel: null,
+      technicianLabel: null,
+      tags: ["creator_mode", creatorRequest.mode ?? "research_script"],
+      notes: ai.bullets,
+      facts: {
+        hook: ai.hook,
+        context: ai.context,
+        explanation: ai.explanation,
+        takeaway: ai.takeaway,
+        cta: ai.cta,
+        expanded_topic: ai.expandedTopic,
+      },
+      metadata: {
+        creatorMode: true,
+        creatorRequestId: creatorRequest.id,
+        anglePack: ai.angles,
+      },
+      assets: [],
+      refs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const savedSource = await saveStorySource(source);
+
+    const draft = buildCreatorResearchDraft({
+      shopId,
+      sourceId: savedSource.id,
+      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+      audience: creatorRequest.audience ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      tone: creatorRequest.tone ?? "confident",
+      researchSummary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      contextLine: ai.context,
+      explanationLine: ai.explanation,
+      takeawayLine: ai.takeaway,
+      ctaLine: ai.cta,
+      expandedTopic: ai.expandedTopic,
+      mode: creatorRequest.mode ?? "research_script",
+    });
+
+    const contentPiece = await createContentPieceFromStoryDraft({
+      shopId,
+      draft,
+      sourceSystem: "creator_mode",
+    });
+
+    const generation = await saveStoryGeneration({
+      shopId,
+      storySourceId: savedSource.id,
+      contentPieceId: contentPiece.id,
+      draft,
+      status: "draft",
+      metadata: {
+        creator_mode: true,
+        creator_mode_type: creatorRequest.mode ?? "research_script",
+        creator_request_id: creatorRequest.id,
+        expanded_topic: ai.expandedTopic,
+        research_summary: ai.summary,
+        research_bullets: ai.bullets,
+        angle_pack: ai.angles,
+      },
+    });
+
+    await legacy
+      .from("shopreel_creator_requests")
+      .update({
+        source_story_source_id: savedSource.id,
+        source_generation_id: generation.id,
+        status: "ready",
+        result_payload: {
+          ...(creatorRequest.result_payload ?? {}),
+          expandedTopic: ai.expandedTopic,
+          summary: ai.summary,
+          bullets: ai.bullets,
+          angles: ai.angles,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", creatorRequest.id);
+
+    return NextResponse.json({
+      ok: true,
+      generated: {
+        creatorRequestId: creatorRequest.id,
+        generationId: generation.id,
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to generate from creator request";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+
+----- src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts -----
+[missing file]
+
+
+----- src/app/api/shopreel/opportunities/route.ts -----
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+export async function GET(req: Request) {
+  try {
+    const shopId = await getCurrentShopId();
+    const { searchParams } = new URL(req.url);
+    const limitRaw = searchParams.get("limit");
+    const limit = limitRaw ? Number(limitRaw) : 50;
+
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data, error } = await legacy
+      .from("shopreel_content_opportunities")
+      .select(`
+        id,
+        score,
+        status,
+        reason,
+        created_at,
+        story_source_id,
+        metadata,
+        shopreel_story_sources!inner (
+          id,
+          title,
+          kind,
+          origin,
+          created_at
+        )
+      `)
+      .eq("shop_id", shopId)
+      .order("score", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const items = (data ?? []).map((row: any) => {
+      const metadata =
+        row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+          ? row.metadata
+          : {};
+
+      const isCreator = metadata.source_type === "creator_request" || row.shopreel_story_sources?.origin === "creator_mode";
+      const creatorRequestId =
+        typeof metadata.creator_request_id === "string" ? metadata.creator_request_id : null;
+      const creatorMode =
+        typeof metadata.creator_mode === "string"
+          ? metadata.creator_mode
+          : typeof metadata.creator_mode_type === "string"
+            ? metadata.creator_mode_type
+            : null;
+
+      return {
+        id: isCreator && creatorRequestId ? creatorRequestId : row.id,
+        kind: isCreator ? "creator_request" : "story_opportunity",
+        title: row.shopreel_story_sources?.title ?? metadata.creator_title ?? "Untitled",
+        contentType:
+          creatorMode ??
+          row.shopreel_story_sources?.kind ??
+          "story_source",
+        score: typeof row.score === "number" ? row.score : Number(row.score ?? 0),
+        status: row.status,
+        source: row.shopreel_story_sources?.origin ?? "shopreel",
+        sourceType: isCreator
+          ? "creator_prompt"
+          : row.shopreel_story_sources?.origin === "manual_upload"
+            ? "manual_upload"
+            : "shop_data",
+        createdAt: row.shopreel_story_sources?.created_at ?? row.created_at,
+        generationId:
+          typeof metadata.generation_id === "string"
+            ? metadata.generation_id
+            : null,
+        creatorMode,
+        summary: typeof row.reason === "string" ? row.reason : null,
+      };
+    });
+
+    return NextResponse.json({
+      ok: true,
+      items,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load opportunities";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+
+----- src/app/api/shopreel/create/research-script/route.ts -----
+import { NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
+import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
+import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import type { StorySource } from "@/features/shopreel/story-sources";
+import { createAdminClient } from "@/lib/supabase/server";
+
+type Body = {
+  mode?: "research_script" | "angle_pack" | "debunk" | "stitch";
+  topic: string;
+  audience?: string;
+  platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
+  tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
+  sourceText?: string;
+  sourceUrl?: string;
+};
+
+function scoreCreatorMode(mode: Body["mode"]) {
+  switch (mode) {
+    case "debunk":
+      return 93;
+    case "stitch":
+      return 90;
+    case "angle_pack":
+      return 88;
+    case "research_script":
+    default:
+      return 91;
+  }
+}
+
+function reasonForMode(mode: Body["mode"]) {
+  switch (mode) {
+    case "debunk":
+      return "Creator debunk opportunity ready for fast response content";
+    case "stitch":
+      return "Creator stitch opportunity ready for response content";
+    case "angle_pack":
+      return "Creator angle pack ready for multiple follow-up posts";
+    case "research_script":
+    default:
+      return "Creator research opportunity ready for script generation";
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json()) as Body;
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+    const mode = body.mode ?? "research_script";
+
+    if (!body.topic || body.topic.trim().length < 3) {
+      return NextResponse.json(
+        { ok: false, error: "Topic required" },
+        { status: 400 },
+      );
+    }
+
+    const ai = await generateCreatorScript({
+      mode,
+      topic: body.topic,
+      audience: body.audience ?? null,
+      tone: body.tone ?? null,
+      platformFocus: body.platformFocus ?? "multi",
+      sourceText: body.sourceText ?? null,
+      sourceUrl: body.sourceUrl ?? null,
+    });
+
+    const now = new Date().toISOString();
+
+    const source: StorySource = {
+      id: `creator:${Date.now()}`,
+      shopId,
+      title: body.topic.trim(),
+      description: ai.summary,
+      kind: "creator_idea",
+      origin: "creator_mode",
+      generationMode: "manual",
+      occurredAt: now,
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      projectName: null,
+      vehicleLabel: null,
+      customerLabel: null,
+      technicianLabel: null,
+      tags: ["creator_mode", mode],
+      notes: ai.bullets,
+      facts: {
+        hook: ai.hook,
+        context: ai.context,
+        explanation: ai.explanation,
+        takeaway: ai.takeaway,
+        cta: ai.cta,
+        expanded_topic: ai.expandedTopic,
+      },
+      metadata: {
+        creatorMode: true,
+        creatorModeType: mode,
+        aiSummary: ai.summary,
+        anglePack: ai.angles,
+        sourceText: body.sourceText ?? null,
+        sourceUrl: body.sourceUrl ?? null,
+      },
+      assets: [],
+      refs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const savedSource = await saveStorySource(source);
+
+    await legacy
+      .from("shopreel_content_opportunities")
+      .upsert(
+        {
+          shop_id: shopId,
+          story_source_id: savedSource.id,
+          score: scoreCreatorMode(mode),
+          status: "ready",
+          reason: reasonForMode(mode),
+          metadata: {
+            source_kind: "creator_idea",
+            source_title: body.topic.trim(),
+            source_origin: "creator_mode",
+            creator_mode_type: mode,
+            expanded_topic: ai.expandedTopic,
+            angle_pack: ai.angles,
+          },
+        },
+        {
+          onConflict: "shop_id,story_source_id",
+        },
+      );
+
+    const { data: creatorRequest } = await legacy
+      .from("shopreel_creator_requests")
+      .insert({
+        shop_id: shopId,
+        mode,
+        status: mode === "angle_pack" ? "ready" : "draft",
+        title: body.topic.trim(),
+        topic: body.topic.trim(),
+        audience: body.audience ?? null,
+        tone: body.tone ?? null,
+        platform_focus: body.platformFocus ?? "multi",
+        source_story_source_id: savedSource.id,
+        source_url: body.sourceUrl ?? null,
+        request_payload: {
+          mode,
+          topic: body.topic,
+          audience: body.audience ?? null,
+          tone: body.tone ?? null,
+          platformFocus: body.platformFocus ?? "multi",
+          sourceText: body.sourceText ?? null,
+          sourceUrl: body.sourceUrl ?? null,
+        },
+        result_payload: {
+          expandedTopic: ai.expandedTopic,
+          summary: ai.summary,
+          bullets: ai.bullets,
+          angles: ai.angles,
+          script: {
+            hook: ai.hook,
+            context: ai.context,
+            explanation: ai.explanation,
+            takeaway: ai.takeaway,
+            cta: ai.cta,
+          },
+        },
+        created_at: now,
+        updated_at: now,
+      })
+      .select("id")
+      .single();
+
+    if (mode === "angle_pack") {
+      return NextResponse.json({
+        ok: true,
+        mode,
+        creatorRequestId: creatorRequest?.id ?? null,
+        expandedTopic: ai.expandedTopic,
+        researchSummary: ai.summary,
+        researchBullets: ai.bullets,
+        angles: ai.angles,
+      });
+    }
+
+    const draft = buildCreatorResearchDraft({
+      shopId,
+      sourceId: savedSource.id,
+      topic: body.topic,
+      audience: body.audience ?? null,
+      platformFocus: body.platformFocus ?? "multi",
+      tone: body.tone ?? "confident",
+      researchSummary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      contextLine: ai.context,
+      explanationLine: ai.explanation,
+      takeawayLine: ai.takeaway,
+      ctaLine: ai.cta,
+      expandedTopic: ai.expandedTopic,
+      mode,
+    });
+
+    const contentPiece = await createContentPieceFromStoryDraft({
+      shopId,
+      draft,
+      sourceSystem: "creator_mode",
+    });
+
+    const generation = await saveStoryGeneration({
+      shopId,
+      storySourceId: savedSource.id,
+      contentPieceId: contentPiece.id,
+      draft,
+      status: "draft",
+      metadata: {
+        creator_mode: true,
+        creator_mode_type: mode,
+        creator_request_id: creatorRequest?.id ?? null,
+        expanded_topic: ai.expandedTopic,
+        research_summary: ai.summary,
+        research_bullets: ai.bullets,
+        generated_script: {
+          hook: ai.hook,
+          context: ai.context,
+          explanation: ai.explanation,
+          takeaway: ai.takeaway,
+          cta: ai.cta,
+        },
+        angle_pack: ai.angles,
+      },
+    });
+
+    await legacy
+      .from("shopreel_creator_requests")
+      .update({
+        status: "generated",
+        source_generation_id: generation.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", creatorRequest?.id ?? "");
+
+    return NextResponse.json({
+      ok: true,
+      mode,
+      generationId: generation.id,
+      editorUrl: `/shopreel/editor/${generation.id}`,
+      expandedTopic: ai.expandedTopic,
+      researchSummary: ai.summary,
+      researchBullets: ai.bullets,
+      angles: ai.angles,
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "script generation failed";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+
+----- src/features/shopreel/components/ShopReelOpportunitiesClient.tsx -----
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+
+type OpportunityItem = {
+  id: string;
+  kind: "story_opportunity" | "creator_request";
+  title: string;
+  contentType: string;
+  score: number | null;
+  status: string;
+  source: string;
+  sourceType: "manual_upload" | "shop_data" | "creator_prompt";
+  createdAt: string;
+  generationId: string | null;
+  creatorMode: string | null;
+  summary: string | null;
+};
+
+type OpportunitiesResponse =
+  | { ok: true; items: OpportunityItem[] }
+  | { ok?: false; error?: string };
+
+type GenerationResult =
+  | {
+      ok: true;
+      generated: {
+        opportunityId?: string;
+        creatorRequestId?: string;
+        contentPieceId?: string;
+        renderJobId?: string | null;
+        generationId: string;
+      };
+    }
+  | { ok?: boolean; error?: string };
+
+function formatLabel(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function timeAgoLabel(value: string) {
+  const now = Date.now();
+  const then = new Date(value).getTime();
+  const diffMs = Math.max(0, now - then);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffHours < 1) return "Just now";
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return new Date(value).toLocaleDateString();
+}
+
+function itemKeyFor(item: Pick<OpportunityItem, "kind" | "id">) {
+  return `${item.kind}:${item.id}`;
+}
+
+function dedupeItems(items: OpportunityItem[]): OpportunityItem[] {
+  const seen = new Set<string>();
+  const result: OpportunityItem[] = [];
+
+  for (const item of items) {
+    const key = itemKeyFor(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+}
+
+export default function ShopReelOpportunitiesClient() {
+  const router = useRouter();
+  const [items, setItems] = useState<OpportunityItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<string | null>(null);
+  const [isScoring, setIsScoring] = useState(false);
+  const [generatedByItem, setGeneratedByItem] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const loadItems = useCallback(async (refresh = false) => {
+    try {
+      setError(null);
+      if (refresh) setIsRefreshing(true);
+      else setIsLoading(true);
+
+      const res = await fetch("/api/shopreel/opportunities?limit=50", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const json = (await res.json()) as OpportunitiesResponse;
+
+      if (!res.ok || !json.ok) {
+        throw new Error(("error" in json && json.error) || "Failed to load opportunities");
+      }
+
+      setItems(dedupeItems(json.items ?? []));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load opportunities");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  const discoverAndScore = useCallback(async () => {
+    try {
+      setError(null);
+      setIsScoring(true);
+
+      const discoverRes = await fetch("/api/shopreel/discovery", {
+        method: "POST",
+      });
+
+      const discoverJson = (await discoverRes.json()) as { ok?: boolean; error?: string };
+
+      if (!discoverRes.ok || !discoverJson.ok) {
+        throw new Error(discoverJson.error ?? "Failed discovery");
+      }
+
+      const scoreRes = await fetch("/api/shopreel/opportunities/generate", {
+        method: "POST",
+      });
+
+      const scoreJson = (await scoreRes.json()) as { ok?: boolean; error?: string };
+
+      if (!scoreRes.ok || !scoreJson.ok) {
+        throw new Error(scoreJson.error ?? "Failed opportunity scoring");
+      }
+
+      await loadItems(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to refresh opportunities");
+    } finally {
+      setIsScoring(false);
+    }
+  }, [loadItems]);
+
+  const generateFromItem = useCallback(
+    async (item: OpportunityItem) => {
+      const itemKey = itemKeyFor(item);
+
+      try {
+        setError(null);
+        setIsGenerating(itemKey);
+
+        if (item.generationId) {
+          router.push(`/shopreel/editor/${item.generationId}`);
+          return;
+        }
+
+        const endpoint =
+          item.kind === "creator_request"
+            ? `/api/shopreel/creator-requests/${item.id}/generate`
+            : `/api/shopreel/opportunities/${item.id}/generate`;
+
+        const body =
+          item.kind === "creator_request"
+            ? undefined
+            : JSON.stringify({
+                createRenderJobNow: true,
+              });
+
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers:
+            item.kind === "creator_request"
+              ? undefined
+              : {
+                  "Content-Type": "application/json",
+                },
+          body,
+        });
+
+        const json = (await res.json()) as GenerationResult;
+
+        if (!res.ok || !("generated" in json)) {
+          throw new Error(("error" in json && json.error) || "Failed to generate story");
+        }
+
+        setGeneratedByItem((prev) => ({
+          ...prev,
+          [itemKey]: json.generated.generationId,
+        }));
+
+        await loadItems(true);
+        router.push(`/shopreel/editor/${json.generated.generationId}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to generate story");
+      } finally {
+        setIsGenerating(null);
+      }
+    },
+    [loadItems, router],
+  );
+
+  useEffect(() => {
+    void loadItems();
+  }, [loadItems]);
+
+  const summary = useMemo(() => {
+    const manualCount = items.filter((item) => item.sourceType === "manual_upload").length;
+    const creatorCount = items.filter((item) => item.sourceType === "creator_prompt").length;
+    const highScoreCount = items.filter((item) => (item.score ?? 0) >= 85).length;
+    const readyCount = items.filter((item) => item.status === "ready").length;
+
+    return {
+      total: items.length,
+      manualCount,
+      creatorCount,
+      highScoreCount,
+      readyCount,
+    };
+  }, [items]);
+
+  return (
+    <div className="space-y-5">
+      <GlassCard
+        label="Opportunities"
+        title="Ranked story opportunities"
+        description="Business story opportunities and saved creator prompts now live in one queue."
+        strong
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              <GlassBadge tone="default">{summary.total} total</GlassBadge>
+              <GlassBadge tone="copper">{summary.manualCount} manual</GlassBadge>
+              <GlassBadge tone="default">{summary.creatorCount} creator prompts</GlassBadge>
+              <GlassBadge tone="default">{summary.highScoreCount} high score</GlassBadge>
+              <GlassBadge tone="muted">{summary.readyCount} ready</GlassBadge>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <GlassButton variant="ghost" onClick={() => router.refresh()}>
+                Refresh layout
+              </GlassButton>
+              <GlassButton
+                variant="secondary"
+                onClick={() => void loadItems(true)}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? "Refreshing..." : "Refresh queue"}
+              </GlassButton>
+              <GlassButton
+                variant="primary"
+                onClick={() => void discoverAndScore()}
+                disabled={isScoring}
+              >
+                {isScoring ? "Running..." : "Discover + score"}
+              </GlassButton>
+            </div>
+          </div>
+        }
+      >
+        {isLoading ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            Loading opportunities...
+          </div>
+        ) : null}
+
+        {error ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        {!isLoading && !error && items.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            No opportunities yet. Click Discover + score to build the ranked queue.
+          </div>
+        ) : null}
+
+        {!isLoading && !error ? (
+          <div className="grid gap-3">
+            {items.map((item) => {
+              const itemKey = itemKeyFor(item);
+              const generationId = generatedByItem[itemKey] ?? item.generationId ?? null;
+
+              return (
+                <div
+                  key={itemKey}
+                  className={cx(
+                    "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                    item.sourceType === "creator_prompt" || (item.score ?? 0) >= 85
+                      ? glassTheme.border.copper
+                      : glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {item.title}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      {formatLabel(item.contentType)} • {formatLabel(item.source)} •{" "}
+                      {timeAgoLabel(item.createdAt)}
+                    </div>
+
+                    {item.summary ? (
+                      <div className={cx("pt-1 text-sm", glassTheme.text.secondary)}>
+                        {item.summary}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                    <GlassBadge tone={item.sourceType === "creator_prompt" ? "copper" : "default"}>
+                      {formatLabel(item.sourceType)}
+                    </GlassBadge>
+                    <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+
+                    {item.sourceType !== "creator_prompt" ? (
+                      <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
+                        Score {item.score != null ? Math.round(item.score) : "--"}
+                      </GlassBadge>
+                    ) : (
+                      <GlassBadge tone="muted">
+                        {formatLabel(item.creatorMode ?? "creator_request")}
+                      </GlassBadge>
+                    )}
+
+                    {generationId ? (
+                      <>
+                        <Link href={`/shopreel/generations/${generationId}`}>
+                          <GlassButton variant="ghost">Review</GlassButton>
+                        </Link>
+                        <Link href={`/shopreel/editor/${generationId}`}>
+                          <GlassButton variant="secondary">Edit</GlassButton>
+                        </Link>
+                      </>
+                    ) : null}
+
+                    <GlassButton
+                      variant="primary"
+                      onClick={() => void generateFromItem(item)}
+                      disabled={isGenerating === itemKey}
+                    >
+                      {isGenerating === itemKey
+                        ? "Generating..."
+                        : item.sourceType === "creator_prompt"
+                          ? "Reuse"
+                          : "Generate"}
+                    </GlassButton>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+      </GlassCard>
+    </div>
+  );
+}
+
+

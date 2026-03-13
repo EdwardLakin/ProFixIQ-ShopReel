@@ -17,6 +17,8 @@ type CreatorMode =
   | "debunk"
   | "stitch";
 
+type OutputType = "video" | "blog" | "email" | "post";
+
 type Angle = {
   title: string;
   angle: string;
@@ -29,24 +31,13 @@ type CreateResponse =
   | {
       ok: true;
       mode: CreatorMode;
-      creatorRequestId?: string | null;
+      outputType: OutputType;
       generationId?: string;
       editorUrl?: string;
       expandedTopic?: string;
       researchSummary?: string;
       researchBullets?: string[];
       angles?: Angle[];
-    }
-  | {
-      ok?: false;
-      error?: string;
-    };
-
-type AngleCreateResponse =
-  | {
-      ok: true;
-      generationId: string;
-      editorUrl: string;
     }
   | {
       ok?: false;
@@ -60,9 +51,17 @@ const MODE_OPTIONS: Array<{ value: CreatorMode; label: string }> = [
   { value: "stitch", label: "Stitch" },
 ];
 
+const OUTPUT_OPTIONS: Array<{ value: OutputType; label: string }> = [
+  { value: "video", label: "Video" },
+  { value: "blog", label: "Blog" },
+  { value: "email", label: "Email" },
+  { value: "post", label: "Social post" },
+];
+
 export default function ShopReelCreatePage() {
   const router = useRouter();
   const [mode, setMode] = useState<CreatorMode>("research_script");
+  const [outputType, setOutputType] = useState<OutputType>("video");
   const [topic, setTopic] = useState("");
   const [audience, setAudience] = useState("");
   const [platformFocus, setPlatformFocus] = useState<
@@ -74,9 +73,7 @@ export default function ShopReelCreatePage() {
   const [sourceText, setSourceText] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [creatingAngleKey, setCreatingAngleKey] = useState<string | null>(null);
   const [preview, setPreview] = useState<{
-    creatorRequestId: string | null;
     expandedTopic: string;
     summary: string;
     bullets: string[];
@@ -97,6 +94,7 @@ export default function ShopReelCreatePage() {
         },
         body: JSON.stringify({
           mode,
+          outputType,
           topic,
           audience,
           platformFocus,
@@ -113,7 +111,6 @@ export default function ShopReelCreatePage() {
       }
 
       setPreview({
-        creatorRequestId: json.creatorRequestId ?? null,
         expandedTopic: json.expandedTopic ?? topic,
         summary: json.researchSummary ?? "",
         bullets: json.researchBullets ?? [],
@@ -130,44 +127,6 @@ export default function ShopReelCreatePage() {
     }
   }
 
-  async function createFromAngle(angle: Angle, index: number) {
-    try {
-      const key = `${angle.title}-${index}`;
-      setCreatingAngleKey(key);
-      setError(null);
-
-      const res = await fetch("/api/shopreel/create/from-angle", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          creatorRequestId: preview?.creatorRequestId ?? null,
-          topic,
-          audience,
-          platformFocus,
-          tone,
-          expandedTopic: preview?.expandedTopic ?? topic,
-          researchSummary: preview?.summary ?? null,
-          researchBullets: preview?.bullets ?? [],
-          angle,
-        }),
-      });
-
-      const json = (await res.json()) as AngleCreateResponse;
-
-      if (!res.ok || !json.ok) {
-        throw new Error(("error" in json && json.error) || "Failed to create from angle");
-      }
-
-      router.push(json.editorUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create from angle");
-    } finally {
-      setCreatingAngleKey(null);
-    }
-  }
-
   return (
     <GlassShell
       eyebrow="ShopReel"
@@ -180,8 +139,8 @@ export default function ShopReelCreatePage() {
       <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
         <GlassCard
           label="Start From Topic"
-          title="Topic -> Research -> Angles -> Script"
-          description="Example: iPhone 18 leaks and rumors. ShopReel can broaden the topic into multiple creator-ready post angles."
+          title="Topic -> Research -> Angles -> Output"
+          description="Create video, blog, email, or social post outputs from one creator prompt."
           strong
           footer={
             <div className="flex flex-wrap gap-3">
@@ -194,11 +153,7 @@ export default function ShopReelCreatePage() {
                   ? "Building..."
                   : mode === "angle_pack"
                     ? "Build angle pack"
-                    : mode === "debunk"
-                      ? "Build debunk"
-                      : mode === "stitch"
-                        ? "Build stitch"
-                        : "Build creator script"}
+                    : `Build ${outputType}`}
               </GlassButton>
             </div>
           }
@@ -219,6 +174,29 @@ export default function ShopReelCreatePage() {
               )}
             >
               {MODE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-2">
+            <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+              Output type
+            </div>
+            <select
+              value={outputType}
+              onChange={(e) => setOutputType(e.target.value as OutputType)}
+              className={cx(
+                "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
+                glassTheme.text.primary,
+                glassTheme.glass.input,
+                glassTheme.border.softer,
+                "bg-transparent",
+              )}
+            >
+              {OUTPUT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -368,51 +346,32 @@ export default function ShopReelCreatePage() {
               </div>
 
               <div className="grid gap-3">
-                {preview.angles.map((angle, index) => {
-                  const angleKey = `${angle.title}-${index}`;
-
-                  return (
-                    <div
-                      key={angleKey}
-                      className={cx(
-                        "rounded-2xl border p-4",
-                        glassTheme.border.copper,
-                        glassTheme.glass.panelSoft,
-                      )}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-2">
-                          <div className={cx("text-base font-semibold", glassTheme.text.primary)}>
-                            {angle.title}
-                          </div>
-                          <div className={cx("text-sm", glassTheme.text.secondary)}>
-                            {angle.angle}
-                          </div>
-                        </div>
-
-                        <GlassButton
-                          variant="primary"
-                          onClick={() => void createFromAngle(angle, index)}
-                          disabled={creatingAngleKey === angleKey}
-                        >
-                          {creatingAngleKey === angleKey
-                            ? "Creating..."
-                            : "Create post from angle"}
-                        </GlassButton>
-                      </div>
-
-                      <div className={cx("mt-3 text-sm", glassTheme.text.primary)}>
-                        Hook: {angle.hook}
-                      </div>
-                      <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-                        Why it works: {angle.whyItWorks}
-                      </div>
-                      <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-                        CTA: {angle.suggestedCta}
-                      </div>
+                {preview.angles.map((angle, index) => (
+                  <div
+                    key={`${angle.title}-${index}`}
+                    className={cx(
+                      "rounded-2xl border p-4",
+                      glassTheme.border.copper,
+                      glassTheme.glass.panelSoft,
+                    )}
+                  >
+                    <div className={cx("text-base font-semibold", glassTheme.text.primary)}>
+                      {angle.title}
                     </div>
-                  );
-                })}
+                    <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+                      {angle.angle}
+                    </div>
+                    <div className={cx("mt-3 text-sm", glassTheme.text.primary)}>
+                      Hook: {angle.hook}
+                    </div>
+                    <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+                      Why it works: {angle.whyItWorks}
+                    </div>
+                    <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+                      CTA: {angle.suggestedCta}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import type { OutputType } from "@/features/shopreel/creator/buildCreatorOutputs";
 
 type Angle = {
   title: string;
@@ -41,6 +42,10 @@ type CreatorRequestRow = {
   } | null;
 };
 
+type Props = {
+  initialItems: CreatorRequestRow[];
+};
+
 function formatLabel(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
@@ -62,242 +67,283 @@ function timeAgoLabel(value: string | null) {
   return new Date(value).toLocaleDateString();
 }
 
-export default function CreatorRequestsClient(props: { initialItems: CreatorRequestRow[] }) {
+export default function CreatorRequestsClient({ initialItems }: Props) {
   const router = useRouter();
-  const [creatingAngleKey, setCreatingAngleKey] = useState<string | null>(null);
+  const [items, setItems] = useState<CreatorRequestRow[]>(initialItems);
+  const [runningKey, setRunningKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function createFromAngle(item: CreatorRequestRow, angle: Angle, index: number) {
-    try {
-      const key = `${item.id}:${index}`;
-      setCreatingAngleKey(key);
-      setError(null);
+  const totalAngles = useMemo(
+    () =>
+      items.reduce((sum, item) => {
+        const count = Array.isArray(item.result_payload?.angles) ? item.result_payload?.angles.length ?? 0 : 0;
+        return sum + count;
+      }, 0),
+    [items],
+  );
 
-      const res = await fetch("/api/shopreel/create/from-angle", {
+  async function createFromAngle(
+    requestId: string,
+    angleIndex: number,
+    outputType: OutputType = "video",
+  ) {
+    const key = `${requestId}:${angleIndex}:${outputType}`;
+    try {
+      setError(null);
+      setRunningKey(key);
+
+      const res = await fetch(`/api/shopreel/creator-requests/${requestId}/angles/${angleIndex}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          creatorRequestId: item.id,
-          topic: item.topic ?? item.title ?? "Creator request",
-          audience: item.audience ?? null,
-          platformFocus: item.platform_focus ?? "multi",
-          tone: item.tone ?? "confident",
-          expandedTopic:
-            item.result_payload?.expandedTopic ??
-            item.topic ??
-            item.title ??
-            "Creator request",
-          researchSummary: item.result_payload?.summary ?? null,
-          researchBullets: item.result_payload?.bullets ?? [],
-          angle,
-        }),
+        body: JSON.stringify({ outputType }),
       });
 
       const json = (await res.json()) as
-        | { ok: true; editorUrl: string }
-        | { ok?: false; error?: string };
+        | {
+            ok: true;
+            generated: {
+              generationId: string;
+              editorUrl?: string;
+            };
+          }
+        | {
+            ok?: false;
+            error?: string;
+          };
 
-      if (!res.ok || !json.ok) {
+      if (!res.ok || !("generated" in json)) {
         throw new Error(("error" in json && json.error) || "Failed to create from angle");
       }
 
-      router.push(json.editorUrl);
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== requestId) return item;
+
+          const angles = Array.isArray(item.result_payload?.angles) ? item.result_payload.angles : [];
+          const angle = angles[angleIndex];
+
+          return {
+            ...item,
+            result_payload: {
+              ...(item.result_payload ?? {}),
+              derivedPosts: [
+                ...((item.result_payload?.derivedPosts ?? []) as Array<{
+                  title: string;
+                  generationId: string;
+                  createdAt: string;
+                  angleTitle: string;
+                }>),
+                {
+                  title: `${item.topic ?? item.title ?? "Creator request"} — ${angle?.title ?? `Angle ${angleIndex + 1}`}`,
+                  generationId: json.generated.generationId,
+                  createdAt: new Date().toISOString(),
+                  angleTitle: angle?.title ?? `Angle ${angleIndex + 1}`,
+                },
+              ],
+            },
+          };
+        }),
+      );
+
+      router.push(json.generated.editorUrl ?? `/shopreel/editor/${json.generated.generationId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create from angle");
     } finally {
-      setCreatingAngleKey(null);
+      setRunningKey(null);
     }
   }
 
   return (
-    <GlassCard
-      label="Creator memory"
-      title="Saved prompt requests"
-      description="Every creator prompt can become a reusable request, a future opportunity, or a blog seed."
-      strong
-    >
-      {error ? (
-        <div
-          className={cx(
-            "rounded-2xl border p-4 text-sm",
-            glassTheme.border.copper,
-            glassTheme.glass.panelSoft,
-            glassTheme.text.copperSoft,
-          )}
-        >
-          {error}
-        </div>
-      ) : null}
+    <div className="space-y-5">
+      <GlassCard
+        label="Creator memory"
+        title="Saved prompt requests"
+        description="Every creator prompt can become a reusable request, a future opportunity, or a blog seed."
+        strong
+        footer={
+          <div className="flex flex-wrap gap-2">
+            <GlassBadge tone="default">{items.length} requests</GlassBadge>
+            <GlassBadge tone="copper">{totalAngles} angles</GlassBadge>
+          </div>
+        }
+      >
+        {error ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.copper,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.copperSoft,
+            )}
+          >
+            {error}
+          </div>
+        ) : null}
 
-      {props.initialItems.length === 0 ? (
-        <div
-          className={cx(
-            "rounded-2xl border p-4 text-sm",
-            glassTheme.border.softer,
-            glassTheme.glass.panelSoft,
-            glassTheme.text.secondary,
-          )}
-        >
-          No creator requests yet.
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {props.initialItems.map((item) => {
-            const resultPayload =
-              item.result_payload && typeof item.result_payload === "object"
-                ? item.result_payload
-                : {};
+        {items.length === 0 ? (
+          <div
+            className={cx(
+              "rounded-2xl border p-4 text-sm",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              glassTheme.text.secondary,
+            )}
+          >
+            No creator requests yet.
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {items.map((item) => {
+              const angles = Array.isArray(item.result_payload?.angles) ? item.result_payload?.angles : [];
+              const derivedPosts = Array.isArray(item.result_payload?.derivedPosts)
+                ? item.result_payload?.derivedPosts
+                : [];
 
-            const angles = Array.isArray(resultPayload.angles) ? resultPayload.angles : [];
-            const derivedPosts = Array.isArray(resultPayload.derivedPosts)
-              ? resultPayload.derivedPosts
-              : [];
+              return (
+                <div
+                  key={item.id}
+                  className={cx(
+                    "rounded-3xl border p-5",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className={cx("text-2xl font-semibold", glassTheme.text.primary)}>
+                        {item.title ?? item.topic ?? "Untitled request"}
+                      </div>
 
-            return (
-              <div
-                key={item.id}
-                className={cx(
-                  "rounded-2xl border p-4",
-                  glassTheme.border.softer,
-                  glassTheme.glass.panelSoft,
-                )}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                      {item.title ?? item.topic ?? "Creator request"}
+                      <div className={cx("text-sm", glassTheme.text.secondary)}>
+                        {formatLabel(item.mode)} • {formatLabel(item.status)} • {timeAgoLabel(item.created_at)}
+                      </div>
                     </div>
-                    <div className={cx("text-sm", glassTheme.text.secondary)}>
-                      {formatLabel(item.mode)} • {formatLabel(item.status)} • {timeAgoLabel(item.created_at)}
-                    </div>
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <GlassBadge tone="default">{formatLabel(item.mode)}</GlassBadge>
-                    <GlassBadge tone={item.status === "ready" ? "copper" : "muted"}>
-                      {formatLabel(item.status)}
-                    </GlassBadge>
-                    {angles.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      <GlassBadge tone="default">{formatLabel(item.mode)}</GlassBadge>
+                      <GlassBadge tone={item.status === "ready" ? "copper" : "muted"}>
+                        {formatLabel(item.status)}
+                      </GlassBadge>
                       <GlassBadge tone="default">{angles.length} angles</GlassBadge>
-                    ) : null}
-                    {derivedPosts.length > 0 ? (
-                      <GlassBadge tone="copper">{derivedPosts.length} derived posts</GlassBadge>
-                    ) : null}
+                      <GlassBadge tone="muted">{derivedPosts.length} derived posts</GlassBadge>
+                    </div>
                   </div>
-                </div>
 
-                {item.topic ? (
-                  <div className={cx("mt-3 text-sm", glassTheme.text.primary)}>
-                    {item.topic}
-                  </div>
-                ) : null}
-
-                {typeof resultPayload.summary === "string" && resultPayload.summary ? (
-                  <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-                    {resultPayload.summary}
-                  </div>
-                ) : null}
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  {item.source_generation_id ? (
-                    <>
-                      <Link href={`/shopreel/generations/${item.source_generation_id}`}>
-                        <GlassButton variant="ghost">Review</GlassButton>
-                      </Link>
-                      <Link href={`/shopreel/editor/${item.source_generation_id}`}>
-                        <GlassButton variant="secondary">Open editor</GlassButton>
-                      </Link>
-                    </>
+                  {item.topic ? (
+                    <div className={cx("mt-4 text-lg", glassTheme.text.primary)}>
+                      {item.topic}
+                    </div>
                   ) : null}
-                </div>
 
-                {angles.length > 0 ? (
-                  <div className="mt-4 grid gap-3">
-                    {angles.map((angle, index) => {
-                      const key = `${item.id}:${index}`;
+                  {item.result_payload?.summary ? (
+                    <div className={cx("mt-4 text-sm leading-7", glassTheme.text.secondary)}>
+                      {item.result_payload.summary}
+                    </div>
+                  ) : null}
 
-                      return (
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    {item.source_generation_id ? (
+                      <>
+                        <Link href={`/shopreel/generations/${item.source_generation_id}`}>
+                          <GlassButton variant="ghost">Review</GlassButton>
+                        </Link>
+                        <Link href={`/shopreel/editor/${item.source_generation_id}`}>
+                          <GlassButton variant="secondary">Open editor</GlassButton>
+                        </Link>
+                      </>
+                    ) : null}
+                  </div>
+
+                  {angles.length > 0 ? (
+                    <div className="mt-6 grid gap-4">
+                      {angles.map((angle, index) => {
+                        const busy = runningKey === `${item.id}:${index}:video`;
+
+                        return (
+                          <div
+                            key={`${item.id}:${angle.title}:${index}`}
+                            className={cx(
+                              "rounded-2xl border p-5",
+                              glassTheme.border.copper,
+                              glassTheme.glass.panel,
+                            )}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="space-y-2">
+                                <div className={cx("text-xl font-semibold", glassTheme.text.primary)}>
+                                  {angle.title}
+                                </div>
+                                <div className={cx("text-sm", glassTheme.text.secondary)}>
+                                  {angle.angle}
+                                </div>
+                              </div>
+
+                              <GlassButton
+                                variant="primary"
+                                onClick={() => void createFromAngle(item.id, index, "video")}
+                                disabled={busy}
+                              >
+                                {busy ? "Creating..." : "Create from angle"}
+                              </GlassButton>
+                            </div>
+
+                            <div className="mt-4 space-y-2 text-sm">
+                              <div className={glassTheme.text.primary}>
+                                <span className={glassTheme.text.secondary}>Hook:</span> {angle.hook}
+                              </div>
+                              <div className={glassTheme.text.secondary}>
+                                <span className="text-white/85">Why it works:</span> {angle.whyItWorks}
+                              </div>
+                              <div className={glassTheme.text.secondary}>
+                                <span className="text-white/85">CTA:</span> {angle.suggestedCta}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+
+                  {derivedPosts.length > 0 ? (
+                    <div className="mt-6 grid gap-3">
+                      {derivedPosts.map((post) => (
                         <div
-                          key={key}
+                          key={`${item.id}:${post.generationId}`}
                           className={cx(
-                            "rounded-2xl border p-4",
-                            glassTheme.border.copper,
+                            "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                            glassTheme.border.softer,
                             glassTheme.glass.panelSoft,
                           )}
                         >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="space-y-2">
-                              <div className={cx("text-base font-semibold", glassTheme.text.primary)}>
-                                {angle.title}
-                              </div>
-                              <div className={cx("text-sm", glassTheme.text.secondary)}>
-                                {angle.angle}
-                              </div>
+                          <div className="space-y-1">
+                            <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                              {post.title}
                             </div>
-
-                            <GlassButton
-                              variant="primary"
-                              onClick={() => void createFromAngle(item, angle, index)}
-                              disabled={creatingAngleKey === key}
-                            >
-                              {creatingAngleKey === key ? "Creating..." : "Create post from angle"}
-                            </GlassButton>
+                            <div className={cx("text-sm", glassTheme.text.secondary)}>
+                              {post.angleTitle} • {timeAgoLabel(post.createdAt)}
+                            </div>
                           </div>
 
-                          <div className={cx("mt-3 text-sm", glassTheme.text.primary)}>
-                            Hook: {angle.hook}
-                          </div>
-                          <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-                            Why it works: {angle.whyItWorks}
-                          </div>
-                          <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-                            CTA: {angle.suggestedCta}
+                          <div className="flex items-center gap-3 md:justify-end">
+                            <Link href={`/shopreel/generations/${post.generationId}`}>
+                              <GlassButton variant="ghost">Review</GlassButton>
+                            </Link>
+                            <Link href={`/shopreel/editor/${post.generationId}`}>
+                              <GlassButton variant="secondary">Edit</GlassButton>
+                            </Link>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-
-                {derivedPosts.length > 0 ? (
-                  <div className="mt-4 grid gap-2">
-                    {derivedPosts.map((post) => (
-                      <div
-                        key={post.generationId}
-                        className={cx(
-                          "flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3",
-                          glassTheme.border.softer,
-                          glassTheme.glass.panelSoft,
-                        )}
-                      >
-                        <div>
-                          <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
-                            {post.title}
-                          </div>
-                          <div className={cx("text-xs", glassTheme.text.secondary)}>
-                            {post.angleTitle} • {timeAgoLabel(post.createdAt)}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Link href={`/shopreel/generations/${post.generationId}`}>
-                            <GlassButton variant="ghost">Review</GlassButton>
-                          </Link>
-                          <Link href={`/shopreel/editor/${post.generationId}`}>
-                            <GlassButton variant="secondary">Edit</GlassButton>
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </GlassCard>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </GlassCard>
+    </div>
   );
 }

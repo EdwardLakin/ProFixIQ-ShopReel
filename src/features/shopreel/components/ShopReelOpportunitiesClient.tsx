@@ -58,6 +58,24 @@ function timeAgoLabel(value: string) {
   return new Date(value).toLocaleDateString();
 }
 
+function itemKeyFor(item: Pick<OpportunityItem, "kind" | "id">) {
+  return `${item.kind}:${item.id}`;
+}
+
+function dedupeItems(items: OpportunityItem[]): OpportunityItem[] {
+  const seen = new Set<string>();
+  const result: OpportunityItem[] = [];
+
+  for (const item of items) {
+    const key = itemKeyFor(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+}
+
 export default function ShopReelOpportunitiesClient() {
   const router = useRouter();
   const [items, setItems] = useState<OpportunityItem[]>([]);
@@ -85,7 +103,7 @@ export default function ShopReelOpportunitiesClient() {
         throw new Error(("error" in json && json.error) || "Failed to load opportunities");
       }
 
-      setItems(json.items ?? []);
+      setItems(dedupeItems(json.items ?? []));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load opportunities");
     } finally {
@@ -129,9 +147,11 @@ export default function ShopReelOpportunitiesClient() {
 
   const generateFromItem = useCallback(
     async (item: OpportunityItem) => {
+      const itemKey = itemKeyFor(item);
+
       try {
         setError(null);
-        setIsGenerating(item.id);
+        setIsGenerating(itemKey);
 
         if (item.generationId) {
           router.push(`/shopreel/editor/${item.generationId}`);
@@ -169,7 +189,7 @@ export default function ShopReelOpportunitiesClient() {
 
         setGeneratedByItem((prev) => ({
           ...prev,
-          [item.id]: json.generated.generationId,
+          [itemKey]: json.generated.generationId,
         }));
 
         await loadItems(true);
@@ -283,11 +303,12 @@ export default function ShopReelOpportunitiesClient() {
         {!isLoading && !error ? (
           <div className="grid gap-3">
             {items.map((item) => {
-              const generationId = generatedByItem[item.id] ?? item.generationId ?? null;
+              const itemKey = itemKeyFor(item);
+              const generationId = generatedByItem[itemKey] ?? item.generationId ?? null;
 
               return (
                 <div
-                  key={item.id}
+                  key={itemKey}
                   className={cx(
                     "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
                     item.sourceType === "creator_prompt" || (item.score ?? 0) >= 85
@@ -342,9 +363,9 @@ export default function ShopReelOpportunitiesClient() {
                     <GlassButton
                       variant="primary"
                       onClick={() => void generateFromItem(item)}
-                      disabled={isGenerating === item.id}
+                      disabled={isGenerating === itemKey}
                     >
-                      {isGenerating === item.id
+                      {isGenerating === itemKey
                         ? "Generating..."
                         : item.sourceType === "creator_prompt"
                           ? "Reuse"

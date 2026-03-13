@@ -6,12 +6,23 @@ import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCrea
 import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
 import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
 import type { StorySource } from "@/features/shopreel/story-sources";
+import {
+  buildCreatorTextOutputs,
+  editorUrlForOutputType,
+  normalizeOutputType,
+  type OutputType,
+} from "@/features/shopreel/creator/buildCreatorOutputs";
+
+type Body = {
+  outputType?: OutputType;
+};
 
 export async function POST(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
+    const body = (await req.json().catch(() => ({}))) as Body;
     const { id } = await ctx.params;
     const shopId = await getCurrentShopId();
     const supabase = createAdminClient();
@@ -35,22 +46,27 @@ export async function POST(
       );
     }
 
-    if (creatorRequest.source_generation_id) {
-      return NextResponse.json({
-        ok: true,
-        generated: {
-          creatorRequestId: creatorRequest.id,
-          generationId: creatorRequest.source_generation_id,
-        },
-      });
-    }
-
     const requestPayload =
       creatorRequest.request_payload &&
       typeof creatorRequest.request_payload === "object" &&
       !Array.isArray(creatorRequest.request_payload)
         ? creatorRequest.request_payload
         : {};
+
+    const outputType = normalizeOutputType(
+      body.outputType ?? (requestPayload as { outputType?: unknown }).outputType,
+    );
+
+    if (creatorRequest.source_generation_id && outputType === "video") {
+      return NextResponse.json({
+        ok: true,
+        generated: {
+          creatorRequestId: creatorRequest.id,
+          generationId: creatorRequest.source_generation_id,
+          editorUrl: editorUrlForOutputType(outputType, creatorRequest.source_generation_id),
+        },
+      });
+    }
 
     const ai = await generateCreatorScript({
       mode: creatorRequest.mode ?? "research_script",
@@ -59,7 +75,9 @@ export async function POST(
       tone: creatorRequest.tone ?? null,
       platformFocus: creatorRequest.platform_focus ?? "multi",
       sourceText:
-        typeof requestPayload.sourceText === "string" ? requestPayload.sourceText : null,
+        typeof (requestPayload as { sourceText?: unknown }).sourceText === "string"
+          ? (requestPayload as { sourceText?: string }).sourceText ?? null
+          : null,
       sourceUrl: creatorRequest.source_url ?? null,
     });
 
@@ -81,7 +99,7 @@ export async function POST(
       vehicleLabel: null,
       customerLabel: null,
       technicianLabel: null,
-      tags: ["creator_mode", creatorRequest.mode ?? "research_script"],
+      tags: ["creator_mode", creatorRequest.mode ?? "research_script", outputType],
       notes: ai.bullets,
       facts: {
         hook: ai.hook,
@@ -95,6 +113,7 @@ export async function POST(
         creatorMode: true,
         creatorRequestId: creatorRequest.id,
         anglePack: ai.angles,
+        outputType,
       },
       assets: [],
       refs: [],
@@ -128,6 +147,18 @@ export async function POST(
       sourceSystem: "creator_mode",
     });
 
+    const textOutputs = buildCreatorTextOutputs({
+      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+      summary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      context: ai.context,
+      explanation: ai.explanation,
+      takeaway: ai.takeaway,
+      cta: ai.cta,
+      audience: creatorRequest.audience ?? null,
+    });
+
     const generation = await saveStoryGeneration({
       shopId,
       storySourceId: savedSource.id,
@@ -138,6 +169,8 @@ export async function POST(
         creator_mode: true,
         creator_mode_type: creatorRequest.mode ?? "research_script",
         creator_request_id: creatorRequest.id,
+        output_type: outputType,
+        text_outputs: textOutputs,
         expanded_topic: ai.expandedTopic,
         research_summary: ai.summary,
         research_bullets: ai.bullets,
@@ -149,8 +182,8 @@ export async function POST(
       .from("shopreel_creator_requests")
       .update({
         source_story_source_id: savedSource.id,
-        source_generation_id: generation.id,
-        status: "ready",
+        source_generation_id: outputType === "video" ? generation.id : creatorRequest.source_generation_id,
+        status: "generated",
         result_payload: {
           ...(creatorRequest.result_payload ?? {}),
           expandedTopic: ai.expandedTopic,
@@ -167,6 +200,7 @@ export async function POST(
       generated: {
         creatorRequestId: creatorRequest.id,
         generationId: generation.id,
+        editorUrl: editorUrlForOutputType(outputType, generation.id),
       },
     });
   } catch (error) {
