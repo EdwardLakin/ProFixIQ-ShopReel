@@ -123,6 +123,9 @@ export default async function ShopReelGenerationDetailPage(
           <Link href={editorPath}>
             <GlassButton variant="secondary">Open editor</GlassButton>
           </Link>
+          <Link href={`${editorPath}?delete=1`}>
+            <GlassButton variant="ghost">Delete</GlassButton>
+          </Link>
           {generation.status === "ready" ? (
             <Link href={`/shopreel/published`}>
               <GlassButton variant="ghost">Published view</GlassButton>

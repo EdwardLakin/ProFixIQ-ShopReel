@@ -132,6 +132,9 @@ export default async function ShopReelContentLibraryPage() {
                   <Link href={editorPath(item.outputType, item.id)}>
                     <GlassButton variant="secondary">Edit</GlassButton>
                   </Link>
+                  <Link href={`${editorPath(item.outputType, item.id)}?delete=1`}>
+                    <GlassButton variant="ghost">Delete</GlassButton>
+                  </Link>
                 </div>
               </div>
             ))}
