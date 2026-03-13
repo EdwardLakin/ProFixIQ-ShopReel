@@ -34,17 +34,18 @@ export default function ShopReelNav() {
             href={item.href}
             className={cx(
               "rounded-full border px-4 py-2 text-sm transition",
-              glassTheme.glass.panelSoft,
               active
                 ? cx(
                     glassTheme.border.copper,
+                    glassTheme.glass.panelSoft,
                     glassTheme.text.primary,
-                    "bg-white/[0.09] ring-1 ring-sky-300/20",
+                    "shadow-[0_0_0_1px_rgba(56,189,248,0.08),0_10px_24px_rgba(0,0,0,0.18)]",
                   )
                 : cx(
                     glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
                     glassTheme.text.secondary,
-                    "hover:bg-white/[0.06] hover:text-white",
+                    "hover:text-white hover:bg-white/[0.06]",
                   ),
             )}
           >

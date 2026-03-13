@@ -91,12 +91,7 @@ export default function GlassShell(props: {
                   </h1>
 
                   {subtitle ? (
-                    <p
-                      className={cx(
-                        "max-w-3xl text-sm leading-6 md:text-base",
-                        glassTheme.text.secondary,
-                      )}
-                    >
+                    <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
                       {subtitle}
                     </p>
                   ) : null}
