@@ -1,0 +1,1188 @@
+===== SHOPREEL APP ROUTES =====
+src/app/shopreel/analytics/page.tsx
+src/app/shopreel/calendar/page.tsx
+src/app/shopreel/content/page.tsx
+src/app/shopreel/create/page.tsx
+src/app/shopreel/creator-requests/page.tsx
+src/app/shopreel/editor/[id]/page.tsx
+src/app/shopreel/editor/blog/[id]/page.tsx
+src/app/shopreel/editor/email/[id]/page.tsx
+src/app/shopreel/editor/page.tsx
+src/app/shopreel/editor/post/[id]/page.tsx
+src/app/shopreel/editor/video/[id]/page.tsx
+src/app/shopreel/editor/vlog/[id]/page.tsx
+src/app/shopreel/generations/[id]/page.tsx
+src/app/shopreel/generations/page.tsx
+src/app/shopreel/layout.tsx
+src/app/shopreel/opportunities/[id]/page.tsx
+src/app/shopreel/opportunities/page.tsx
+src/app/shopreel/page.tsx
+src/app/shopreel/published/page.tsx
+src/app/shopreel/render-queue/page.tsx
+src/app/shopreel/settings/page.tsx
+src/app/shopreel/upload/page.tsx
+
+===== SHOPREEL API ROUTES =====
+src/app/api/shopreel/autopilot/route.ts
+src/app/api/shopreel/calendar/route.ts
+src/app/api/shopreel/connections/route.ts
+src/app/api/shopreel/create/from-angle/route.ts
+src/app/api/shopreel/create/from-idea/route.ts
+src/app/api/shopreel/create/from-output/route.ts
+src/app/api/shopreel/create/research-script/route.ts
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts
+src/app/api/shopreel/creator-requests/[id]/route.ts
+src/app/api/shopreel/discover/route.ts
+src/app/api/shopreel/discovery/route.ts
+src/app/api/shopreel/hooks/route.ts
+src/app/api/shopreel/manual-assets/[id]/generate/route.ts
+src/app/api/shopreel/manual-assets/complete/route.ts
+src/app/api/shopreel/manual-assets/create/route.ts
+src/app/api/shopreel/manual-assets/sign/route.ts
+src/app/api/shopreel/manual/generate/route.ts
+src/app/api/shopreel/media/route.ts
+src/app/api/shopreel/memory/route.ts
+src/app/api/shopreel/metrics/route.ts
+src/app/api/shopreel/moments/route.ts
+src/app/api/shopreel/oauth/callback/route.ts
+src/app/api/shopreel/oauth/connect/route.ts
+src/app/api/shopreel/opportunities/[id]/generate/route.ts
+src/app/api/shopreel/opportunities/[id]/route.ts
+src/app/api/shopreel/opportunities/generate/route.ts
+src/app/api/shopreel/opportunities/route.ts
+src/app/api/shopreel/publications/[id]/route.ts
+src/app/api/shopreel/publications/route.ts
+src/app/api/shopreel/publish-queue/route.ts
+src/app/api/shopreel/publish-worker/route.ts
+src/app/api/shopreel/publish/route.ts
+src/app/api/shopreel/reel-plan/route.ts
+src/app/api/shopreel/reels/route.ts
+src/app/api/shopreel/render-job/[id]/route.ts
+src/app/api/shopreel/render-job/route.ts
+src/app/api/shopreel/render-jobs/route.ts
+src/app/api/shopreel/render-worker/route.ts
+src/app/api/shopreel/settings/route.ts
+src/app/api/shopreel/signals/route.ts
+src/app/api/shopreel/story-generations/[id]/blog/route.ts
+src/app/api/shopreel/story-generations/[id]/publish/route.ts
+src/app/api/shopreel/story-generations/[id]/render/route.ts
+src/app/api/shopreel/story-generations/[id]/route.ts
+src/app/api/shopreel/story-generations/route.ts
+src/app/api/shopreel/story-pipeline/test/route.ts
+src/app/api/shopreel/story-sources/generate/route.ts
+src/app/api/shopreel/story-sources/route.ts
+src/app/api/shopreel/story-sources/seed/route.ts
+src/app/api/shopreel/suggestions/route.ts
+src/app/api/shopreel/work-orders/[id]/concept/route.ts
+src/app/api/shopreel/worker/publish/route.ts
+src/app/api/shopreel/worker/route.ts
+
+===== SHOPREEL FEATURES =====
+src/features/shopreel/calendar/generateContentCalendar.ts
+src/features/shopreel/components/Input.tsx
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx
+src/features/shopreel/components/StatusBadge.tsx
+src/features/shopreel/components/TextArea.tsx
+src/features/shopreel/components/Toggle.tsx
+src/features/shopreel/content/components/ContentLibraryClient.tsx
+src/features/shopreel/content/components/OutputTypeSelector.tsx
+src/features/shopreel/content/editors/ContentEditorShell.tsx
+src/features/shopreel/content/server/loadGenerationForEditor.ts
+src/features/shopreel/creator/buildCreatorOutputs.ts
+src/features/shopreel/creator/buildCreatorResearchDraft.ts
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx
+src/features/shopreel/creator/generateBlogSection.ts
+src/features/shopreel/creator/generateCreatorContentOutputs.ts
+src/features/shopreel/creator/generateCreatorScript.ts
+src/features/shopreel/discovery/discoverContent.ts
+src/features/shopreel/discovery/discoverStorySources.ts
+src/features/shopreel/editing/buildAutoEditPlan.ts
+src/features/shopreel/editor/components/BlogEditorClient.tsx
+src/features/shopreel/editor/components/EditorClient.tsx
+src/features/shopreel/editor/components/MediaBin.tsx
+src/features/shopreel/editor/components/TimelineLane.tsx
+src/features/shopreel/editor/components/TimelineRuler.tsx
+src/features/shopreel/editor/lib/timeline.ts
+src/features/shopreel/generations/components/GenerationDeleteButton.tsx
+src/features/shopreel/hooks/generateHooks.ts
+src/features/shopreel/hooks/generateViralHooks.ts
+src/features/shopreel/integrations/blog/connect.ts
+src/features/shopreel/integrations/email/connect.ts
+src/features/shopreel/integrations/facebook/connect.ts
+src/features/shopreel/integrations/facebook/publish.ts
+src/features/shopreel/integrations/google-business/connect.ts
+src/features/shopreel/integrations/instagram/connect.ts
+src/features/shopreel/integrations/instagram/publish.ts
+src/features/shopreel/integrations/linkedin/connect.ts
+src/features/shopreel/integrations/shared/baseUrl.ts
+src/features/shopreel/integrations/shared/env.ts
+src/features/shopreel/integrations/shared/platformRegistry.ts
+src/features/shopreel/integrations/shared/types.ts
+src/features/shopreel/integrations/tiktok/connect.ts
+src/features/shopreel/integrations/tiktok/publish.ts
+src/features/shopreel/integrations/youtube/connect.ts
+src/features/shopreel/integrations/youtube/publish.ts
+src/features/shopreel/learning/updateLearningSignals.ts
+src/features/shopreel/lib/contracts/sourceRefs.ts
+src/features/shopreel/lib/contracts/tenant.ts
+src/features/shopreel/lib/getBaseUrl.ts
+src/features/shopreel/lib/integrations/constants.ts
+src/features/shopreel/manual/components/ManualUploadClient.tsx
+src/features/shopreel/manual/lib/buildStoragePath.ts
+src/features/shopreel/manual/lib/createOpportunityFromManualAsset.ts
+src/features/shopreel/manual/lib/detectFileType.ts
+src/features/shopreel/manual/types/manualAssets.ts
+src/features/shopreel/media/selectMediaForReel.ts
+src/features/shopreel/media/types.ts
+src/features/shopreel/memory/updateMarketingMemory.ts
+src/features/shopreel/metrics/trackMetrics.ts
+src/features/shopreel/moments/detectViralMoments.ts
+src/features/shopreel/moments/scoreViralMoment.ts
+src/features/shopreel/opportunities/createOpportunities.ts
+src/features/shopreel/opportunities/scoreStorySource.ts
+src/features/shopreel/platforms/facebook.ts
+src/features/shopreel/platforms/instagram.ts
+src/features/shopreel/platforms/tiktok.ts
+src/features/shopreel/platforms/youtube.ts
+src/features/shopreel/publish/publishVideo.ts
+src/features/shopreel/publishing/lib/createPublication.ts
+src/features/shopreel/publishing/lib/createPublicationBundle.ts
+src/features/shopreel/publishing/lib/enqueuePublishJob.ts
+src/features/shopreel/publishing/lib/getPublicationPayload.ts
+src/features/shopreel/publishing/lib/processPublishJob.ts
+src/features/shopreel/publishing/types/index.ts
+src/features/shopreel/reelbuilder/buildReelPlan.ts
+src/features/shopreel/reels/buildReelPlan.ts
+src/features/shopreel/render/buildRenderPayload.ts
+src/features/shopreel/render/createRenderJob.ts
+src/features/shopreel/server/getCurrentShopId.ts
+src/features/shopreel/server/scheduler.ts
+src/features/shopreel/settings/getShopReelSettings.ts
+src/features/shopreel/settings/saveShopReelSettings.ts
+src/features/shopreel/story-builder/buildContentPieceInsertFromDraft.ts
+src/features/shopreel/story-builder/buildStoryDraftFromSource.ts
+src/features/shopreel/story-builder/createContentPieceFromStoryDraft.ts
+src/features/shopreel/story-builder/generateStoryPipeline.ts
+src/features/shopreel/story-builder/index.ts
+src/features/shopreel/story-builder/types.ts
+src/features/shopreel/story-sources/buildStorySourceKey.ts
+src/features/shopreel/story-sources/constants.ts
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts
+src/features/shopreel/story-sources/fromOpportunity.ts
+src/features/shopreel/story-sources/generateContentPieceFromSource.ts
+src/features/shopreel/story-sources/index.ts
+src/features/shopreel/story-sources/server.ts
+src/features/shopreel/story-sources/server/getStorySourceWithAssets.ts
+src/features/shopreel/story-sources/server/index.ts
+src/features/shopreel/story-sources/server/listStoryGenerations.ts
+src/features/shopreel/story-sources/server/listStorySources.ts
+src/features/shopreel/story-sources/server/saveStoryGeneration.ts
+src/features/shopreel/story-sources/server/saveStorySource.ts
+src/features/shopreel/story-sources/types.ts
+src/features/shopreel/subtitles/buildSubtitleBlocks.ts
+src/features/shopreel/theme/shopreelTheme.ts
+src/features/shopreel/types/index.ts
+src/features/shopreel/ui/ShopReelBadge.tsx
+src/features/shopreel/ui/ShopReelEmpty.tsx
+src/features/shopreel/ui/ShopReelInputPreview.tsx
+src/features/shopreel/ui/ShopReelJson.tsx
+src/features/shopreel/ui/ShopReelKeyValue.tsx
+src/features/shopreel/ui/ShopReelListItem.tsx
+src/features/shopreel/ui/ShopReelNav.tsx
+src/features/shopreel/ui/ShopReelSectionGrid.tsx
+src/features/shopreel/ui/ShopReelSettingsBlock.tsx
+src/features/shopreel/ui/ShopReelSettingsClient.tsx
+src/features/shopreel/ui/ShopReelToggleRow.tsx
+src/features/shopreel/ui/system/GlassBadge.tsx
+src/features/shopreel/ui/system/GlassButton.tsx
+src/features/shopreel/ui/system/GlassCard.tsx
+src/features/shopreel/ui/system/GlassInput.tsx
+src/features/shopreel/ui/system/GlassNav.tsx
+src/features/shopreel/ui/system/GlassSelect.tsx
+src/features/shopreel/ui/system/GlassShell.tsx
+src/features/shopreel/ui/system/GlassStat.tsx
+src/features/shopreel/ui/system/GlassTextarea.tsx
+src/features/shopreel/ui/system/GlassToggle.tsx
+src/features/shopreel/ui/system/glassTheme.ts
+src/features/shopreel/worker/processRenderJobs.ts
+
+===== LEGACY SHELL / UI REFERENCES =====
+src/features/shopreel/ui/ShopReelBadge.tsx:5:export default function ShopReelBadge(props: {
+
+===== GLASS UI REFERENCES =====
+src/app/shopreel/published/page.tsx:1:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/published/page.tsx:3:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/published/page.tsx:4:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/published/page.tsx:5:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/published/page.tsx:35:    <GlassShell
+src/app/shopreel/published/page.tsx:42:      <GlassCard
+src/app/shopreel/published/page.tsx:52:              glassTheme.border.softer,
+src/app/shopreel/published/page.tsx:53:              glassTheme.glass.panelSoft,
+src/app/shopreel/published/page.tsx:54:              glassTheme.text.secondary,
+src/app/shopreel/published/page.tsx:66:                  glassTheme.border.copper,
+src/app/shopreel/published/page.tsx:67:                  glassTheme.glass.panelSoft,
+src/app/shopreel/published/page.tsx:71:                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+src/app/shopreel/published/page.tsx:74:                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/published/page.tsx:80:                  <GlassBadge tone={item.status === "published" ? "copper" : "default"}>
+src/app/shopreel/published/page.tsx:82:                  </GlassBadge>
+src/app/shopreel/published/page.tsx:88:      </GlassCard>
+src/app/shopreel/published/page.tsx:89:    </GlassShell>
+src/app/shopreel/opportunities/[id]/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/opportunities/[id]/page.tsx:5:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/opportunities/[id]/page.tsx:6:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/opportunities/[id]/page.tsx:7:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/opportunities/[id]/page.tsx:87:    <GlassShell
+src/app/shopreel/opportunities/[id]/page.tsx:93:          <GlassButton variant="secondary">Queue render</GlassButton>
+src/app/shopreel/opportunities/[id]/page.tsx:94:          <GlassButton variant="primary">Publish</GlassButton>
+src/app/shopreel/opportunities/[id]/page.tsx:101:        <GlassCard
+src/app/shopreel/opportunities/[id]/page.tsx:108:              <GlassBadge tone={video.source_asset_id ? "copper" : "default"}>
+src/app/shopreel/opportunities/[id]/page.tsx:110:              </GlassBadge>
+src/app/shopreel/opportunities/[id]/page.tsx:111:              <GlassBadge tone="default">
+src/app/shopreel/opportunities/[id]/page.tsx:113:              </GlassBadge>
+src/app/shopreel/opportunities/[id]/page.tsx:114:              <GlassBadge tone="muted">
+src/app/shopreel/opportunities/[id]/page.tsx:116:              </GlassBadge>
+src/app/shopreel/opportunities/[id]/page.tsx:117:              <GlassBadge tone="muted">
+src/app/shopreel/opportunities/[id]/page.tsx:119:              </GlassBadge>
+src/app/shopreel/opportunities/[id]/page.tsx:143:        </GlassCard>
+src/app/shopreel/opportunities/[id]/page.tsx:145:        <GlassCard
+src/app/shopreel/opportunities/[id]/page.tsx:163:                    <GlassBadge key={platform} tone="default">
+src/app/shopreel/opportunities/[id]/page.tsx:165:                    </GlassBadge>
+src/app/shopreel/opportunities/[id]/page.tsx:182:        </GlassCard>
+src/app/shopreel/opportunities/[id]/page.tsx:186:        <GlassCard
+src/app/shopreel/opportunities/[id]/page.tsx:194:        </GlassCard>
+src/app/shopreel/opportunities/[id]/page.tsx:196:        <GlassCard
+src/app/shopreel/opportunities/[id]/page.tsx:204:        </GlassCard>
+src/app/shopreel/opportunities/[id]/page.tsx:206:    </GlassShell>
+src/app/shopreel/opportunities/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/opportunities/page.tsx:4:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/opportunities/page.tsx:9:    <GlassShell
+src/app/shopreel/opportunities/page.tsx:16:            <GlassButton variant="ghost">View generations</GlassButton>
+src/app/shopreel/opportunities/page.tsx:18:          <GlassButton variant="primary">Generate selected</GlassButton>
+src/app/shopreel/opportunities/page.tsx:24:    </GlassShell>
+src/app/shopreel/analytics/page.tsx:1:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/analytics/page.tsx:3:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/analytics/page.tsx:5:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/analytics/page.tsx:9:    <GlassShell
+src/app/shopreel/analytics/page.tsx:24:        <GlassCard
+src/app/shopreel/analytics/page.tsx:40:                  glassTheme.border.copper,
+src/app/shopreel/analytics/page.tsx:41:                  glassTheme.glass.panelSoft,
+src/app/shopreel/analytics/page.tsx:42:                  glassTheme.text.primary,
+src/app/shopreel/analytics/page.tsx:49:        </GlassCard>
+src/app/shopreel/analytics/page.tsx:51:        <GlassCard
+src/app/shopreel/analytics/page.tsx:66:                  glassTheme.border.softer,
+src/app/shopreel/analytics/page.tsx:67:                  glassTheme.glass.panelSoft,
+src/app/shopreel/analytics/page.tsx:68:                  glassTheme.text.primary,
+src/app/shopreel/analytics/page.tsx:75:        </GlassCard>
+src/app/shopreel/analytics/page.tsx:77:    </GlassShell>
+src/app/shopreel/render-queue/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/render-queue/page.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/render-queue/page.tsx:5:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/render-queue/page.tsx:6:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/render-queue/page.tsx:7:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/render-queue/page.tsx:53:    <GlassShell
+src/app/shopreel/render-queue/page.tsx:60:      <GlassCard
+src/app/shopreel/render-queue/page.tsx:70:              glassTheme.border.softer,
+src/app/shopreel/render-queue/page.tsx:71:              glassTheme.glass.panelSoft,
+src/app/shopreel/render-queue/page.tsx:72:              glassTheme.text.secondary
+src/app/shopreel/render-queue/page.tsx:88:                      ? glassTheme.border.copper
+src/app/shopreel/render-queue/page.tsx:89:                      : glassTheme.border.softer,
+src/app/shopreel/render-queue/page.tsx:90:                    glassTheme.glass.panelSoft
+src/app/shopreel/render-queue/page.tsx:97:                        glassTheme.text.primary
+src/app/shopreel/render-queue/page.tsx:106:                        glassTheme.text.secondary
+src/app/shopreel/render-queue/page.tsx:115:                        glassTheme.text.muted
+src/app/shopreel/render-queue/page.tsx:123:                    <GlassBadge
+src/app/shopreel/render-queue/page.tsx:135:                    </GlassBadge>
+src/app/shopreel/render-queue/page.tsx:142:                        glassTheme.text.muted
+src/app/shopreel/render-queue/page.tsx:151:                          <GlassButton variant="ghost">Review</GlassButton>
+src/app/shopreel/render-queue/page.tsx:154:                          <GlassButton variant="secondary">Edit</GlassButton>
+src/app/shopreel/render-queue/page.tsx:164:      </GlassCard>
+src/app/shopreel/render-queue/page.tsx:165:    </GlassShell>
+src/app/shopreel/calendar/page.tsx:1:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/calendar/page.tsx:3:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/calendar/page.tsx:4:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/calendar/page.tsx:5:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/calendar/page.tsx:19:    <GlassShell
+src/app/shopreel/calendar/page.tsx:27:        <GlassCard
+src/app/shopreel/calendar/page.tsx:39:                  day.items >= 4 ? glassTheme.border.copper : glassTheme.border.softer,
+src/app/shopreel/calendar/page.tsx:40:                  glassTheme.glass.panelSoft,
+src/app/shopreel/calendar/page.tsx:44:                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/calendar/page.tsx:47:                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/calendar/page.tsx:51:                <GlassBadge tone={day.items >= 4 ? "copper" : "muted"}>
+src/app/shopreel/calendar/page.tsx:53:                </GlassBadge>
+src/app/shopreel/calendar/page.tsx:57:        </GlassCard>
+src/app/shopreel/calendar/page.tsx:59:        <GlassCard
+src/app/shopreel/calendar/page.tsx:70:                  glassTheme.border.copper,
+src/app/shopreel/calendar/page.tsx:71:                  glassTheme.glass.panelSoft,
+src/app/shopreel/calendar/page.tsx:74:                <div className={cx("text-base font-medium", glassTheme.text.primary)}>{slot}</div>
+src/app/shopreel/calendar/page.tsx:75:                <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/calendar/page.tsx:81:        </GlassCard>
+src/app/shopreel/calendar/page.tsx:83:    </GlassShell>
+src/app/shopreel/settings/page.tsx:1:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/settings/page.tsx:7:    <GlassShell
+src/app/shopreel/settings/page.tsx:14:    </GlassShell>
+src/app/shopreel/creator-requests/page.tsx:1:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/creator-requests/page.tsx:54:    <GlassShell
+src/app/shopreel/creator-requests/page.tsx:61:    </GlassShell>
+src/app/shopreel/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/page.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/page.tsx:6:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/page.tsx:7:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/page.tsx:8:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/page.tsx:36:    <GlassShell
+src/app/shopreel/page.tsx:43:            <GlassButton variant="ghost">Creator mode</GlassButton>
+src/app/shopreel/page.tsx:46:            <GlassButton variant="secondary">Business opportunities</GlassButton>
+src/app/shopreel/page.tsx:49:            <GlassButton variant="primary">Open generations</GlassButton>
+src/app/shopreel/page.tsx:84:        <GlassCard
+src/app/shopreel/page.tsx:95:                  glassTheme.border.softer,
+src/app/shopreel/page.tsx:96:                  glassTheme.glass.panelSoft,
+src/app/shopreel/page.tsx:97:                  glassTheme.text.secondary,
+src/app/shopreel/page.tsx:108:                    glassTheme.border.copper,
+src/app/shopreel/page.tsx:109:                    glassTheme.glass.panelSoft,
+src/app/shopreel/page.tsx:113:                    <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/page.tsx:116:                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/page.tsx:122:                    <GlassBadge tone="default">
+src/app/shopreel/page.tsx:124:                    </GlassBadge>
+src/app/shopreel/page.tsx:126:                      <GlassBadge tone="copper">{String(item.tags[0])}</GlassBadge>
+src/app/shopreel/page.tsx:133:        </GlassCard>
+src/app/shopreel/page.tsx:135:        <GlassCard
+src/app/shopreel/page.tsx:144:                glassTheme.border.copper,
+src/app/shopreel/page.tsx:145:                glassTheme.glass.panelSoft,
+src/app/shopreel/page.tsx:148:              <div className={cx("text-sm", glassTheme.text.secondary)}>Business Mode</div>
+src/app/shopreel/page.tsx:149:              <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
+src/app/shopreel/page.tsx:157:                glassTheme.border.copper,
+src/app/shopreel/page.tsx:158:                glassTheme.glass.panelSoft,
+src/app/shopreel/page.tsx:161:              <div className={cx("text-sm", glassTheme.text.secondary)}>Creator Mode</div>
+src/app/shopreel/page.tsx:162:              <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
+src/app/shopreel/page.tsx:167:        </GlassCard>
+src/app/shopreel/page.tsx:169:    </GlassShell>
+src/app/shopreel/content/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/content/page.tsx:4:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/content/page.tsx:61:    <GlassShell
+src/app/shopreel/content/page.tsx:67:          <GlassButton variant="primary">Create content</GlassButton>
+src/app/shopreel/content/page.tsx:73:    </GlassShell>
+src/app/shopreel/generations/[id]/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/generations/[id]/page.tsx:3:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/generations/[id]/page.tsx:4:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/generations/[id]/page.tsx:5:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/generations/[id]/page.tsx:6:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/generations/[id]/page.tsx:83:      <GlassShell
+src/app/shopreel/generations/[id]/page.tsx:88:        <GlassCard strong>
+src/app/shopreel/generations/[id]/page.tsx:89:          <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/generations/[id]/page.tsx:92:        </GlassCard>
+src/app/shopreel/generations/[id]/page.tsx:93:      </GlassShell>
+src/app/shopreel/generations/[id]/page.tsx:114:    <GlassShell
+src/app/shopreel/generations/[id]/page.tsx:125:            <GlassButton variant="secondary">Open editor</GlassButton>
+src/app/shopreel/generations/[id]/page.tsx:130:              <GlassButton variant="ghost">Published view</GlassButton>
+src/app/shopreel/generations/[id]/page.tsx:137:        <GlassCard
+src/app/shopreel/generations/[id]/page.tsx:144:            <GlassBadge tone="default">{formatLabel(generation.status)}</GlassBadge>
+src/app/shopreel/generations/[id]/page.tsx:145:            <GlassBadge tone="copper">{formatLabel(outputType)}</GlassBadge>
+src/app/shopreel/generations/[id]/page.tsx:147:              <GlassBadge tone="muted">{formatLabel(draft.sourceKind)}</GlassBadge>
+src/app/shopreel/generations/[id]/page.tsx:150:              <GlassBadge tone="copper">Publication linked</GlassBadge>
+src/app/shopreel/generations/[id]/page.tsx:158:                glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:159:                glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:162:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/app/shopreel/generations/[id]/page.tsx:165:              <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
+src/app/shopreel/generations/[id]/page.tsx:173:                glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:174:                glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:177:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/app/shopreel/generations/[id]/page.tsx:180:              <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
+src/app/shopreel/generations/[id]/page.tsx:189:              glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:190:              glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:193:            <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/app/shopreel/generations/[id]/page.tsx:196:            <div className={cx("mt-2 text-sm whitespace-pre-wrap", glassTheme.text.primary)}>
+src/app/shopreel/generations/[id]/page.tsx:205:                glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:206:                glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:209:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/app/shopreel/generations/[id]/page.tsx:212:              <div className={cx("mt-2 text-sm whitespace-pre-wrap", glassTheme.text.secondary)}>
+src/app/shopreel/generations/[id]/page.tsx:220:                glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:221:                glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:224:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/app/shopreel/generations/[id]/page.tsx:227:              <div className={cx("mt-2 text-sm whitespace-pre-wrap", glassTheme.text.secondary)}>
+src/app/shopreel/generations/[id]/page.tsx:232:        </GlassCard>
+src/app/shopreel/generations/[id]/page.tsx:234:        <GlassCard
+src/app/shopreel/generations/[id]/page.tsx:257:                glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:258:                glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:259:                glassTheme.text.secondary,
+src/app/shopreel/generations/[id]/page.tsx:277:                  glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:278:                  glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:281:                <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/app/shopreel/generations/[id]/page.tsx:284:                <div className={cx("mt-2 text-sm break-all", glassTheme.text.primary)}>
+src/app/shopreel/generations/[id]/page.tsx:290:        </GlassCard>
+src/app/shopreel/generations/[id]/page.tsx:294:        <GlassCard
+src/app/shopreel/generations/[id]/page.tsx:306:                  glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:307:                  glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:315:                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/generations/[id]/page.tsx:318:                  <div className={cx("text-xs", glassTheme.text.secondary)}>
+src/app/shopreel/generations/[id]/page.tsx:321:                  <div className={cx("text-sm whitespace-pre-wrap", glassTheme.text.primary)}>
+src/app/shopreel/generations/[id]/page.tsx:328:                    <GlassButton variant="ghost">Edit section</GlassButton>
+src/app/shopreel/generations/[id]/page.tsx:334:        </GlassCard>
+src/app/shopreel/generations/[id]/page.tsx:336:        <GlassCard
+src/app/shopreel/generations/[id]/page.tsx:348:                  glassTheme.border.softer,
+src/app/shopreel/generations/[id]/page.tsx:349:                  glassTheme.glass.panelSoft,
+src/app/shopreel/generations/[id]/page.tsx:357:                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/generations/[id]/page.tsx:360:                  <div className={cx("text-xs", glassTheme.text.secondary)}>
+src/app/shopreel/generations/[id]/page.tsx:364:                    <div className={cx("text-sm", glassTheme.text.primary)}>
+src/app/shopreel/generations/[id]/page.tsx:369:                    <div className={cx("text-xs", glassTheme.text.secondary)}>
+src/app/shopreel/generations/[id]/page.tsx:377:                    <GlassButton variant="ghost">Edit scene</GlassButton>
+src/app/shopreel/generations/[id]/page.tsx:383:        </GlassCard>
+src/app/shopreel/generations/[id]/page.tsx:385:    </GlassShell>
+src/app/shopreel/generations/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/generations/page.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/generations/page.tsx:5:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/generations/page.tsx:6:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/generations/page.tsx:7:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/generations/page.tsx:40:    <GlassShell
+src/app/shopreel/generations/page.tsx:46:          <GlassButton variant="primary">Open opportunities</GlassButton>
+src/app/shopreel/generations/page.tsx:52:      <GlassCard
+src/app/shopreel/generations/page.tsx:62:              glassTheme.border.softer,
+src/app/shopreel/generations/page.tsx:63:              glassTheme.glass.panelSoft,
+src/app/shopreel/generations/page.tsx:64:              glassTheme.text.secondary,
+src/app/shopreel/generations/page.tsx:83:                      ? glassTheme.border.copper
+src/app/shopreel/generations/page.tsx:84:                      : glassTheme.border.softer,
+src/app/shopreel/generations/page.tsx:85:                    glassTheme.glass.panelSoft,
+src/app/shopreel/generations/page.tsx:89:                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+src/app/shopreel/generations/page.tsx:92:                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/generations/page.tsx:97:                      <GlassBadge tone="default">{formatLabel(generation.status)}</GlassBadge>
+src/app/shopreel/generations/page.tsx:99:                        <GlassBadge tone="muted">{formatLabel(draft.tone)}</GlassBadge>
+src/app/shopreel/generations/page.tsx:102:                        <GlassBadge tone="copper">Render linked</GlassBadge>
+src/app/shopreel/generations/page.tsx:109:                      <GlassButton variant="ghost">Review</GlassButton>
+src/app/shopreel/generations/page.tsx:112:                      <GlassButton variant="secondary">Edit</GlassButton>
+src/app/shopreel/generations/page.tsx:116:                        <GlassButton variant="primary">Publish</GlassButton>
+src/app/shopreel/generations/page.tsx:125:      </GlassCard>
+src/app/shopreel/generations/page.tsx:126:    </GlassShell>
+src/app/shopreel/upload/page.tsx:1:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/upload/page.tsx:7:    <GlassShell
+src/app/shopreel/upload/page.tsx:14:    </GlassShell>
+src/app/shopreel/editor/post/[id]/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/post/[id]/page.tsx:3:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/editor/post/[id]/page.tsx:4:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/editor/post/[id]/page.tsx:5:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/editor/post/[id]/page.tsx:39:    <GlassShell
+src/app/shopreel/editor/post/[id]/page.tsx:46:            <GlassButton variant="ghost">Back to review</GlassButton>
+src/app/shopreel/editor/post/[id]/page.tsx:49:            <GlassButton variant="secondary">Content library</GlassButton>
+src/app/shopreel/editor/post/[id]/page.tsx:55:        <GlassCard
+src/app/shopreel/editor/post/[id]/page.tsx:61:          <div className={cx("break-all text-sm", glassTheme.text.primary)}>{title}</div>
+src/app/shopreel/editor/post/[id]/page.tsx:62:        </GlassCard>
+src/app/shopreel/editor/post/[id]/page.tsx:64:        <GlassCard
+src/app/shopreel/editor/post/[id]/page.tsx:70:          <pre className={cx("whitespace-pre-wrap text-sm leading-7", glassTheme.text.primary)}>
+src/app/shopreel/editor/post/[id]/page.tsx:73:        </GlassCard>
+src/app/shopreel/editor/post/[id]/page.tsx:75:    </GlassShell>
+src/app/shopreel/editor/video/[id]/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/video/[id]/page.tsx:3:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/editor/video/[id]/page.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/editor/video/[id]/page.tsx:31:      <GlassShell eyebrow="ShopReel" title="Editor unavailable" subtitle="No story draft exists for this generation.">
+src/app/shopreel/editor/video/[id]/page.tsx:32:        <GlassCard strong>Story draft missing.</GlassCard>
+src/app/shopreel/editor/video/[id]/page.tsx:33:      </GlassShell>
+src/app/shopreel/editor/video/[id]/page.tsx:56:    <GlassShell
+src/app/shopreel/editor/video/[id]/page.tsx:63:            <GlassButton variant="ghost">Back to review</GlassButton>
+src/app/shopreel/editor/video/[id]/page.tsx:66:            <GlassButton variant="secondary">Render queue</GlassButton>
+src/app/shopreel/editor/video/[id]/page.tsx:79:    </GlassShell>
+src/app/shopreel/editor/email/[id]/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/email/[id]/page.tsx:3:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/editor/email/[id]/page.tsx:4:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/editor/email/[id]/page.tsx:5:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/editor/email/[id]/page.tsx:39:    <GlassShell
+src/app/shopreel/editor/email/[id]/page.tsx:46:            <GlassButton variant="ghost">Back to review</GlassButton>
+src/app/shopreel/editor/email/[id]/page.tsx:49:            <GlassButton variant="secondary">Content library</GlassButton>
+src/app/shopreel/editor/email/[id]/page.tsx:55:        <GlassCard
+src/app/shopreel/editor/email/[id]/page.tsx:61:          <div className={cx("break-all text-sm", glassTheme.text.primary)}>{subject}</div>
+src/app/shopreel/editor/email/[id]/page.tsx:62:        </GlassCard>
+src/app/shopreel/editor/email/[id]/page.tsx:64:        <GlassCard
+src/app/shopreel/editor/email/[id]/page.tsx:70:          <pre className={cx("whitespace-pre-wrap text-sm leading-7", glassTheme.text.primary)}>
+src/app/shopreel/editor/email/[id]/page.tsx:73:        </GlassCard>
+src/app/shopreel/editor/email/[id]/page.tsx:75:    </GlassShell>
+src/app/shopreel/editor/vlog/[id]/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/vlog/[id]/page.tsx:3:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/editor/vlog/[id]/page.tsx:4:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/editor/vlog/[id]/page.tsx:5:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/editor/vlog/[id]/page.tsx:6:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/editor/vlog/[id]/page.tsx:47:    <GlassShell
+src/app/shopreel/editor/vlog/[id]/page.tsx:54:            <GlassButton variant="ghost">Back to review</GlassButton>
+src/app/shopreel/editor/vlog/[id]/page.tsx:57:            <GlassButton variant="secondary">Content library</GlassButton>
+src/app/shopreel/editor/vlog/[id]/page.tsx:63:        <GlassCard
+src/app/shopreel/editor/vlog/[id]/page.tsx:73:                glassTheme.border.copper,
+src/app/shopreel/editor/vlog/[id]/page.tsx:74:                glassTheme.glass.panelSoft,
+src/app/shopreel/editor/vlog/[id]/page.tsx:77:              <div className={cx("text-sm", glassTheme.text.secondary)}>Hook</div>
+src/app/shopreel/editor/vlog/[id]/page.tsx:78:              <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>{hook}</div>
+src/app/shopreel/editor/vlog/[id]/page.tsx:82:              <GlassBadge tone="copper">{talkingPoints.length} talking points</GlassBadge>
+src/app/shopreel/editor/vlog/[id]/page.tsx:83:              <GlassBadge tone="default">{bRoll.length} b-roll ideas</GlassBadge>
+src/app/shopreel/editor/vlog/[id]/page.tsx:84:              <GlassBadge tone="muted">{sceneOrder.length} scenes</GlassBadge>
+src/app/shopreel/editor/vlog/[id]/page.tsx:87:        </GlassCard>
+src/app/shopreel/editor/vlog/[id]/page.tsx:89:        <GlassCard
+src/app/shopreel/editor/vlog/[id]/page.tsx:95:          <pre className={cx("whitespace-pre-wrap text-sm leading-7", glassTheme.text.primary)}>
+src/app/shopreel/editor/vlog/[id]/page.tsx:98:        </GlassCard>
+src/app/shopreel/editor/vlog/[id]/page.tsx:102:        <GlassCard
+src/app/shopreel/editor/vlog/[id]/page.tsx:114:                  glassTheme.border.softer,
+src/app/shopreel/editor/vlog/[id]/page.tsx:115:                  glassTheme.glass.panelSoft,
+src/app/shopreel/editor/vlog/[id]/page.tsx:116:                  glassTheme.text.primary,
+src/app/shopreel/editor/vlog/[id]/page.tsx:123:        </GlassCard>
+src/app/shopreel/editor/vlog/[id]/page.tsx:125:        <GlassCard
+src/app/shopreel/editor/vlog/[id]/page.tsx:137:                  glassTheme.border.softer,
+src/app/shopreel/editor/vlog/[id]/page.tsx:138:                  glassTheme.glass.panelSoft,
+src/app/shopreel/editor/vlog/[id]/page.tsx:139:                  glassTheme.text.primary,
+src/app/shopreel/editor/vlog/[id]/page.tsx:146:        </GlassCard>
+src/app/shopreel/editor/vlog/[id]/page.tsx:148:        <GlassCard
+src/app/shopreel/editor/vlog/[id]/page.tsx:157:              glassTheme.border.copper,
+src/app/shopreel/editor/vlog/[id]/page.tsx:158:              glassTheme.glass.panelSoft,
+src/app/shopreel/editor/vlog/[id]/page.tsx:159:              glassTheme.text.primary,
+src/app/shopreel/editor/vlog/[id]/page.tsx:164:        </GlassCard>
+src/app/shopreel/editor/vlog/[id]/page.tsx:167:      <GlassCard
+src/app/shopreel/editor/vlog/[id]/page.tsx:188:                  glassTheme.border.softer,
+src/app/shopreel/editor/vlog/[id]/page.tsx:189:                  glassTheme.glass.panelSoft,
+src/app/shopreel/editor/vlog/[id]/page.tsx:196:                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/editor/vlog/[id]/page.tsx:199:                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/editor/vlog/[id]/page.tsx:203:                <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/editor/vlog/[id]/page.tsx:210:      </GlassCard>
+src/app/shopreel/editor/vlog/[id]/page.tsx:211:    </GlassShell>
+src/app/shopreel/editor/blog/[id]/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/blog/[id]/page.tsx:3:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/editor/blog/[id]/page.tsx:4:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/editor/blog/[id]/page.tsx:6:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/editor/blog/[id]/page.tsx:69:    <GlassShell
+src/app/shopreel/editor/blog/[id]/page.tsx:76:            <GlassButton variant="ghost">Back to review</GlassButton>
+src/app/shopreel/editor/blog/[id]/page.tsx:79:            <GlassButton variant="secondary">Content library</GlassButton>
+src/app/shopreel/editor/blog/[id]/page.tsx:92:        <GlassCard
+src/app/shopreel/editor/blog/[id]/page.tsx:98:          <div className={cx("whitespace-pre-wrap text-sm leading-7", glassTheme.text.primary)}>
+src/app/shopreel/editor/blog/[id]/page.tsx:101:        </GlassCard>
+src/app/shopreel/editor/blog/[id]/page.tsx:103:    </GlassShell>
+src/app/shopreel/editor/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/page.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/editor/page.tsx:5:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/editor/page.tsx:6:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/editor/page.tsx:20:    <GlassShell
+src/app/shopreel/editor/page.tsx:27:      <GlassCard
+src/app/shopreel/editor/page.tsx:37:              glassTheme.border.softer,
+src/app/shopreel/editor/page.tsx:38:              glassTheme.glass.panelSoft,
+src/app/shopreel/editor/page.tsx:39:              glassTheme.text.secondary,
+src/app/shopreel/editor/page.tsx:51:                  glassTheme.border.softer,
+src/app/shopreel/editor/page.tsx:52:                  glassTheme.glass.panelSoft,
+src/app/shopreel/editor/page.tsx:56:                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/editor/page.tsx:59:                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/editor/page.tsx:65:                  <GlassButton variant="secondary">Open editor</GlassButton>
+src/app/shopreel/editor/page.tsx:71:      </GlassCard>
+src/app/shopreel/editor/page.tsx:72:    </GlassShell>
+src/app/shopreel/create/page.tsx:5:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/create/page.tsx:7:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/app/shopreel/create/page.tsx:8:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/app/shopreel/create/page.tsx:11:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/app/shopreel/create/page.tsx:12:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/app/shopreel/create/page.tsx:156:    <GlassShell
+src/app/shopreel/create/page.tsx:160:      actions={<GlassBadge tone="copper">Creator research + multi-format output</GlassBadge>}
+src/app/shopreel/create/page.tsx:165:        <GlassCard
+src/app/shopreel/create/page.tsx:172:              <GlassButton
+src/app/shopreel/create/page.tsx:182:              </GlassButton>
+src/app/shopreel/create/page.tsx:187:            <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:195:                glassTheme.text.primary,
+src/app/shopreel/create/page.tsx:196:                glassTheme.glass.input,
+src/app/shopreel/create/page.tsx:197:                glassTheme.border.softer,
+src/app/shopreel/create/page.tsx:210:            <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:218:                glassTheme.text.primary,
+src/app/shopreel/create/page.tsx:219:                glassTheme.glass.input,
+src/app/shopreel/create/page.tsx:220:                glassTheme.border.softer,
+src/app/shopreel/create/page.tsx:235:                <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:243:                    glassTheme.text.primary,
+src/app/shopreel/create/page.tsx:244:                    glassTheme.glass.input,
+src/app/shopreel/create/page.tsx:245:                    glassTheme.border.softer,
+src/app/shopreel/create/page.tsx:258:                <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:266:                    glassTheme.text.primary,
+src/app/shopreel/create/page.tsx:267:                    glassTheme.glass.input,
+src/app/shopreel/create/page.tsx:268:                    glassTheme.border.softer,
+src/app/shopreel/create/page.tsx:298:              <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:306:                  glassTheme.text.primary,
+src/app/shopreel/create/page.tsx:307:                  glassTheme.glass.input,
+src/app/shopreel/create/page.tsx:308:                  glassTheme.border.softer,
+src/app/shopreel/create/page.tsx:321:              <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:329:                  glassTheme.text.primary,
+src/app/shopreel/create/page.tsx:330:                  glassTheme.glass.input,
+src/app/shopreel/create/page.tsx:331:                  glassTheme.border.softer,
+src/app/shopreel/create/page.tsx:363:                glassTheme.border.copper,
+src/app/shopreel/create/page.tsx:364:                glassTheme.glass.panelSoft,
+src/app/shopreel/create/page.tsx:365:                glassTheme.text.copperSoft,
+src/app/shopreel/create/page.tsx:371:        </GlassCard>
+src/app/shopreel/create/page.tsx:373:        <GlassCard
+src/app/shopreel/create/page.tsx:384:                  glassTheme.border.copper,
+src/app/shopreel/create/page.tsx:385:                  glassTheme.glass.panelSoft,
+src/app/shopreel/create/page.tsx:388:                <div className={cx("text-sm", glassTheme.text.secondary)}>Expanded topic</div>
+src/app/shopreel/create/page.tsx:389:                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:397:                  glassTheme.border.copper,
+src/app/shopreel/create/page.tsx:398:                  glassTheme.glass.panelSoft,
+src/app/shopreel/create/page.tsx:401:                <div className={cx("text-sm", glassTheme.text.secondary)}>Research summary</div>
+src/app/shopreel/create/page.tsx:402:                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:413:                      glassTheme.border.softer,
+src/app/shopreel/create/page.tsx:414:                      glassTheme.glass.panelSoft,
+src/app/shopreel/create/page.tsx:415:                      glassTheme.text.primary,
+src/app/shopreel/create/page.tsx:429:                      glassTheme.border.copper,
+src/app/shopreel/create/page.tsx:430:                      glassTheme.glass.panelSoft,
+src/app/shopreel/create/page.tsx:433:                    <div className={cx("text-base font-semibold", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:436:                    <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/create/page.tsx:439:                    <div className={cx("mt-3 text-sm", glassTheme.text.primary)}>
+src/app/shopreel/create/page.tsx:442:                    <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/create/page.tsx:445:                    <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+src/app/shopreel/create/page.tsx:465:                    glassTheme.border.softer,
+src/app/shopreel/create/page.tsx:466:                    glassTheme.glass.panelSoft,
+src/app/shopreel/create/page.tsx:467:                    glassTheme.text.primary,
+src/app/shopreel/create/page.tsx:475:        </GlassCard>
+src/app/shopreel/create/page.tsx:477:    </GlassShell>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:6:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:7:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:8:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:9:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:275:      <GlassCard
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:283:              <GlassBadge tone="default">{summary.total} total</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:284:              <GlassBadge tone="copper">{summary.manualCount} manual</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:285:              <GlassBadge tone="default">{summary.creatorCount} creator prompts</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:286:              <GlassBadge tone="default">{summary.highScoreCount} high score</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:287:              <GlassBadge tone="muted">{summary.readyCount} ready</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:291:              <GlassButton variant="ghost" onClick={() => router.refresh()}>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:293:              </GlassButton>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:294:              <GlassButton
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:300:              </GlassButton>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:301:              <GlassButton
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:307:              </GlassButton>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:316:              glassTheme.border.softer,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:317:              glassTheme.glass.panelSoft,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:318:              glassTheme.text.secondary,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:329:              glassTheme.border.copper,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:330:              glassTheme.glass.panelSoft,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:331:              glassTheme.text.copperSoft,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:342:              glassTheme.border.softer,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:343:              glassTheme.glass.panelSoft,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:344:              glassTheme.text.secondary,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:364:                      ? glassTheme.border.copper
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:365:                      : glassTheme.border.softer,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:366:                    glassTheme.glass.panelSoft,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:370:                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:373:                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:379:                      <div className={cx("pt-1 text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:386:                    <GlassBadge tone={item.sourceType === "creator_prompt" ? "copper" : "default"}>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:388:                    </GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:389:                    <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:392:                      <GlassBadge tone={(item.score ?? 0) >= 85 ? "copper" : "muted"}>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:394:                      </GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:396:                      <GlassBadge tone="muted">
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:398:                      </GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:404:                          <GlassButton variant="ghost">Review</GlassButton>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:407:                          <GlassButton variant="secondary">Edit</GlassButton>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:412:                    <GlassButton
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:418:                    </GlassButton>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:420:                    <GlassButton
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:430:                    </GlassButton>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:437:      </GlassCard>
+src/features/shopreel/ui/ShopReelNav.tsx:5:import { glassTheme, cx } from "./system/glassTheme";
+src/features/shopreel/ui/ShopReelNav.tsx:39:                    glassTheme.border.copper,
+src/features/shopreel/ui/ShopReelNav.tsx:40:                    glassTheme.glass.panelSoft,
+src/features/shopreel/ui/ShopReelNav.tsx:41:                    glassTheme.text.primary,
+src/features/shopreel/ui/ShopReelNav.tsx:45:                    glassTheme.border.softer,
+src/features/shopreel/ui/ShopReelNav.tsx:46:                    glassTheme.glass.panelSoft,
+src/features/shopreel/ui/ShopReelNav.tsx:47:                    glassTheme.text.secondary,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:9:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:10:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:11:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:229:        <GlassCard
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:290:        </GlassCard>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:292:        <GlassCard
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:326:        </GlassCard>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:329:      <GlassCard
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:337:              <GlassBadge tone="default">
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:339:              </GlassBadge>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:340:              <GlassBadge tone="muted">
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:342:              </GlassBadge>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:347:                <span className={cx("text-sm", glassTheme.text.copperSoft)}>Saved</span>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:349:              <GlassButton variant="secondary" onClick={() => void loadConnections()}>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:351:              </GlassButton>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:352:              <GlassButton variant="primary" onClick={() => void handleSave()}>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:354:              </GlassButton>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:363:              glassTheme.border.copper,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:364:              glassTheme.glass.panelSoft,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:365:              glassTheme.text.copperSoft,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:385:                  !canConnect || active ? glassTheme.border.copper : glassTheme.border.softer,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:386:                  glassTheme.glass.panelSoft,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:391:                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:394:                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:399:                  <GlassBadge tone={active ? "default" : canConnect ? "muted" : "copper"}>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:401:                  </GlassBadge>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:404:                <div className={cx("mt-4 space-y-2 text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:429:                  <GlassButton
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:441:                  </GlassButton>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:447:      </GlassCard>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:449:      <GlassCard
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:464:                glassTheme.border.copper,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:465:                glassTheme.glass.panelSoft,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:468:              <div className={cx("text-sm", glassTheme.text.secondary)}>{label}</div>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:469:              <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:475:      </GlassCard>
+src/features/shopreel/ui/system/GlassSelect.tsx:2:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassSelect.tsx:18:          <span className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/features/shopreel/ui/system/GlassSelect.tsx:21:          {hint ? <span className={cx("text-xs", glassTheme.text.muted)}>{hint}</span> : null}
+src/features/shopreel/ui/system/GlassSelect.tsx:29:          glassTheme.text.primary,
+src/features/shopreel/ui/system/GlassSelect.tsx:30:          glassTheme.glass.input,
+src/features/shopreel/ui/system/GlassSelect.tsx:31:          glassTheme.border.softer,
+src/features/shopreel/ui/system/GlassShell.tsx:3:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassShell.tsx:5:export default function GlassShell(props: {
+src/features/shopreel/ui/system/GlassShell.tsx:19:        glassTheme.bg.base,
+src/features/shopreel/ui/system/GlassShell.tsx:20:        glassTheme.bg.overlay,
+src/features/shopreel/ui/system/GlassShell.tsx:23:      <div className={glassTheme.bg.grid} />
+src/features/shopreel/ui/system/GlassShell.tsx:32:        <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
+src/features/shopreel/ui/system/GlassShell.tsx:40:                    glassTheme.border.softer,
+src/features/shopreel/ui/system/GlassShell.tsx:41:                    glassTheme.glass.panelSoft,
+src/features/shopreel/ui/system/GlassShell.tsx:42:                    glassTheme.text.primary,
+src/features/shopreel/ui/system/GlassShell.tsx:54:                      glassTheme.border.softer,
+src/features/shopreel/ui/system/GlassShell.tsx:55:                      glassTheme.glass.panelSoft,
+src/features/shopreel/ui/system/GlassShell.tsx:56:                      glassTheme.text.secondary,
+src/features/shopreel/ui/system/GlassShell.tsx:76:                      glassTheme.text.copper,
+src/features/shopreel/ui/system/GlassShell.tsx:87:                      glassTheme.text.primary,
+src/features/shopreel/ui/system/GlassShell.tsx:94:                    <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
+src/features/shopreel/ui/system/GlassToggle.tsx:3:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassToggle.tsx:19:        glassTheme.border.softer,
+src/features/shopreel/ui/system/GlassToggle.tsx:20:        glassTheme.glass.input,
+src/features/shopreel/ui/system/GlassToggle.tsx:25:        <div className={cx("text-sm font-medium", glassTheme.text.primary)}>{label}</div>
+src/features/shopreel/ui/system/GlassToggle.tsx:27:          <div className={cx("text-sm", glassTheme.text.secondary)}>{description}</div>
+src/features/shopreel/ui/system/GlassButton.tsx:2:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassButton.tsx:6:export default function GlassButton(
+src/features/shopreel/ui/system/GlassButton.tsx:25:        glassTheme.accent.copperRing,
+src/features/shopreel/ui/system/GlassNav.tsx:5:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassNav.tsx:25:        glassTheme.border.soft,
+src/features/shopreel/ui/system/GlassNav.tsx:26:        glassTheme.glass.panelSoft
+src/features/shopreel/ui/system/GlassBadge.tsx:2:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassBadge.tsx:4:export default function GlassBadge(props: {
+src/features/shopreel/ui/system/GlassBadge.tsx:17:            glassTheme.border.softer,
+src/features/shopreel/ui/system/GlassBadge.tsx:19:            glassTheme.text.primary,
+src/features/shopreel/ui/system/GlassBadge.tsx:24:            glassTheme.accent.copperBorder,
+src/features/shopreel/ui/system/GlassBadge.tsx:26:            glassTheme.text.copperSoft,
+src/features/shopreel/ui/system/GlassBadge.tsx:31:            glassTheme.border.softer,
+src/features/shopreel/ui/system/GlassBadge.tsx:33:            glassTheme.text.secondary,
+src/features/shopreel/ui/system/GlassCard.tsx:2:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassCard.tsx:4:export default function GlassCard(props: {
+src/features/shopreel/ui/system/GlassCard.tsx:19:        strong ? glassTheme.border.strong : glassTheme.border.soft,
+src/features/shopreel/ui/system/GlassCard.tsx:20:        strong ? glassTheme.glass.panelStrong : glassTheme.glass.panel,
+src/features/shopreel/ui/system/GlassCard.tsx:30:                glassTheme.text.copper,
+src/features/shopreel/ui/system/GlassCard.tsx:41:                glassTheme.text.primary,
+src/features/shopreel/ui/system/GlassCard.tsx:49:            <p className={cx("text-sm leading-6", glassTheme.text.secondary)}>
+src/features/shopreel/ui/system/GlassStat.tsx:1:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassStat.tsx:15:        glassTheme.border.softer,
+src/features/shopreel/ui/system/GlassStat.tsx:16:        glassTheme.glass.panel,
+src/features/shopreel/ui/system/GlassStat.tsx:22:          glassTheme.text.copper,
+src/features/shopreel/ui/system/GlassStat.tsx:31:          glassTheme.text.primary,
+src/features/shopreel/ui/system/GlassStat.tsx:39:          {trend ? <span className={glassTheme.text.copperSoft}>{trend}</span> : null}
+src/features/shopreel/ui/system/GlassStat.tsx:40:          {hint ? <span className={glassTheme.text.secondary}>{hint}</span> : null}
+src/features/shopreel/ui/system/GlassTextarea.tsx:2:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassTextarea.tsx:17:          <span className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/features/shopreel/ui/system/GlassTextarea.tsx:20:          {hint ? <span className={cx("text-xs", glassTheme.text.muted)}>{hint}</span> : null}
+src/features/shopreel/ui/system/GlassTextarea.tsx:28:          glassTheme.text.primary,
+src/features/shopreel/ui/system/GlassTextarea.tsx:29:          glassTheme.glass.input,
+src/features/shopreel/ui/system/GlassTextarea.tsx:30:          glassTheme.border.softer,
+src/features/shopreel/ui/system/GlassInput.tsx:2:import { glassTheme, cx } from "./glassTheme";
+src/features/shopreel/ui/system/GlassInput.tsx:17:          <span className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/features/shopreel/ui/system/GlassInput.tsx:20:          {hint ? <span className={cx("text-xs", glassTheme.text.muted)}>{hint}</span> : null}
+src/features/shopreel/ui/system/GlassInput.tsx:28:          glassTheme.text.primary,
+src/features/shopreel/ui/system/GlassInput.tsx:29:          glassTheme.glass.input,
+src/features/shopreel/ui/system/GlassInput.tsx:30:          glassTheme.border.softer,
+src/features/shopreel/ui/system/glassTheme.ts:1:export const glassTheme = {
+src/features/shopreel/manual/components/ManualUploadClient.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/manual/components/ManualUploadClient.tsx:8:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/manual/components/ManualUploadClient.tsx:9:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/manual/components/ManualUploadClient.tsx:10:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/manual/components/ManualUploadClient.tsx:218:      <GlassCard
+src/features/shopreel/manual/components/ManualUploadClient.tsx:259:            glassTheme.border.copper,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:260:            glassTheme.glass.panelSoft,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:268:            className={cx("block w-full text-sm", glassTheme.text.secondary)}
+src/features/shopreel/manual/components/ManualUploadClient.tsx:273:              <GlassBadge tone="copper">{assetType}</GlassBadge>
+src/features/shopreel/manual/components/ManualUploadClient.tsx:274:              <GlassBadge tone="default">{files.length} files</GlassBadge>
+src/features/shopreel/manual/components/ManualUploadClient.tsx:283:              glassTheme.border.copper,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:284:              glassTheme.glass.panelSoft,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:285:              glassTheme.text.copperSoft,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:296:              glassTheme.border.copper,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:297:              glassTheme.glass.panelSoft,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:298:              glassTheme.text.primary,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:305:        <GlassButton
+src/features/shopreel/manual/components/ManualUploadClient.tsx:311:        </GlassButton>
+src/features/shopreel/manual/components/ManualUploadClient.tsx:312:      </GlassCard>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:6:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:7:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:8:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:9:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:193:      <GlassCard
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:200:            <GlassBadge tone="default">{items.length} requests</GlassBadge>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:201:            <GlassBadge tone="copper">{totalAngles} angles</GlassBadge>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:209:              glassTheme.border.copper,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:210:              glassTheme.glass.panelSoft,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:211:              glassTheme.text.copperSoft,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:222:              glassTheme.border.softer,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:223:              glassTheme.glass.panelSoft,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:224:              glassTheme.text.secondary,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:242:                    glassTheme.border.softer,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:243:                    glassTheme.glass.panelSoft,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:248:                      <div className={cx("text-2xl font-semibold", glassTheme.text.primary)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:252:                      <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:258:                      <GlassBadge tone="default">{formatLabel(item.mode)}</GlassBadge>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:259:                      <GlassBadge tone={item.status === "ready" ? "copper" : "muted"}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:261:                      </GlassBadge>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:262:                      <GlassBadge tone="default">{angles.length} angles</GlassBadge>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:263:                      <GlassBadge tone="muted">{derivedPosts.length} derived posts</GlassBadge>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:268:                    <div className={cx("mt-4 text-lg", glassTheme.text.primary)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:274:                    <div className={cx("mt-4 text-sm leading-7", glassTheme.text.secondary)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:283:                          <GlassButton variant="ghost">Review</GlassButton>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:286:                          <GlassButton variant="secondary">Open editor</GlassButton>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:291:                    <GlassButton
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:299:                    </GlassButton>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:314:                              glassTheme.border.copper,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:315:                              glassTheme.glass.panel,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:320:                                <div className={cx("text-xl font-semibold", glassTheme.text.primary)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:323:                                <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:329:                                <GlassButton
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:335:                                </GlassButton>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:336:                                <GlassButton
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:344:                                </GlassButton>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:345:                                <GlassButton
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:359:                                </GlassButton>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:364:                              <div className={glassTheme.text.primary}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:365:                                <span className={glassTheme.text.secondary}>Hook:</span> {angle.hook}
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:367:                              <div className={glassTheme.text.secondary}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:370:                              <div className={glassTheme.text.secondary}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:387:                            glassTheme.border.softer,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:388:                            glassTheme.glass.panelSoft,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:392:                            <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:395:                            <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:402:                              <GlassButton variant="ghost">Review</GlassButton>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:405:                              <GlassButton variant="secondary">Edit</GlassButton>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:417:      </GlassCard>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:6:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/content/components/ContentLibraryClient.tsx:7:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/content/components/ContentLibraryClient.tsx:8:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/content/components/ContentLibraryClient.tsx:9:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/content/components/ContentLibraryClient.tsx:74:    <GlassCard
+src/features/shopreel/content/components/ContentLibraryClient.tsx:81:          <GlassBadge tone="default">{total} items</GlassBadge>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:89:            glassTheme.border.copper,
+src/features/shopreel/content/components/ContentLibraryClient.tsx:90:            glassTheme.glass.panelSoft,
+src/features/shopreel/content/components/ContentLibraryClient.tsx:91:            glassTheme.text.copperSoft,
+src/features/shopreel/content/components/ContentLibraryClient.tsx:102:            glassTheme.border.softer,
+src/features/shopreel/content/components/ContentLibraryClient.tsx:103:            glassTheme.glass.panelSoft,
+src/features/shopreel/content/components/ContentLibraryClient.tsx:104:            glassTheme.text.secondary,
+src/features/shopreel/content/components/ContentLibraryClient.tsx:119:                  glassTheme.border.softer,
+src/features/shopreel/content/components/ContentLibraryClient.tsx:120:                  glassTheme.glass.panelSoft,
+src/features/shopreel/content/components/ContentLibraryClient.tsx:124:                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:127:                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:134:                  <GlassBadge tone="copper">{formatLabel(item.outputType)}</GlassBadge>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:135:                  <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:138:                    <GlassButton variant="ghost">Review</GlassButton>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:141:                    <GlassButton variant="secondary">Edit</GlassButton>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:143:                  <GlassButton
+src/features/shopreel/content/components/ContentLibraryClient.tsx:149:                  </GlassButton>
+src/features/shopreel/content/components/ContentLibraryClient.tsx:156:    </GlassCard>
+src/features/shopreel/content/components/OutputTypeSelector.tsx:3:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/content/components/OutputTypeSelector.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/content/components/OutputTypeSelector.tsx:5:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/content/components/OutputTypeSelector.tsx:48:        <GlassCard
+src/features/shopreel/content/components/OutputTypeSelector.tsx:55:              <GlassButton variant="ghost" onClick={props.onClose} disabled={props.isSubmitting}>
+src/features/shopreel/content/components/OutputTypeSelector.tsx:57:              </GlassButton>
+src/features/shopreel/content/components/OutputTypeSelector.tsx:70:                  glassTheme.border.copper,
+src/features/shopreel/content/components/OutputTypeSelector.tsx:71:                  glassTheme.glass.panelSoft,
+src/features/shopreel/content/components/OutputTypeSelector.tsx:75:                <div className={cx("text-base font-semibold", glassTheme.text.primary)}>
+src/features/shopreel/content/components/OutputTypeSelector.tsx:78:                <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/content/components/OutputTypeSelector.tsx:84:        </GlassCard>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/content/editors/ContentEditorShell.tsx:5:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/content/editors/ContentEditorShell.tsx:8:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/content/editors/ContentEditorShell.tsx:9:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/content/editors/ContentEditorShell.tsx:57:      <GlassCard
+src/features/shopreel/content/editors/ContentEditorShell.tsx:72:            <GlassButton variant="secondary" onClick={() => void saveDraft()} disabled={isSaving}>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:74:            </GlassButton>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:82:              glassTheme.border.copper,
+src/features/shopreel/content/editors/ContentEditorShell.tsx:83:              glassTheme.glass.panelSoft,
+src/features/shopreel/content/editors/ContentEditorShell.tsx:84:              glassTheme.text.copperSoft,
+src/features/shopreel/content/editors/ContentEditorShell.tsx:92:          <GlassBadge tone="default">{props.editorType}</GlassBadge>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:93:          <GlassBadge tone="muted">{props.initialStatus}</GlassBadge>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:94:          <GlassBadge tone="copper">{draft.scenes.length} scenes</GlassBadge>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:176:      </GlassCard>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:178:      <GlassCard
+src/features/shopreel/content/editors/ContentEditorShell.tsx:190:                glassTheme.border.softer,
+src/features/shopreel/content/editors/ContentEditorShell.tsx:191:                glassTheme.glass.panelSoft,
+src/features/shopreel/content/editors/ContentEditorShell.tsx:194:              <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:197:              <div className={cx("mt-1 text-xs", glassTheme.text.secondary)}>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:200:              <div className={cx("mt-3 text-sm", glassTheme.text.primary)}>
+src/features/shopreel/content/editors/ContentEditorShell.tsx:206:      </GlassCard>
+src/features/shopreel/generations/components/GenerationDeleteButton.tsx:5:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/generations/components/GenerationDeleteButton.tsx:44:    <GlassButton variant="ghost" onClick={() => void handleDelete()} disabled={isDeleting}>
+src/features/shopreel/generations/components/GenerationDeleteButton.tsx:46:    </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:5:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/editor/components/BlogEditorClient.tsx:6:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/editor/components/BlogEditorClient.tsx:9:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/editor/components/BlogEditorClient.tsx:10:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/editor/components/BlogEditorClient.tsx:251:      <GlassCard
+src/features/shopreel/editor/components/BlogEditorClient.tsx:258:            <GlassBadge tone="default">{sections.length} sections</GlassBadge>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:259:            <GlassBadge tone="copper">Blog editor</GlassBadge>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:260:            <GlassButton variant="ghost" onClick={addSection}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:262:            </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:277:                  selected ? glassTheme.border.copper : glassTheme.border.softer,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:278:                  glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:284:                    <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:287:                    <div className={cx("text-xs", glassTheme.text.secondary)}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:295:                      className={cx("text-xs", glassTheme.text.secondary)}
+src/features/shopreel/editor/components/BlogEditorClient.tsx:302:                      className={cx("text-xs", glassTheme.text.copperSoft)}
+src/features/shopreel/editor/components/BlogEditorClient.tsx:309:                <div className={cx("mt-3 line-clamp-4 text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:321:                      glassTheme.text.primary,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:322:                      glassTheme.glass.input,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:323:                      glassTheme.border.softer,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:335:                    <GlassButton
+src/features/shopreel/editor/components/BlogEditorClient.tsx:347:                    </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:349:                    <GlassButton
+src/features/shopreel/editor/components/BlogEditorClient.tsx:355:                    </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:362:      </GlassCard>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:365:        <GlassCard
+src/features/shopreel/editor/components/BlogEditorClient.tsx:372:              <GlassButton variant="primary" onClick={() => void saveBlog()} disabled={isSaving}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:374:              </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:375:              <GlassButton variant="ghost" onClick={() => void deleteGeneration()} disabled={isDeleting}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:377:              </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:385:                glassTheme.border.copper,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:386:                glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:387:                glassTheme.text.copperSoft,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:412:                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:425:                      glassTheme.text.primary,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:426:                      glassTheme.glass.input,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:427:                      glassTheme.border.softer,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:440:                  <GlassButton
+src/features/shopreel/editor/components/BlogEditorClient.tsx:452:                  </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:454:                  <GlassButton
+src/features/shopreel/editor/components/BlogEditorClient.tsx:460:                  </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:462:                  <GlassButton
+src/features/shopreel/editor/components/BlogEditorClient.tsx:467:                  </GlassButton>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:483:                  glassTheme.border.softer,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:484:                  glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:485:                  glassTheme.text.secondary,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:488:                <div className={cx("mb-2 text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:500:                          ? glassTheme.border.copper
+src/features/shopreel/editor/components/BlogEditorClient.tsx:501:                          : glassTheme.border.softer,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:502:                        glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:503:                        glassTheme.text.primary,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:516:                glassTheme.border.softer,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:517:                glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:518:                glassTheme.text.secondary,
+src/features/shopreel/editor/components/BlogEditorClient.tsx:524:        </GlassCard>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:526:        <GlassCard
+src/features/shopreel/editor/components/BlogEditorClient.tsx:532:          <div className={cx("text-sm leading-7 whitespace-pre-wrap", glassTheme.text.primary)}>
+src/features/shopreel/editor/components/BlogEditorClient.tsx:535:        </GlassCard>
+src/features/shopreel/editor/components/TimelineRuler.tsx:3:import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/editor/components/TimelineRuler.tsx:19:        glassTheme.border.softer,
+src/features/shopreel/editor/components/TimelineRuler.tsx:20:        glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/TimelineRuler.tsx:27:            glassTheme.border.softer,
+src/features/shopreel/editor/components/TimelineRuler.tsx:28:            glassTheme.text.secondary,
+src/features/shopreel/editor/components/MediaBin.tsx:3:import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/editor/components/MediaBin.tsx:4:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/editor/components/MediaBin.tsx:5:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/editor/components/MediaBin.tsx:22:    <GlassCard
+src/features/shopreel/editor/components/MediaBin.tsx:32:            glassTheme.border.softer,
+src/features/shopreel/editor/components/MediaBin.tsx:33:            glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/MediaBin.tsx:34:            glassTheme.text.secondary,
+src/features/shopreel/editor/components/MediaBin.tsx:46:                glassTheme.border.softer,
+src/features/shopreel/editor/components/MediaBin.tsx:47:                glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/MediaBin.tsx:52:                <div className={cx("truncate text-xs", glassTheme.text.secondary)}>
+src/features/shopreel/editor/components/MediaBin.tsx:56:              <GlassBadge tone="default">{item.type}</GlassBadge>
+src/features/shopreel/editor/components/MediaBin.tsx:61:    </GlassCard>
+src/features/shopreel/editor/components/TimelineLane.tsx:3:import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/editor/components/TimelineLane.tsx:78:        glassTheme.border.softer,
+src/features/shopreel/editor/components/TimelineLane.tsx:79:        glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/TimelineLane.tsx:86:            glassTheme.border.softer,
+src/features/shopreel/editor/components/TimelineLane.tsx:87:            glassTheme.text.secondary,
+src/features/shopreel/editor/components/EditorClient.tsx:5:import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+src/features/shopreel/editor/components/EditorClient.tsx:6:import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+src/features/shopreel/editor/components/EditorClient.tsx:9:import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+src/features/shopreel/editor/components/EditorClient.tsx:10:import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+src/features/shopreel/editor/components/EditorClient.tsx:126:        glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:127:        glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:128:        glassTheme.text.secondary,
+src/features/shopreel/editor/components/EditorClient.tsx:308:        <GlassCard
+src/features/shopreel/editor/components/EditorClient.tsx:332:                    isSelected ? glassTheme.border.copper : glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:333:                    glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:342:                      <div className={cx("text-xs", glassTheme.text.secondary)}>
+src/features/shopreel/editor/components/EditorClient.tsx:354:                    <div className={cx("mt-3 text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/editor/components/EditorClient.tsx:362:        </GlassCard>
+src/features/shopreel/editor/components/EditorClient.tsx:366:        <GlassCard
+src/features/shopreel/editor/components/EditorClient.tsx:373:              <div className={cx("text-sm", glassTheme.text.secondary)}>
+src/features/shopreel/editor/components/EditorClient.tsx:382:                    glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:383:                    glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:384:                    glassTheme.text.primary,
+src/features/shopreel/editor/components/EditorClient.tsx:387:                  <div className={cx("mb-1 text-xs", glassTheme.text.secondary)}>
+src/features/shopreel/editor/components/EditorClient.tsx:396:        </GlassCard>
+src/features/shopreel/editor/components/EditorClient.tsx:400:        <GlassCard
+src/features/shopreel/editor/components/EditorClient.tsx:425:                glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:426:                glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:429:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/features/shopreel/editor/components/EditorClient.tsx:440:                glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:441:                glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:444:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/features/shopreel/editor/components/EditorClient.tsx:453:                glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:454:                glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:457:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/features/shopreel/editor/components/EditorClient.tsx:465:        </GlassCard>
+src/features/shopreel/editor/components/EditorClient.tsx:467:        <GlassCard
+src/features/shopreel/editor/components/EditorClient.tsx:474:              <GlassButton
+src/features/shopreel/editor/components/EditorClient.tsx:480:              </GlassButton>
+src/features/shopreel/editor/components/EditorClient.tsx:498:                glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:499:                glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:502:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/features/shopreel/editor/components/EditorClient.tsx:513:                glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:514:                glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:517:              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+src/features/shopreel/editor/components/EditorClient.tsx:525:        </GlassCard>
+src/features/shopreel/editor/components/EditorClient.tsx:527:        <GlassCard
+src/features/shopreel/editor/components/EditorClient.tsx:582:        </GlassCard>
+src/features/shopreel/editor/components/EditorClient.tsx:585:      <GlassCard
+src/features/shopreel/editor/components/EditorClient.tsx:592:            <GlassButton variant="secondary" onClick={() => void saveDraft()} disabled={isSaving}>
+src/features/shopreel/editor/components/EditorClient.tsx:594:            </GlassButton>
+src/features/shopreel/editor/components/EditorClient.tsx:595:            <GlassButton variant="primary" onClick={() => void renderAgain()} disabled={isRendering}>
+src/features/shopreel/editor/components/EditorClient.tsx:597:            </GlassButton>
+src/features/shopreel/editor/components/EditorClient.tsx:605:              glassTheme.border.copper,
+src/features/shopreel/editor/components/EditorClient.tsx:606:              glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:607:              glassTheme.text.copperSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:642:              <GlassBadge tone="default">{selectedScene.role}</GlassBadge>
+src/features/shopreel/editor/components/EditorClient.tsx:649:                  glassTheme.border.softer,
+src/features/shopreel/editor/components/EditorClient.tsx:650:                  glassTheme.glass.panelSoft,
+src/features/shopreel/editor/components/EditorClient.tsx:651:                  glassTheme.text.secondary,
+src/features/shopreel/editor/components/EditorClient.tsx:705:      </GlassCard>
+
+===== LEGACY VIDEOS TABLE REFERENCES =====
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:465:    .from("videos")
+src/app/shopreel/opportunities/[id]/page.tsx:72:    .from("videos")
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:104:      .from("videos")
+src/features/shopreel/reels/buildReelPlan.ts:45:    .from("videos")
+
+===== STORY GENERATION REFERENCES =====
+src/app/api/shopreel/opportunities/route.ts:50:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/route.ts:59:        shopreel_story_sources!inner (
+src/app/api/shopreel/opportunities/route.ts:95:        .from("shopreel_story_generations")
+src/app/api/shopreel/opportunities/route.ts:145:        .from("shopreel_creator_requests")
+src/app/api/shopreel/opportunities/route.ts:169:        const storySource = row.shopreel_story_sources ?? null;
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:93:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:111:      .from("shopreel_story_sources")
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:209:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/[id]/route.ts:16:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:38:      .from("shopreel_creator_requests")
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:200:      .from("shopreel_creator_requests")
+src/app/api/shopreel/creator-requests/[id]/route.ts:16:      .from("shopreel_creator_requests")
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:52:      .from("shopreel_creator_requests")
+src/app/api/shopreel/story-generations/[id]/render/route.ts:23:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/render/route.ts:65:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/route.ts:29:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/route.ts:70:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/publish/route.ts:35:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/publish/route.ts:91:      .from("shopreel_story_sources")
+src/app/api/shopreel/story-generations/[id]/publish/route.ts:121:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/blog/route.ts:67:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/blog/route.ts:104:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/blog/route.ts:146:      .from("shopreel_story_generations")
+src/app/api/shopreel/story-generations/[id]/blog/route.ts:231:      .from("shopreel_story_generations")
+src/app/api/shopreel/create/from-angle/route.ts:106:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/from-angle/route.ts:173:        .from("shopreel_creator_requests")
+src/app/api/shopreel/create/from-angle/route.ts:189:        .from("shopreel_creator_requests")
+src/app/api/shopreel/create/from-output/route.ts:116:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/from-output/route.ts:204:        .from("shopreel_creator_requests")
+src/app/api/shopreel/create/from-output/route.ts:220:        .from("shopreel_creator_requests")
+src/app/api/shopreel/create/research-script/route.ts:137:      .from("shopreel_creator_requests")
+src/app/api/shopreel/create/research-script/route.ts:181:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/research-script/route.ts:288:      .from("shopreel_creator_requests")
+src/app/api/shopreel/create/research-script/route.ts:297:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/from-idea/route.ts:182:      .from("shopreel_story_sources")
+src/app/api/shopreel/create/from-idea/route.ts:234:      .from("shopreel_story_generations")
+src/app/shopreel/render-queue/page.tsx:41:      .from("shopreel_story_generations")
+src/app/shopreel/creator-requests/page.tsx:44:    .from("shopreel_creator_requests")
+src/app/shopreel/page.tsx:17:      legacy.from("shopreel_story_sources").select("*", { count: "exact", head: true }),
+src/app/shopreel/page.tsx:18:      legacy.from("shopreel_story_generations").select("*", { count: "exact", head: true }),
+src/app/shopreel/page.tsx:20:        .from("shopreel_story_generations")
+src/app/shopreel/page.tsx:30:    .from("shopreel_story_sources")
+src/app/shopreel/content/page.tsx:29:    .from("shopreel_story_generations")
+src/app/shopreel/generations/[id]/page.tsx:71:    .from("shopreel_story_generations")
+src/app/shopreel/editor/post/[id]/page.tsx:23:    .from("shopreel_story_generations")
+src/app/shopreel/editor/email/[id]/page.tsx:23:    .from("shopreel_story_generations")
+src/app/shopreel/editor/vlog/[id]/page.tsx:24:    .from("shopreel_story_generations")
+src/app/shopreel/editor/blog/[id]/page.tsx:52:    .from("shopreel_story_generations")
+src/app/shopreel/editor/page.tsx:14:    .from("shopreel_story_generations")
+src/features/shopreel/opportunities/createOpportunities.ts:34:        .from("shopreel_story_sources")
+src/features/shopreel/opportunities/createOpportunities.ts:40:        .from("shopreel_creator_requests")
+src/features/shopreel/opportunities/createOpportunities.ts:70:      .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/createOpportunities.ts:128:      .from("shopreel_content_opportunities")
+src/features/shopreel/story-sources/server/listStoryGenerations.ts:10:    .from("shopreel_story_generations")
+src/features/shopreel/story-sources/server/getStorySourceWithAssets.ts:10:    .from("shopreel_story_sources")
+src/features/shopreel/story-sources/server/saveStorySource.ts:14:    .from("shopreel_story_sources")
+src/features/shopreel/story-sources/server/saveStorySource.ts:25:    .from("shopreel_story_sources")
+src/features/shopreel/story-sources/server/saveStoryGeneration.ts:22:    .from("shopreel_story_generations")
+src/features/shopreel/story-sources/server/listStorySources.ts:10:    .from("shopreel_story_sources")
+src/features/shopreel/content/server/loadGenerationForEditor.ts:16:    .from("shopreel_story_generations")
+src/features/shopreel/worker/processRenderJobs.ts:63:        .from("shopreel_story_generations")
+src/features/shopreel/worker/processRenderJobs.ts:86:        .from("shopreel_story_generations")
+
+===== EDITOR ROUTING REFERENCES =====
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:11:  editorUrlForOutputType,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:78:          editorUrl: editorUrlForOutputType(outputType, creatorRequest.source_generation_id),
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:222:        editorUrl: editorUrlForOutputType(outputType, generation.id),
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:10:  editorUrlForOutputType,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:228:        editorUrl: editorUrlForOutputType(outputType, generation.id),
+src/app/api/shopreel/create/from-angle/route.ts:213:      editorUrl: `/shopreel/editor/${generation.id}`,
+src/app/api/shopreel/create/from-output/route.ts:38:  if (outputType === "video") return `/shopreel/editor/video/${generationId}`;
+src/app/api/shopreel/create/from-output/route.ts:39:  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
+src/app/api/shopreel/create/from-output/route.ts:40:  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
+src/app/api/shopreel/create/from-output/route.ts:41:  return `/shopreel/editor/post/${generationId}`;
+src/app/api/shopreel/create/research-script/route.ts:11:  editorUrlForOutputType,
+src/app/api/shopreel/create/research-script/route.ts:323:      editorUrl: editorUrlForOutputType(outputType, generation.id),
+src/app/api/shopreel/create/from-idea/route.ts:264:      editorUrl: `/shopreel/editor/${generationId}`,
+src/app/shopreel/render-queue/page.tsx:153:                        <Link href={`/shopreel/editor/${generationId}`}>
+src/app/shopreel/generations/[id]/page.tsx:54:function editorPathForOutputType(outputType: string | null, generationId: string) {
+src/app/shopreel/generations/[id]/page.tsx:55:  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
+src/app/shopreel/generations/[id]/page.tsx:56:  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
+src/app/shopreel/generations/[id]/page.tsx:57:  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
+src/app/shopreel/generations/[id]/page.tsx:58:  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
+src/app/shopreel/generations/[id]/page.tsx:59:  return `/shopreel/editor/${generationId}`;
+src/app/shopreel/generations/[id]/page.tsx:111:  const editorPath = editorPathForOutputType(outputType, generation.id);
+src/app/shopreel/generations/[id]/page.tsx:124:          <Link href={editorPath}>
+src/app/shopreel/generations/[id]/page.tsx:327:                  <Link href={`/shopreel/editor/blog/${generation.id}?section=${section.key}`}>
+src/app/shopreel/generations/[id]/page.tsx:376:                  <Link href={`/shopreel/editor/${generation.id}?scene=${scene.id}`}>
+src/app/shopreel/generations/page.tsx:111:                    <Link href={`/shopreel/editor/${generation.id}`}>
+src/app/shopreel/editor/video/[id]/page.tsx:5:import EditorClient from "@/features/shopreel/editor/components/EditorClient";
+src/app/shopreel/editor/video/[id]/page.tsx:6:import type { MediaBinItem } from "@/features/shopreel/editor/components/MediaBin";
+src/app/shopreel/editor/[id]/page.tsx:7:  redirect(`/shopreel/editor/video/${id}`);
+src/app/shopreel/editor/blog/[id]/page.tsx:5:import BlogEditorClient from "@/features/shopreel/editor/components/BlogEditorClient";
+src/app/shopreel/editor/page.tsx:64:                <Link href={`/shopreel/editor/${item.id}`}>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:80:function editorPathFromItem(item: OpportunityItem, generationId: string) {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:83:  if (type === "blog") return `/shopreel/editor/blog/${generationId}`;
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:84:  if (type === "email") return `/shopreel/editor/email/${generationId}`;
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:85:  if (type === "post") return `/shopreel/editor/post/${generationId}`;
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:86:  if (type === "vlog") return `/shopreel/editor/vlog/${generationId}`;
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:88:  return `/shopreel/editor/${generationId}`;
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:205:          router.push(editorPathFromItem(item, item.generationId));
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:244:        router.push(json.generated.editorUrl ?? editorPathFromItem(item, json.generated.generationId));
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:406:                        <Link href={editorPathFromItem(item, generationId)}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:183:      router.push(json.generated.editorUrl ?? `/shopreel/editor/${json.generated.generationId}`);
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:285:                        <Link href={`/shopreel/editor/${item.source_generation_id}`}>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:404:                            <Link href={`/shopreel/editor/${post.generationId}`}>
+src/features/shopreel/creator/buildCreatorOutputs.ts:85:export function editorUrlForOutputType(outputType: OutputType, generationId: string): string {
+src/features/shopreel/creator/buildCreatorOutputs.ts:86:  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
+src/features/shopreel/creator/buildCreatorOutputs.ts:87:  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
+src/features/shopreel/creator/buildCreatorOutputs.ts:88:  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
+src/features/shopreel/creator/buildCreatorOutputs.ts:89:  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
+src/features/shopreel/creator/buildCreatorOutputs.ts:90:  return `/shopreel/editor/${generationId}`;
+src/features/shopreel/content/components/ContentLibraryClient.tsx:30:function editorPath(outputType: OutputType, generationId: string) {
+src/features/shopreel/content/components/ContentLibraryClient.tsx:31:  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
+src/features/shopreel/content/components/ContentLibraryClient.tsx:32:  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
+src/features/shopreel/content/components/ContentLibraryClient.tsx:33:  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
+src/features/shopreel/content/components/ContentLibraryClient.tsx:34:  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
+src/features/shopreel/content/components/ContentLibraryClient.tsx:35:  return `/shopreel/editor/${generationId}`;
+src/features/shopreel/content/components/ContentLibraryClient.tsx:140:                  <Link href={editorPath(item.outputType, item.id)}>
+src/features/shopreel/editor/components/TimelineRuler.tsx:4:import { formatSecondsLabel, msToTimelinePx } from "@/features/shopreel/editor/lib/timeline";
+src/features/shopreel/editor/components/TimelineLane.tsx:4:import type { TimelineClip } from "@/features/shopreel/editor/lib/timeline";
+src/features/shopreel/editor/components/TimelineLane.tsx:5:import { msToTimelinePx, PX_PER_SECOND } from "@/features/shopreel/editor/lib/timeline";
+src/features/shopreel/editor/components/EditorClient.tsx:12:import MediaBin, { type MediaBinItem } from "@/features/shopreel/editor/components/MediaBin";
+src/features/shopreel/editor/components/EditorClient.tsx:13:import TimelineLane from "@/features/shopreel/editor/components/TimelineLane";
+src/features/shopreel/editor/components/EditorClient.tsx:14:import TimelineRuler from "@/features/shopreel/editor/components/TimelineRuler";
+src/features/shopreel/editor/components/EditorClient.tsx:21:} from "@/features/shopreel/editor/lib/timeline";
+
+===== DELETE ROUTES / DELETE CALLS =====
+src/app/api/shopreel/opportunities/[id]/route.ts:5:export async function DELETE(
+src/app/api/shopreel/creator-requests/[id]/route.ts:5:export async function DELETE(
+src/app/api/shopreel/story-generations/[id]/route.ts:59:export async function DELETE(
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:177:          method: "DELETE",
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:99:        method: "DELETE",
+src/features/shopreel/content/components/ContentLibraryClient.tsx:55:        method: "DELETE",
+src/features/shopreel/generations/components/GenerationDeleteButton.tsx:23:        method: "DELETE",
+src/features/shopreel/editor/components/BlogEditorClient.tsx:171:        method: "DELETE",

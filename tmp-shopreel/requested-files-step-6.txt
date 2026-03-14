@@ -1,7 +1,0 @@
-src/app/shopreel/render-queue/page.tsx
-src/app/api/shopreel/render-worker/route.ts
-src/features/shopreel/publishing/lib/createPublication.ts
-src/features/shopreel/publishing/lib/enqueuePublishJob.ts
-src/features/shopreel/publishing/lib/processPublishJob.ts
-src/features/shopreel/publishing/types/index.ts
-src/app/shopreel/published/page.tsx
