@@ -7,9 +7,9 @@ export async function runScheduledPublishWorker() {
 
   const { data: queue } = await supabase
     .from("content_calendar_items")
-    .select("*")
+    .select("id, content_piece_id, status, scheduled_for")
     .lte("scheduled_for", now)
-    .eq("status", "scheduled")
+    .eq("status", "planned")
     .limit(10);
 
   if (!queue || queue.length === 0) {
@@ -23,18 +23,18 @@ export async function runScheduledPublishWorker() {
       await supabase
         .from("content_pieces")
         .update({
-          status: "ready",
+          status: "queued",
         })
         .eq("id", item.content_piece_id);
 
       await supabase
         .from("content_calendar_items")
         .update({
-          status: "completed",
+          status: "queued",
         })
         .eq("id", item.id);
 
-      processed++;
+      processed += 1;
     } catch {
       await supabase
         .from("content_calendar_items")

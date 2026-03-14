@@ -11,6 +11,8 @@ import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSet
 
 type SchedulerCalendarItem = {
   day: number;
+  scheduledFor: string;
+  contentPieceId: string;
   title: string;
   contentType: string;
   hook: string;
@@ -26,6 +28,11 @@ type SchedulerCalendarItem = {
 type SchedulerResult = {
   ok: true;
   shopId: string;
+  readiness: {
+    canPublish: boolean;
+    canAutopilot: boolean;
+    missing: string[];
+  };
   calendar: {
     calendarId: string;
     startDate: string;
@@ -38,7 +45,11 @@ type SchedulerResult = {
   moments: unknown;
 };
 
-function defaultCta(contentType: string): string {
+function defaultCta(contentType: string, fallback: string | null): string {
+  if (fallback && fallback.trim().length > 0) {
+    return fallback.trim();
+  }
+
   switch (contentType) {
     case "repair_story":
       return "Follow for more real repair stories.";
@@ -68,17 +79,22 @@ function rankOpportunity(opportunity: ContentOpportunity): number {
   }
 }
 
+function buildScheduledFor(dayOffset: number): string {
+  const scheduled = new Date();
+  scheduled.setUTCDate(scheduled.getUTCDate() + dayOffset);
+  scheduled.setUTCHours(16, 0, 0, 0);
+  return scheduled.toISOString();
+}
+
+function uniquePlatformTargets(input: string[]): string[] {
+  return [...new Set(input.filter((value) => typeof value === "string" && value.length > 0))];
+}
+
 export async function runShopReelAutopilot(
   shopId: string,
 ): Promise<SchedulerResult> {
   const supabase = createAdminClient();
   const settingsBundle = await getShopReelSettings(shopId);
-
-  if (!settingsBundle.readiness.canPublish) {
-    throw new Error(
-      `ShopReel launch settings incomplete: ${settingsBundle.readiness.missing.join(", ")}`,
-    );
-  }
 
   const discovered = await discoverContent(shopId);
   const moments = await detectViralMoments(shopId);
@@ -87,38 +103,24 @@ export async function runShopReelAutopilot(
     .sort((a, b) => rankOpportunity(b) - rankOpportunity(a))
     .slice(0, 7);
 
-  const items: SchedulerCalendarItem[] = await Promise.all(
-    ranked.map(async (opportunity, index) => {
-      const hookOptions = await generateHooks(opportunity.contentType);
-
-      return {
-        day: index + 1,
-        title: opportunity.title,
-        contentType: opportunity.contentType,
-        hook: opportunity.hook,
-        cta: defaultCta(opportunity.contentType),
-        sourceType: opportunity.sourceType,
-        sourceId: opportunity.sourceId,
-        workOrderId: opportunity.workOrderId,
-        visualUrls: opportunity.visualUrls,
-        reason: opportunity.reason,
-        hookOptions,
-      };
-    }),
-  );
-
   const startDate = new Date().toISOString();
   const endDate = new Date(Date.now() + 7 * 86400000).toISOString();
+
+  const calendarName = `AI Autopilot Calendar ${new Date().toLocaleDateString()}`;
 
   const { data: insertedCalendarData, error: calendarError } = await supabase
     .from("content_calendars")
     .insert({
       tenant_shop_id: shopId,
       source_shop_id: shopId,
-      source_system: "profixiq",
-      title: "AI Autopilot Content Calendar",
-      status: "draft",
-    } as never)
+      source_system: "shopreel",
+      name: calendarName,
+      description: "7-day AI-generated ShopReel content calendar.",
+      settings: {
+        generated_by: "runShopReelAutopilot",
+        readiness_missing: settingsBundle.readiness.missing,
+      },
+    })
     .select("id")
     .single();
 
@@ -128,30 +130,92 @@ export async function runShopReelAutopilot(
     throw new Error(calendarError?.message ?? "Failed to create content calendar");
   }
 
-  const calendarItemsPayload = items.map((item, index) => {
-    const publishDate = new Date(Date.now() + index * 86400000)
-      .toISOString()
-      .slice(0, 10);
+  const enabledTargets = uniquePlatformTargets(settingsBundle.settings?.enabled_platforms ?? []);
+  const defaultCtaValue = settingsBundle.settings?.default_cta ?? null;
 
-    return {
-      calendar_id: insertedCalendar.id,
-      shop_id: shopId,
-      publish_date: publishDate,
-      content_type: item.contentType,
-      source_work_order_id: item.workOrderId,
-      title: item.title,
-      hook: item.hook,
-      cta: item.cta,
-      status: "planned",
-    };
-  });
+  const items: SchedulerCalendarItem[] = [];
 
-  const { error: calendarItemsError } = await supabase
-    .from("content_calendar_items")
-    .insert(calendarItemsPayload as never);
+  for (let index = 0; index < ranked.length; index += 1) {
+    const opportunity = ranked[index];
+    const hookOptions = await generateHooks(opportunity.contentType);
+    const scheduledFor = buildScheduledFor(index);
+    const resolvedCta = defaultCta(opportunity.contentType, defaultCtaValue);
 
-  if (calendarItemsError) {
-    throw new Error(calendarItemsError.message);
+    const { data: contentPieceData, error: contentPieceError } = await supabase
+      .from("content_pieces")
+      .insert({
+        tenant_shop_id: shopId,
+        source_shop_id: shopId,
+        source_system: "shopreel",
+        source_work_order_id: opportunity.workOrderId,
+        title: opportunity.title,
+        content_type: opportunity.contentType,
+        hook: opportunity.hook,
+        caption: opportunity.hook,
+        cta: resolvedCta,
+        script_text: null,
+        voiceover_text: null,
+        platform_targets: enabledTargets,
+        status: "draft",
+        metadata: {
+          planned_for_calendar: true,
+          scheduled_for: scheduledFor,
+          source_type: opportunity.sourceType,
+          source_id: opportunity.sourceId,
+          reason: opportunity.reason,
+          visual_urls: opportunity.visualUrls,
+          hook_options: hookOptions,
+        },
+      })
+      .select("id")
+      .single();
+
+    const contentPiece = contentPieceData as { id: string } | null;
+
+    if (contentPieceError || !contentPiece) {
+      throw new Error(contentPieceError?.message ?? "Failed to create content piece");
+    }
+
+    const { error: calendarItemError } = await supabase
+      .from("content_calendar_items")
+      .insert({
+        calendar_id: insertedCalendar.id,
+        content_piece_id: contentPiece.id,
+        scheduled_for: scheduledFor,
+        tenant_shop_id: shopId,
+        source_shop_id: shopId,
+        source_system: "shopreel",
+        status: "planned",
+        metadata: {
+          source_type: opportunity.sourceType,
+          source_id: opportunity.sourceId,
+          reason: opportunity.reason,
+          visual_urls: opportunity.visualUrls,
+          work_order_id: opportunity.workOrderId,
+          day: index + 1,
+          hook_options: hookOptions,
+        },
+      });
+
+    if (calendarItemError) {
+      throw new Error(calendarItemError.message);
+    }
+
+    items.push({
+      day: index + 1,
+      scheduledFor,
+      contentPieceId: contentPiece.id,
+      title: opportunity.title,
+      contentType: opportunity.contentType,
+      hook: opportunity.hook,
+      cta: resolvedCta,
+      sourceType: opportunity.sourceType,
+      sourceId: opportunity.sourceId,
+      workOrderId: opportunity.workOrderId,
+      visualUrls: opportunity.visualUrls,
+      reason: opportunity.reason,
+      hookOptions,
+    });
   }
 
   const memory = await updateMarketingMemory(shopId);
@@ -160,6 +224,11 @@ export async function runShopReelAutopilot(
   return {
     ok: true,
     shopId,
+    readiness: {
+      canPublish: settingsBundle.readiness.canPublish,
+      canAutopilot: settingsBundle.readiness.canAutopilot,
+      missing: settingsBundle.readiness.missing,
+    },
     calendar: {
       calendarId: insertedCalendar.id,
       startDate,

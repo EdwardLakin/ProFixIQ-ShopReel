@@ -9,21 +9,28 @@ import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
 type CalendarRow = {
   id: string;
-  title: string | null;
-  status: string | null;
+  name: string | null;
+  description: string | null;
   created_at: string | null;
+};
+
+type ContentPiecePreview = {
+  id: string;
+  title: string | null;
+  hook: string | null;
+  cta: string | null;
+  content_type: string | null;
+  status: string | null;
 };
 
 type CalendarItemRow = {
   id: string;
   calendar_id: string;
-  publish_date: string | null;
-  title: string | null;
-  hook: string | null;
-  cta: string | null;
+  content_piece_id: string;
+  scheduled_for: string | null;
   status: string | null;
-  content_type: string | null;
-  source_work_order_id: string | null;
+  metadata: Record<string, unknown> | null;
+  contentPiece: ContentPiecePreview | null;
 };
 
 const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -32,7 +39,7 @@ const RECOMMENDED_WINDOWS = ["8:30 AM", "12:15 PM", "5:40 PM"] as const;
 function dayLabelFromDate(value: string | null): (typeof WEEK_DAYS)[number] {
   if (!value) return "Mon";
 
-  const date = new Date(`${value}T12:00:00`);
+  const date = new Date(value);
   const index = date.getDay();
 
   if (index === 0) return "Sun";
@@ -53,11 +60,43 @@ function formatContentType(value: string | null) {
 function formatDateLabel(value: string | null) {
   if (!value) return "No date";
 
-  const date = new Date(`${value}T12:00:00`);
+  const date = new Date(value);
   return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
   });
+}
+
+function formatTimeLabel(value: string | null) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  return date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function asContentPiecePreview(value: unknown): ContentPiecePreview | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  return {
+    id: typeof record.id === "string" ? record.id : "",
+    title: typeof record.title === "string" ? record.title : null,
+    hook: typeof record.hook === "string" ? record.hook : null,
+    cta: typeof record.cta === "string" ? record.cta : null,
+    content_type: typeof record.content_type === "string" ? record.content_type : null,
+    status: typeof record.status === "string" ? record.status : null,
+  };
 }
 
 export default async function ShopReelCalendarPage() {
@@ -67,7 +106,7 @@ export default async function ShopReelCalendarPage() {
 
   const { data: latestCalendarData } = await legacy
     .from("content_calendars")
-    .select("id, title, status, created_at")
+    .select("id, name, description, created_at")
     .or(`tenant_shop_id.eq.${shopId},source_shop_id.eq.${shopId}`)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -81,16 +120,39 @@ export default async function ShopReelCalendarPage() {
     const { data: itemsData } = await legacy
       .from("content_calendar_items")
       .select(
-        "id, calendar_id, publish_date, title, hook, cta, status, content_type, source_work_order_id",
+        `
+        id,
+        calendar_id,
+        content_piece_id,
+        scheduled_for,
+        status,
+        metadata,
+        content_pieces (
+          id,
+          title,
+          hook,
+          cta,
+          content_type,
+          status
+        )
+      `,
       )
       .eq("calendar_id", latestCalendar.id)
-      .order("publish_date", { ascending: true });
+      .order("scheduled_for", { ascending: true });
 
-    calendarItems = (itemsData ?? []) as CalendarItemRow[];
+    calendarItems = ((itemsData ?? []) as Array<Record<string, unknown>>).map((item) => ({
+      id: typeof item.id === "string" ? item.id : "",
+      calendar_id: typeof item.calendar_id === "string" ? item.calendar_id : "",
+      content_piece_id: typeof item.content_piece_id === "string" ? item.content_piece_id : "",
+      scheduled_for: typeof item.scheduled_for === "string" ? item.scheduled_for : null,
+      status: typeof item.status === "string" ? item.status : null,
+      metadata: asRecord(item.metadata),
+      contentPiece: asContentPiecePreview(item.content_pieces),
+    }));
   }
 
   const groupedDays = WEEK_DAYS.map((day) => {
-    const items = calendarItems.filter((item) => dayLabelFromDate(item.publish_date) === day);
+    const items = calendarItems.filter((item) => dayLabelFromDate(item.scheduled_for) === day);
 
     return {
       day,
@@ -111,11 +173,10 @@ export default async function ShopReelCalendarPage() {
       <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <GlassCard
           label="Publishing Week"
-          title={latestCalendar?.title ?? "Content cadence"}
+          title={latestCalendar?.name ?? "Content cadence"}
           description={
-            latestCalendar
-              ? `Latest calendar status: ${latestCalendar.status ?? "draft"}`
-              : "Generate a 7-day calendar from your current ShopReel opportunities."
+            latestCalendar?.description ??
+            "Generate a 7-day calendar from your current ShopReel opportunities."
           }
           strong
         >
@@ -170,26 +231,27 @@ export default async function ShopReelCalendarPage() {
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                              {item.title ?? "Untitled calendar item"}
+                              {item.contentPiece?.title ?? "Untitled calendar item"}
                             </div>
                             <GlassBadge tone="default">
-                              {formatContentType(item.content_type)}
+                              {formatContentType(item.contentPiece?.content_type ?? null)}
                             </GlassBadge>
                           </div>
 
                           <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-                            {formatDateLabel(item.publish_date)} • {item.status ?? "planned"}
+                            {formatDateLabel(item.scheduled_for)} • {formatTimeLabel(item.scheduled_for)} •{" "}
+                            {item.status ?? "planned"}
                           </div>
 
-                          {item.hook ? (
+                          {item.contentPiece?.hook ? (
                             <div className={cx("mt-3 text-sm", glassTheme.text.primary)}>
-                              {item.hook}
+                              {item.contentPiece.hook}
                             </div>
                           ) : null}
 
-                          {item.cta ? (
+                          {item.contentPiece?.cta ? (
                             <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-                              CTA: {item.cta}
+                              CTA: {item.contentPiece.cta}
                             </div>
                           ) : null}
                         </div>

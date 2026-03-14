@@ -35,11 +35,13 @@ export default function GenerateCalendarButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="flex min-w-[180px] flex-col items-end gap-2">
       <GlassButton variant="primary" onClick={() => void handleGenerate()} disabled={isRunning}>
-        {isRunning ? "Generating..." : "Generate calendar"}
+        <span className="inline-block w-[160px] text-center">
+          {isRunning ? "Generating..." : "Generate calendar"}
+        </span>
       </GlassButton>
-      {error ? <div className="text-xs text-white/70">{error}</div> : null}
+      {error ? <div className="text-right text-xs text-white/70">{error}</div> : null}
     </div>
   );
 }
