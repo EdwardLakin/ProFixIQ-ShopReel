@@ -1,3 +1,4 @@
+import { platformRegistry } from "@/features/shopreel/platforms/platformRegistry";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export async function runPublishWorker() {
