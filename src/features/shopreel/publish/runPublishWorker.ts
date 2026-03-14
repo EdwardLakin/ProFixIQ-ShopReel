@@ -1,4 +1,3 @@
-import { platformRegistry } from "@/features/shopreel/platforms/platformRegistry";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export async function runPublishWorker() {
@@ -6,7 +5,7 @@ export async function runPublishWorker() {
 
   const { data: ready } = await supabase
     .from("content_pieces")
-    .select("*")
+    .select("id, tenant_shop_id")
     .eq("status", "ready")
     .limit(10);
 
@@ -27,18 +26,31 @@ export async function runPublishWorker() {
           platform: "instagram",
           status: "published",
           published_at: new Date().toISOString(),
-        } as any);
+        } as never);
 
       await supabase
         .from("content_pieces")
         .update({
           status: "published",
+          published_at: new Date().toISOString(),
         })
         .eq("id", item.id);
 
-      published++;
+      await supabase
+        .from("content_calendar_items")
+        .update({
+          status: "published",
+        })
+        .eq("content_piece_id", item.id);
+
+      published += 1;
     } catch {
-      // ignore for now
+      await supabase
+        .from("content_calendar_items")
+        .update({
+          status: "failed_publish",
+        })
+        .eq("content_piece_id", item.id);
     }
   }
 

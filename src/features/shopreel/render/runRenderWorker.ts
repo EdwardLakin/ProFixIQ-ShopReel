@@ -5,7 +5,7 @@ export async function runRenderWorker() {
 
   const { data: queue } = await supabase
     .from("content_pieces")
-    .select("*")
+    .select("id")
     .eq("status", "queued")
     .limit(10);
 
@@ -24,7 +24,13 @@ export async function runRenderWorker() {
         })
         .eq("id", item.id);
 
-      // placeholder render logic
+      await supabase
+        .from("content_calendar_items")
+        .update({
+          status: "rendering",
+        })
+        .eq("content_piece_id", item.id);
+
       const renderUrl = `/renders/${item.id}.mp4`;
 
       await supabase
@@ -35,7 +41,14 @@ export async function runRenderWorker() {
         })
         .eq("id", item.id);
 
-      processed++;
+      await supabase
+        .from("content_calendar_items")
+        .update({
+          status: "ready",
+        })
+        .eq("content_piece_id", item.id);
+
+      processed += 1;
     } catch {
       await supabase
         .from("content_pieces")
@@ -43,6 +56,13 @@ export async function runRenderWorker() {
           status: "failed",
         })
         .eq("id", item.id);
+
+      await supabase
+        .from("content_calendar_items")
+        .update({
+          status: "failed",
+        })
+        .eq("content_piece_id", item.id);
     }
   }
 
