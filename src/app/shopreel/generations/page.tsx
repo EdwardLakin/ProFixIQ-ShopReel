@@ -5,6 +5,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { listStoryGenerations } from "@/features/shopreel/story-sources/server/listStoryGenerations";
 import type { StoryDraft } from "@/features/shopreel/story-builder/types";
@@ -108,7 +109,7 @@ export default async function ShopReelGenerationsPage() {
                     <Link href={`/shopreel/generations/${generation.id}`}>
                       <GlassButton variant="ghost">Review</GlassButton>
                     </Link>
-                    <Link href={`/shopreel/editor/${generation.id}`}>
+                    <Link href={`/shopreel/editor/video/${generation.id}`}>
                       <GlassButton variant="secondary">Edit</GlassButton>
                     </Link>
                     {canPublish ? (

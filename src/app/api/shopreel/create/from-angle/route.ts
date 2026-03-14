@@ -6,6 +6,7 @@ import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-buil
 import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
 import type { StorySource } from "@/features/shopreel/story-sources";
 
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 type Angle = {
   title: string;
   angle: string;
@@ -210,7 +211,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       generationId: generation.id,
-      editorUrl: `/shopreel/editor/${generation.id}`,
+      editorUrl: `/shopreel/editor/video/${generation.id}`,
     });
   } catch (error) {
     const message =

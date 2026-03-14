@@ -61,7 +61,7 @@ export default async function ShopReelEditorHubPage() {
                   </div>
                 </div>
 
-                <Link href={`/shopreel/editor/${item.id}`}>
+                <Link href={`/shopreel/editor/video/${item.id}`}>
                   <GlassButton variant="secondary">Open editor</GlassButton>
                 </Link>
               </div>

@@ -39,7 +39,7 @@ export async function createPublication(input: CreatePublicationInput) {
         created_by: input.createdBy ?? null,
         title: input.title ?? null,
         caption: input.caption ?? null,
-        video_id: input.videoId ?? null,
+        content_piece_id: input.contentPieceId ?? null,
         story_source_id: input.storySourceId ?? null,
         story_source_kind: input.storySourceKind ?? null,
       },

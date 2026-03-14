@@ -4,6 +4,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { getEditorPath, normalizeEditorOutputType } from "@/features/shopreel/lib/editorPaths";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { StoryDraft, StoryScene } from "@/features/shopreel/story-builder/types";
@@ -52,11 +53,7 @@ function formatLabel(value: string) {
 }
 
 function editorPathForOutputType(outputType: string | null, generationId: string) {
-  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
-  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
-  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
-  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
-  return `/shopreel/editor/${generationId}`;
+  return getEditorPath(outputType, generationId);
 }
 
 export default async function ShopReelGenerationDetailPage(
@@ -108,7 +105,7 @@ export default async function ShopReelGenerationDetailPage(
     typeof metadata.thumbnail_url === "string" ? metadata.thumbnail_url : null;
   const publicationId =
     typeof metadata.publication_id === "string" ? metadata.publication_id : null;
-  const editorPath = editorPathForOutputType(outputType, generation.id);
+  const editorPath = getEditorPath(outputType, generation.id);
 
   return (
     <GlassShell
@@ -373,7 +370,7 @@ export default async function ShopReelGenerationDetailPage(
                 </div>
 
                 <div className="flex items-start justify-end">
-                  <Link href={`/shopreel/editor/${generation.id}?scene=${scene.id}`}>
+                  <Link href={`/shopreel/editor/video/${generation.id}?scene=${scene.id}`}>
                     <GlassButton variant="ghost">Edit scene</GlassButton>
                   </Link>
                 </div>

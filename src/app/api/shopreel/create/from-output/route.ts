@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";

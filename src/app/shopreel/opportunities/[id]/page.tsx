@@ -1,142 +1,237 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import GlassNav from "@/features/shopreel/ui/system/GlassNav";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 
 type Params = {
   params: Promise<{ id: string }>;
 };
 
-type VideoRow = {
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function formatLabel(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+type OpportunityRow = {
   id: string;
-  shop_id: string | null;
-  title: string | null;
-  status: string | null;
-  content_type: string | null;
-  hook: string | null;
-  caption: string | null;
-  cta: string | null;
-  script_text: string | null;
-  voiceover_text: string | null;
-  platform_targets: string[] | null;
-  ai_score: number | null;
-  source_asset_id: string | null;
-  render_url: string | null;
-  thumbnail_url: string | null;
-  created_at: string | null;
-};
-
-type ShopUserLite = {
   shop_id: string;
+  story_source_id: string;
+  score: number | null;
+  status: string;
+  reason: string | null;
+  metadata: unknown;
 };
 
-const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+type SourceRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  kind: string;
+  origin: string;
+  tags: string[] | null;
+  created_at: string;
+};
 
-function formatStatus(status: string) {
-  return status.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatContentType(contentType: string) {
-  return contentType.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-async function resolveShopId() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return DEFAULT_SHOP_ID;
-
-  const admin = createAdminClient();
-  const { data: membership } = await (admin as any)
-    .from("shop_users")
-    .select("shop_id")
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  return (membership as ShopUserLite | null)?.shop_id ?? DEFAULT_SHOP_ID;
-}
+type GenerationRow = {
+  id: string;
+  status: string;
+  created_at: string;
+  story_draft: unknown;
+  generation_metadata: unknown;
+  render_job_id: string | null;
+  content_piece_id: string | null;
+};
 
 export default async function ShopReelOpportunityDetailPage({ params }: Params) {
   const { id } = await params;
-  const shopId = await resolveShopId();
+  const shopId = await getCurrentShopId();
   const supabase = createAdminClient();
+  const legacy = supabase as any;
 
-  const { data, error } = await supabase
-    .from("videos")
-    .select(
-      "id, shop_id, title, status, content_type, hook, caption, cta, script_text, voiceover_text, platform_targets, ai_score, source_asset_id, render_url, thumbnail_url, created_at",
-    )
+  const { data: opportunity, error: opportunityError } = await legacy
+    .from("shopreel_content_opportunities")
+    .select("*")
     .eq("id", id)
     .eq("shop_id", shopId)
     .maybeSingle();
 
-  const video = data as VideoRow | null;
+  if (opportunityError || !opportunity) notFound();
 
-  if (error || !video) {
-    notFound();
+  const typedOpportunity = opportunity as OpportunityRow;
+
+  const { data: source, error: sourceError } = await legacy
+    .from("shopreel_story_sources")
+    .select("id, title, description, kind, origin, tags, created_at")
+    .eq("id", typedOpportunity.story_source_id)
+    .eq("shop_id", shopId)
+    .maybeSingle();
+
+  if (sourceError || !source) notFound();
+
+  const typedSource = source as SourceRow;
+
+  const opportunityMetadata = objectRecord(typedOpportunity.metadata);
+  const metadataGenerationId =
+    typeof opportunityMetadata.last_generation_id === "string"
+      ? opportunityMetadata.last_generation_id
+      : typeof opportunityMetadata.generation_id === "string"
+        ? opportunityMetadata.generation_id
+        : null;
+
+  let generation: GenerationRow | null = null;
+
+  if (metadataGenerationId) {
+    const { data: generationData } = await legacy
+      .from("shopreel_story_generations")
+      .select("id, status, created_at, story_draft, generation_metadata, render_job_id, content_piece_id")
+      .eq("id", metadataGenerationId)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    generation = (generationData ?? null) as GenerationRow | null;
+  } else {
+    const { data: generationData } = await legacy
+      .from("shopreel_story_generations")
+      .select("id, status, created_at, story_draft, generation_metadata, render_job_id, content_piece_id")
+      .eq("story_source_id", typedSource.id)
+      .eq("shop_id", shopId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    generation = (generationData ?? null) as GenerationRow | null;
   }
+
+  const draft = objectRecord(generation?.story_draft);
+  const generationMetadata = objectRecord(generation?.generation_metadata);
+  const outputType =
+    typeof generationMetadata.output_type === "string"
+      ? generationMetadata.output_type
+      : "video";
+
+  const caption =
+    typeof draft.caption === "string"
+      ? draft.caption
+      : typedSource.description ?? "No caption generated";
+
+  const hook =
+    typeof draft.hook === "string"
+      ? draft.hook
+      : "No hook generated";
+
+  const cta =
+    typeof draft.cta === "string"
+      ? draft.cta
+      : "No CTA generated";
+
+  const scriptText =
+    typeof draft.scriptText === "string"
+      ? draft.scriptText
+      : "No script text generated";
+
+  const voiceoverText =
+    typeof draft.voiceoverText === "string"
+      ? draft.voiceoverText
+      : "No voiceover text generated";
+
+  const renderUrl =
+    typeof generationMetadata.render_url === "string"
+      ? generationMetadata.render_url
+      : null;
+
+  const platformTargets = Array.isArray(draft.platformTargets)
+    ? (draft.platformTargets as string[])
+    : [];
 
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title={video.title ?? "Untitled opportunity"}
-      subtitle="Review the generated concept before rendering or publishing."
+      title={typedSource.title ?? "Untitled opportunity"}
+      subtitle="Review the opportunity, linked source, and latest generated output."
       actions={
         <div className="flex flex-wrap gap-3">
-          <GlassButton variant="secondary">Queue render</GlassButton>
-          <GlassButton variant="primary">Publish</GlassButton>
+          {generation ? (
+            <>
+              <Link href={`/shopreel/generations/${generation.id}`}>
+                <GlassButton variant="ghost">Review generation</GlassButton>
+              </Link>
+              <Link href={getEditorPath(outputType, generation.id)}>
+                <GlassButton variant="secondary">Open editor</GlassButton>
+              </Link>
+            </>
+          ) : null}
         </div>
       }
     >
-      <GlassNav />
+      <ShopReelNav />
 
       <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <GlassCard
           label="Overview"
           title="Opportunity summary"
-          description="Review the generated concept, source, and current state."
+          description="Review the ranked opportunity, source, and current state."
+          strong
         >
           <div className="grid gap-3">
             <div className="flex flex-wrap gap-2">
-              <GlassBadge tone={video.source_asset_id ? "copper" : "default"}>
-                {video.source_asset_id ? "Manual Upload" : "Shop Data"}
+              <GlassBadge tone="default">{formatLabel(typedOpportunity.status)}</GlassBadge>
+              <GlassBadge tone="muted">{formatLabel(typedSource.kind)}</GlassBadge>
+              <GlassBadge tone="muted">{formatLabel(typedSource.origin)}</GlassBadge>
+              <GlassBadge tone={(typedOpportunity.score ?? 0) >= 85 ? "copper" : "default"}>
+                Score {typedOpportunity.score != null ? Math.round(typedOpportunity.score) : "--"}
               </GlassBadge>
-              <GlassBadge tone="default">
-                {formatStatus(video.status ?? "draft")}
-              </GlassBadge>
-              <GlassBadge tone="muted">
-                {formatContentType(video.content_type ?? "workflow_demo")}
-              </GlassBadge>
-              <GlassBadge tone="muted">
-                Score {video.ai_score != null ? Math.round(video.ai_score) : "--"}
-              </GlassBadge>
+              {generation ? (
+                <GlassBadge tone="copper">{formatLabel(outputType)}</GlassBadge>
+              ) : null}
             </div>
 
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Hook</div>
-              <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-                {video.hook ?? "No hook generated"}
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Hook</div>
+              <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                {hook}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Caption</div>
-              <div className="mt-1 text-sm leading-6 text-[color:#f3ede6]">
-                {video.caption ?? "No caption generated"}
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Caption</div>
+              <div className={cx("mt-1 text-sm leading-6", glassTheme.text.primary)}>
+                {caption}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">CTA</div>
-              <div className="mt-1 text-sm leading-6 text-[color:#f3ede6]">
-                {video.cta ?? "No CTA generated"}
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>CTA</div>
+              <div className={cx("mt-1 text-sm leading-6", glassTheme.text.primary)}>
+                {cta}
               </div>
             </div>
           </div>
@@ -144,40 +239,74 @@ export default async function ShopReelOpportunityDetailPage({ params }: Params) 
 
         <GlassCard
           label="Delivery"
-          title="Assets and output"
-          description="Use this area to review render readiness and output metadata."
+          title="Source and output"
+          description="Story source details and latest generation state."
+          strong
         >
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Created</div>
-              <div className="mt-1 text-base font-medium text-[color:#f3ede6]">
-                {video.created_at ? new Date(video.created_at).toLocaleString() : "Unknown"}
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Created</div>
+              <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
+                {new Date(typedSource.created_at).toLocaleString()}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Platform targets</div>
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Platform targets</div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {(video.platform_targets ?? []).length > 0 ? (
-                  (video.platform_targets ?? []).map((platform) => (
+                {platformTargets.length > 0 ? (
+                  platformTargets.map((platform) => (
                     <GlassBadge key={platform} tone="default">
                       {platform}
                     </GlassBadge>
                   ))
                 ) : (
-                  <span className="text-sm text-[color:rgba(243,237,230,0.62)]">
+                  <span className={cx("text-sm", glassTheme.text.secondary)}>
                     No platform targets set
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.035)] p-4">
-              <div className="text-sm text-[color:rgba(243,237,230,0.62)]">Render output</div>
-              <div className="mt-1 text-sm text-[color:#f3ede6]">
-                {video.render_url ? "Render available" : "No render output yet"}
+            <div
+              className={cx(
+                "rounded-2xl border p-4",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Render output</div>
+              <div className={cx("mt-1 text-sm", glassTheme.text.primary)}>
+                {renderUrl ? "Render available" : "No render output yet"}
               </div>
             </div>
+
+            {typedOpportunity.reason ? (
+              <div
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft,
+                )}
+              >
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Why this ranked</div>
+                <div className={cx("mt-1 text-sm", glassTheme.text.primary)}>
+                  {typedOpportunity.reason}
+                </div>
+              </div>
+            ) : null}
           </div>
         </GlassCard>
       </section>
@@ -187,9 +316,10 @@ export default async function ShopReelOpportunityDetailPage({ params }: Params) 
           label="Script"
           title="Script text"
           description="Generated long-form concept text for review."
+          strong
         >
-          <div className="whitespace-pre-wrap text-sm leading-6 text-[color:#f3ede6]">
-            {video.script_text ?? "No script text generated"}
+          <div className={cx("whitespace-pre-wrap text-sm leading-6", glassTheme.text.primary)}>
+            {scriptText}
           </div>
         </GlassCard>
 
@@ -197,9 +327,10 @@ export default async function ShopReelOpportunityDetailPage({ params }: Params) 
           label="Voiceover"
           title="Voiceover text"
           description="Generated spoken version used for reel planning."
+          strong
         >
-          <div className="whitespace-pre-wrap text-sm leading-6 text-[color:#f3ede6]">
-            {video.voiceover_text ?? "No voiceover text generated"}
+          <div className={cx("whitespace-pre-wrap text-sm leading-6", glassTheme.text.primary)}>
+            {voiceoverText}
           </div>
         </GlassCard>
       </section>

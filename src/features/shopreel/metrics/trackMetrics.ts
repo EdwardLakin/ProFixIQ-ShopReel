@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 
 type TrackMetricsInput = {
-  videoId: string;
+  contentPieceId: string;
   platform: string;
   views?: number;
   likes?: number;
@@ -42,7 +42,7 @@ export async function trackMetrics(input: TrackMetricsInput) {
       : 0;
 
   const insertPayload = {
-    video_id: input.videoId,
+    content_piece_id: input.contentPieceId,
     platform: input.platform,
     views,
     likes,

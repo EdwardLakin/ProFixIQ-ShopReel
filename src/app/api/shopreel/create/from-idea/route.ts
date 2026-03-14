@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 type Body = {
   idea?: string;
   audience?: string;
@@ -261,7 +262,7 @@ export async function POST(req: Request) {
       sourceId,
       contentPieceId,
       generationId,
-      editorUrl: `/shopreel/editor/${generationId}`,
+      editorUrl: `/shopreel/editor/video/${generationId}`,
       reviewUrl: `/shopreel/generations/${generationId}`,
     });
   } catch (error) {

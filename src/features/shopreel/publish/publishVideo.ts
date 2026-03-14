@@ -22,7 +22,7 @@ export async function publishVideo(videoId: string, platform: string) {
 
   await supabase.from("video_publications").insert(
     {
-      video_id: videoId,
+      content_piece_id: videoId,
       platform: result.platform,
       platform_video_id: result.externalId,
       status: result.status,

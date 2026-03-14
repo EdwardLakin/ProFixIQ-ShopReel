@@ -7,6 +7,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { getEditorPath, normalizeEditorOutputType } from "@/features/shopreel/lib/editorPaths";
 
 type OpportunityItem = {
   id: string;
@@ -78,14 +79,7 @@ function dedupeItems(items: OpportunityItem[]): OpportunityItem[] {
 }
 
 function editorPathFromItem(item: OpportunityItem, generationId: string) {
-  const type = item.contentType.toLowerCase();
-
-  if (type === "blog") return `/shopreel/editor/blog/${generationId}`;
-  if (type === "email") return `/shopreel/editor/email/${generationId}`;
-  if (type === "post") return `/shopreel/editor/post/${generationId}`;
-  if (type === "vlog") return `/shopreel/editor/vlog/${generationId}`;
-
-  return `/shopreel/editor/${generationId}`;
+  return getEditorPath(item.contentType.toLowerCase(), generationId);
 }
 
 export default function ShopReelOpportunitiesClient() {
@@ -130,7 +124,7 @@ export default function ShopReelOpportunitiesClient() {
       setError(null);
       setIsScoring(true);
 
-      const discoverRes = await fetch("/api/shopreel/discovery", {
+      const discoverRes = await fetch("/api/shopreel/discover", {
         method: "POST",
       });
 

@@ -103,7 +103,7 @@ type VideoInsertShape = {
 
 type AIGenerationRunInsertShape = {
   shop_id: string;
-  video_id: string;
+  content_piece_id: string | null;
   template_id: string;
   requested_by: string;
   provider: string;
@@ -462,10 +462,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   };
 
   const { data: createdVideoData, error: videoError } = await supabaseAny
-    .from("videos")
-    .insert(videoInsert)
-    .select("id")
-    .single();
+    // removed legacy videos insert (migrated to story pipeline);
 
   const createdVideo = createdVideoData as { id: string } | null;
 
@@ -481,7 +478,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const runInsert: AIGenerationRunInsertShape = {
     shop_id: shopId,
-    video_id: createdVideo.id,
+    content_piece_id: null,
     template_id: template.id,
     requested_by: userId,
     provider: "openai",

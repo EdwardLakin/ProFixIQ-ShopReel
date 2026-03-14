@@ -25,6 +25,7 @@ type ContentPieceRow = {
   id: string;
   title: string | null;
   body_text: string | null;
+  metadata: Json | null;
 };
 
 type ContentAssetRow = {
@@ -32,27 +33,25 @@ type ContentAssetRow = {
   public_url: string | null;
 };
 
-type VideoRow = {
+type GenerationRow = {
   id: string;
-  title: string;
-  caption: string | null;
-  render_url: string | null;
-  thumbnail_url: string | null;
+  generation_metadata: Json | null;
+  story_draft: Json | null;
+  created_at: string;
 };
 
-function readVideoIdFromMetadata(metadata: Json): string | null {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return null;
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
   }
-
-  const value = (metadata as Record<string, Json>).video_id;
-  return typeof value === "string" && value.length > 0 ? value : null;
+  return value as Record<string, unknown>;
 }
 
 export async function getPublicationPayload(publicationId: string) {
   const supabase = createAdminClient();
+  const legacy = supabase as any;
 
-  const { data: publicationData, error: publicationError } = await supabase
+  const { data: publicationData, error: publicationError } = await legacy
     .from("content_publications")
     .select(
       "id, shop_id, content_event_id, content_piece_id, content_asset_id, platform_account_id, platform, status, metadata",
@@ -68,9 +67,9 @@ export async function getPublicationPayload(publicationId: string) {
 
   let piece: ContentPieceRow | null = null;
   if (publication.content_piece_id) {
-    const { data: pieceData, error: pieceError } = await supabase
+    const { data: pieceData, error: pieceError } = await legacy
       .from("content_pieces")
-      .select("id, title, body_text")
+      .select("id, title, body_text, metadata")
       .eq("id", publication.content_piece_id)
       .maybeSingle();
 
@@ -78,12 +77,12 @@ export async function getPublicationPayload(publicationId: string) {
       throw new Error(pieceError.message);
     }
 
-    piece = pieceData as ContentPieceRow | null;
+    piece = (pieceData as ContentPieceRow | null) ?? null;
   }
 
   let asset: ContentAssetRow | null = null;
   if (publication.content_asset_id) {
-    const { data: assetData, error: assetError } = await supabase
+    const { data: assetData, error: assetError } = await legacy
       .from("content_assets")
       .select("id, public_url")
       .eq("id", publication.content_asset_id)
@@ -93,43 +92,61 @@ export async function getPublicationPayload(publicationId: string) {
       throw new Error(assetError.message);
     }
 
-    asset = assetData as ContentAssetRow | null;
+    asset = (assetData as ContentAssetRow | null) ?? null;
   }
 
-  const legacyVideoId = readVideoIdFromMetadata(publication.metadata);
+  let generation: GenerationRow | null = null;
 
-  let video: VideoRow | null = null;
-  if (legacyVideoId) {
-    const { data: videoData, error: videoError } = await supabase
-      .from("videos")
-      .select("id, title, caption, render_url, thumbnail_url")
-      .eq("id", legacyVideoId)
+  if (publication.content_piece_id) {
+    const { data: generationData, error: generationError } = await legacy
+      .from("shopreel_story_generations")
+      .select("id, generation_metadata, story_draft, created_at")
+      .eq("shop_id", publication.shop_id)
+      .eq("content_piece_id", publication.content_piece_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (videoError) {
-      throw new Error(videoError.message);
+    if (generationError) {
+      throw new Error(generationError.message);
     }
 
-    video = videoData as VideoRow | null;
+    generation = (generationData as GenerationRow | null) ?? null;
   }
+
+  const generationMetadata = objectRecord(generation?.generation_metadata ?? null);
+  const draft = objectRecord(generation?.story_draft ?? null);
+  const pieceMetadata = objectRecord(piece?.metadata ?? null);
 
   const resolvedTitle =
     piece?.title ??
+    (typeof draft.title === "string" ? draft.title : null) ??
     publication.platform.replaceAll("_", " ");
 
   const resolvedCaption =
-    piece?.body_text ?? null;
+    piece?.body_text ??
+    (typeof draft.caption === "string" ? draft.caption : null) ??
+    null;
 
   const resolvedRenderUrl =
-    asset?.public_url ?? video?.render_url ?? null;
+    asset?.public_url ??
+    (typeof generationMetadata.render_url === "string"
+      ? generationMetadata.render_url
+      : typeof pieceMetadata.render_url === "string"
+        ? pieceMetadata.render_url
+        : null);
 
   const resolvedThumbnailUrl =
-    video?.thumbnail_url ?? null;
+    typeof generationMetadata.thumbnail_url === "string"
+      ? generationMetadata.thumbnail_url
+      : typeof pieceMetadata.thumbnail_url === "string"
+        ? pieceMetadata.thumbnail_url
+        : null;
 
   return {
     publication,
     video: {
-      id: video?.id ?? publication.id,
+      id: generation?.id ?? publication.id,
       title: resolvedTitle,
       caption: resolvedCaption,
       render_url: resolvedRenderUrl,

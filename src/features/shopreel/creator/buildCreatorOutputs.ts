@@ -82,10 +82,8 @@ export function normalizeBlogLengthMode(value: unknown): BlogLengthMode {
   return "standard";
 }
 
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
+
 export function editorUrlForOutputType(outputType: OutputType, generationId: string): string {
-  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
-  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
-  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
-  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
-  return `/shopreel/editor/${generationId}`;
+  return getEditorPath(outputType, generationId);
 }

@@ -7,6 +7,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import { getEditorPath, normalizeEditorOutputType } from "@/features/shopreel/lib/editorPaths";
 
 type OutputType = "video" | "blog" | "email" | "post" | "vlog";
 
@@ -28,11 +29,7 @@ function formatLabel(value: string) {
 }
 
 function editorPath(outputType: OutputType, generationId: string) {
-  if (outputType === "blog") return `/shopreel/editor/blog/${generationId}`;
-  if (outputType === "email") return `/shopreel/editor/email/${generationId}`;
-  if (outputType === "post") return `/shopreel/editor/post/${generationId}`;
-  if (outputType === "vlog") return `/shopreel/editor/vlog/${generationId}`;
-  return `/shopreel/editor/${generationId}`;
+  return getEditorPath(outputType, generationId);
 }
 
 export default function ContentLibraryClient({ initialItems }: Props) {
@@ -137,7 +134,7 @@ export default function ContentLibraryClient({ initialItems }: Props) {
                   <Link href={`/shopreel/generations/${item.id}`}>
                     <GlassButton variant="ghost">Review</GlassButton>
                   </Link>
-                  <Link href={editorPath(item.outputType, item.id)}>
+                  <Link href={getEditorPath(item.outputType, item.id)}>
                     <GlassButton variant="secondary">Edit</GlassButton>
                   </Link>
                   <GlassButton

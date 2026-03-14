@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { trackMetrics } from "@/features/shopreel/metrics/trackMetrics";
 
 type MetricsBody = {
-  videoId?: string;
+  contentPieceId?: string;
   platform?: string;
   views?: number;
   likes?: number;
@@ -31,15 +31,15 @@ async function safeReadJson(req: NextRequest): Promise<MetricsBody> {
 export async function POST(req: NextRequest) {
   const body = await safeReadJson(req);
 
-  if (typeof body.videoId !== "string" || typeof body.platform !== "string") {
+  if (typeof body.contentPieceId !== "string" || typeof body.platform !== "string") {
     return NextResponse.json(
-      { error: "videoId and platform are required" },
+      { error: "contentPieceId and platform are required" },
       { status: 400 },
     );
   }
 
   const result = await trackMetrics({
-    videoId: body.videoId,
+    contentPieceId: body.contentPieceId,
     platform: body.platform,
     views: body.views,
     likes: body.likes,

@@ -1,7 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { buildReelPlan as buildReelScenePlan } from "../reelbuilder/buildReelPlan";
-import { buildStoryDraftFromSource } from "../story-builder";
-import type { StorySource } from "../story-sources";
+import type { StoryDraft } from "../story-builder/types";
 
 type ReelShot = {
   order: number;
@@ -11,65 +10,67 @@ type ReelShot = {
   durationSeconds: number;
 };
 
-type ContentPieceRow = {
-  metadata: Record<string, unknown> | null;
-};
-
-function coerceStorySource(value: unknown): StorySource | null {
+function asStoryDraft(value: unknown): StoryDraft | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
-
-  const candidate = value as Record<string, unknown>;
-
-  if (
-    typeof candidate.id !== "string" ||
-    typeof candidate.shopId !== "string" ||
-    typeof candidate.title !== "string" ||
-    typeof candidate.kind !== "string" ||
-    !Array.isArray(candidate.assets) ||
-    !Array.isArray(candidate.tags) ||
-    !Array.isArray(candidate.refs) ||
-    !Array.isArray(candidate.notes)
-  ) {
-    return null;
-  }
-
-  return candidate as unknown as StorySource;
+  return value as StoryDraft;
 }
 
-export async function buildReelPlan(videoId: string, shopId: string) {
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+export async function buildReelPlan(contentPieceId: string, shopId: string) {
   const supabase = createAdminClient();
+  const legacy = supabase as any;
 
-  const { data: video, error: videoError } = await supabase
-    .from("videos")
-    .select("id, title, hook, voiceover_text, caption")
-    .eq("id", videoId)
-    .single();
+  const [{ data: pieceData, error: pieceError }, { data: generationData, error: generationError }] =
+    await Promise.all([
+      legacy
+        .from("content_pieces")
+        .select("id, title, body_text, metadata")
+        .eq("id", contentPieceId)
+        .maybeSingle(),
+      legacy
+        .from("shopreel_story_generations")
+        .select("id, story_draft, generation_metadata, created_at")
+        .eq("shop_id", shopId)
+        .eq("content_piece_id", contentPieceId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
-  if (videoError || !video) {
-    throw new Error(videoError?.message ?? "Video not found");
+  if (pieceError) {
+    throw new Error(pieceError.message);
   }
 
-  const { data: contentPieceRow } = await supabase
-    .from("content_pieces")
-    .select("metadata")
-    .eq("id", videoId)
-    .maybeSingle();
+  if (generationError) {
+    throw new Error(generationError.message);
+  }
 
-  const contentPiece = (contentPieceRow ?? null) as ContentPieceRow | null;
+  if (!pieceData) {
+    throw new Error("Content piece not found");
+  }
 
-  const metadata =
-    contentPiece?.metadata &&
-    typeof contentPiece.metadata === "object" &&
-    !Array.isArray(contentPiece.metadata)
-      ? contentPiece.metadata
-      : {};
-
-  const embeddedSource = coerceStorySource(metadata.story_source);
-  const draft = embeddedSource ? buildStoryDraftFromSource(embeddedSource) : null;
-
+  const generation = generationData ?? null;
+  const draft = asStoryDraft(generation?.story_draft ?? null);
+  const pieceMetadata = objectRecord(pieceData.metadata);
   const scenePlan = draft ? buildReelScenePlan(draft).scenePlan : null;
+
+  const fallbackHook =
+    typeof pieceMetadata.hook === "string" ? pieceMetadata.hook : null;
+
+  const fallbackVoiceover =
+    typeof pieceMetadata.voiceover_text === "string"
+      ? pieceMetadata.voiceover_text
+      : typeof pieceData.body_text === "string"
+        ? pieceData.body_text
+        : null;
 
   const shots: ReelShot[] =
     scenePlan && scenePlan.length > 0
@@ -84,35 +85,28 @@ export async function buildReelPlan(videoId: string, shopId: string) {
           {
             order: 1,
             type: "intro",
-            direction: "Wide shot of vehicle entering bay",
-            overlayText: video.hook ?? "Here’s what happened in the shop today.",
+            direction: "Wide establishing shot",
+            overlayText: fallbackHook ?? "Here’s what happened today.",
             durationSeconds: 3,
           },
           {
             order: 2,
-            type: "inspection",
-            direction: "Close-up of technician checking the issue area",
-            overlayText: "Inspection and diagnosis",
-            durationSeconds: 5,
-          },
-          {
-            order: 3,
-            type: "finding",
-            direction: "Tight shot of failed or worn component",
-            overlayText: "What we found",
+            type: "context",
+            direction: "Problem / setup context",
+            overlayText: "Context and setup",
             durationSeconds: 4,
           },
           {
-            order: 4,
-            type: "repair",
-            direction: "Hands-on repair or service process clip",
-            overlayText: "Repair in progress",
-            durationSeconds: 6,
+            order: 3,
+            type: "process",
+            direction: "Show the process or work in motion",
+            overlayText: "What happened next",
+            durationSeconds: 5,
           },
           {
-            order: 5,
+            order: 4,
             type: "result",
-            direction: "Completed vehicle / final reveal shot",
+            direction: "Reveal the result or takeaway",
             overlayText: "Final result",
             durationSeconds: 4,
           },
@@ -124,7 +118,7 @@ export async function buildReelPlan(videoId: string, shopId: string) {
   }));
 
   const planJson = {
-    source: embeddedSource ? "story_source" : "legacy_video",
+    source: draft ? "shopreel_story_generation" : "content_piece",
     storyDraft: draft,
     shots,
     overlays,
@@ -132,15 +126,18 @@ export async function buildReelPlan(videoId: string, shopId: string) {
     estimatedDurationSeconds: shots.reduce((sum, shot) => sum + shot.durationSeconds, 0),
   };
 
-  const { data: plan, error: planError } = await supabase
+  const { data: plan, error: planError } = await legacy
     .from("reel_plans")
     .insert(
       {
-        video_id: videoId,
+        video_id: contentPieceId,
         shop_id: shopId,
-        title: video.title,
-        hook: video.hook,
-        voiceover_text: video.voiceover_text,
+        title:
+          draft?.title ??
+          pieceData.title ??
+          "ShopReel plan",
+        hook: draft?.hook ?? fallbackHook,
+        voiceover_text: draft?.voiceoverText ?? draft?.scriptText ?? fallbackVoiceover,
         plan_json: planJson,
       } as never,
     )
