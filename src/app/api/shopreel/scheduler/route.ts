@@ -1,9 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { runScheduledPublishWorker } from "@/features/shopreel/scheduler/runScheduledPublishWorker";
 
-export async function POST() {
+type SchedulerBody = {
+  contentPieceId?: string;
+};
+
+async function safeReadJson(req: NextRequest): Promise<SchedulerBody> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    return {};
+  }
+
   try {
-    const result = await runScheduledPublishWorker();
+    return JSON.parse(text) as SchedulerBody;
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await safeReadJson(req);
+    const result = await runScheduledPublishWorker(body.contentPieceId ?? null);
 
     return NextResponse.json({
       ok: true,

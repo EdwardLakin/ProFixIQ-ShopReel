@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/shopreel/scheduler",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/shopreel/render-worker",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/shopreel/publish-worker",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

@@ -1,9 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { runRenderWorker } from "@/features/shopreel/render/runRenderWorker";
 
-export async function POST() {
+type RenderBody = {
+  contentPieceId?: string;
+};
+
+async function safeReadJson(req: NextRequest): Promise<RenderBody> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    return {};
+  }
+
   try {
-    const result = await runRenderWorker();
+    return JSON.parse(text) as RenderBody;
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await safeReadJson(req);
+    const result = await runRenderWorker(body.contentPieceId ?? null);
 
     return NextResponse.json({
       ok: true,

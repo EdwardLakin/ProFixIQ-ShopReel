@@ -4,7 +4,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import GenerateCalendarButton from "@/features/shopreel/calendar/components/GenerateCalendarButton";
-import PipelineControls from "@/features/shopreel/calendar/components/PipelineControls";
+import CalendarItemActions from "@/features/shopreel/calendar/components/CalendarItemActions";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
@@ -98,6 +98,26 @@ function asContentPiecePreview(value: unknown): ContentPiecePreview | null {
     content_type: typeof record.content_type === "string" ? record.content_type : null,
     status: typeof record.status === "string" ? record.status : null,
   };
+}
+
+function statusTone(status: string | null): "default" | "muted" | "copper" {
+  switch ((status ?? "").toLowerCase()) {
+    case "published":
+      return "copper";
+    case "ready":
+    case "queued":
+    case "rendering":
+    case "publishing":
+      return "default";
+    default:
+      return "muted";
+  }
+}
+
+function statusLabel(status: string | null) {
+  return (status ?? "planned")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export default async function ShopReelCalendarPage() {
@@ -238,8 +258,8 @@ export default async function ShopReelCalendarPage() {
                               <GlassBadge tone="default">
                                 {formatContentType(item.contentPiece?.content_type ?? null)}
                               </GlassBadge>
-                              <GlassBadge tone="muted">
-                                {item.status ?? "planned"}
+                              <GlassBadge tone={statusTone(item.status)}>
+                                {statusLabel(item.status)}
                               </GlassBadge>
                             </div>
                           </div>
@@ -259,6 +279,11 @@ export default async function ShopReelCalendarPage() {
                               CTA: {item.contentPiece.cta}
                             </div>
                           ) : null}
+
+                          <CalendarItemActions
+                            contentPieceId={item.content_piece_id}
+                            itemStatus={item.status}
+                          />
                         </div>
                       ))}
                     </div>
@@ -291,16 +316,6 @@ export default async function ShopReelCalendarPage() {
               </div>
             ))}
           </div>
-        </GlassCard>
-      </section>
-
-      <section>
-        <GlassCard
-          label="Pipeline Controls"
-          title="Run the content pipeline"
-          description="Use these buttons to advance scheduled calendar items through queue, render, and publish."
-        >
-          <PipelineControls />
         </GlassCard>
       </section>
     </GlassShell>

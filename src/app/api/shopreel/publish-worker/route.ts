@@ -1,9 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
 
-export async function POST() {
+type PublishBody = {
+  contentPieceId?: string;
+};
+
+async function safeReadJson(req: NextRequest): Promise<PublishBody> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    return {};
+  }
+
   try {
-    const result = await runPublishWorker();
+    return JSON.parse(text) as PublishBody;
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await safeReadJson(req);
+    const result = await runPublishWorker(body.contentPieceId ?? null);
 
     return NextResponse.json({
       ok: true,
