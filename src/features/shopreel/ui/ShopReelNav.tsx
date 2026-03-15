@@ -4,55 +4,100 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { glassTheme, cx } from "./system/glassTheme";
 
-const NAV_ITEMS = [
-  { label: "Dashboard", href: "/shopreel" },
-  { label: "Create", href: "/shopreel/create" },
-  { label: "Content", href: "/shopreel/content" },
-  { label: "Upload", href: "/shopreel/upload" },
-  { label: "Opportunities", href: "/shopreel/opportunities" },
-  { label: "Creator Requests", href: "/shopreel/creator-requests" },
-  { label: "Calendar", href: "/shopreel/calendar" },
-  { label: "Render Queue", href: "/shopreel/render-queue" },
-  { label: "Published", href: "/shopreel/published" },
-  { label: "Analytics", href: "/shopreel/analytics" },
-  { label: "Settings", href: "/shopreel/settings" },
-] as const;
+type NavItem = {
+  label: string;
+  href: string;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Overview",
+    items: [{ label: "Dashboard", href: "/shopreel" }],
+  },
+  {
+    label: "Manual",
+    items: [
+      { label: "Create", href: "/shopreel/create" },
+      { label: "Upload", href: "/shopreel/upload" },
+      { label: "Content", href: "/shopreel/content" },
+    ],
+  },
+  {
+    label: "AI",
+    items: [
+      { label: "Opportunities", href: "/shopreel/opportunities" },
+      { label: "Creator Requests", href: "/shopreel/creator-requests" },
+      { label: "Calendar", href: "/shopreel/calendar" },
+    ],
+  },
+  {
+    label: "Production",
+    items: [
+      { label: "Render Queue", href: "/shopreel/render-queue" },
+      { label: "Published", href: "/shopreel/published" },
+      { label: "Analytics", href: "/shopreel/analytics" },
+      { label: "Settings", href: "/shopreel/settings" },
+    ],
+  },
+];
+
+function isActivePath(pathname: string, href: string) {
+  return pathname === href || (href !== "/shopreel" && pathname.startsWith(href + "/"));
+}
 
 export default function ShopReelNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="mb-6 flex flex-wrap gap-2">
-      {NAV_ITEMS.map((item) => {
-        const active =
-          pathname === item.href ||
-          (item.href !== "/shopreel" && pathname.startsWith(item.href + "/"));
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
+    <div className="mb-6 space-y-4">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.label} className="space-y-2">
+          <div
             className={cx(
-              "rounded-full border px-4 py-2 text-sm transition",
-              active
-                ? cx(
-                    glassTheme.border.copper,
-                    glassTheme.glass.panelSoft,
-                    glassTheme.text.primary,
-                    "shadow-[0_0_0_1px_rgba(56,189,248,0.08),0_10px_24px_rgba(0,0,0,0.18)]",
-                  )
-                : cx(
-                    glassTheme.border.softer,
-                    glassTheme.glass.panelSoft,
-                    glassTheme.text.secondary,
-                    "hover:text-white hover:bg-white/[0.06]",
-                  ),
+              "text-[11px] uppercase tracking-[0.22em]",
+              glassTheme.text.muted,
             )}
           >
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+            {group.label}
+          </div>
+
+          <nav className="flex flex-wrap gap-2">
+            {group.items.map((item) => {
+              const active = isActivePath(pathname, item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cx(
+                    "rounded-full border px-4 py-2 text-sm transition",
+                    active
+                      ? cx(
+                          glassTheme.border.copper,
+                          glassTheme.glass.panelSoft,
+                          glassTheme.text.primary,
+                          "shadow-[0_0_0_1px_rgba(56,189,248,0.08),0_10px_24px_rgba(0,0,0,0.18)]",
+                        )
+                      : cx(
+                          glassTheme.border.softer,
+                          glassTheme.glass.panelSoft,
+                          glassTheme.text.secondary,
+                          "hover:text-white hover:bg-white/[0.06]",
+                        ),
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      ))}
+    </div>
   );
 }

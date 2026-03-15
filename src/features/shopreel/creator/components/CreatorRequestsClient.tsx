@@ -181,7 +181,7 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
         }),
       );
 
-      router.push(json.generated.editorUrl ?? `/shopreel/editor/video/${json.generated.generationId}`);
+      router.push(json.generated.editorUrl ?? `/shopreel/generations/${json.generated.generationId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create from angle");
     } finally {
@@ -283,7 +283,7 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
                         <Link href={`/shopreel/generations/${item.source_generation_id}`}>
                           <GlassButton variant="ghost">Review</GlassButton>
                         </Link>
-                        <Link href={`/shopreel/editor/video/${item.source_generation_id}`}>
+                        <Link href={getEditorPath("video", item.source_generation_id)}>
                           <GlassButton variant="secondary">Open editor</GlassButton>
                         </Link>
                       </>
@@ -402,7 +402,7 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
                             <Link href={`/shopreel/generations/${post.generationId}`}>
                               <GlassButton variant="ghost">Review</GlassButton>
                             </Link>
-                            <Link href={`/shopreel/editor/video/${post.generationId}`}>
+                            <Link href={getEditorPath("video", post.generationId)}>
                               <GlassButton variant="secondary">Edit</GlassButton>
                             </Link>
                           </div>
