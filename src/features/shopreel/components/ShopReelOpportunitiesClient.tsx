@@ -7,7 +7,8 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
-import { getEditorPath, normalizeEditorOutputType } from "@/features/shopreel/lib/editorPaths";
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
+import { getReviewPath } from "@/features/shopreel/lib/reviewPaths";
 
 type OpportunityItem = {
   id: string;
@@ -394,7 +395,7 @@ export default function ShopReelOpportunitiesClient() {
 
                     {generationId ? (
                       <>
-                        <Link href={`/shopreel/generations/${generationId}`}>
+                        <Link href={getReviewPath(item.contentType.toLowerCase(), generationId)}>
                           <GlassButton variant="ghost">Review</GlassButton>
                         </Link>
                         <Link href={editorPathFromItem(item, generationId)}>

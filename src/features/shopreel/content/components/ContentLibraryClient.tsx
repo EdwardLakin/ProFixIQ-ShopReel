@@ -7,7 +7,8 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
-import { getEditorPath, normalizeEditorOutputType } from "@/features/shopreel/lib/editorPaths";
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
+import { getReviewPath } from "@/features/shopreel/lib/reviewPaths";
 
 type OutputType = "video" | "blog" | "email" | "post" | "vlog";
 
@@ -131,7 +132,7 @@ export default function ContentLibraryClient({ initialItems }: Props) {
                   <GlassBadge tone="copper">{formatLabel(item.outputType)}</GlassBadge>
                   <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
 
-                  <Link href={`/shopreel/generations/${item.id}`}>
+                  <Link href={getReviewPath(item.outputType, item.id)}>
                     <GlassButton variant="ghost">Review</GlassButton>
                   </Link>
                   <Link href={getEditorPath(item.outputType, item.id)}>

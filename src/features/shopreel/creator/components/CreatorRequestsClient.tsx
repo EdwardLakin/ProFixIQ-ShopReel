@@ -8,6 +8,7 @@ import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
+import { getReviewPath } from "@/features/shopreel/lib/reviewPaths";
 import type {
   BlogLengthMode,
   BlogStyle,
@@ -181,7 +182,7 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
         }),
       );
 
-      router.push(json.generated.editorUrl ?? `/shopreel/generations/${json.generated.generationId}`);
+      router.push(getReviewPath(outputType, json.generated.generationId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create from angle");
     } finally {
@@ -280,7 +281,7 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
                   <div className="mt-5 flex flex-wrap gap-3">
                     {item.source_generation_id ? (
                       <>
-                        <Link href={`/shopreel/generations/${item.source_generation_id}`}>
+                        <Link href={getReviewPath("video", item.source_generation_id)}>
                           <GlassButton variant="ghost">Review</GlassButton>
                         </Link>
                         <Link href={getEditorPath("video", item.source_generation_id)}>
@@ -399,7 +400,7 @@ export default function CreatorRequestsClient({ initialItems }: Props) {
                           </div>
 
                           <div className="flex items-center gap-3 md:justify-end">
-                            <Link href={`/shopreel/generations/${post.generationId}`}>
+                            <Link href={getReviewPath("video", post.generationId)}>
                               <GlassButton variant="ghost">Review</GlassButton>
                             </Link>
                             <Link href={getEditorPath("video", post.generationId)}>

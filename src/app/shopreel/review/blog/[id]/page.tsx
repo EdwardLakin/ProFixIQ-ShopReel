@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default async function ShopReelBlogReviewRedirect(
+export default async function ShopReelBlogReviewPage(
   props: { params: Promise<{ id: string }> },
 ) {
   const { id } = await props.params;
