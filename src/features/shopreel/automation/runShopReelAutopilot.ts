@@ -90,6 +90,15 @@ function uniquePlatformTargets(input: string[]): string[] {
   return [...new Set(input.filter((value) => typeof value === "string" && value.length > 0))];
 }
 
+async function safeRun<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(`[ShopReel autopilot] ${label} failed`, error);
+    return fallback;
+  }
+}
+
 export async function runShopReelAutopilot(
   shopId: string,
 ): Promise<SchedulerResult> {
@@ -97,11 +106,17 @@ export async function runShopReelAutopilot(
   const settingsBundle = await getShopReelSettings(shopId);
 
   const discovered = await discoverContent(shopId);
-  const moments = await detectViralMoments(shopId);
+  const moments = await safeRun("detectViralMoments", () => detectViralMoments(shopId), []);
 
   const ranked = [...discovered]
     .sort((a, b) => rankOpportunity(b) - rankOpportunity(a))
     .slice(0, 7);
+
+  if (ranked.length === 0) {
+    throw new Error(
+      "No opportunities found for this shop. Add content assets or existing content first, then generate the calendar again.",
+    );
+  }
 
   const startDate = new Date().toISOString();
   const endDate = new Date(Date.now() + 7 * 86400000).toISOString();
@@ -120,6 +135,7 @@ export async function runShopReelAutopilot(
         generated_by: "runShopReelAutopilot",
         readiness_missing: settingsBundle.readiness.missing,
         opportunity_count: ranked.length,
+        moments_count: Array.isArray(moments) ? moments.length : 0,
       },
     })
     .select("id")
@@ -147,7 +163,7 @@ export async function runShopReelAutopilot(
     if (opportunity.sourceType === "existing_content_piece") {
       resolvedContentPieceId = opportunity.sourceId;
 
-      await supabase
+      const { error: updateError } = await supabase
         .from("content_pieces")
         .update({
           hook: opportunity.hook,
@@ -164,6 +180,10 @@ export async function runShopReelAutopilot(
           },
         })
         .eq("id", resolvedContentPieceId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
     } else {
       const { data: contentPieceData, error: contentPieceError } = await supabase
         .from("content_pieces")
@@ -245,8 +265,23 @@ export async function runShopReelAutopilot(
     });
   }
 
-  const memory = await updateMarketingMemory(shopId);
-  const signals = await updateLearningSignals(shopId);
+  const memory = await safeRun(
+    "updateMarketingMemory",
+    () => updateMarketingMemory(shopId),
+    {
+      updatedAt: new Date().toISOString(),
+      topContentTypes: [],
+    },
+  );
+  const signals = await safeRun(
+    "updateLearningSignals",
+    () => updateLearningSignals(shopId),
+    {
+      updatedAt: new Date().toISOString(),
+      count: 0,
+      rows: [],
+    },
+  );
 
   return {
     ok: true,

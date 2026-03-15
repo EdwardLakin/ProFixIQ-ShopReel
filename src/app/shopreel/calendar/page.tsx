@@ -167,12 +167,7 @@ export default async function ShopReelCalendarPage() {
       eyebrow="ShopReel"
       title="Calendar"
       subtitle="Publishing cadence, scheduled ideas, and recommended posting windows."
-      actions={
-        <div className="flex flex-col items-end gap-3">
-          <PipelineControls />
-          <GenerateCalendarButton />
-        </div>
-      }
+      actions={<GenerateCalendarButton />}
     >
       <ShopReelNav />
 
@@ -296,6 +291,16 @@ export default async function ShopReelCalendarPage() {
               </div>
             ))}
           </div>
+        </GlassCard>
+      </section>
+
+      <section>
+        <GlassCard
+          label="Pipeline Controls"
+          title="Run the content pipeline"
+          description="Use these buttons to advance scheduled calendar items through queue, render, and publish."
+        >
+          <PipelineControls />
         </GlassCard>
       </section>
     </GlassShell>
