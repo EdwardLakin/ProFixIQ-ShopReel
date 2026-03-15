@@ -14,7 +14,6 @@ export async function GET() {
         id,
         platform,
         connection_active,
-        account_label,
         platform_account_id,
         platform_username,
         token_expires_at,

@@ -5,7 +5,7 @@ import { getPlatformIntegration } from "@/features/shopreel/integrations/shared/
 import type { ShopReelPlatform } from "@/features/shopreel/integrations/shared/types";
 
 type ShopMembershipRow = {
-  shop_id: string;
+  shop_id: string | null;
 };
 
 type CallbackPlatformParam = "instagram" | "facebook" | "tiktok" | "youtube";
@@ -25,26 +25,21 @@ function normalizePlatform(platform: CallbackPlatformParam): ShopReelPlatform {
   }
 }
 
-function readPlatformFromState(state: string | null): CallbackPlatformParam | null {
-  if (!state) return null;
+function settingsUrlWithMessage(params: {
+  success?: string;
+  error?: string;
+}) {
+  const url = new URL(`${BASE_URL}/shopreel/settings`);
 
-  try {
-    const parsed = JSON.parse(state) as { platform?: string };
-    const platform = parsed.platform;
-
-    if (
-      platform === "instagram" ||
-      platform === "facebook" ||
-      platform === "tiktok" ||
-      platform === "youtube"
-    ) {
-      return platform;
-    }
-
-    return null;
-  } catch {
-    return null;
+  if (params.success) {
+    url.searchParams.set("oauth_success", params.success);
   }
+
+  if (params.error) {
+    url.searchParams.set("oauth_error", params.error);
+  }
+
+  return url.toString();
 }
 
 export async function GET(req: NextRequest) {
@@ -58,14 +53,12 @@ export async function GET(req: NextRequest) {
 
     if (oauthError) {
       return NextResponse.redirect(
-        `${BASE_URL}/shopreel/settings?oauth_error=${encodeURIComponent(oauthError)}`,
+        settingsUrlWithMessage({ error: oauthError }),
       );
     }
 
     const code = searchParams.get("code");
-    const platformParam =
-      (searchParams.get("platform") as CallbackPlatformParam | null) ??
-      readPlatformFromState(searchParams.get("state"));
+    const platformParam = searchParams.get("platform") as CallbackPlatformParam | null;
 
     if (!code || !platformParam) {
       return NextResponse.json(
@@ -102,9 +95,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    const supabase = createAdminClient();
+    const admin = createAdminClient();
 
-    const { data: membershipData, error: membershipError } = await (supabase as any)
+    let shopId: string | null = null;
+
+    const { data: membershipData, error: membershipError } = await (admin as any)
       .from("shop_users")
       .select("shop_id")
       .eq("user_id", user.id)
@@ -112,31 +107,40 @@ export async function GET(req: NextRequest) {
       .limit(1)
       .maybeSingle();
 
-    const membership = membershipData as ShopMembershipRow | null;
+    const membership = (membershipData ?? null) as ShopMembershipRow | null;
 
-    if (membershipError || !membership?.shop_id) {
+    if (!membershipError && membership?.shop_id) {
+      shopId = membership.shop_id;
+    }
+
+    if (!shopId) {
+      shopId = await getCurrentShopId();
+    }
+
+    if (!shopId) {
       return NextResponse.redirect(
-        `${BASE_URL}/shopreel/settings?oauth_error=${encodeURIComponent(
-          "No active shop membership found.",
-        )}`,
+        settingsUrlWithMessage({
+          error: "Unable to determine the active shop for this account.",
+        }),
       );
     }
 
     const platform = normalizePlatform(platformParam);
     const integration = getPlatformIntegration(platform);
 
-    const result = await integration.finishOAuth(membership.shop_id, code);
+    const result = await integration.finishOAuth(shopId, code);
 
     return NextResponse.redirect(
-      `${BASE_URL}/shopreel/settings?oauth_success=${encodeURIComponent(
-        `${result.platform} connected`,
-      )}`,
+      settingsUrlWithMessage({
+        success: `${result.accountLabel ?? platform} connected successfully.`,
+      }),
     );
   } catch (error) {
     return NextResponse.redirect(
-      `${BASE_URL}/shopreel/settings?oauth_error=${encodeURIComponent(
-        error instanceof Error ? error.message : "Unexpected error",
-      )}`,
+      settingsUrlWithMessage({
+        error:
+          error instanceof Error ? error.message : "Unexpected error",
+      }),
     );
   }
 }
