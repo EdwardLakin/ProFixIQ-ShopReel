@@ -18,13 +18,27 @@ type ContentAssetRow = Pick<
   | "source_vehicle_id"
 >;
 
+type ContentPieceRow = Pick<
+  Tables<"content_pieces">,
+  | "id"
+  | "title"
+  | "hook"
+  | "cta"
+  | "content_type"
+  | "metadata"
+  | "source_work_order_id"
+  | "created_at"
+  | "status"
+>;
+
 export type ContentOpportunity = {
   sourceType:
     | "manual_upload"
     | "content_asset"
     | "before_after_candidate"
     | "educational_candidate"
-    | "video_story";
+    | "video_story"
+    | "existing_content_piece";
   workOrderId: string | null;
   sourceId: string;
   title: string;
@@ -49,7 +63,9 @@ function objectRecord(value: unknown): Record<string, unknown> {
 
 function getStringList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim().length > 0,
+  );
 }
 
 function chooseContentType(row: ContentAssetRow): ContentOpportunity["contentType"] {
@@ -138,6 +154,38 @@ function buildReason(
   return "Content asset available for story generation";
 }
 
+function normalizePieceContentType(value: string | null): ContentOpportunity["contentType"] {
+  if (
+    value === "inspection_highlight" ||
+    value === "before_after" ||
+    value === "repair_story" ||
+    value === "educational_tip"
+  ) {
+    return value;
+  }
+
+  return "workflow_demo";
+}
+
+function buildPieceOpportunity(row: ContentPieceRow): ContentOpportunity {
+  const metadata = objectRecord(row.metadata);
+
+  return {
+    sourceType: "existing_content_piece",
+    workOrderId: row.source_work_order_id,
+    sourceId: row.id,
+    title: row.title?.trim() || "Existing content piece",
+    contentType: normalizePieceContentType(row.content_type),
+    hook:
+      row.hook?.trim() ||
+      (typeof metadata.hook === "string" && metadata.hook.trim().length > 0
+        ? metadata.hook.trim()
+        : `${row.title?.trim() || "Content piece"} — ready to schedule.`),
+    reason: "Existing content piece available for calendar scheduling",
+    visualUrls: [],
+  };
+}
+
 export async function discoverContent(shopId: string): Promise<ContentOpportunity[]> {
   const supabase = createAdminClient();
 
@@ -167,7 +215,7 @@ export async function discoverContent(shopId: string): Promise<ContentOpportunit
 
   const rows: ContentAssetRow[] = data ?? [];
 
-  const opportunities = rows.map((row) => {
+  const assetOpportunities = rows.map((row) => {
     const contentType = chooseContentType(row);
     const sourceType = chooseSourceType(row, contentType);
     const title = buildTitle(row, contentType);
@@ -184,10 +232,29 @@ export async function discoverContent(shopId: string): Promise<ContentOpportunit
     } satisfies ContentOpportunity;
   });
 
-  return opportunities.slice(0, 20);
+  if (assetOpportunities.length > 0) {
+    return assetOpportunities.slice(0, 20);
+  }
+
+  const { data: pieceData, error: pieceError } = await supabase
+    .from("content_pieces")
+    .select("id, title, hook, cta, content_type, metadata, source_work_order_id, created_at, status")
+    .eq("tenant_shop_id", shopId)
+    .in("status", ["draft", "queued", "processing", "ready", "published"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (pieceError) {
+    throw new Error(pieceError.message);
+  }
+
+  const contentPieces: ContentPieceRow[] = pieceData ?? [];
+  return contentPieces.map(buildPieceOpportunity);
 }
 
 export async function discoverStorySources(shopId: string): Promise<StorySource[]> {
   const opportunities = await discoverContent(shopId);
-  return opportunities.map((opportunity) => storySourceFromOpportunity(shopId, opportunity));
+  return opportunities
+    .filter((opportunity) => opportunity.sourceType !== "existing_content_piece")
+    .map((opportunity) => storySourceFromOpportunity(shopId, opportunity));
 }

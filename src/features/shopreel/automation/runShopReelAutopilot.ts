@@ -119,6 +119,7 @@ export async function runShopReelAutopilot(
       settings: {
         generated_by: "runShopReelAutopilot",
         readiness_missing: settingsBundle.readiness.missing,
+        opportunity_count: ranked.length,
       },
     })
     .select("id")
@@ -141,46 +142,72 @@ export async function runShopReelAutopilot(
     const scheduledFor = buildScheduledFor(index);
     const resolvedCta = defaultCta(opportunity.contentType, defaultCtaValue);
 
-    const { data: contentPieceData, error: contentPieceError } = await supabase
-      .from("content_pieces")
-      .insert({
-        tenant_shop_id: shopId,
-        source_shop_id: shopId,
-        source_system: "shopreel",
-        source_work_order_id: opportunity.workOrderId,
-        title: opportunity.title,
-        content_type: opportunity.contentType,
-        hook: opportunity.hook,
-        caption: opportunity.hook,
-        cta: resolvedCta,
-        script_text: null,
-        voiceover_text: null,
-        platform_targets: enabledTargets,
-        status: "draft",
-        metadata: {
-          planned_for_calendar: true,
-          scheduled_for: scheduledFor,
-          source_type: opportunity.sourceType,
-          source_id: opportunity.sourceId,
-          reason: opportunity.reason,
-          visual_urls: opportunity.visualUrls,
-          hook_options: hookOptions,
-        },
-      })
-      .select("id")
-      .single();
+    let resolvedContentPieceId = "";
 
-    const contentPiece = contentPieceData as { id: string } | null;
+    if (opportunity.sourceType === "existing_content_piece") {
+      resolvedContentPieceId = opportunity.sourceId;
 
-    if (contentPieceError || !contentPiece) {
-      throw new Error(contentPieceError?.message ?? "Failed to create content piece");
+      await supabase
+        .from("content_pieces")
+        .update({
+          hook: opportunity.hook,
+          cta: resolvedCta,
+          platform_targets: enabledTargets,
+          metadata: {
+            planned_for_calendar: true,
+            scheduled_for: scheduledFor,
+            source_type: opportunity.sourceType,
+            source_id: opportunity.sourceId,
+            reason: opportunity.reason,
+            visual_urls: opportunity.visualUrls,
+            hook_options: hookOptions,
+          },
+        })
+        .eq("id", resolvedContentPieceId);
+    } else {
+      const { data: contentPieceData, error: contentPieceError } = await supabase
+        .from("content_pieces")
+        .insert({
+          tenant_shop_id: shopId,
+          source_shop_id: shopId,
+          source_system: "shopreel",
+          source_work_order_id: opportunity.workOrderId,
+          title: opportunity.title,
+          content_type: opportunity.contentType,
+          hook: opportunity.hook,
+          caption: opportunity.hook,
+          cta: resolvedCta,
+          script_text: null,
+          voiceover_text: null,
+          platform_targets: enabledTargets,
+          status: "draft",
+          metadata: {
+            planned_for_calendar: true,
+            scheduled_for: scheduledFor,
+            source_type: opportunity.sourceType,
+            source_id: opportunity.sourceId,
+            reason: opportunity.reason,
+            visual_urls: opportunity.visualUrls,
+            hook_options: hookOptions,
+          },
+        })
+        .select("id")
+        .single();
+
+      const contentPiece = contentPieceData as { id: string } | null;
+
+      if (contentPieceError || !contentPiece) {
+        throw new Error(contentPieceError?.message ?? "Failed to create content piece");
+      }
+
+      resolvedContentPieceId = contentPiece.id;
     }
 
     const { error: calendarItemError } = await supabase
       .from("content_calendar_items")
       .insert({
         calendar_id: insertedCalendar.id,
-        content_piece_id: contentPiece.id,
+        content_piece_id: resolvedContentPieceId,
         scheduled_for: scheduledFor,
         tenant_shop_id: shopId,
         source_shop_id: shopId,
@@ -204,7 +231,7 @@ export async function runShopReelAutopilot(
     items.push({
       day: index + 1,
       scheduledFor,
-      contentPieceId: contentPiece.id,
+      contentPieceId: resolvedContentPieceId,
       title: opportunity.title,
       contentType: opportunity.contentType,
       hook: opportunity.hook,

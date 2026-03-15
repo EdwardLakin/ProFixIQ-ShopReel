@@ -4,6 +4,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import GenerateCalendarButton from "@/features/shopreel/calendar/components/GenerateCalendarButton";
+import PipelineControls from "@/features/shopreel/calendar/components/PipelineControls";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
@@ -166,7 +167,12 @@ export default async function ShopReelCalendarPage() {
       eyebrow="ShopReel"
       title="Calendar"
       subtitle="Publishing cadence, scheduled ideas, and recommended posting windows."
-      actions={<GenerateCalendarButton />}
+      actions={
+        <div className="flex flex-col items-end gap-3">
+          <PipelineControls />
+          <GenerateCalendarButton />
+        </div>
+      }
     >
       <ShopReelNav />
 
@@ -233,14 +239,18 @@ export default async function ShopReelCalendarPage() {
                             <div className={cx("text-base font-medium", glassTheme.text.primary)}>
                               {item.contentPiece?.title ?? "Untitled calendar item"}
                             </div>
-                            <GlassBadge tone="default">
-                              {formatContentType(item.contentPiece?.content_type ?? null)}
-                            </GlassBadge>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <GlassBadge tone="default">
+                                {formatContentType(item.contentPiece?.content_type ?? null)}
+                              </GlassBadge>
+                              <GlassBadge tone="muted">
+                                {item.status ?? "planned"}
+                              </GlassBadge>
+                            </div>
                           </div>
 
                           <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-                            {formatDateLabel(item.scheduled_for)} • {formatTimeLabel(item.scheduled_for)} •{" "}
-                            {item.status ?? "planned"}
+                            {formatDateLabel(item.scheduled_for)} • {formatTimeLabel(item.scheduled_for)}
                           </div>
 
                           {item.contentPiece?.hook ? (
