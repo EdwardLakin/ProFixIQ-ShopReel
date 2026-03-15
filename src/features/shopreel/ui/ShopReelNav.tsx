@@ -17,7 +17,10 @@ type NavGroup = {
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "Overview",
-    items: [{ label: "Dashboard", href: "/shopreel" }],
+    items: [
+      { label: "Dashboard", href: "/shopreel" },
+      { label: "Account", href: "/shopreel/account" },
+    ],
   },
   {
     label: "Manual",
