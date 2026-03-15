@@ -47,12 +47,16 @@ export async function GET(req: NextRequest) {
 
     if (platform === "instagram") {
       const result = await instagramIntegration.startOAuth("");
-      return NextResponse.redirect(result.authorizationUrl);
+      const url = new URL(result.authorizationUrl);
+      url.searchParams.set("state", JSON.stringify({ platform: "instagram" }));
+      return NextResponse.redirect(url);
     }
 
     if (platform === "facebook") {
       const result = await facebookIntegration.startOAuth("");
-      return NextResponse.redirect(result.authorizationUrl);
+      const url = new URL(result.authorizationUrl);
+      url.searchParams.set("state", JSON.stringify({ platform: "facebook" }));
+      return NextResponse.redirect(url);
     }
 
     if (platform === "tiktok") {

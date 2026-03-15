@@ -24,6 +24,28 @@ function normalizePlatform(platform: CallbackPlatformParam): ShopReelPlatform {
   }
 }
 
+function readPlatformFromState(state: string | null): CallbackPlatformParam | null {
+  if (!state) return null;
+
+  try {
+    const parsed = JSON.parse(state) as { platform?: string };
+    const platform = parsed.platform;
+
+    if (
+      platform === "instagram" ||
+      platform === "facebook" ||
+      platform === "tiktok" ||
+      platform === "youtube"
+    ) {
+      return platform;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -40,7 +62,9 @@ export async function GET(req: NextRequest) {
     }
 
     const code = searchParams.get("code");
-    const platformParam = searchParams.get("platform") as CallbackPlatformParam | null;
+    const platformParam =
+      (searchParams.get("platform") as CallbackPlatformParam | null) ??
+      readPlatformFromState(searchParams.get("state"));
 
     if (!code || !platformParam) {
       return NextResponse.json(
@@ -100,9 +124,13 @@ export async function GET(req: NextRequest) {
     const platform = normalizePlatform(platformParam);
     const integration = getPlatformIntegration(platform);
 
-    await integration.finishOAuth(membership.shop_id, code);
+    const result = await integration.finishOAuth(membership.shop_id, code);
 
-    return NextResponse.redirect(`${BASE_URL}/shopreel/settings`);
+    return NextResponse.redirect(
+      `${BASE_URL}/shopreel/settings?oauth_success=${encodeURIComponent(
+        `${result.platform} connected`,
+      )}`,
+    );
   } catch (error) {
     return NextResponse.redirect(
       `${BASE_URL}/shopreel/settings?oauth_error=${encodeURIComponent(

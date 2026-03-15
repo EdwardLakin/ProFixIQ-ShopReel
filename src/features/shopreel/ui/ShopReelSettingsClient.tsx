@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassInput from "@/features/shopreel/ui/system/GlassInput";
 import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
@@ -110,11 +111,14 @@ const PLATFORM_CONNECT_QUERY: Record<ShopReelPlatform, string> = {
   email: "email",
 };
 
+const NOT_YET_WIRED: ShopReelPlatform[] = ["tiktok", "youtube"];
+
 function formatConnectionSubtitle(
   connection: ConnectionRow | null,
   platform: ShopReelPlatform,
 ): string {
   if (!connection) {
+    if (NOT_YET_WIRED.includes(platform)) return "OAuth wiring pending";
     return CONNECTABLE_PLATFORMS.includes(platform) ? "Not connected" : "Coming soon";
   }
 
@@ -149,6 +153,10 @@ function isConnectionActive(connection: ConnectionRow | null): boolean {
 }
 
 export default function ShopReelSettingsClient() {
+  const searchParams = useSearchParams();
+  const oauthError = searchParams.get("oauth_error");
+  const oauthSuccess = searchParams.get("oauth_success");
+
   const [state, setState] = useState<SettingsState>(initialState);
   const [saved, setSaved] = useState(false);
   const [connections, setConnections] = useState<
@@ -207,6 +215,11 @@ export default function ShopReelSettingsClient() {
   function handleConnect(platform: ShopReelPlatform) {
     if (!CONNECTABLE_PLATFORMS.includes(platform)) return;
 
+    if (NOT_YET_WIRED.includes(platform)) {
+      setConnectionsError(`${PLATFORM_LABELS[platform]} OAuth is not wired yet.`);
+      return;
+    }
+
     setConnectingPlatform(platform);
     const platformParam = PLATFORM_CONNECT_QUERY[platform];
     window.location.href = `/api/shopreel/oauth/connect?platform=${encodeURIComponent(
@@ -225,6 +238,32 @@ export default function ShopReelSettingsClient() {
 
   return (
     <div className="space-y-5">
+      {oauthSuccess ? (
+        <div
+          className={cx(
+            "rounded-2xl border px-4 py-3 text-sm",
+            glassTheme.border.copper,
+            glassTheme.glass.panelSoft,
+            glassTheme.text.primary,
+          )}
+        >
+          {oauthSuccess}
+        </div>
+      ) : null}
+
+      {oauthError ? (
+        <div
+          className={cx(
+            "rounded-2xl border px-4 py-3 text-sm",
+            glassTheme.border.copper,
+            glassTheme.glass.panelSoft,
+            glassTheme.text.copperSoft,
+          )}
+        >
+          {oauthError}
+        </div>
+      ) : null}
+
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         <GlassCard
           label="Brand"
@@ -376,6 +415,7 @@ export default function ShopReelSettingsClient() {
             const subtitle = formatConnectionSubtitle(connection, platform);
             const isBusy = connectingPlatform === platform;
             const canConnect = CONNECTABLE_PLATFORMS.includes(platform);
+            const notYetWired = NOT_YET_WIRED.includes(platform);
 
             return (
               <div
@@ -397,7 +437,13 @@ export default function ShopReelSettingsClient() {
                   </div>
 
                   <GlassBadge tone={active ? "default" : canConnect ? "muted" : "copper"}>
-                    {active ? "Connected" : canConnect ? "Not connected" : "Coming soon"}
+                    {active
+                      ? "Connected"
+                      : notYetWired
+                        ? "Not wired yet"
+                        : canConnect
+                          ? "Not connected"
+                          : "Coming soon"}
                   </GlassBadge>
                 </div>
 
@@ -417,7 +463,11 @@ export default function ShopReelSettingsClient() {
                     </div>
                   ) : null}
 
-                  {!canConnect ? (
+                  {notYetWired ? (
+                    <div>
+                      OAuth and publish wiring still needs to be completed for this platform.
+                    </div>
+                  ) : !canConnect ? (
                     <div>
                       Planned destination. UI and publish-path scaffolding added, live connection
                       wiring comes next.
