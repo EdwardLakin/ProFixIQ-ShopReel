@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { getPlatformIntegration } from "@/features/shopreel/integrations/shared/platformRegistry";
 import type { ShopReelPlatform } from "@/features/shopreel/integrations/shared/types";
 

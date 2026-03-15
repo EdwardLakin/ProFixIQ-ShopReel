@@ -34,7 +34,6 @@ export type ShopReelSettingsBundle = {
     connection_active: boolean;
     connection_status: "not_connected" | "connected" | "expired" | "error" | "coming_soon";
     publish_mode: "manual" | "scheduled" | "autopilot";
-    account_label: string | null;
     metadata: Record<string, unknown>;
   }>;
   readiness: {
@@ -177,7 +176,6 @@ export async function getShopReelSettings(
         connection_active: isComingSoon ? false : (row?.connection_active ?? false),
         connection_status: connectionStatus,
         publish_mode: "manual",
-        account_label: getAccountLabel(row),
         metadata:
           row?.metadata &&
           typeof row.metadata === "object" &&

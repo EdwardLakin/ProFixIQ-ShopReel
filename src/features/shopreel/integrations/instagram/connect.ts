@@ -143,7 +143,6 @@ async function saveInstagramPlatformAccount(args: {
     const { data: updatedData, error: updateError } = await supabase
       .from("content_platform_accounts")
       .update({
-        account_label: args.pageName ?? "Instagram Business Account",
         platform_username: args.pageName ?? null,
         connection_active: true,
         access_token_encrypted: args.accessToken,
@@ -174,7 +173,6 @@ async function saveInstagramPlatformAccount(args: {
       source_shop_id: args.shopId,
       source_system: "profixiq",
       platform: "instagram",
-      account_label: args.pageName ?? "Instagram Business Account",
       platform_account_id: args.instagramBusinessId,
       platform_username: args.pageName ?? null,
       connection_active: true,

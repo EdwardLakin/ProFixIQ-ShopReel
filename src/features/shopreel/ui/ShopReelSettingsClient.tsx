@@ -44,7 +44,6 @@ type ConnectionRow = {
   id: string;
   platform: ShopReelPlatform;
   connection_active: boolean;
-  account_label: string | null;
   platform_account_id: string | null;
   platform_username: string | null;
   token_expires_at?: string | null;
@@ -124,25 +123,22 @@ function formatConnectionSubtitle(
 
   if (connection.platform === "instagram") {
     if (
-      connection.account_label &&
       connection.metadata?.meta_page_name &&
-      connection.account_label !== connection.metadata.meta_page_name
+      connection.platform_username !== connection.metadata.meta_page_name
     ) {
-      return `${connection.account_label} • ${connection.metadata.meta_page_name}`;
+      return `${connection.platform_username} • ${connection.metadata.meta_page_name}`;
     }
 
-    if (connection.account_label) return connection.account_label;
     if (connection.metadata?.meta_page_name) return connection.metadata.meta_page_name;
   }
 
   if (connection.platform === "facebook") {
-    if (connection.account_label) return connection.account_label;
     if (connection.metadata?.meta_page_name) return connection.metadata.meta_page_name;
   }
 
   return (
-    connection.account_label ??
     connection.platform_username ??
+    connection.metadata?.meta_page_name ??
     connection.platform_account_id ??
     "Connected"
   );
