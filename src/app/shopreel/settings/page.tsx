@@ -1,5 +1,6 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import { Suspense } from "react";
 import ShopReelSettingsClient from "@/features/shopreel/ui/ShopReelSettingsClient";
 
 export default function ShopReelSettingsPage() {
@@ -10,7 +11,7 @@ export default function ShopReelSettingsPage() {
       subtitle="Connection, publishing, tone, and automation defaults — all through the shared glass control system."
     >
       <ShopReelNav />
-      <ShopReelSettingsClient />
+      <Suspense fallback={null}><ShopReelSettingsClient /></Suspense>
     </GlassShell>
   );
 }
