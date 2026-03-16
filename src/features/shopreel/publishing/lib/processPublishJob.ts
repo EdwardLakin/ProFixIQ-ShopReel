@@ -13,6 +13,7 @@ type PublicationPayloadRow = {
   id: string;
   tenant_shop_id?: string;
   source_shop_id?: string;
+  content_piece_id?: string | null;
   platform:
     | "instagram"
     | "facebook"
@@ -61,6 +62,7 @@ export async function processPublishJob(jobId: string) {
       attempt_count: (job.attempt_count ?? 0) + 1,
       locked_at: new Date().toISOString(),
       locked_by: "worker:publish",
+      updated_at: new Date().toISOString(),
     })
     .eq("id", jobId);
 
@@ -88,6 +90,7 @@ export async function processPublishJob(jobId: string) {
       videoUrl: video.render_url,
       thumbnailUrl: video.thumbnail_url,
       publicationId: publication.id,
+      contentPieceId: publication.content_piece_id ?? null,
     });
 
     const publicationMetadata = jsonObject(publication.metadata);
@@ -100,19 +103,40 @@ export async function processPublishJob(jobId: string) {
           result.status === "published" ? new Date().toISOString() : null,
         platform_post_id: result.remotePostId,
         platform_post_url: result.remotePostUrl ?? null,
+        error_text: null,
         metadata: {
           ...publicationMetadata,
           last_attempt_at: new Date().toISOString(),
           attempt_count: (job.attempt_count ?? 0) + 1,
+          publish_result: result,
         },
+        updated_at: new Date().toISOString(),
       })
       .eq("id", publication.id);
+
+    if (publication.content_piece_id) {
+      await supabase.from("content_events").insert({
+        tenant_shop_id: shopId,
+        source_shop_id: shopId,
+        source_system: "shopreel",
+        content_piece_id: publication.content_piece_id,
+        event_type: "published",
+        occurred_at: new Date().toISOString(),
+        payload: {
+          publication_id: publication.id,
+          platform: publication.platform,
+          remote_post_id: result.remotePostId ?? null,
+          remote_post_url: result.remotePostUrl ?? null,
+        },
+      } as never);
+    }
 
     await supabase
       .from("shopreel_publish_jobs")
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq("id", jobId);
 
@@ -127,11 +151,21 @@ export async function processPublishJob(jobId: string) {
       error instanceof Error ? error.message : "Unexpected publish error";
 
     await supabase
+      .from("content_publications")
+      .update({
+        status: "failed",
+        error_text: message,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", publication.id);
+
+    await supabase
       .from("shopreel_publish_jobs")
       .update({
         status: "failed",
         completed_at: new Date().toISOString(),
         error_message: message,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", jobId);
 

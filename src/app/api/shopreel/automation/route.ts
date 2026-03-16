@@ -1,14 +1,44 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { runAutomationLoop } from "@/features/shopreel/automation/runAutomationLoop";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
-export async function POST(req: Request) {
-  const { shopId } = await req.json();
+type Body = {
+  shopId?: string;
+};
 
-  if (!shopId) {
-    return NextResponse.json({ error: "shopId required" }, { status: 400 });
+async function safeReadJson(req: NextRequest): Promise<Body> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    return {};
   }
 
-  const result = await runAutomationLoop(shopId);
+  try {
+    return JSON.parse(text) as Body;
+  } catch {
+    return {};
+  }
+}
 
-  return NextResponse.json(result);
+export async function POST(req: NextRequest) {
+  try {
+    const body = await safeReadJson(req);
+
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+
+    const result = await runAutomationLoop(shopId);
+
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to run automation loop",
+      },
+      { status: 500 },
+    );
+  }
 }

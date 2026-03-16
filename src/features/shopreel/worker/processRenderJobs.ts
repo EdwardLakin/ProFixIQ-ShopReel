@@ -1,15 +1,38 @@
 import { createAdminClient } from "@/lib/supabase/server";
 
-export async function processRenderJobs() {
+type RenderJobRow = {
+  id: string;
+  content_piece_id: string | null;
+  publication_id: string | null;
+  render_payload: Record<string, unknown> | null;
+  attempt_count: number | null;
+};
+
+function safeObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+export async function processRenderJobs(contentPieceId?: string | null) {
   const supabase = createAdminClient();
   const legacy = supabase as any;
 
-  const { data: jobs, error } = await legacy
+  let query = legacy
     .from("reel_render_jobs")
     .select("*")
     .eq("status", "queued")
+    .lte("run_after", new Date().toISOString())
     .order("created_at", { ascending: true })
-    .limit(5);
+    .limit(10);
+
+  if (contentPieceId) {
+    query = query.eq("content_piece_id", contentPieceId);
+  }
+
+  const { data: jobs, error } = await query;
 
   if (error) {
     throw new Error(error.message);
@@ -19,12 +42,12 @@ export async function processRenderJobs() {
     return { processed: 0 };
   }
 
-  for (const job of jobs) {
+  for (const job of jobs as RenderJobRow[]) {
     try {
       await legacy
         .from("reel_render_jobs")
         .update({
-          status: "rendering",
+          status: "processing",
           locked_at: new Date().toISOString(),
           locked_by: "worker:render",
           attempt_count: (job.attempt_count ?? 0) + 1,
@@ -38,7 +61,7 @@ export async function processRenderJobs() {
       await legacy
         .from("reel_render_jobs")
         .update({
-          status: "ready",
+          status: "completed",
           render_url: fakeRenderUrl,
           thumbnail_url: fakeThumbUrl,
           completed_at: new Date().toISOString(),
@@ -57,6 +80,14 @@ export async function processRenderJobs() {
             updated_at: new Date().toISOString(),
           })
           .eq("id", job.content_piece_id);
+
+        await legacy
+          .from("content_calendar_items")
+          .update({
+            status: "ready",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("content_piece_id", job.content_piece_id);
       }
 
       await legacy
@@ -65,6 +96,7 @@ export async function processRenderJobs() {
           status: "ready",
           updated_at: new Date().toISOString(),
           generation_metadata: {
+            ...safeObject(job.render_payload),
             render_completed_at: new Date().toISOString(),
             render_url: fakeRenderUrl,
             thumbnail_url: fakeThumbUrl,
@@ -73,11 +105,13 @@ export async function processRenderJobs() {
         })
         .eq("render_job_id", job.id);
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+
       await legacy
         .from("reel_render_jobs")
         .update({
           status: "failed",
-          error_message: err instanceof Error ? err.message : String(err),
+          error_message: message,
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
@@ -88,12 +122,23 @@ export async function processRenderJobs() {
           status: "failed",
           updated_at: new Date().toISOString(),
           generation_metadata: {
+            ...safeObject(job.render_payload),
             render_failed_at: new Date().toISOString(),
-            render_error: err instanceof Error ? err.message : String(err),
+            render_error: message,
             render_worker: "worker:render",
           },
         })
         .eq("render_job_id", job.id);
+
+      if (job.content_piece_id) {
+        await legacy
+          .from("content_calendar_items")
+          .update({
+            status: "failed",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("content_piece_id", job.content_piece_id);
+      }
     }
   }
 

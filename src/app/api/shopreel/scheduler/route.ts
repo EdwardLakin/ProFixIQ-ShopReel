@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runScheduledPublishWorker } from "@/features/shopreel/scheduler/runScheduledPublishWorker";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { queueScheduledContent } from "@/features/shopreel/scheduler/queueScheduledContent";
 
-type SchedulerBody = {
+type Body = {
+  shopId?: string;
   contentPieceId?: string;
 };
 
-async function safeReadJson(req: NextRequest): Promise<SchedulerBody> {
+async function safeReadJson(req: NextRequest): Promise<Body> {
   const text = await req.text();
 
   if (!text.trim()) {
@@ -13,7 +15,7 @@ async function safeReadJson(req: NextRequest): Promise<SchedulerBody> {
   }
 
   try {
-    return JSON.parse(text) as SchedulerBody;
+    return JSON.parse(text) as Body;
   } catch {
     return {};
   }
@@ -22,17 +24,26 @@ async function safeReadJson(req: NextRequest): Promise<SchedulerBody> {
 export async function POST(req: NextRequest) {
   try {
     const body = await safeReadJson(req);
-    const result = await runScheduledPublishWorker(body.contentPieceId ?? null);
 
-    return NextResponse.json({
-      ok: true,
-      ...result,
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+
+    const result = await queueScheduledContent({
+      shopId,
+      contentPieceId:
+        typeof body.contentPieceId === "string" && body.contentPieceId.length > 0
+          ? body.contentPieceId
+          : null,
     });
-  } catch (error: any) {
+
+    return NextResponse.json(result);
+  } catch (error) {
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? "scheduler failed",
+        error: error instanceof Error ? error.message : "Failed to queue scheduled content",
       },
       { status: 500 },
     );

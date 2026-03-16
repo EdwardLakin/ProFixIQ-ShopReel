@@ -424,14 +424,22 @@ export type Database = {
       content_platform_accounts: {
         Row: {
           access_token: string | null
+          access_token_encrypted: string | null
           connection_active: boolean
           created_at: string
+          created_by: string | null
           id: string
+          last_connected_at: string | null
+          last_sync_at: string | null
           metadata: Json
           platform: Database["public"]["Enums"]["content_platform"]
           platform_account_id: string | null
+          platform_user_id: string | null
           platform_username: string | null
           refresh_token: string | null
+          refresh_token_encrypted: string | null
+          scopes: string[] | null
+          shop_id: string | null
           source_shop_id: string
           source_system: string
           tenant_shop_id: string
@@ -440,14 +448,22 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          access_token_encrypted?: string | null
           connection_active?: boolean
           created_at?: string
+          created_by?: string | null
           id?: string
+          last_connected_at?: string | null
+          last_sync_at?: string | null
           metadata?: Json
           platform: Database["public"]["Enums"]["content_platform"]
           platform_account_id?: string | null
+          platform_user_id?: string | null
           platform_username?: string | null
           refresh_token?: string | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[] | null
+          shop_id?: string | null
           source_shop_id: string
           source_system?: string
           tenant_shop_id: string
@@ -456,14 +472,22 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          access_token_encrypted?: string | null
           connection_active?: boolean
           created_at?: string
+          created_by?: string | null
           id?: string
+          last_connected_at?: string | null
+          last_sync_at?: string | null
           metadata?: Json
           platform?: Database["public"]["Enums"]["content_platform"]
           platform_account_id?: string | null
+          platform_user_id?: string | null
           platform_username?: string | null
           refresh_token?: string | null
+          refresh_token_encrypted?: string | null
+          scopes?: string[] | null
+          shop_id?: string | null
           source_shop_id?: string
           source_system?: string
           tenant_shop_id?: string
@@ -1455,6 +1479,101 @@ export type Database = {
           vehicle_label?: string | null
         }
         Relationships: []
+      }
+      shopreel_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          generation_limit: number | null
+          id: string
+          metadata: Json
+          period_end: string | null
+          period_start: string | null
+          plan: string
+          shop_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          generation_limit?: number | null
+          id?: string
+          metadata?: Json
+          period_end?: string | null
+          period_start?: string | null
+          plan: string
+          shop_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          generation_limit?: number | null
+          id?: string
+          metadata?: Json
+          period_end?: string | null
+          period_start?: string | null
+          plan?: string
+          shop_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shopreel_usage_periods: {
+        Row: {
+          created_at: string
+          generations_used: number
+          id: string
+          metadata: Json
+          period_end: string
+          period_start: string
+          shop_id: string
+          subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          generations_used?: number
+          id?: string
+          metadata?: Json
+          period_end: string
+          period_start: string
+          shop_id: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          generations_used?: number
+          id?: string
+          metadata?: Json
+          period_end?: string
+          period_start?: string
+          shop_id?: string
+          subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_usage_periods_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       source_shop_links: {
         Row: {

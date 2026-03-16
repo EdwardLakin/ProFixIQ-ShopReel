@@ -1,18 +1,45 @@
-import { generateOpportunities } from "../discovery/generateOpportunities";
-import { runRenderWorker } from "../render/runRenderWorker";
-import { runPublishWorker } from "../publish/runPublishWorker";
-import { runScheduledPublishWorker } from "../scheduler/runScheduledPublishWorker";
+import { createAdminClient } from "@/lib/supabase/server";
+import { runShopReelAutopilot } from "./runShopReelAutopilot";
+import { queueScheduledContent } from "@/features/shopreel/scheduler/queueScheduledContent";
+import { processRenderJobs } from "@/features/shopreel/worker/processRenderJobs";
+import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
+import { runAnalyticsFeedbackLoop } from "@/features/shopreel/analytics/runAnalyticsFeedbackLoop";
 
 export async function runAutomationLoop(shopId: string) {
-  await generateOpportunities(shopId);
+  const supabase = createAdminClient();
 
-  await runScheduledPublishWorker();
+  const { count: activeCalendarCount, error: activeCalendarError } = await supabase
+    .from("content_calendar_items")
+    .select("*", { count: "exact", head: true })
+    .eq("tenant_shop_id", shopId)
+    .in("status", ["planned", "queued", "ready", "publishing"]);
 
-  await runRenderWorker();
+  if (activeCalendarError) {
+    throw new Error(activeCalendarError.message);
+  }
 
-  await runPublishWorker();
+  const shouldAutopilot = (activeCalendarCount ?? 0) < 3;
+
+  const autopilot = shouldAutopilot
+    ? await runShopReelAutopilot(shopId)
+    : {
+        ok: true,
+        skipped: true,
+        reason: "Existing calendar pipeline has enough queued work",
+      };
+
+  const queued = await queueScheduledContent({ shopId });
+  const rendered = await processRenderJobs();
+  const published = await runPublishWorker();
+  const analytics = await runAnalyticsFeedbackLoop(shopId);
 
   return {
     ok: true,
+    shopId,
+    autopilot,
+    queued,
+    rendered,
+    published,
+    analytics,
   };
 }

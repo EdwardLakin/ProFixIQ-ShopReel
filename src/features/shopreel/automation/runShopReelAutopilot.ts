@@ -8,6 +8,8 @@ import { generateHooks } from "@/features/shopreel/hooks/generateHooks";
 import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
 import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
 import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
+import { getOptimizationSnapshot } from "@/features/shopreel/optimization/getOptimizationSnapshot";
+import type { Json } from "@/types/supabase";
 
 type SchedulerCalendarItem = {
   day: number;
@@ -43,7 +45,33 @@ type SchedulerResult = {
   memory: unknown;
   signals: unknown;
   moments: unknown;
+  optimization: unknown;
 };
+
+function toJson(value: unknown): Json {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toJson(item));
+  }
+
+  if (typeof value === "object") {
+    const output: Record<string, Json | undefined> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      output[key] = toJson(entry);
+    }
+    return output;
+  }
+
+  return String(value);
+}
 
 function defaultCta(contentType: string, fallback: string | null): string {
   if (fallback && fallback.trim().length > 0) {
@@ -64,7 +92,7 @@ function defaultCta(contentType: string, fallback: string | null): string {
   }
 }
 
-function rankOpportunity(opportunity: ContentOpportunity): number {
+function baseRank(opportunity: ContentOpportunity): number {
   switch (opportunity.contentType) {
     case "before_after":
       return 100;
@@ -104,12 +132,30 @@ export async function runShopReelAutopilot(
 ): Promise<SchedulerResult> {
   const supabase = createAdminClient();
   const settingsBundle = await getShopReelSettings(shopId);
+  const optimization = await safeRun(
+    "getOptimizationSnapshot",
+    () => getOptimizationSnapshot(shopId),
+    {
+      shopId,
+      updatedAt: new Date().toISOString(),
+      preferredContentTypes: [],
+      contentTypeBoosts: {},
+      winningHookPatterns: [],
+      notes: {},
+    },
+  );
 
   const discovered = await discoverContent(shopId);
   const moments = await safeRun("detectViralMoments", () => detectViralMoments(shopId), []);
 
   const ranked = [...discovered]
-    .sort((a, b) => rankOpportunity(b) - rankOpportunity(a))
+    .sort((a, b) => {
+      const aScore =
+        baseRank(a) + Number(optimization.contentTypeBoosts[a.contentType] ?? 0);
+      const bScore =
+        baseRank(b) + Number(optimization.contentTypeBoosts[b.contentType] ?? 0);
+      return bScore - aScore;
+    })
     .slice(0, 7);
 
   if (ranked.length === 0) {
@@ -123,21 +169,25 @@ export async function runShopReelAutopilot(
 
   const calendarName = `AI Autopilot Calendar ${new Date().toLocaleDateString()}`;
 
+  const calendarInsert = {
+    tenant_shop_id: shopId,
+    source_shop_id: shopId,
+    source_system: "shopreel",
+    name: calendarName,
+    description: "7-day AI-generated ShopReel content calendar.",
+    timezone: "America/Edmonton",
+    settings: toJson({
+      generated_by: "runShopReelAutopilot",
+      readiness_missing: settingsBundle.readiness.missing,
+      opportunity_count: ranked.length,
+      moments_count: Array.isArray(moments) ? moments.length : 0,
+      optimization,
+    }),
+  };
+
   const { data: insertedCalendarData, error: calendarError } = await supabase
     .from("content_calendars")
-    .insert({
-      tenant_shop_id: shopId,
-      source_shop_id: shopId,
-      source_system: "shopreel",
-      name: calendarName,
-      description: "7-day AI-generated ShopReel content calendar.",
-      settings: {
-        generated_by: "runShopReelAutopilot",
-        readiness_missing: settingsBundle.readiness.missing,
-        opportunity_count: ranked.length,
-        moments_count: Array.isArray(moments) ? moments.length : 0,
-      },
-    })
+    .insert(calendarInsert as never)
     .select("id")
     .single();
 
@@ -160,6 +210,17 @@ export async function runShopReelAutopilot(
 
     let resolvedContentPieceId = "";
 
+    const pieceMetadata = toJson({
+      planned_for_calendar: true,
+      scheduled_for: scheduledFor,
+      source_type: opportunity.sourceType,
+      source_id: opportunity.sourceId,
+      reason: opportunity.reason,
+      visual_urls: opportunity.visualUrls,
+      hook_options: hookOptions,
+      optimization,
+    });
+
     if (opportunity.sourceType === "existing_content_piece") {
       resolvedContentPieceId = opportunity.sourceId;
 
@@ -169,15 +230,8 @@ export async function runShopReelAutopilot(
           hook: opportunity.hook,
           cta: resolvedCta,
           platform_targets: enabledTargets,
-          metadata: {
-            planned_for_calendar: true,
-            scheduled_for: scheduledFor,
-            source_type: opportunity.sourceType,
-            source_id: opportunity.sourceId,
-            reason: opportunity.reason,
-            visual_urls: opportunity.visualUrls,
-            hook_options: hookOptions,
-          },
+          metadata: pieceMetadata,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", resolvedContentPieceId);
 
@@ -185,32 +239,26 @@ export async function runShopReelAutopilot(
         throw new Error(updateError.message);
       }
     } else {
+      const pieceInsert = {
+        tenant_shop_id: shopId,
+        source_shop_id: shopId,
+        source_system: "shopreel",
+        source_work_order_id: opportunity.workOrderId,
+        title: opportunity.title,
+        content_type: opportunity.contentType,
+        hook: opportunity.hook,
+        caption: opportunity.hook,
+        cta: resolvedCta,
+        script_text: null,
+        voiceover_text: null,
+        platform_targets: enabledTargets,
+        status: "draft",
+        metadata: pieceMetadata,
+      };
+
       const { data: contentPieceData, error: contentPieceError } = await supabase
         .from("content_pieces")
-        .insert({
-          tenant_shop_id: shopId,
-          source_shop_id: shopId,
-          source_system: "shopreel",
-          source_work_order_id: opportunity.workOrderId,
-          title: opportunity.title,
-          content_type: opportunity.contentType,
-          hook: opportunity.hook,
-          caption: opportunity.hook,
-          cta: resolvedCta,
-          script_text: null,
-          voiceover_text: null,
-          platform_targets: enabledTargets,
-          status: "draft",
-          metadata: {
-            planned_for_calendar: true,
-            scheduled_for: scheduledFor,
-            source_type: opportunity.sourceType,
-            source_id: opportunity.sourceId,
-            reason: opportunity.reason,
-            visual_urls: opportunity.visualUrls,
-            hook_options: hookOptions,
-          },
-        })
+        .insert(pieceInsert as never)
         .select("id")
         .single();
 
@@ -223,26 +271,29 @@ export async function runShopReelAutopilot(
       resolvedContentPieceId = contentPiece.id;
     }
 
+    const calendarItemInsert = {
+      calendar_id: insertedCalendar.id,
+      content_piece_id: resolvedContentPieceId,
+      scheduled_for: scheduledFor,
+      tenant_shop_id: shopId,
+      source_shop_id: shopId,
+      source_system: "shopreel",
+      status: "planned",
+      metadata: toJson({
+        source_type: opportunity.sourceType,
+        source_id: opportunity.sourceId,
+        reason: opportunity.reason,
+        visual_urls: opportunity.visualUrls,
+        work_order_id: opportunity.workOrderId,
+        day: index + 1,
+        hook_options: hookOptions,
+        optimization,
+      }),
+    };
+
     const { error: calendarItemError } = await supabase
       .from("content_calendar_items")
-      .insert({
-        calendar_id: insertedCalendar.id,
-        content_piece_id: resolvedContentPieceId,
-        scheduled_for: scheduledFor,
-        tenant_shop_id: shopId,
-        source_shop_id: shopId,
-        source_system: "shopreel",
-        status: "planned",
-        metadata: {
-          source_type: opportunity.sourceType,
-          source_id: opportunity.sourceId,
-          reason: opportunity.reason,
-          visual_urls: opportunity.visualUrls,
-          work_order_id: opportunity.workOrderId,
-          day: index + 1,
-          hook_options: hookOptions,
-        },
-      });
+      .insert(calendarItemInsert as never);
 
     if (calendarItemError) {
       throw new Error(calendarItemError.message);
@@ -273,6 +324,7 @@ export async function runShopReelAutopilot(
       topContentTypes: [],
     },
   );
+
   const signals = await safeRun(
     "updateLearningSignals",
     () => updateLearningSignals(shopId),
@@ -301,5 +353,6 @@ export async function runShopReelAutopilot(
     memory,
     signals,
     moments,
+    optimization,
   };
 }

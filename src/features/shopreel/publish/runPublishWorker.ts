@@ -1,43 +1,42 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { getPlatformIntegration } from "@/features/shopreel/integrations/shared/platformRegistry";
-import type {
-  PublishInput,
-  PublishResult,
-  ShopReelPlatform,
-} from "@/features/shopreel/integrations/shared/types";
+import { createPublicationBundle } from "@/features/shopreel/publishing/lib/createPublicationBundle";
+import { processPublishJob } from "@/features/shopreel/publishing/lib/processPublishJob";
+import type { ShopReelPlatform } from "@/features/shopreel/integrations/shared/types";
 
 type ContentPieceRow = {
   id: string;
   tenant_shop_id: string;
   title: string | null;
   caption: string | null;
-};
-
-type ContentAssetRow = {
-  id: string;
-  file_url: string | null;
-  public_url: string | null;
-  asset_url: string | null;
-  url: string | null;
+  published_at: string | null;
 };
 
 type ConnectedPlatformRow = {
   platform: string | null;
 };
 
-type SuccessfulPublish = {
-  platform: ShopReelPlatform;
-  result: PublishResult;
+type PublicationRow = {
+  id: string;
+  content_piece_id: string | null;
+  platform: string | null;
+  status: string | null;
 };
 
-const AUTO_PUBLISH_PLATFORMS: ShopReelPlatform[] = [
+type PublishJobRow = {
+  id: string;
+  publication_id: string;
+};
+
+type AutoPublishPlatform = "facebook" | "instagram" | "tiktok" | "youtube";
+
+const AUTO_PUBLISH_PLATFORMS: AutoPublishPlatform[] = [
   "facebook",
   "instagram",
   "tiktok",
   "youtube",
 ];
 
-function isAutoPublishPlatform(value: string | null): value is ShopReelPlatform {
+function isAutoPublishPlatform(value: string | null): value is AutoPublishPlatform {
   return (
     value === "facebook" ||
     value === "instagram" ||
@@ -46,7 +45,7 @@ function isAutoPublishPlatform(value: string | null): value is ShopReelPlatform 
   );
 }
 
-async function getConnectedPlatforms(shopId: string): Promise<ShopReelPlatform[]> {
+async function getConnectedPlatforms(shopId: string): Promise<AutoPublishPlatform[]> {
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -60,7 +59,7 @@ async function getConnectedPlatforms(shopId: string): Promise<ShopReelPlatform[]
   }
 
   const rows = (data ?? []) as ConnectedPlatformRow[];
-  const unique = new Set<ShopReelPlatform>();
+  const unique = new Set<AutoPublishPlatform>();
 
   for (const row of rows) {
     if (
@@ -74,19 +73,14 @@ async function getConnectedPlatforms(shopId: string): Promise<ShopReelPlatform[]
   return Array.from(unique);
 }
 
-function pickVideoUrl(asset: ContentAssetRow | null): string | null {
-  if (!asset) return null;
-
-  return asset.public_url ?? asset.file_url ?? asset.asset_url ?? asset.url ?? null;
-}
-
 export async function runPublishWorker(contentPieceId?: string | null) {
   const supabase = createAdminClient();
 
   let query = supabase
     .from("content_pieces")
-    .select("id, tenant_shop_id, title, caption")
+    .select("id, tenant_shop_id, title, caption, published_at")
     .eq("status", "ready")
+    .is("published_at", null)
     .limit(25);
 
   if (contentPieceId) {
@@ -101,137 +95,152 @@ export async function runPublishWorker(contentPieceId?: string | null) {
 
   const items = (ready ?? []) as ContentPieceRow[];
 
-  if (items.length === 0) {
-    return { published: 0, attempted: 0, failed: 0 };
-  }
-
-  let published = 0;
   let attempted = 0;
+  let published = 0;
   let failed = 0;
+  const dueJobIds: string[] = [];
 
   for (const item of items) {
     attempted += 1;
-
-    await supabase
-      .from("content_calendar_items")
-      .update({ status: "publishing" })
-      .eq("content_piece_id", item.id);
-
-    const { data: assetData, error: assetError } = await supabase
-      .from("content_assets")
-      .select("id, file_url, public_url, asset_url, url")
-      .eq("content_piece_id", item.id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (assetError) {
-      await supabase
-        .from("content_calendar_items")
-        .update({ status: "failed_publish" })
-        .eq("content_piece_id", item.id);
-
-      failed += 1;
-      continue;
-    }
-
-    const asset = (assetData ?? null) as ContentAssetRow | null;
-    const videoUrl = pickVideoUrl(asset);
-
-    if (!videoUrl) {
-      await supabase
-        .from("content_calendar_items")
-        .update({ status: "failed_publish" })
-        .eq("content_piece_id", item.id);
-
-      failed += 1;
-      continue;
-    }
 
     const targets = await getConnectedPlatforms(item.tenant_shop_id);
 
     if (targets.length === 0) {
       await supabase
         .from("content_calendar_items")
-        .update({ status: "failed_publish" })
+        .update({
+          status: "failed_publish",
+          updated_at: new Date().toISOString(),
+        })
         .eq("content_piece_id", item.id);
 
       failed += 1;
       continue;
     }
 
-    const settled = await Promise.allSettled(
-      targets.map(async (platform) => {
-        const integration = getPlatformIntegration(platform);
+    const { data: existingPublications, error: existingPublicationsError } = await supabase
+      .from("content_publications")
+      .select("id, content_piece_id, platform, status")
+      .eq("tenant_shop_id", item.tenant_shop_id)
+      .eq("content_piece_id", item.id);
 
-        const payload: PublishInput = {
-          shopId: item.tenant_shop_id,
-          platform,
-          title: item.title ?? "ShopReel Post",
-          caption: item.caption ?? item.title ?? null,
-          videoUrl,
-          contentPieceId: item.id,
-          contentAssetId: asset?.id ?? null,
-        };
-
-        return integration.publishVideo(payload);
-      }),
-    );
-
-    const successes: SuccessfulPublish[] = [];
-
-    for (let i = 0; i < settled.length; i += 1) {
-      const entry = settled[i];
-      const platform = targets[i];
-
-      if (entry.status === "fulfilled" && entry.value.ok) {
-        successes.push({
-          platform,
-          result: entry.value,
-        });
-      }
+    if (existingPublicationsError) {
+      throw new Error(existingPublicationsError.message);
     }
 
-    for (const success of successes) {
-      const { error: publicationInsertError } = await supabase
+    const publications = (existingPublications ?? []) as PublicationRow[];
+
+    for (const platform of targets) {
+      const existing = publications.find(
+        (row) =>
+          row.content_piece_id === item.id &&
+          row.platform === platform &&
+          row.status !== "failed",
+      );
+
+      if (existing) {
+        const { data: existingJob, error: existingJobError } = await supabase
+          .from("shopreel_publish_jobs")
+          .select("id, publication_id")
+          .eq("publication_id", existing.id)
+          .in("status", ["queued", "processing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingJobError) {
+          throw new Error(existingJobError.message);
+        }
+
+        const job = (existingJob ?? null) as PublishJobRow | null;
+        if (job?.id) {
+          dueJobIds.push(job.id);
+        }
+
+        continue;
+      }
+
+      const bundle = await createPublicationBundle({
+        shopId: item.tenant_shop_id,
+        contentPieceId: item.id,
+        platform,
+        publishMode: "autopilot",
+        scheduledFor: new Date().toISOString(),
+        title: item.title,
+        caption: item.caption,
+        enqueueNow: true,
+      });
+
+      if (bundle.publishJob?.id) {
+        dueJobIds.push(bundle.publishJob.id);
+      }
+    }
+  }
+
+  const { data: queuedJobs, error: queuedJobsError } = await supabase
+    .from("shopreel_publish_jobs")
+    .select("id, publication_id")
+    .eq("status", "queued")
+    .lte("run_after", new Date().toISOString())
+    .order("created_at", { ascending: true })
+    .limit(25);
+
+  if (queuedJobsError) {
+    throw new Error(queuedJobsError.message);
+  }
+
+  for (const job of ((queuedJobs ?? []) as PublishJobRow[])) {
+    if (!dueJobIds.includes(job.id)) {
+      dueJobIds.push(job.id);
+    }
+  }
+
+  for (const jobId of dueJobIds) {
+    try {
+      const result = await processPublishJob(jobId);
+
+      const publicationId =
+        result && typeof result === "object" && "publicationId" in result
+          ? String((result as { publicationId: string }).publicationId)
+          : null;
+
+      if (!publicationId) continue;
+
+      const { data: publicationRow, error: publicationRowError } = await supabase
         .from("content_publications")
-        .insert({
-          tenant_shop_id: item.tenant_shop_id,
-          source_shop_id: item.tenant_shop_id,
-          content_piece_id: item.id,
-          platform: success.platform,
-          status: success.result.status,
-          remote_post_id: success.result.remotePostId,
-          remote_post_url: success.result.remotePostUrl ?? null,
-          published_at: new Date().toISOString(),
-        } as never);
+        .select("content_piece_id, status")
+        .eq("id", publicationId)
+        .maybeSingle();
 
-      if (publicationInsertError) {
-        throw new Error(publicationInsertError.message);
+      if (publicationRowError) {
+        throw new Error(publicationRowError.message);
       }
-    }
 
-    if (successes.length > 0) {
-      await supabase
-        .from("content_pieces")
-        .update({
-          status: "published",
-          published_at: new Date().toISOString(),
-        })
-        .eq("id", item.id);
+      const publication = publicationRow as { content_piece_id: string | null; status: string | null } | null;
 
-      await supabase
-        .from("content_calendar_items")
-        .update({ status: "published" })
-        .eq("content_piece_id", item.id);
+      if (!publication?.content_piece_id) continue;
 
-      published += 1;
-    } else {
-      await supabase
-        .from("content_calendar_items")
-        .update({ status: "failed_publish" })
-        .eq("content_piece_id", item.id);
+      if (publication.status === "published") {
+        await supabase
+          .from("content_pieces")
+          .update({
+            status: "published",
+            published_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", publication.content_piece_id);
 
+        await supabase
+          .from("content_calendar_items")
+          .update({
+            status: "published",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("content_piece_id", publication.content_piece_id);
+
+        published += 1;
+      }
+    } catch {
       failed += 1;
     }
   }
@@ -240,5 +249,6 @@ export async function runPublishWorker(contentPieceId?: string | null) {
     published,
     attempted,
     failed,
+    processedJobs: dueJobIds.length,
   };
 }

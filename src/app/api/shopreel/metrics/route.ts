@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { trackMetrics } from "@/features/shopreel/metrics/trackMetrics";
+import { recordContentAnalytics } from "@/features/shopreel/metrics/recordContentAnalytics";
+import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
+import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
 
-type MetricsBody = {
+type Body = {
+  shopId?: string;
   contentPieceId?: string;
-  platform?: string;
+  publicationId?: string | null;
+  platform?: "instagram" | "facebook" | "tiktok" | "youtube" | "blog" | "linkedin" | "google_business" | "email";
   views?: number;
+  impressions?: number;
   likes?: number;
   comments?: number;
   shares?: number;
@@ -12,9 +19,12 @@ type MetricsBody = {
   clicks?: number;
   leads?: number;
   bookings?: number;
+  revenue?: number;
+  watchTimeSeconds?: number;
+  avgWatchSeconds?: number;
 };
 
-async function safeReadJson(req: NextRequest): Promise<MetricsBody> {
+async function safeReadJson(req: NextRequest): Promise<Body> {
   const text = await req.text();
 
   if (!text.trim()) {
@@ -22,37 +32,85 @@ async function safeReadJson(req: NextRequest): Promise<MetricsBody> {
   }
 
   try {
-    return JSON.parse(text) as MetricsBody;
+    return JSON.parse(text) as Body;
   } catch {
     return {};
   }
 }
 
 export async function POST(req: NextRequest) {
-  const body = await safeReadJson(req);
+  try {
+    const body = await safeReadJson(req);
 
-  if (typeof body.contentPieceId !== "string" || typeof body.platform !== "string") {
+    if (typeof body.contentPieceId !== "string" || body.contentPieceId.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "contentPieceId is required" },
+        { status: 400 },
+      );
+    }
+
+    if (typeof body.platform !== "string" || body.platform.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "platform is required" },
+        { status: 400 },
+      );
+    }
+
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+
+    const [metric, analytics, signals, memory] = await Promise.all([
+      trackMetrics({
+        shopId,
+        contentPieceId: body.contentPieceId,
+        platform: body.platform,
+        views: body.views,
+        impressions: body.impressions,
+        likes: body.likes,
+        comments: body.comments,
+        shares: body.shares,
+        saves: body.saves,
+        clicks: body.clicks,
+        leads: body.leads,
+        bookings: body.bookings,
+        revenue: body.revenue,
+        watchTimeSeconds: body.watchTimeSeconds,
+        avgWatchSeconds: body.avgWatchSeconds,
+      }),
+      recordContentAnalytics({
+        shopId,
+        contentPieceId: body.contentPieceId,
+        publicationId: body.publicationId ?? null,
+        platform: body.platform,
+        views: body.views,
+        likes: body.likes,
+        shares: body.shares,
+        comments: body.comments,
+        saves: body.saves,
+        clicks: body.clicks,
+        leads: body.leads,
+        bookings: body.bookings,
+      }),
+      updateLearningSignals(shopId),
+      updateMarketingMemory(shopId),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      metric,
+      analytics,
+      signals,
+      memory,
+    });
+  } catch (error) {
     return NextResponse.json(
-      { error: "contentPieceId and platform are required" },
-      { status: 400 },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to record metrics",
+      },
+      { status: 500 },
     );
   }
-
-  const result = await trackMetrics({
-    contentPieceId: body.contentPieceId,
-    platform: body.platform,
-    views: body.views,
-    likes: body.likes,
-    comments: body.comments,
-    shares: body.shares,
-    saves: body.saves,
-    clicks: body.clicks,
-    leads: body.leads,
-    bookings: body.bookings,
-  });
-
-  return NextResponse.json({
-    ok: true,
-    result,
-  });
 }

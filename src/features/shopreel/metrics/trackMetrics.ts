@@ -1,9 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/server";
 
 type TrackMetricsInput = {
+  shopId?: string;
   contentPieceId: string;
   platform: string;
   views?: number;
+  impressions?: number;
   likes?: number;
   comments?: number;
   shares?: number;
@@ -11,53 +13,67 @@ type TrackMetricsInput = {
   clicks?: number;
   leads?: number;
   bookings?: number;
+  revenue?: number;
+  watchTimeSeconds?: number;
+  avgWatchSeconds?: number;
+};
+
+type ContentPieceRow = {
+  tenant_shop_id: string;
 };
 
 export async function trackMetrics(input: TrackMetricsInput) {
   const supabase = createAdminClient();
 
-  const views = input.views ?? 0;
-  const likes = input.likes ?? 0;
-  const comments = input.comments ?? 0;
-  const shares = input.shares ?? 0;
-  const saves = input.saves ?? 0;
-  const clicks = input.clicks ?? 0;
-  const leads = input.leads ?? 0;
-  const bookings = input.bookings ?? 0;
+  let shopId = input.shopId ?? null;
 
-  const engagementScore =
-    views > 0
-      ? Number(
-          (
-            (likes +
-              comments * 2 +
-              shares * 3 +
-              saves * 2 +
-              clicks * 4 +
-              leads * 8 +
-              bookings * 10) /
-            views
-          ).toFixed(4),
-        )
-      : 0;
+  if (!shopId) {
+    const { data: pieceData, error: pieceError } = await supabase
+      .from("content_pieces")
+      .select("tenant_shop_id")
+      .eq("id", input.contentPieceId)
+      .maybeSingle();
 
-  const insertPayload = {
-    content_piece_id: input.contentPieceId,
+    if (pieceError) {
+      throw new Error(pieceError.message);
+    }
+
+    const piece = (pieceData ?? null) as ContentPieceRow | null;
+    shopId = piece?.tenant_shop_id ?? null;
+  }
+
+  if (!shopId) {
+    throw new Error("Unable to resolve shopId for metric tracking");
+  }
+
+  const payload = {
+    shop_id: shopId,
+    video_id: input.contentPieceId,
     platform: input.platform,
-    views,
-    likes,
-    comments,
-    shares,
-    saves,
-    clicks,
-    leads,
-    bookings,
-    engagement_score: engagementScore,
+    metric_date: new Date().toISOString().slice(0, 10),
+    views: input.views ?? 0,
+    impressions: input.impressions ?? 0,
+    likes: input.likes ?? 0,
+    comments: input.comments ?? 0,
+    shares: input.shares ?? 0,
+    saves: input.saves ?? 0,
+    clicks: input.clicks ?? 0,
+    leads: input.leads ?? 0,
+    bookings: input.bookings ?? 0,
+    revenue: input.revenue ?? 0,
+    watch_time_seconds: input.watchTimeSeconds ?? 0,
+    avg_watch_seconds: input.avgWatchSeconds ?? 0,
+    meta: {
+      source: "trackMetrics",
+    },
+    updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase
     .from("video_metrics")
-    .insert(insertPayload as never)
+    .upsert(payload as never, {
+      onConflict: "video_id,platform,metric_date",
+    })
     .select("*")
     .single();
 
