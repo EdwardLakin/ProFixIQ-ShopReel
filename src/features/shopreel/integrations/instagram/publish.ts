@@ -16,6 +16,7 @@ type MetaPublishResponse = {
 };
 
 type PlatformAccountRow = {
+  id?: string;
   access_token_encrypted: string | null;
   metadata: unknown;
   platform_account_id: string | null;
@@ -50,8 +51,8 @@ export async function publishInstagramVideo(
 
   const accountQuery = supabase
     .from("content_platform_accounts")
-    .select("access_token_encrypted, metadata, platform_account_id, connection_active")
-    .eq("shop_id", input.shopId)
+    .select("id, access_token_encrypted, metadata, platform_account_id, connection_active")
+    .eq("tenant_shop_id", input.shopId)
     .eq("platform", "instagram")
     .eq("connection_active", true)
     .limit(1);
