@@ -48,7 +48,7 @@ type ContentPlatformAccountRow = {
 };
 
 function buildFacebookScopes(): string {
-  return ["pages_show_list"].join(",");
+  return ["pages_show_list", "pages_read_engagement"].join(",");
 }
 
 async function exchangeMetaCodeForToken(code: string): Promise<MetaTokenResponse> {
@@ -84,6 +84,32 @@ function readMetaPageId(metadata: unknown): string | null {
 
   const value = (metadata as Record<string, unknown>).meta_page_id;
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function selectPreferredFacebookPage(
+  pages: Array<{
+    id: string;
+    name?: string;
+    access_token?: string;
+    instagram_business_account?: {
+      id?: string;
+    } | null;
+  }>,
+) {
+  if (pages.length === 0) return null;
+
+  const pageWithInstagram =
+    pages.find((page) => page.instagram_business_account?.id) ?? null;
+
+  if (pageWithInstagram) return pageWithInstagram;
+
+  const preferredByName =
+    pages.find((page) => {
+      const name = (page.name ?? "").trim().toLowerCase();
+      return name === "shopreel ai" || name === "shopreel.profixiq";
+    }) ?? null;
+
+  return preferredByName ?? pages[0] ?? null;
 }
 
 async function saveFacebookPlatformAccount(args: {
@@ -127,13 +153,14 @@ async function saveFacebookPlatformAccount(args: {
     throw new Error(existingError.message);
   }
 
-  const existing = ((existingRows ?? []) as ContentPlatformAccountRow[]).find((row) => {
-    return (
-      row.platform_account_id === platformAccountId ||
-      row.platform_account_id === args.userId ||
-      readMetaPageId(row.metadata) === args.pageId
-    );
-  }) ?? null;
+  const existing =
+    ((existingRows ?? []) as ContentPlatformAccountRow[]).find((row) => {
+      return (
+        row.platform_account_id === platformAccountId ||
+        row.platform_account_id === args.userId ||
+        readMetaPageId(row.metadata) === args.pageId
+      );
+    }) ?? null;
 
   const writePayload = {
     platform_username: args.pageName ?? args.userName ?? null,
@@ -248,25 +275,36 @@ export const facebookIntegration: PlatformIntegration = {
     );
 
     const pagesJson = (await pagesRes.json().catch(() => ({}))) as MetaPagesResponse;
-    const firstPage = Array.isArray(pagesJson.data) ? pagesJson.data[0] ?? null : null;
+    const pages = Array.isArray(pagesJson.data) ? pagesJson.data : [];
+    const selectedPage = selectPreferredFacebookPage(pages);
+
+    if (!pagesRes.ok || pages.length === 0) {
+      throw new Error(
+        pagesJson.error?.message ?? "No Facebook Pages were returned for this account.",
+      );
+    }
+
+    if (!selectedPage) {
+      throw new Error("No usable Facebook Page was found for this account.");
+    }
 
     const savedAccountId = await saveFacebookPlatformAccount({
       shopId,
       accessToken,
       tokenExpiresAt,
-      pageId: firstPage?.id ?? null,
-      pageName: firstPage?.name ?? null,
-      pageAccessToken: firstPage?.access_token ?? null,
+      pageId: selectedPage.id ?? null,
+      pageName: selectedPage.name ?? null,
+      pageAccessToken: selectedPage.access_token ?? null,
       userId: meJson.id ?? null,
       userName: meJson.name ?? null,
-      instagramBusinessId: firstPage?.instagram_business_account?.id ?? null,
+      instagramBusinessId: selectedPage.instagram_business_account?.id ?? null,
     });
 
     return {
       ok: true,
       platform: "facebook",
       shopId,
-      accountLabel: firstPage?.name ?? meJson.name ?? "Facebook Account",
+      accountLabel: selectedPage.name ?? meJson.name ?? "Facebook Account",
       platformAccountId: savedAccountId,
     };
   },
