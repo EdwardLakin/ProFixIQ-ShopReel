@@ -98,18 +98,20 @@ function selectPreferredFacebookPage(
 ) {
   if (pages.length === 0) return null;
 
-  const pageWithInstagram =
-    pages.find((page) => page.instagram_business_account?.id) ?? null;
-
-  if (pageWithInstagram) return pageWithInstagram;
-
   const preferredByName =
     pages.find((page) => {
       const name = (page.name ?? "").trim().toLowerCase();
       return name === "shopreel ai" || name === "shopreel.profixiq";
     }) ?? null;
 
-  return preferredByName ?? pages[0] ?? null;
+  if (preferredByName) return preferredByName;
+
+  const pageWithInstagram =
+    pages.find((page) => page.instagram_business_account?.id) ?? null;
+
+  if (pageWithInstagram) return pageWithInstagram;
+
+  return pages[0] ?? null;
 }
 
 async function saveFacebookPlatformAccount(args: {
@@ -274,14 +276,29 @@ export const facebookIntegration: PlatformIntegration = {
       },
     );
 
-    const pagesJson = (await pagesRes.json().catch(() => ({}))) as MetaPagesResponse;
+    const pagesText = await pagesRes.text();
+    console.log("FACEBOOK /me/accounts status:", pagesRes.status);
+    console.log("FACEBOOK /me/accounts raw:", pagesText);
+
+    let pagesJson: MetaPagesResponse = {};
+    try {
+      pagesJson = JSON.parse(pagesText) as MetaPagesResponse;
+    } catch {
+      throw new Error(`Invalid /me/accounts response: ${pagesText}`);
+    }
+
     const pages = Array.isArray(pagesJson.data) ? pagesJson.data : [];
     const selectedPage = selectPreferredFacebookPage(pages);
 
-    if (!pagesRes.ok || pages.length === 0) {
+    if (!pagesRes.ok) {
       throw new Error(
-        pagesJson.error?.message ?? "No Facebook Pages were returned for this account.",
+        pagesJson.error?.message ??
+          `Failed to load Facebook Pages. Raw response: ${pagesText}`,
       );
+    }
+
+    if (pages.length === 0) {
+      throw new Error(`No Facebook Pages were returned. Raw response: ${pagesText}`);
     }
 
     if (!selectedPage) {
