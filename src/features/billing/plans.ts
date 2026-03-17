@@ -1,4 +1,4 @@
-export type BillingPlan = "starter" | "creator" | "pro";
+export type BillingPlan = "starter" | "growth" | "unlimited";
 
 export type PlanConfig = {
   key: BillingPlan;
@@ -14,27 +14,30 @@ export const BILLING_PLANS: Record<BillingPlan, PlanConfig> = {
   starter: {
     key: "starter",
     name: "Starter",
-    monthlyPrice: 39,
-    generationLimit: 30,
-    description: "For early creators and small businesses validating consistent content.",
+    monthlyPrice: 49,
+    generationLimit: 100,
+    description:
+      "For smaller businesses getting consistent with AI-generated content and publishing.",
     stripeEnvKey: "STRIPE_PRICE_STARTER",
   },
-  creator: {
-    key: "creator",
-    name: "Creator",
-    monthlyPrice: 99,
-    generationLimit: 150,
-    description: "For active creators and businesses publishing every week.",
+  growth: {
+    key: "growth",
+    name: "Growth",
+    monthlyPrice: 149,
+    generationLimit: 500,
+    description:
+      "For growing businesses running content weekly across multiple channels.",
     badge: "Most popular",
-    stripeEnvKey: "STRIPE_PRICE_CREATOR",
+    stripeEnvKey: "STRIPE_PRICE_GROWTH",
   },
-  pro: {
-    key: "pro",
-    name: "Pro",
-    monthlyPrice: 249,
+  unlimited: {
+    key: "unlimited",
+    name: "Unlimited",
+    monthlyPrice: 399,
     generationLimit: null,
-    description: "For serious teams that want always-on content generation.",
-    stripeEnvKey: "STRIPE_PRICE_PRO",
+    description:
+      "For serious teams that want always-on AI marketing automation without generation caps.",
+    stripeEnvKey: "STRIPE_PRICE_UNLIMITED",
   },
 };
 
@@ -42,7 +45,9 @@ export function getPlanConfig(plan: BillingPlan): PlanConfig {
   return BILLING_PLANS[plan];
 }
 
-export function getPlanByPriceId(priceId: string | null | undefined): PlanConfig | null {
+export function getPlanByPriceId(
+  priceId: string | null | undefined,
+): PlanConfig | null {
   if (!priceId) return null;
 
   for (const plan of Object.values(BILLING_PLANS)) {

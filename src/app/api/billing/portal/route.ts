@@ -31,7 +31,10 @@ export async function POST() {
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Failed to create billing portal session",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create billing portal session",
       },
       { status: 500 },
     );

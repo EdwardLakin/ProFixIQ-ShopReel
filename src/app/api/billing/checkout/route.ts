@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
     const body = await safeReadJson(req);
 
     if (!(body.plan in BILLING_PLANS)) {
-      return NextResponse.json({ ok: false, error: "Invalid plan" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Invalid plan" },
+        { status: 400 },
+      );
     }
 
     const stripe = getStripeServerClient();
@@ -53,21 +56,19 @@ export async function POST(req: NextRequest) {
 
       customerId = customer.id;
 
-      await supabase
-        .from("shopreel_subscriptions")
-        .upsert(
-          {
-            shop_id: shopId,
-            stripe_customer_id: customerId,
-            plan: body.plan,
-            status: "inactive",
-            generation_limit: plan.generationLimit,
-            metadata: {
-              source: "checkout_init",
-            },
-          } as never,
-          { onConflict: "shop_id" },
-        );
+      await supabase.from("shopreel_subscriptions").upsert(
+        {
+          shop_id: shopId,
+          stripe_customer_id: customerId,
+          plan: body.plan,
+          status: "inactive",
+          generation_limit: plan.generationLimit,
+          metadata: {
+            source: "checkout_init",
+          },
+        } as never,
+        { onConflict: "shop_id" },
+      );
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -104,7 +105,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Failed to create checkout session",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create checkout session",
       },
       { status: 500 },
     );

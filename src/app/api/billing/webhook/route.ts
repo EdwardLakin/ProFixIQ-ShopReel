@@ -39,7 +39,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.text();
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    const event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      webhookSecret,
+    );
 
     switch (event.type) {
       case "customer.subscription.created":
@@ -49,7 +53,8 @@ export async function POST(req: Request) {
         const item = subscription.items.data[0];
         const priceId =
           typeof item?.price?.id === "string" ? item.price.id : null;
-        const { periodStart, periodEnd } = readSubscriptionPeriod(subscription);
+        const { periodStart, periodEnd } =
+          readSubscriptionPeriod(subscription);
 
         await upsertSubscriptionFromStripe({
           stripeCustomerId:

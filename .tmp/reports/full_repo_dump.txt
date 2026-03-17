@@ -1,4 +1,5 @@
 ===== REPO ROOT =====
+./.repo-dump/shopreel_schema_dump.sql
 ./README.md
 ./docs/architecture/project-split-plan.md
 ./middleware.ts
@@ -9,6 +10,9 @@
 ./postcss.config.js
 ./scripts/migrations/backfill-shopreel.ts
 ./scripts/migrations/validate-shopreel-parity.ts
+./src/app/api/billing/checkout/route.ts
+./src/app/api/billing/portal/route.ts
+./src/app/api/billing/webhook/route.ts
 ./src/app/api/shopreel/automation/route.ts
 ./src/app/api/shopreel/autopilot/route.ts
 ./src/app/api/shopreel/calendar/route.ts
@@ -102,10 +106,22 @@
 ./src/features/ai/server/generateVideoConcept.ts
 ./src/features/ai/server/openai.ts
 ./src/features/analytics/trackMetrics.ts
+./src/features/billing/assertGenerationAllowed.ts
+./src/features/billing/ensureUsagePeriod.ts
+./src/features/billing/getBaseUrl.ts
+./src/features/billing/getSubscription.ts
+./src/features/billing/getUsageSnapshot.ts
+./src/features/billing/plans.ts
+./src/features/billing/recordGenerationUsage.ts
+./src/features/billing/stripe.ts
+./src/features/billing/upsertSubscriptionFromStripe.ts
 ./src/features/generation/types.ts
+./src/features/landing/components/PricingSection.tsx
 ./src/features/learning/updateLearningSignals.ts
 ./src/features/publish/publishVideo.ts
 ./src/features/shopreel/analytics/analyzePerformance.ts
+./src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts
+./src/features/shopreel/analytics/syncPlatformMetrics.ts
 ./src/features/shopreel/architecture/README.md
 ./src/features/shopreel/automation/runAutomationLoop.ts
 ./src/features/shopreel/automation/runShopReelAutopilot.ts
@@ -186,6 +202,10 @@
 ./src/features/shopreel/moments/scoreViralMoment.ts
 ./src/features/shopreel/opportunities/createOpportunities.ts
 ./src/features/shopreel/opportunities/scoreStorySource.ts
+./src/features/shopreel/optimization/buildPrePublishRanking.ts
+./src/features/shopreel/optimization/getOptimizationSnapshot.ts
+./src/features/shopreel/optimization/mutatePromptStrategy.ts
+./src/features/shopreel/optimization/updateGlobalBenchmarks.ts
 ./src/features/shopreel/platforms/facebook.ts
 ./src/features/shopreel/platforms/instagram.ts
 ./src/features/shopreel/platforms/instagramAdapter.ts
@@ -205,6 +225,7 @@
 ./src/features/shopreel/render/buildRenderPayload.ts
 ./src/features/shopreel/render/createRenderJob.ts
 ./src/features/shopreel/render/runRenderWorker.ts
+./src/features/shopreel/scheduler/queueScheduledContent.ts
 ./src/features/shopreel/scheduler/runScheduledPublishWorker.ts
 ./src/features/shopreel/server/getCurrentShopId.ts
 ./src/features/shopreel/server/scheduler.ts
@@ -275,6 +296,8 @@
 ./supabase/migrations/20260312000000_add_shopreel_story_sources.sql
 ./supabase/migrations/202603120530_add_shopreel_content_opportunities.sql
 ./supabase/migrations/20260312130000_add_shopreel_creator_requests.sql
+./supabase/migrations/202603160001_shopreel_billing.sql
+./supabase/migrations/202603160002_shopreel_learning_loop.sql
 ./supabase/migrations_legacy/20260307031729_remote_schema.sql
 ./supabase/migrations_legacy/20260307035203_remote_schema.sql
 ./supabase/migrations_legacy/20260307035535_init_shopreel_core.sql
@@ -293,6 +316,11 @@
 
 
 ===== FILE CONTENTS =====
+
+
+==================================================
+FILE: ./.repo-dump/shopreel_schema_dump.sql
+==================================================
 
 
 ==================================================
@@ -664,6 +692,7 @@ FILE: ./package-lock.json
         "openai": "^6.27.0",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
+        "stripe": "^20.4.1",
         "tsx": "^4.21.0"
       },
       "devDependencies": {
@@ -1048,7 +1077,6 @@ FILE: ./package-lock.json
       ],
       "engines": {
         "node": ">=18"
-      }
 
 
 ==================================================
@@ -1072,6 +1100,7 @@ FILE: ./package.json
     "openai": "^6.27.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "stripe": "^20.4.1",
     "tsx": "^4.21.0"
   },
   "devDependencies": {
@@ -1494,21 +1523,302 @@ main().catch((err) => {
 });
 
 ==================================================
-FILE: ./src/app/api/shopreel/automation/route.ts
+FILE: ./src/app/api/billing/checkout/route.ts
 ==================================================
-import { NextResponse } from "next/server";
-import { runAutomationLoop } from "@/features/shopreel/automation/runAutomationLoop";
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { getStripeServerClient } from "@/features/billing/stripe";
+import { BILLING_PLANS, type BillingPlan } from "@/features/billing/plans";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getBillingBaseUrl } from "@/features/billing/getBaseUrl";
+import { getSubscription } from "@/features/billing/getSubscription";
 
-export async function POST(req: Request) {
-  const { shopId } = await req.json();
+type Body = {
+  plan: BillingPlan;
+};
 
-  if (!shopId) {
-    return NextResponse.json({ error: "shopId required" }, { status: 400 });
+async function safeReadJson(req: NextRequest): Promise<Body> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    throw new Error("Missing request body");
   }
 
-  const result = await runAutomationLoop(shopId);
+  return JSON.parse(text) as Body;
+}
 
-  return NextResponse.json(result);
+export async function POST(req: NextRequest) {
+  try {
+    const body = await safeReadJson(req);
+
+    if (!(body.plan in BILLING_PLANS)) {
+      return NextResponse.json({ ok: false, error: "Invalid plan" }, { status: 400 });
+    }
+
+    const stripe = getStripeServerClient();
+    const supabase = createAdminClient();
+    const shopId = await getCurrentShopId();
+    const baseUrl = getBillingBaseUrl();
+    const plan = BILLING_PLANS[body.plan];
+    const priceId = process.env[plan.stripeEnvKey];
+
+    if (!priceId) {
+      throw new Error(`Missing ${plan.stripeEnvKey}`);
+    }
+
+    const existingSubscription = await getSubscription(shopId);
+
+    let customerId = existingSubscription?.stripe_customer_id ?? null;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        metadata: {
+          shop_id: shopId,
+          product: "shopreel",
+        },
+      });
+
+      customerId = customer.id;
+
+      await supabase
+        .from("shopreel_subscriptions")
+        .upsert(
+          {
+            shop_id: shopId,
+            stripe_customer_id: customerId,
+            plan: body.plan,
+            status: "inactive",
+            generation_limit: plan.generationLimit,
+            metadata: {
+              source: "checkout_init",
+            },
+          } as never,
+          { onConflict: "shop_id" },
+        );
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${baseUrl}/shopreel?billing=success`,
+      cancel_url: `${baseUrl}/?billing=cancelled`,
+      allow_promotion_codes: true,
+      metadata: {
+        shop_id: shopId,
+        plan: body.plan,
+        product: "shopreel",
+      },
+      subscription_data: {
+        metadata: {
+          shop_id: shopId,
+          plan: body.plan,
+          product: "shopreel",
+        },
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      url: session.url,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to create checkout session",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================================================
+FILE: ./src/app/api/billing/portal/route.ts
+==================================================
+import { NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { getSubscription } from "@/features/billing/getSubscription";
+import { getStripeServerClient } from "@/features/billing/stripe";
+import { getBillingBaseUrl } from "@/features/billing/getBaseUrl";
+
+export async function POST() {
+  try {
+    const stripe = getStripeServerClient();
+    const shopId = await getCurrentShopId();
+    const subscription = await getSubscription(shopId);
+    const customerId = subscription?.stripe_customer_id ?? null;
+
+    if (!customerId) {
+      return NextResponse.json(
+        { ok: false, error: "No Stripe customer found for this shop" },
+        { status: 400 },
+      );
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${getBillingBaseUrl()}/shopreel/account`,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      url: session.url,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to create billing portal session",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+
+==================================================
+FILE: ./src/app/api/billing/webhook/route.ts
+==================================================
+import Stripe from "stripe";
+import { headers } from "next/headers";
+import { NextResponse } from "next/server";
+import { getStripeServerClient } from "@/features/billing/stripe";
+import { upsertSubscriptionFromStripe } from "@/features/billing/upsertSubscriptionFromStripe";
+
+function readSubscriptionPeriod(
+  subscription: Stripe.Subscription,
+): { periodStart: number | null; periodEnd: number | null } {
+  const item = subscription.items.data[0];
+
+  const start =
+    typeof item?.current_period_start === "number"
+      ? item.current_period_start
+      : null;
+
+  const end =
+    typeof item?.current_period_end === "number"
+      ? item.current_period_end
+      : null;
+
+  return {
+    periodStart: start,
+    periodEnd: end,
+  };
+}
+
+export async function POST(req: Request) {
+  try {
+    const stripe = getStripeServerClient();
+    const signature = (await headers()).get("stripe-signature");
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!signature || !webhookSecret) {
+      return NextResponse.json(
+        { ok: false, error: "Missing Stripe webhook configuration" },
+        { status: 400 },
+      );
+    }
+
+    const body = await req.text();
+    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+
+    switch (event.type) {
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const item = subscription.items.data[0];
+        const priceId =
+          typeof item?.price?.id === "string" ? item.price.id : null;
+        const { periodStart, periodEnd } = readSubscriptionPeriod(subscription);
+
+        await upsertSubscriptionFromStripe({
+          stripeCustomerId:
+            typeof subscription.customer === "string"
+              ? subscription.customer
+              : subscription.customer.id,
+          stripeSubscriptionId: subscription.id,
+          stripePriceId: priceId,
+          status: subscription.status,
+          periodStart,
+          periodEnd,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          metadata: subscription.metadata ?? {},
+        });
+
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Webhook failed",
+      },
+      { status: 400 },
+    );
+  }
+}
+
+
+==================================================
+FILE: ./src/app/api/shopreel/automation/route.ts
+==================================================
+import { NextRequest, NextResponse } from "next/server";
+import { runAutomationLoop } from "@/features/shopreel/automation/runAutomationLoop";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+type Body = {
+  shopId?: string;
+};
+
+async function safeReadJson(req: NextRequest): Promise<Body> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text) as Body;
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await safeReadJson(req);
+
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+
+    const result = await runAutomationLoop(shopId);
+
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to run automation loop",
+      },
+      { status: 500 },
+    );
+  }
 }
 
 
@@ -4190,12 +4500,19 @@ export async function POST(req: NextRequest) {
 FILE: ./src/app/api/shopreel/metrics/route.ts
 ==================================================
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { trackMetrics } from "@/features/shopreel/metrics/trackMetrics";
+import { recordContentAnalytics } from "@/features/shopreel/metrics/recordContentAnalytics";
+import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
+import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
 
-type MetricsBody = {
+type Body = {
+  shopId?: string;
   contentPieceId?: string;
-  platform?: string;
+  publicationId?: string | null;
+  platform?: "instagram" | "facebook" | "tiktok" | "youtube" | "blog" | "linkedin" | "google_business" | "email";
   views?: number;
+  impressions?: number;
   likes?: number;
   comments?: number;
   shares?: number;
@@ -4203,9 +4520,12 @@ type MetricsBody = {
   clicks?: number;
   leads?: number;
   bookings?: number;
+  revenue?: number;
+  watchTimeSeconds?: number;
+  avgWatchSeconds?: number;
 };
 
-async function safeReadJson(req: NextRequest): Promise<MetricsBody> {
+async function safeReadJson(req: NextRequest): Promise<Body> {
   const text = await req.text();
 
   if (!text.trim()) {
@@ -4213,39 +4533,87 @@ async function safeReadJson(req: NextRequest): Promise<MetricsBody> {
   }
 
   try {
-    return JSON.parse(text) as MetricsBody;
+    return JSON.parse(text) as Body;
   } catch {
     return {};
   }
 }
 
 export async function POST(req: NextRequest) {
-  const body = await safeReadJson(req);
+  try {
+    const body = await safeReadJson(req);
 
-  if (typeof body.contentPieceId !== "string" || typeof body.platform !== "string") {
+    if (typeof body.contentPieceId !== "string" || body.contentPieceId.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "contentPieceId is required" },
+        { status: 400 },
+      );
+    }
+
+    if (typeof body.platform !== "string" || body.platform.length === 0) {
+      return NextResponse.json(
+        { ok: false, error: "platform is required" },
+        { status: 400 },
+      );
+    }
+
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+
+    const [metric, analytics, signals, memory] = await Promise.all([
+      trackMetrics({
+        shopId,
+        contentPieceId: body.contentPieceId,
+        platform: body.platform,
+        views: body.views,
+        impressions: body.impressions,
+        likes: body.likes,
+        comments: body.comments,
+        shares: body.shares,
+        saves: body.saves,
+        clicks: body.clicks,
+        leads: body.leads,
+        bookings: body.bookings,
+        revenue: body.revenue,
+        watchTimeSeconds: body.watchTimeSeconds,
+        avgWatchSeconds: body.avgWatchSeconds,
+      }),
+      recordContentAnalytics({
+        shopId,
+        contentPieceId: body.contentPieceId,
+        publicationId: body.publicationId ?? null,
+        platform: body.platform,
+        views: body.views,
+        likes: body.likes,
+        shares: body.shares,
+        comments: body.comments,
+        saves: body.saves,
+        clicks: body.clicks,
+        leads: body.leads,
+        bookings: body.bookings,
+      }),
+      updateLearningSignals(shopId),
+      updateMarketingMemory(shopId),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      metric,
+      analytics,
+      signals,
+      memory,
+    });
+  } catch (error) {
     return NextResponse.json(
-      { error: "contentPieceId and platform are required" },
-      { status: 400 },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to record metrics",
+      },
+      { status: 500 },
     );
   }
-
-  const result = await trackMetrics({
-    contentPieceId: body.contentPieceId,
-    platform: body.platform,
-    views: body.views,
-    likes: body.likes,
-    comments: body.comments,
-    shares: body.shares,
-    saves: body.saves,
-    clicks: body.clicks,
-    leads: body.leads,
-    bookings: body.bookings,
-  });
-
-  return NextResponse.json({
-    ok: true,
-    result,
-  });
 }
 
 
@@ -5478,11 +5846,11 @@ FILE: ./src/app/api/shopreel/publish-worker/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
 
-type PublishBody = {
+type Body = {
   contentPieceId?: string;
 };
 
-async function safeReadJson(req: NextRequest): Promise<PublishBody> {
+async function safeReadJson(req: NextRequest): Promise<Body> {
   const text = await req.text();
 
   if (!text.trim()) {
@@ -5490,7 +5858,7 @@ async function safeReadJson(req: NextRequest): Promise<PublishBody> {
   }
 
   try {
-    return JSON.parse(text) as PublishBody;
+    return JSON.parse(text) as Body;
   } catch {
     return {};
   }
@@ -5499,17 +5867,22 @@ async function safeReadJson(req: NextRequest): Promise<PublishBody> {
 export async function POST(req: NextRequest) {
   try {
     const body = await safeReadJson(req);
-    const result = await runPublishWorker(body.contentPieceId ?? null);
+
+    const result = await runPublishWorker(
+      typeof body.contentPieceId === "string" && body.contentPieceId.length > 0
+        ? body.contentPieceId
+        : null,
+    );
 
     return NextResponse.json({
       ok: true,
       ...result,
     });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? "publish worker failed",
+        error: error instanceof Error ? error.message : "Failed to run publish worker",
       },
       { status: 500 },
     );
@@ -6021,13 +6394,13 @@ export async function GET(req: NextRequest) {
 FILE: ./src/app/api/shopreel/render-worker/route.ts
 ==================================================
 import { NextRequest, NextResponse } from "next/server";
-import { runRenderWorker } from "@/features/shopreel/render/runRenderWorker";
+import { processRenderJobs } from "@/features/shopreel/worker/processRenderJobs";
 
-type RenderBody = {
+type Body = {
   contentPieceId?: string;
 };
 
-async function safeReadJson(req: NextRequest): Promise<RenderBody> {
+async function safeReadJson(req: NextRequest): Promise<Body> {
   const text = await req.text();
 
   if (!text.trim()) {
@@ -6035,7 +6408,7 @@ async function safeReadJson(req: NextRequest): Promise<RenderBody> {
   }
 
   try {
-    return JSON.parse(text) as RenderBody;
+    return JSON.parse(text) as Body;
   } catch {
     return {};
   }
@@ -6044,17 +6417,22 @@ async function safeReadJson(req: NextRequest): Promise<RenderBody> {
 export async function POST(req: NextRequest) {
   try {
     const body = await safeReadJson(req);
-    const result = await runRenderWorker(body.contentPieceId ?? null);
+
+    const result = await processRenderJobs(
+      typeof body.contentPieceId === "string" && body.contentPieceId.length > 0
+        ? body.contentPieceId
+        : null,
+    );
 
     return NextResponse.json({
       ok: true,
       ...result,
     });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? "render worker failed",
+        error: error instanceof Error ? error.message : "Failed to run render worker",
       },
       { status: 500 },
     );
@@ -6066,13 +6444,15 @@ export async function POST(req: NextRequest) {
 FILE: ./src/app/api/shopreel/scheduler/route.ts
 ==================================================
 import { NextRequest, NextResponse } from "next/server";
-import { runScheduledPublishWorker } from "@/features/shopreel/scheduler/runScheduledPublishWorker";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { queueScheduledContent } from "@/features/shopreel/scheduler/queueScheduledContent";
 
-type SchedulerBody = {
+type Body = {
+  shopId?: string;
   contentPieceId?: string;
 };
 
-async function safeReadJson(req: NextRequest): Promise<SchedulerBody> {
+async function safeReadJson(req: NextRequest): Promise<Body> {
   const text = await req.text();
 
   if (!text.trim()) {
@@ -6080,7 +6460,7 @@ async function safeReadJson(req: NextRequest): Promise<SchedulerBody> {
   }
 
   try {
-    return JSON.parse(text) as SchedulerBody;
+    return JSON.parse(text) as Body;
   } catch {
     return {};
   }
@@ -6089,17 +6469,26 @@ async function safeReadJson(req: NextRequest): Promise<SchedulerBody> {
 export async function POST(req: NextRequest) {
   try {
     const body = await safeReadJson(req);
-    const result = await runScheduledPublishWorker(body.contentPieceId ?? null);
 
-    return NextResponse.json({
-      ok: true,
-      ...result,
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+
+    const result = await queueScheduledContent({
+      shopId,
+      contentPieceId:
+        typeof body.contentPieceId === "string" && body.contentPieceId.length > 0
+          ? body.contentPieceId
+          : null,
     });
-  } catch (error: any) {
+
+    return NextResponse.json(result);
+  } catch (error) {
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message ?? "scheduler failed",
+        error: error instanceof Error ? error.message : "Failed to queue scheduled content",
       },
       { status: 500 },
     );
@@ -9470,6 +9859,7 @@ type CreateResponse =
       outputType: OutputType;
       generationId?: string;
       editorUrl?: string;
+      creatorRequestId?: string;
       expandedTopic?: string;
       researchSummary?: string;
       researchBullets?: string[];
@@ -9512,6 +9902,7 @@ const BLOG_LENGTH_OPTIONS: Array<{ value: BlogLengthMode; label: string }> = [
 
 export default function ShopReelCreatePage() {
   const router = useRouter();
+
   const [mode, setMode] = useState<CreatorMode>("research_script");
   const [outputType, setOutputType] = useState<OutputType>("video");
   const [blogStyle, setBlogStyle] = useState<BlogStyle>("auto");
@@ -9527,7 +9918,10 @@ export default function ShopReelCreatePage() {
   const [sourceText, setSourceText] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [runningAngleKey, setRunningAngleKey] = useState<string | null>(null);
+  const [selectedAngleIndex, setSelectedAngleIndex] = useState<number | null>(null);
   const [preview, setPreview] = useState<{
+    creatorRequestId?: string;
     expandedTopic: string;
     summary: string;
     bullets: string[];
@@ -9542,6 +9936,7 @@ export default function ShopReelCreatePage() {
       setError(null);
       setIsSubmitting(true);
       setPreview(null);
+      setSelectedAngleIndex(null);
 
       const res = await fetch("/api/shopreel/create/research-script", {
         method: "POST",
@@ -9569,6 +9964,7 @@ export default function ShopReelCreatePage() {
       }
 
       setPreview({
+        creatorRequestId: json.creatorRequestId,
         expandedTopic: json.expandedTopic ?? topic,
         summary: json.researchSummary ?? "",
         bullets: json.researchBullets ?? [],
@@ -9583,6 +9979,56 @@ export default function ShopReelCreatePage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function generateFromAngle(angle: Angle, angleIndex: number, targetOutputType: OutputType) {
+    try {
+      setError(null);
+      const key = `${angleIndex}:${targetOutputType}`;
+      setRunningAngleKey(key);
+      setSelectedAngleIndex(angleIndex);
+
+      const res = await fetch("/api/shopreel/create/from-output", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          creatorRequestId: preview?.creatorRequestId ?? null,
+          outputType: targetOutputType,
+          topic: topic.trim() || preview?.expandedTopic || "Creator topic",
+          audience: audience.trim() || undefined,
+          platformFocus,
+          tone,
+          expandedTopic: preview?.expandedTopic ?? topic,
+          researchSummary: preview?.summary ?? angle.angle,
+          researchBullets: preview?.bullets ?? [],
+          angle,
+        }),
+      });
+
+      const json = (await res.json()) as CreateResponse;
+
+      if (!res.ok || !json.ok) {
+        throw new Error(("error" in json && json.error) || "Failed to create from angle");
+      }
+
+      if (json.editorUrl) {
+        router.push(json.editorUrl);
+        return;
+      }
+
+      throw new Error("No editor URL returned");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create from angle");
+    } finally {
+      setRunningAngleKey(null);
+    }
+  }
+
+  function useAngle(angle: Angle, angleIndex: number) {
+    setSelectedAngleIndex(angleIndex);
+    setTopic(`${preview?.expandedTopic ?? topic} — ${angle.title}`);
   }
 
   return (
@@ -9716,14 +10162,14 @@ export default function ShopReelCreatePage() {
             label="Topic or prompt"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="Example: iPhone 18 leaks and rumors"
+            placeholder="Example: Why most businesses struggle with content"
           />
 
           <GlassInput
             label="Audience"
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
-            placeholder="Example: Apple fans, tech buyers, creators"
+            placeholder="Business owners, creators, marketers"
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -9733,7 +10179,11 @@ export default function ShopReelCreatePage() {
               </div>
               <select
                 value={platformFocus}
-                onChange={(e) => setPlatformFocus(e.target.value as typeof platformFocus)}
+                onChange={(e) =>
+                  setPlatformFocus(
+                    e.target.value as "instagram" | "tiktok" | "youtube" | "facebook" | "multi",
+                  )
+                }
                 className={cx(
                   "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
                   glassTheme.text.primary,
@@ -9744,9 +10194,9 @@ export default function ShopReelCreatePage() {
               >
                 <option value="multi">Multi-platform</option>
                 <option value="instagram">Instagram</option>
-                <option value="tiktok">TikTok</option>
-                <option value="youtube">YouTube Shorts</option>
                 <option value="facebook">Facebook</option>
+                <option value="tiktok">TikTok</option>
+                <option value="youtube">YouTube</option>
               </select>
             </label>
 
@@ -9756,81 +10206,20 @@ export default function ShopReelCreatePage() {
               </div>
               <select
                 value={tone}
-                onChange={(e) => setTone(e.target.value as typeof tone)}
+                onChange={(e) =>
+                  setTone(
+                    e.target.value as
+                      | "professional"
+                      | "educational"
+                      | "friendly"
+                      | "direct"
+                      | "confident"
+                      | "high-energy",
+                  )
+                }
                 className={cx(
                   "w-full rounded-2xl border px-4 py-3 text-sm outline-none transition",
                   glassTheme.text.primary,
-                  glassTheme.glass.input,
-                  glassTheme.border.softer,
-                  "bg-transparent",
-                )}
-              >
-                <option value="confident">Confident</option>
-                <option value="professional">Professional</option>
-                <option value="educational">Educational</option>
-                <option value="friendly">Friendly</option>
-                <option value="direct">Direct</option>
-                <option value="high-energy">High-energy</option>
-              </select>
-            </label>
-          </div>
-
-          <GlassTextarea
-            label="Source text for debunk or stitch"
-            value={sourceText}
-            onChange={(e) => setSourceText(e.target.value)}
-            placeholder="Paste the claim, caption, transcript, or creator take here"
-          />
-
-          <GlassInput
-            label="Source URL"
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-            placeholder="Optional source link"
-          />
-
-          {error ? (
-            <div
-              className={cx(
-                "rounded-2xl border p-4 text-sm",
-                glassTheme.border.copper,
-                glassTheme.glass.panelSoft,
-                glassTheme.text.copperSoft,
-              )}
-            >
-              {error}
-            </div>
-          ) : null}
-        </GlassCard>
-
-        <GlassCard
-          label="Creator intelligence"
-          title="Expanded topic and angle pack"
-          description="Use this to turn one narrow prompt into multiple creator opportunities."
-          strong
-        >
-          {preview ? (
-            <div className="space-y-4">
-              <div
-                className={cx(
-                  "rounded-2xl border p-4",
-                  glassTheme.border.copper,
-                  glassTheme.glass.panelSoft,
-                )}
-              >
-                <div className={cx("text-sm", glassTheme.text.secondary)}>Expanded topic</div>
-                <div className={cx("mt-1 text-base font-medium", glassTheme.text.primary)}>
-                  {preview.expandedTopic}
-                </div>
-              </div>
-
-              <div
-                className={cx(
-                  "rounded-2xl border p-4",
-                  glassTheme.border.copper,
-                  glassTheme.glass.panelSoft,
-                )}
-              >
 
 
 ==================================================
@@ -12665,6 +13054,407 @@ export async function trackMetrics(videoId: string, metrics: VideoMetrics) {
 
 
 ==================================================
+FILE: ./src/features/billing/assertGenerationAllowed.ts
+==================================================
+import { getSubscription } from "./getSubscription";
+import { ensureUsagePeriod } from "./ensureUsagePeriod";
+
+export async function assertGenerationAllowed(shopId: string) {
+  const subscription = await getSubscription(shopId);
+  const usagePeriod = await ensureUsagePeriod(shopId, subscription);
+
+  if (!subscription) {
+    return {
+      ok: true,
+      subscription: null,
+      usagePeriod,
+      limit: null,
+      used: usagePeriod.generations_used,
+      remaining: null,
+    };
+  }
+
+  if (
+    subscription.status !== "active" &&
+    subscription.status !== "trialing"
+  ) {
+    throw new Error("Billing subscription is not active");
+  }
+
+  const limit = subscription.generation_limit;
+  const used = usagePeriod.generations_used;
+
+  if (typeof limit === "number" && used >= limit) {
+    throw new Error("Generation limit reached for current billing period");
+  }
+
+  return {
+    ok: true,
+    subscription,
+    usagePeriod,
+    limit,
+    used,
+    remaining: typeof limit === "number" ? Math.max(limit - used, 0) : null,
+  };
+}
+
+
+==================================================
+FILE: ./src/features/billing/ensureUsagePeriod.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import type { ShopReelSubscription } from "./getSubscription";
+
+export type UsagePeriodRow = {
+  id: string;
+  shop_id: string;
+  subscription_id: string | null;
+  period_start: string;
+  period_end: string;
+  generations_used: number;
+};
+
+export async function ensureUsagePeriod(
+  shopId: string,
+  subscription: ShopReelSubscription | null,
+) {
+  const supabase = createAdminClient();
+
+  const now = new Date();
+  const periodStart = subscription?.period_start ?? new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const periodEnd =
+    subscription?.period_end ??
+    new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+  const { data: existing, error: existingError } = await supabase
+    .from("shopreel_usage_periods")
+    .select("*")
+    .eq("shop_id", shopId)
+    .eq("period_start", periodStart)
+    .eq("period_end", periodEnd)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  if (existing) {
+    return existing as UsagePeriodRow;
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("shopreel_usage_periods")
+    .insert({
+      shop_id: shopId,
+      subscription_id: subscription?.id ?? null,
+      period_start: periodStart,
+      period_end: periodEnd,
+      generations_used: 0,
+      metadata: {
+        source: "ensureUsagePeriod",
+      },
+    } as never)
+    .select("*")
+    .single();
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  return inserted as UsagePeriodRow;
+}
+
+
+==================================================
+FILE: ./src/features/billing/getBaseUrl.ts
+==================================================
+export function getBillingBaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.VERCEL_URL?.startsWith("http")
+      ? process.env.VERCEL_URL!
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000"
+  );
+}
+
+
+==================================================
+FILE: ./src/features/billing/getSubscription.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import type { BillingPlan } from "./plans";
+
+export type ShopReelSubscription = {
+  id: string;
+  shop_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  plan: BillingPlan;
+  status:
+    | "inactive"
+    | "trialing"
+    | "active"
+    | "past_due"
+    | "unpaid"
+    | "canceled"
+    | "incomplete"
+    | "incomplete_expired";
+  generation_limit: number | null;
+  period_start: string | null;
+  period_end: string | null;
+  cancel_at_period_end: boolean;
+  metadata: Record<string, unknown> | null;
+};
+
+export async function getSubscription(shopId: string) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("shopreel_subscriptions")
+    .select("*")
+    .eq("shop_id", shopId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? null) as ShopReelSubscription | null;
+}
+
+
+==================================================
+FILE: ./src/features/billing/getUsageSnapshot.ts
+==================================================
+import { getSubscription } from "./getSubscription";
+import { ensureUsagePeriod } from "./ensureUsagePeriod";
+
+export async function getUsageSnapshot(shopId: string) {
+  const subscription = await getSubscription(shopId);
+  const usagePeriod = await ensureUsagePeriod(shopId, subscription);
+
+  return {
+    subscription,
+    usagePeriod,
+    limit: subscription?.generation_limit ?? null,
+    used: usagePeriod.generations_used,
+    remaining:
+      typeof subscription?.generation_limit === "number"
+        ? Math.max(subscription.generation_limit - usagePeriod.generations_used, 0)
+        : null,
+  };
+}
+
+
+==================================================
+FILE: ./src/features/billing/plans.ts
+==================================================
+export type BillingPlan = "starter" | "creator" | "pro";
+
+export type PlanConfig = {
+  key: BillingPlan;
+  name: string;
+  monthlyPrice: number;
+  generationLimit: number | null;
+  description: string;
+  badge?: string;
+  stripeEnvKey: string;
+};
+
+export const BILLING_PLANS: Record<BillingPlan, PlanConfig> = {
+  starter: {
+    key: "starter",
+    name: "Starter",
+    monthlyPrice: 39,
+    generationLimit: 30,
+    description: "For early creators and small businesses validating consistent content.",
+    stripeEnvKey: "STRIPE_PRICE_STARTER",
+  },
+  creator: {
+    key: "creator",
+    name: "Creator",
+    monthlyPrice: 99,
+    generationLimit: 150,
+    description: "For active creators and businesses publishing every week.",
+    badge: "Most popular",
+    stripeEnvKey: "STRIPE_PRICE_CREATOR",
+  },
+  pro: {
+    key: "pro",
+    name: "Pro",
+    monthlyPrice: 249,
+    generationLimit: null,
+    description: "For serious teams that want always-on content generation.",
+    stripeEnvKey: "STRIPE_PRICE_PRO",
+  },
+};
+
+export function getPlanConfig(plan: BillingPlan): PlanConfig {
+  return BILLING_PLANS[plan];
+}
+
+export function getPlanByPriceId(priceId: string | null | undefined): PlanConfig | null {
+  if (!priceId) return null;
+
+  for (const plan of Object.values(BILLING_PLANS)) {
+    if (process.env[plan.stripeEnvKey] === priceId) {
+      return plan;
+    }
+  }
+
+  return null;
+}
+
+
+==================================================
+FILE: ./src/features/billing/recordGenerationUsage.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import { getSubscription } from "./getSubscription";
+import { ensureUsagePeriod } from "./ensureUsagePeriod";
+
+export async function recordGenerationUsage(input: {
+  shopId: string;
+  generationId?: string | null;
+  source: string;
+  mode?: string | null;
+  outputType?: string | null;
+}) {
+  const supabase = createAdminClient();
+  const subscription = await getSubscription(input.shopId);
+  const usagePeriod = await ensureUsagePeriod(input.shopId, subscription);
+
+  const nextCount = Number(usagePeriod.generations_used ?? 0) + 1;
+
+  const { data, error } = await supabase
+    .from("shopreel_usage_periods")
+    .update({
+      generations_used: nextCount,
+      metadata: {
+        ...(usagePeriod as { metadata?: Record<string, unknown> }).metadata,
+        last_generation_id: input.generationId ?? null,
+        last_generation_source: input.source,
+        last_generation_mode: input.mode ?? null,
+        last_output_type: input.outputType ?? null,
+        last_incremented_at: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", usagePeriod.id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+
+==================================================
+FILE: ./src/features/billing/stripe.ts
+==================================================
+import Stripe from "stripe";
+
+let cached: Stripe | null = null;
+
+export function getStripeServerClient() {
+  if (cached) return cached;
+
+  const apiKey = process.env.STRIPE_SECRET_KEY;
+  if (!apiKey) {
+    throw new Error("Missing STRIPE_SECRET_KEY");
+  }
+
+  cached = new Stripe(apiKey);
+  return cached;
+}
+
+
+==================================================
+FILE: ./src/features/billing/upsertSubscriptionFromStripe.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import { getPlanByPriceId } from "./plans";
+
+export async function upsertSubscriptionFromStripe(input: {
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  stripePriceId: string | null;
+  status: string;
+  periodStart: number | null;
+  periodEnd: number | null;
+  cancelAtPeriodEnd: boolean;
+  metadata?: Record<string, unknown> | null;
+}) {
+  const supabase = createAdminClient();
+
+  const plan = getPlanByPriceId(input.stripePriceId);
+
+  const shopIdFromMetadata =
+    input.metadata && typeof input.metadata.shop_id === "string"
+      ? input.metadata.shop_id
+      : null;
+
+  let existingShopId: string | null = null;
+
+  const { data: existingByCustomer, error: existingByCustomerError } = await supabase
+    .from("shopreel_subscriptions")
+    .select("shop_id")
+    .eq("stripe_customer_id", input.stripeCustomerId)
+    .maybeSingle();
+
+  if (existingByCustomerError) {
+    throw new Error(existingByCustomerError.message);
+  }
+
+  existingShopId =
+    (existingByCustomer as { shop_id?: string } | null)?.shop_id ?? null;
+
+  const shopId = shopIdFromMetadata ?? existingShopId;
+
+  if (!shopId) {
+    throw new Error("Unable to resolve shop_id for Stripe subscription");
+  }
+
+  const { data, error } = await supabase
+    .from("shopreel_subscriptions")
+    .upsert(
+      {
+        shop_id: shopId,
+        stripe_customer_id: input.stripeCustomerId,
+        stripe_subscription_id: input.stripeSubscriptionId,
+        stripe_price_id: input.stripePriceId,
+        plan: plan?.key ?? "starter",
+        status: input.status,
+        generation_limit: plan?.generationLimit ?? 30,
+        period_start: input.periodStart ? new Date(input.periodStart * 1000).toISOString() : null,
+        period_end: input.periodEnd ? new Date(input.periodEnd * 1000).toISOString() : null,
+        cancel_at_period_end: input.cancelAtPeriodEnd,
+        metadata: {
+          source: "stripe_webhook",
+          ...(input.metadata ?? {}),
+        },
+      } as never,
+      { onConflict: "shop_id" },
+    )
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+
+==================================================
 FILE: ./src/features/generation/types.ts
 ==================================================
 export type VideoConcept = {
@@ -12678,6 +13468,100 @@ export type VideoConcept = {
   platformTargets: string[]
   generationNotes?: string
   aiScore?: number
+}
+
+
+==================================================
+FILE: ./src/features/landing/components/PricingSection.tsx
+==================================================
+"use client";
+
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { BILLING_PLANS, type BillingPlan } from "@/features/billing/plans";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+
+const PLAN_ORDER: BillingPlan[] = ["starter", "creator", "pro"];
+
+async function startCheckout(plan: BillingPlan) {
+  const res = await fetch("/api/billing/checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ plan }),
+  });
+
+  const json = (await res.json()) as { ok?: boolean; url?: string; error?: string };
+
+  if (!res.ok || !json.ok || !json.url) {
+    throw new Error(json.error ?? "Failed to start checkout");
+  }
+
+  window.location.href = json.url;
+}
+
+export default function PricingSection() {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-6 py-24">
+      <div className="mx-auto max-w-3xl text-center">
+        <div className={cx("text-sm uppercase tracking-[0.28em]", glassTheme.text.copperSoft)}>
+          Pricing
+        </div>
+        <h2 className={cx("mt-4 text-4xl font-semibold md:text-5xl", glassTheme.text.primary)}>
+          Every plan includes every feature
+        </h2>
+        <p className={cx("mt-4 text-base leading-7 md:text-lg", glassTheme.text.secondary)}>
+          ShopReel scales by output volume, not by locking features behind higher tiers.
+        </p>
+      </div>
+
+      <div className="mt-12 grid gap-5 lg:grid-cols-3">
+        {PLAN_ORDER.map((planKey) => {
+          const plan = BILLING_PLANS[planKey];
+          const highlight = plan.key === "creator";
+
+          return (
+            <GlassCard
+              key={plan.key}
+              label={plan.name}
+              title={`$${plan.monthlyPrice}/mo`}
+              description={plan.description}
+              strong={highlight}
+              footer={
+                <GlassButton
+                  variant={highlight ? "primary" : "secondary"}
+                  onClick={() => void startCheckout(plan.key)}
+                >
+                  Start {plan.name}
+                </GlassButton>
+              }
+            >
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {plan.badge ? <GlassBadge tone="copper">{plan.badge}</GlassBadge> : null}
+                  <GlassBadge tone="default">
+                    {typeof plan.generationLimit === "number"
+                      ? `${plan.generationLimit} generations / month`
+                      : "Unlimited generations"}
+                  </GlassBadge>
+                </div>
+
+                <div className={cx("space-y-2 text-sm", glassTheme.text.primary)}>
+                  <div>All creator outputs</div>
+                  <div>Content calendar</div>
+                  <div>Automation loop</div>
+                  <div>Publishing workflow</div>
+                  <div>Performance learning</div>
+                </div>
+              </div>
+            </GlassCard>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 
@@ -12744,6 +13628,423 @@ export async function analyzePerformance(shopId: string) {
     .slice(0, 10);
 
   return ranking;
+}
+
+
+==================================================
+FILE: ./src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import { analyzePerformance } from "./analyzePerformance";
+import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
+import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
+import { syncPlatformMetrics } from "./syncPlatformMetrics";
+import { updateGlobalBenchmarks } from "@/features/shopreel/optimization/updateGlobalBenchmarks";
+import { mutatePromptStrategy } from "@/features/shopreel/optimization/mutatePromptStrategy";
+import { buildPrePublishRanking } from "@/features/shopreel/optimization/buildPrePublishRanking";
+
+type PublicationRow = {
+  id: string;
+  tenant_shop_id: string;
+  content_piece_id: string | null;
+  platform: string | null;
+  published_at: string | null;
+};
+
+export async function runAnalyticsFeedbackLoop(shopId: string) {
+  const supabase = createAdminClient();
+
+  const { data: publications, error: publicationsError } = await supabase
+    .from("content_publications")
+    .select("id, tenant_shop_id, content_piece_id, platform, published_at")
+    .eq("tenant_shop_id", shopId)
+    .not("published_at", "is", null)
+    .order("published_at", { ascending: false })
+    .limit(100);
+
+  if (publicationsError) {
+    throw new Error(publicationsError.message);
+  }
+
+  const publishedRows = (publications ?? []) as PublicationRow[];
+
+  const analyticsRows = publishedRows
+    .filter(
+      (row): row is PublicationRow & { content_piece_id: string; platform: string } =>
+        typeof row.content_piece_id === "string" &&
+        row.content_piece_id.length > 0 &&
+        typeof row.platform === "string" &&
+        row.platform.length > 0,
+    )
+    .map((row) => ({
+      tenant_shop_id: shopId,
+      source_shop_id: shopId,
+      source_system: "shopreel",
+      publication_id: row.id,
+      content_piece_id: row.content_piece_id,
+      platform: row.platform as
+        | "instagram"
+        | "facebook"
+        | "tiktok"
+        | "youtube"
+        | "blog"
+        | "linkedin"
+        | "google_business"
+        | "email",
+      event_name: "published",
+      event_value: 1,
+      occurred_at: row.published_at ?? new Date().toISOString(),
+      payload: {
+        publication_id: row.id,
+        source: "runAnalyticsFeedbackLoop",
+      },
+    }));
+
+  if (analyticsRows.length > 0) {
+    const { error: analyticsError } = await supabase
+      .from("content_analytics_events")
+      .insert(analyticsRows as never);
+
+    if (analyticsError && !analyticsError.message.toLowerCase().includes("duplicate")) {
+      throw new Error(analyticsError.message);
+    }
+  }
+
+  const [syncedMetrics, ranking, memory, signals, benchmarks, promptStrategy, prePublishRanking] =
+    await Promise.all([
+      syncPlatformMetrics(shopId),
+      analyzePerformance(shopId),
+      updateMarketingMemory(shopId),
+      updateLearningSignals(shopId),
+      updateGlobalBenchmarks(),
+      mutatePromptStrategy(shopId),
+      buildPrePublishRanking(shopId),
+    ]);
+
+  const snapshot = {
+    updatedAt: new Date().toISOString(),
+    ranking: ranking ?? [],
+    publicationCount: publishedRows.length,
+    syncedMetrics,
+    benchmarks,
+    promptStrategy,
+    prePublishRankingTop: prePublishRanking.slice(0, 10),
+    signalCount:
+      signals && typeof signals === "object" && "count" in signals
+        ? Number((signals as { count?: number }).count ?? 0)
+        : 0,
+  };
+
+  const { error: memoryError } = await supabase
+    .from("shop_marketing_memory")
+    .upsert(
+      {
+        shop_id: shopId,
+        memory_key: "automation_loop_snapshot",
+        memory_value: snapshot,
+        source_type: "automation_loop",
+        confidence: 0.94,
+        updated_at: new Date().toISOString(),
+      } as never,
+      { onConflict: "shop_id,memory_key" },
+    );
+
+  if (memoryError) {
+    throw new Error(memoryError.message);
+  }
+
+  return {
+    ok: true,
+    shopId,
+    ranking: ranking ?? [],
+    memory,
+    signals,
+    snapshot,
+    syncedMetrics,
+    benchmarks,
+    promptStrategy,
+    prePublishRanking,
+  };
+}
+
+
+==================================================
+FILE: ./src/features/shopreel/analytics/syncPlatformMetrics.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import { trackMetrics } from "@/features/shopreel/metrics/trackMetrics";
+import { recordContentAnalytics } from "@/features/shopreel/metrics/recordContentAnalytics";
+
+type PlatformAccountRow = {
+  id: string;
+  tenant_shop_id: string;
+  platform: string | null;
+  access_token: string | null;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+type PublicationRow = {
+  id: string;
+  tenant_shop_id: string;
+  content_piece_id: string | null;
+  platform_account_id: string | null;
+  platform: string | null;
+  platform_post_id: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+function safeObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+async function fetchMetaMetrics(input: {
+  platformPostId: string;
+  accessToken: string;
+}) {
+  const url =
+    `https://graph.facebook.com/v21.0/${encodeURIComponent(input.platformPostId)}` +
+    `?fields=insights.metric(post_impressions,post_impressions_unique,post_engaged_users,post_reactions_by_type_total,post_clicks),shares,comments.summary(true)` +
+    `&access_token=${encodeURIComponent(input.accessToken)}`;
+
+  const res = await fetch(url, { method: "GET", cache: "no-store" });
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+
+  if (!res.ok) {
+    throw new Error(
+      typeof safeObject(json.error).message === "string"
+        ? String(safeObject(json.error).message)
+        : "Failed to fetch Meta metrics",
+    );
+  }
+
+  const insights = Array.isArray((json as { insights?: { data?: unknown[] } }).insights?.data)
+    ? ((json as { insights?: { data?: unknown[] } }).insights?.data as Array<Record<string, unknown>>)
+    : [];
+
+  const metricValue = (name: string) => {
+    const row = insights.find((item) => item.name === name);
+    const values = Array.isArray(row?.values) ? (row?.values as Array<Record<string, unknown>>) : [];
+    return Number(values[0]?.value ?? 0);
+  };
+
+  const commentsSummary = safeObject((json as { comments?: unknown }).comments);
+  const shares = Number(safeObject(json.shares).count ?? 0);
+
+  return {
+    views: metricValue("post_impressions_unique"),
+    impressions: metricValue("post_impressions"),
+    likes: 0,
+    comments: Number(safeObject(commentsSummary.summary).total_count ?? 0),
+    shares,
+    saves: 0,
+    clicks: metricValue("post_clicks"),
+  };
+}
+
+async function fetchYouTubeMetrics(input: {
+  videoId: string;
+  accessToken: string;
+}) {
+  const url =
+    `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${encodeURIComponent(input.videoId)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+    },
+    cache: "no-store",
+  });
+
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch YouTube metrics");
+  }
+
+  const items = Array.isArray(json.items) ? (json.items as Array<Record<string, unknown>>) : [];
+  const stats = safeObject(items[0]?.statistics);
+
+  return {
+    views: Number(stats.viewCount ?? 0),
+    impressions: Number(stats.viewCount ?? 0),
+    likes: Number(stats.likeCount ?? 0),
+    comments: Number(stats.commentCount ?? 0),
+    shares: 0,
+    saves: 0,
+    clicks: 0,
+  };
+}
+
+async function fetchTikTokMetrics(input: {
+  publication: PublicationRow;
+  account: PlatformAccountRow;
+}) {
+  const metadata = safeObject(input.publication.metadata);
+  const fallbackViews = Number(metadata.views ?? 0);
+
+  return {
+    views: fallbackViews,
+    impressions: fallbackViews,
+    likes: Number(metadata.likes ?? 0),
+    comments: Number(metadata.comments ?? 0),
+    shares: Number(metadata.shares ?? 0),
+    saves: Number(metadata.saves ?? 0),
+    clicks: Number(metadata.clicks ?? 0),
+  };
+}
+
+export async function syncPlatformMetrics(shopId: string) {
+  const supabase = createAdminClient();
+
+  const { data: publications, error: publicationsError } = await supabase
+    .from("content_publications")
+    .select("id, tenant_shop_id, content_piece_id, platform_account_id, platform, platform_post_id, metadata")
+    .eq("tenant_shop_id", shopId)
+    .eq("status", "published")
+    .not("platform_post_id", "is", null)
+    .order("published_at", { ascending: false })
+    .limit(50);
+
+  if (publicationsError) {
+    throw new Error(publicationsError.message);
+  }
+
+  const publicationRows = (publications ?? []) as PublicationRow[];
+  if (publicationRows.length === 0) {
+    return { ok: true, synced: 0, skipped: 0 };
+  }
+
+  const accountIds = publicationRows
+    .map((row) => row.platform_account_id)
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  const { data: accounts, error: accountsError } = await supabase
+    .from("content_platform_accounts")
+    .select("id, tenant_shop_id, platform, access_token, refresh_token, token_expires_at, metadata")
+    .in("id", accountIds);
+
+  if (accountsError) {
+    throw new Error(accountsError.message);
+  }
+
+  const accountById = new Map<string, PlatformAccountRow>();
+  for (const account of (accounts ?? []) as PlatformAccountRow[]) {
+    accountById.set(account.id, account);
+  }
+
+  let synced = 0;
+  let skipped = 0;
+
+  for (const publication of publicationRows) {
+    if (!publication.content_piece_id || !publication.platform_account_id || !publication.platform) {
+      skipped += 1;
+      continue;
+    }
+
+    const account = accountById.get(publication.platform_account_id);
+    if (!account) {
+      skipped += 1;
+      continue;
+    }
+
+    try {
+      let metrics:
+        | {
+            views: number;
+            impressions: number;
+            likes: number;
+            comments: number;
+            shares: number;
+            saves: number;
+            clicks: number;
+          }
+        | null = null;
+
+      if (
+        (publication.platform === "instagram" || publication.platform === "facebook") &&
+        account.access_token &&
+        publication.platform_post_id
+      ) {
+        metrics = await fetchMetaMetrics({
+          platformPostId: publication.platform_post_id,
+          accessToken: account.access_token,
+        });
+      } else if (
+        publication.platform === "youtube" &&
+        account.access_token &&
+        publication.platform_post_id
+      ) {
+        metrics = await fetchYouTubeMetrics({
+          videoId: publication.platform_post_id,
+          accessToken: account.access_token,
+        });
+      } else if (publication.platform === "tiktok") {
+        metrics = await fetchTikTokMetrics({
+          publication,
+          account,
+        });
+      }
+
+      if (!metrics) {
+        skipped += 1;
+        continue;
+      }
+
+      await Promise.all([
+        trackMetrics({
+          shopId,
+          contentPieceId: publication.content_piece_id,
+          platform: publication.platform,
+          views: metrics.views,
+          impressions: metrics.impressions,
+          likes: metrics.likes,
+          comments: metrics.comments,
+          shares: metrics.shares,
+          saves: metrics.saves,
+          clicks: metrics.clicks,
+        }),
+        recordContentAnalytics({
+          shopId,
+          contentPieceId: publication.content_piece_id,
+          publicationId: publication.id,
+          platform: publication.platform as
+            | "instagram"
+            | "facebook"
+            | "tiktok"
+            | "youtube"
+            | "blog"
+            | "linkedin"
+            | "google_business"
+            | "email",
+          views: metrics.views,
+          likes: metrics.likes,
+          shares: metrics.shares,
+          comments: metrics.comments,
+          saves: metrics.saves,
+          clicks: metrics.clicks,
+        }),
+      ]);
+
+      synced += 1;
+    } catch (error) {
+      console.error("[syncPlatformMetrics] failed", {
+        publicationId: publication.id,
+        platform: publication.platform,
+        error,
+      });
+      skipped += 1;
+    }
+  }
+
+  return {
+    ok: true,
+    synced,
+    skipped,
+  };
 }
 
 
@@ -12816,22 +14117,52 @@ Operational integration is intentionally deferred.
 ==================================================
 FILE: ./src/features/shopreel/automation/runAutomationLoop.ts
 ==================================================
-import { generateOpportunities } from "../discovery/generateOpportunities";
-import { runRenderWorker } from "../render/runRenderWorker";
-import { runPublishWorker } from "../publish/runPublishWorker";
-import { runScheduledPublishWorker } from "../scheduler/runScheduledPublishWorker";
+import { createAdminClient } from "@/lib/supabase/server";
+import { runShopReelAutopilot } from "./runShopReelAutopilot";
+import { queueScheduledContent } from "@/features/shopreel/scheduler/queueScheduledContent";
+import { processRenderJobs } from "@/features/shopreel/worker/processRenderJobs";
+import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
+import { runAnalyticsFeedbackLoop } from "@/features/shopreel/analytics/runAnalyticsFeedbackLoop";
+import { buildPrePublishRanking } from "@/features/shopreel/optimization/buildPrePublishRanking";
 
 export async function runAutomationLoop(shopId: string) {
-  await generateOpportunities(shopId);
+  const supabase = createAdminClient();
 
-  await runScheduledPublishWorker();
+  const { count: activeCalendarCount, error: activeCalendarError } = await supabase
+    .from("content_calendar_items")
+    .select("*", { count: "exact", head: true })
+    .eq("tenant_shop_id", shopId)
+    .in("status", ["planned", "queued", "ready", "publishing"]);
 
-  await runRenderWorker();
+  if (activeCalendarError) {
+    throw new Error(activeCalendarError.message);
+  }
 
-  await runPublishWorker();
+  const shouldAutopilot = (activeCalendarCount ?? 0) < 3;
+
+  const autopilot = shouldAutopilot
+    ? await runShopReelAutopilot(shopId)
+    : {
+        ok: true,
+        skipped: true,
+        reason: "Existing calendar pipeline has enough queued work",
+      };
+
+  const preQueueRanking = await buildPrePublishRanking(shopId);
+  const queued = await queueScheduledContent({ shopId });
+  const rendered = await processRenderJobs();
+  const published = await runPublishWorker();
+  const analytics = await runAnalyticsFeedbackLoop(shopId);
 
   return {
     ok: true,
+    shopId,
+    autopilot,
+    preQueueRanking: preQueueRanking.slice(0, 10),
+    queued,
+    rendered,
+    published,
+    analytics,
   };
 }
 
@@ -12849,6 +14180,8 @@ import { generateHooks } from "@/features/shopreel/hooks/generateHooks";
 import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
 import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
 import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
+import { getOptimizationSnapshot } from "@/features/shopreel/optimization/getOptimizationSnapshot";
+import type { Json } from "@/types/supabase";
 
 type SchedulerCalendarItem = {
   day: number;
@@ -12884,7 +14217,33 @@ type SchedulerResult = {
   memory: unknown;
   signals: unknown;
   moments: unknown;
+  optimization: unknown;
 };
+
+function toJson(value: unknown): Json {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toJson(item));
+  }
+
+  if (typeof value === "object") {
+    const output: Record<string, Json | undefined> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      output[key] = toJson(entry);
+    }
+    return output;
+  }
+
+  return String(value);
+}
 
 function defaultCta(contentType: string, fallback: string | null): string {
   if (fallback && fallback.trim().length > 0) {
@@ -12905,7 +14264,7 @@ function defaultCta(contentType: string, fallback: string | null): string {
   }
 }
 
-function rankOpportunity(opportunity: ContentOpportunity): number {
+function baseRank(opportunity: ContentOpportunity): number {
   switch (opportunity.contentType) {
     case "before_after":
       return 100;
@@ -12945,12 +14304,30 @@ export async function runShopReelAutopilot(
 ): Promise<SchedulerResult> {
   const supabase = createAdminClient();
   const settingsBundle = await getShopReelSettings(shopId);
+  const optimization = await safeRun(
+    "getOptimizationSnapshot",
+    () => getOptimizationSnapshot(shopId),
+    {
+      shopId,
+      updatedAt: new Date().toISOString(),
+      preferredContentTypes: [],
+      contentTypeBoosts: {},
+      winningHookPatterns: [],
+      notes: {},
+    },
+  );
 
   const discovered = await discoverContent(shopId);
   const moments = await safeRun("detectViralMoments", () => detectViralMoments(shopId), []);
 
   const ranked = [...discovered]
-    .sort((a, b) => rankOpportunity(b) - rankOpportunity(a))
+    .sort((a, b) => {
+      const aScore =
+        baseRank(a) + Number(optimization.contentTypeBoosts[a.contentType] ?? 0);
+      const bScore =
+        baseRank(b) + Number(optimization.contentTypeBoosts[b.contentType] ?? 0);
+      return bScore - aScore;
+    })
     .slice(0, 7);
 
   if (ranked.length === 0) {
@@ -12964,21 +14341,25 @@ export async function runShopReelAutopilot(
 
   const calendarName = `AI Autopilot Calendar ${new Date().toLocaleDateString()}`;
 
+  const calendarInsert = {
+    tenant_shop_id: shopId,
+    source_shop_id: shopId,
+    source_system: "shopreel",
+    name: calendarName,
+    description: "7-day AI-generated ShopReel content calendar.",
+    timezone: "America/Edmonton",
+    settings: toJson({
+      generated_by: "runShopReelAutopilot",
+      readiness_missing: settingsBundle.readiness.missing,
+      opportunity_count: ranked.length,
+      moments_count: Array.isArray(moments) ? moments.length : 0,
+      optimization,
+    }),
+  };
+
   const { data: insertedCalendarData, error: calendarError } = await supabase
     .from("content_calendars")
-    .insert({
-      tenant_shop_id: shopId,
-      source_shop_id: shopId,
-      source_system: "shopreel",
-      name: calendarName,
-      description: "7-day AI-generated ShopReel content calendar.",
-      settings: {
-        generated_by: "runShopReelAutopilot",
-        readiness_missing: settingsBundle.readiness.missing,
-        opportunity_count: ranked.length,
-        moments_count: Array.isArray(moments) ? moments.length : 0,
-      },
-    })
+    .insert(calendarInsert as never)
     .select("id")
     .single();
 
@@ -13001,6 +14382,17 @@ export async function runShopReelAutopilot(
 
     let resolvedContentPieceId = "";
 
+    const pieceMetadata = toJson({
+      planned_for_calendar: true,
+      scheduled_for: scheduledFor,
+      source_type: opportunity.sourceType,
+      source_id: opportunity.sourceId,
+      reason: opportunity.reason,
+      visual_urls: opportunity.visualUrls,
+      hook_options: hookOptions,
+      optimization,
+    });
+
     if (opportunity.sourceType === "existing_content_piece") {
       resolvedContentPieceId = opportunity.sourceId;
 
@@ -13010,15 +14402,8 @@ export async function runShopReelAutopilot(
           hook: opportunity.hook,
           cta: resolvedCta,
           platform_targets: enabledTargets,
-          metadata: {
-            planned_for_calendar: true,
-            scheduled_for: scheduledFor,
-            source_type: opportunity.sourceType,
-            source_id: opportunity.sourceId,
-            reason: opportunity.reason,
-            visual_urls: opportunity.visualUrls,
-            hook_options: hookOptions,
-          },
+          metadata: pieceMetadata,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", resolvedContentPieceId);
 
@@ -13026,32 +14411,26 @@ export async function runShopReelAutopilot(
         throw new Error(updateError.message);
       }
     } else {
+      const pieceInsert = {
+        tenant_shop_id: shopId,
+        source_shop_id: shopId,
+        source_system: "shopreel",
+        source_work_order_id: opportunity.workOrderId,
+        title: opportunity.title,
+        content_type: opportunity.contentType,
+        hook: opportunity.hook,
+        caption: opportunity.hook,
+        cta: resolvedCta,
+        script_text: null,
+        voiceover_text: null,
+        platform_targets: enabledTargets,
+        status: "draft",
+        metadata: pieceMetadata,
+      };
+
       const { data: contentPieceData, error: contentPieceError } = await supabase
         .from("content_pieces")
-        .insert({
-          tenant_shop_id: shopId,
-          source_shop_id: shopId,
-          source_system: "shopreel",
-          source_work_order_id: opportunity.workOrderId,
-          title: opportunity.title,
-          content_type: opportunity.contentType,
-          hook: opportunity.hook,
-          caption: opportunity.hook,
-          cta: resolvedCta,
-          script_text: null,
-          voiceover_text: null,
-          platform_targets: enabledTargets,
-          status: "draft",
-          metadata: {
-            planned_for_calendar: true,
-            scheduled_for: scheduledFor,
-            source_type: opportunity.sourceType,
-            source_id: opportunity.sourceId,
-            reason: opportunity.reason,
-            visual_urls: opportunity.visualUrls,
-            hook_options: hookOptions,
-          },
-        })
+        .insert(pieceInsert as never)
         .select("id")
         .single();
 
@@ -13064,26 +14443,29 @@ export async function runShopReelAutopilot(
       resolvedContentPieceId = contentPiece.id;
     }
 
+    const calendarItemInsert = {
+      calendar_id: insertedCalendar.id,
+      content_piece_id: resolvedContentPieceId,
+      scheduled_for: scheduledFor,
+      tenant_shop_id: shopId,
+      source_shop_id: shopId,
+      source_system: "shopreel",
+      status: "planned",
+      metadata: toJson({
+        source_type: opportunity.sourceType,
+        source_id: opportunity.sourceId,
+        reason: opportunity.reason,
+        visual_urls: opportunity.visualUrls,
+        work_order_id: opportunity.workOrderId,
+        day: index + 1,
+        hook_options: hookOptions,
+        optimization,
+      }),
+    };
+
     const { error: calendarItemError } = await supabase
       .from("content_calendar_items")
-      .insert({
-        calendar_id: insertedCalendar.id,
-        content_piece_id: resolvedContentPieceId,
-        scheduled_for: scheduledFor,
-        tenant_shop_id: shopId,
-        source_shop_id: shopId,
-        source_system: "shopreel",
-        status: "planned",
-        metadata: {
-          source_type: opportunity.sourceType,
-          source_id: opportunity.sourceId,
-          reason: opportunity.reason,
-          visual_urls: opportunity.visualUrls,
-          work_order_id: opportunity.workOrderId,
-          day: index + 1,
-          hook_options: hookOptions,
-        },
-      });
+      .insert(calendarItemInsert as never);
 
     if (calendarItemError) {
       throw new Error(calendarItemError.message);
@@ -13114,6 +14496,7 @@ export async function runShopReelAutopilot(
       topContentTypes: [],
     },
   );
+
   const signals = await safeRun(
     "updateLearningSignals",
     () => updateLearningSignals(shopId),
@@ -13142,6 +14525,7 @@ export async function runShopReelAutopilot(
     memory,
     signals,
     moments,
+    optimization,
   };
 }
 
@@ -20327,16 +21711,29 @@ FILE: ./src/features/shopreel/metrics/recordContentAnalytics.ts
 ==================================================
 import { createAdminClient } from "@/lib/supabase/server"
 
-type Platform = "instagram" | "facebook" | "tiktok" | "youtube"
+type Platform =
+  | "instagram"
+  | "facebook"
+  | "tiktok"
+  | "youtube"
+  | "blog"
+  | "linkedin"
+  | "google_business"
+  | "email"
 
 export async function recordContentAnalytics(input: {
   shopId: string
   contentPieceId: string
+  publicationId?: string | null
   platform: Platform
   views?: number
   likes?: number
   shares?: number
   comments?: number
+  saves?: number
+  clicks?: number
+  leads?: number
+  bookings?: number
 }) {
   const supabase = createAdminClient()
 
@@ -20345,21 +21742,39 @@ export async function recordContentAnalytics(input: {
     { name: "likes", value: input.likes },
     { name: "shares", value: input.shares },
     { name: "comments", value: input.comments },
-  ].filter(e => typeof e.value === "number")
+    { name: "saves", value: input.saves },
+    { name: "clicks", value: input.clicks },
+    { name: "leads", value: input.leads },
+    { name: "bookings", value: input.bookings },
+  ].filter((event) => typeof event.value === "number")
 
-  if (events.length === 0) return
+  if (events.length === 0) return []
 
-  const rows = events.map(e => ({
+  const rows = events.map((event) => ({
     tenant_shop_id: input.shopId,
     source_shop_id: input.shopId,
+    source_system: "shopreel",
     content_piece_id: input.contentPieceId,
+    publication_id: input.publicationId ?? null,
     platform: input.platform,
-    event_name: e.name,
-    event_value: e.value as number,
+    event_name: event.name,
+    event_value: event.value as number,
     occurred_at: new Date().toISOString(),
+    payload: {
+      source: "recordContentAnalytics",
+    },
   }))
 
-  await supabase.from("content_analytics_events").insert(rows)
+  const { data, error } = await supabase
+    .from("content_analytics_events")
+    .insert(rows as never)
+    .select("*")
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data ?? []
 }
 
 
@@ -20369,9 +21784,11 @@ FILE: ./src/features/shopreel/metrics/trackMetrics.ts
 import { createAdminClient } from "@/lib/supabase/server";
 
 type TrackMetricsInput = {
+  shopId?: string;
   contentPieceId: string;
   platform: string;
   views?: number;
+  impressions?: number;
   likes?: number;
   comments?: number;
   shares?: number;
@@ -20379,53 +21796,67 @@ type TrackMetricsInput = {
   clicks?: number;
   leads?: number;
   bookings?: number;
+  revenue?: number;
+  watchTimeSeconds?: number;
+  avgWatchSeconds?: number;
+};
+
+type ContentPieceRow = {
+  tenant_shop_id: string;
 };
 
 export async function trackMetrics(input: TrackMetricsInput) {
   const supabase = createAdminClient();
 
-  const views = input.views ?? 0;
-  const likes = input.likes ?? 0;
-  const comments = input.comments ?? 0;
-  const shares = input.shares ?? 0;
-  const saves = input.saves ?? 0;
-  const clicks = input.clicks ?? 0;
-  const leads = input.leads ?? 0;
-  const bookings = input.bookings ?? 0;
+  let shopId = input.shopId ?? null;
 
-  const engagementScore =
-    views > 0
-      ? Number(
-          (
-            (likes +
-              comments * 2 +
-              shares * 3 +
-              saves * 2 +
-              clicks * 4 +
-              leads * 8 +
-              bookings * 10) /
-            views
-          ).toFixed(4),
-        )
-      : 0;
+  if (!shopId) {
+    const { data: pieceData, error: pieceError } = await supabase
+      .from("content_pieces")
+      .select("tenant_shop_id")
+      .eq("id", input.contentPieceId)
+      .maybeSingle();
 
-  const insertPayload = {
-    content_piece_id: input.contentPieceId,
+    if (pieceError) {
+      throw new Error(pieceError.message);
+    }
+
+    const piece = (pieceData ?? null) as ContentPieceRow | null;
+    shopId = piece?.tenant_shop_id ?? null;
+  }
+
+  if (!shopId) {
+    throw new Error("Unable to resolve shopId for metric tracking");
+  }
+
+  const payload = {
+    shop_id: shopId,
+    video_id: input.contentPieceId,
     platform: input.platform,
-    views,
-    likes,
-    comments,
-    shares,
-    saves,
-    clicks,
-    leads,
-    bookings,
-    engagement_score: engagementScore,
+    metric_date: new Date().toISOString().slice(0, 10),
+    views: input.views ?? 0,
+    impressions: input.impressions ?? 0,
+    likes: input.likes ?? 0,
+    comments: input.comments ?? 0,
+    shares: input.shares ?? 0,
+    saves: input.saves ?? 0,
+    clicks: input.clicks ?? 0,
+    leads: input.leads ?? 0,
+    bookings: input.bookings ?? 0,
+    revenue: input.revenue ?? 0,
+    watch_time_seconds: input.watchTimeSeconds ?? 0,
+    avg_watch_seconds: input.avgWatchSeconds ?? 0,
+    meta: {
+      source: "trackMetrics",
+    },
+    updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase
     .from("video_metrics")
-    .insert(insertPayload as never)
+    .upsert(payload as never, {
+      onConflict: "video_id,platform,metric_date",
+    })
     .select("*")
     .single();
 
@@ -20736,6 +22167,567 @@ export function scoreStorySource(source: StorySource) {
 
 
 ==================================================
+FILE: ./src/features/shopreel/optimization/buildPrePublishRanking.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import { getOptimizationSnapshot } from "./getOptimizationSnapshot";
+
+type RankedCandidate = {
+  contentPieceId: string;
+  title: string | null;
+  contentType: string | null;
+  hook: string | null;
+  predictedScore: number;
+  reasons: string[];
+};
+
+function hookPatternBoost(hook: string | null) {
+  if (!hook) return 0;
+
+  let score = 0;
+  const normalized = hook.toLowerCase();
+
+  if (/\d/.test(normalized)) score += 8;
+  if (normalized.includes("before")) score += 6;
+  if (normalized.includes("after")) score += 6;
+  if (normalized.includes("today")) score += 4;
+  if (normalized.includes("found")) score += 5;
+  if (normalized.length <= 80) score += 4;
+
+  return score;
+}
+
+export async function buildPrePublishRanking(shopId: string) {
+  const supabase = createAdminClient();
+  const optimization = await getOptimizationSnapshot(shopId);
+
+  const [{ data: pieces, error: piecesError }, { data: benchmarks, error: benchmarkError }] =
+    await Promise.all([
+      supabase
+        .from("content_pieces")
+        .select("id, title, content_type, hook, status")
+        .eq("tenant_shop_id", shopId)
+        .in("status", ["draft", "queued", "ready"])
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("global_content_benchmarks")
+        .select("platform, content_type, avg_engagement_score, avg_views, total_posts")
+        .eq("benchmark_window_days", 90),
+    ]);
+
+  if (piecesError) {
+    throw new Error(piecesError.message);
+  }
+
+  if (benchmarkError) {
+    throw new Error(benchmarkError.message);
+  }
+
+  const benchmarkByType = new Map<
+    string,
+    { avg_engagement_score: number; avg_views: number; total_posts: number }
+  >();
+
+  for (const row of (benchmarks ?? []) as Array<{
+    platform: string;
+    content_type: string;
+    avg_engagement_score: number | null;
+    avg_views: number | null;
+    total_posts: number | null;
+  }>) {
+    const current = benchmarkByType.get(row.content_type) ?? {
+      avg_engagement_score: 0,
+      avg_views: 0,
+      total_posts: 0,
+    };
+
+    current.avg_engagement_score = Math.max(
+      current.avg_engagement_score,
+      Number(row.avg_engagement_score ?? 0),
+    );
+    current.avg_views = Math.max(current.avg_views, Number(row.avg_views ?? 0));
+    current.total_posts = Math.max(current.total_posts, Number(row.total_posts ?? 0));
+
+    benchmarkByType.set(row.content_type, current);
+  }
+
+  const ranked: RankedCandidate[] = ((pieces ?? []) as Array<{
+    id: string;
+    title: string | null;
+    content_type: string | null;
+    hook: string | null;
+    status: string | null;
+  }>).map((piece) => {
+    const contentType = piece.content_type ?? "unknown";
+    const reasons: string[] = [];
+    let predictedScore = 40;
+
+    const boost = Number(optimization.contentTypeBoosts[contentType] ?? 0);
+    predictedScore += boost;
+    if (boost > 0) reasons.push(`Historical shop boost for ${contentType}`);
+
+    const benchmark = benchmarkByType.get(contentType);
+    if (benchmark) {
+      if (benchmark.avg_engagement_score >= 0.12) {
+        predictedScore += 18;
+        reasons.push("Strong benchmark engagement");
+      } else if (benchmark.avg_engagement_score >= 0.06) {
+        predictedScore += 10;
+        reasons.push("Healthy benchmark engagement");
+      }
+
+      if (benchmark.avg_views >= 5000) {
+        predictedScore += 12;
+        reasons.push("High benchmark view count");
+      } else if (benchmark.avg_views >= 1000) {
+        predictedScore += 6;
+        reasons.push("Solid benchmark view count");
+      }
+    }
+
+    const hookBoost = hookPatternBoost(piece.hook);
+    predictedScore += hookBoost;
+    if (hookBoost > 0) reasons.push("Hook matches winning patterns");
+
+    if (
+      optimization.preferredContentTypes.includes(contentType) &&
+      optimization.preferredContentTypes.indexOf(contentType) < 3
+    ) {
+      predictedScore += 10;
+      reasons.push("Top-performing shop content type");
+    }
+
+    return {
+      contentPieceId: piece.id,
+      title: piece.title,
+      contentType: piece.content_type,
+      hook: piece.hook,
+      predictedScore: Math.min(100, predictedScore),
+      reasons,
+    };
+  });
+
+  ranked.sort((a, b) => b.predictedScore - a.predictedScore);
+
+  await supabase
+    .from("shop_marketing_memory")
+    .upsert(
+      {
+        shop_id: shopId,
+        memory_key: "pre_publish_ranking",
+        memory_value: {
+          updatedAt: new Date().toISOString(),
+          items: ranked.slice(0, 20),
+        },
+        source_type: "predictive_ranking",
+        confidence: 0.82,
+        updated_at: new Date().toISOString(),
+      } as never,
+      { onConflict: "shop_id,memory_key" },
+    );
+
+  return ranked;
+}
+
+
+==================================================
+FILE: ./src/features/shopreel/optimization/getOptimizationSnapshot.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+
+type SignalRow = {
+  content_type: string;
+  avg_engagement_score: number | null;
+  total_views: number | null;
+  total_posts: number | null;
+  last_posted_at: string | null;
+  notes: Record<string, unknown> | null;
+};
+
+type MemoryRow = {
+  memory_key: string;
+  memory_value: Record<string, unknown> | null;
+};
+
+export type OptimizationSnapshot = {
+  shopId: string;
+  updatedAt: string;
+  preferredContentTypes: string[];
+  contentTypeBoosts: Record<string, number>;
+  winningHookPatterns: string[];
+  notes: Record<string, unknown>;
+};
+
+function safeObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function normalizeHookPatterns(memoryValue: Record<string, unknown>): string[] {
+  const topContentTypes = Array.isArray(memoryValue.topContentTypes)
+    ? memoryValue.topContentTypes
+    : [];
+
+  return topContentTypes
+    .map((row) => safeObject(row))
+    .map((row) => row.content_type)
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .slice(0, 5);
+}
+
+export async function getOptimizationSnapshot(
+  shopId: string,
+): Promise<OptimizationSnapshot> {
+  const supabase = createAdminClient();
+
+  const [{ data: signalData, error: signalError }, { data: memoryData, error: memoryError }] =
+    await Promise.all([
+      supabase
+        .from("shop_content_signals")
+        .select("content_type, avg_engagement_score, total_views, total_posts, last_posted_at, notes")
+        .eq("shop_id", shopId)
+        .order("avg_engagement_score", { ascending: false }),
+      supabase
+        .from("shop_marketing_memory")
+        .select("memory_key, memory_value")
+        .eq("shop_id", shopId)
+        .in("memory_key", ["top_content_patterns", "automation_loop_snapshot"]),
+    ]);
+
+  if (signalError) {
+    throw new Error(signalError.message);
+  }
+
+  if (memoryError) {
+    throw new Error(memoryError.message);
+  }
+
+  const signals = ((signalData ?? []) as SignalRow[]).filter(
+    (row) => typeof row.content_type === "string" && row.content_type.length > 0,
+  );
+
+  const memories = (memoryData ?? []) as MemoryRow[];
+  const memoryByKey = new Map<string, Record<string, unknown>>();
+
+  for (const row of memories) {
+    memoryByKey.set(row.memory_key, safeObject(row.memory_value));
+  }
+
+  const contentTypeBoosts: Record<string, number> = {};
+
+  for (const signal of signals) {
+    const engagement = Number(signal.avg_engagement_score ?? 0);
+    const views = Number(signal.total_views ?? 0);
+    const posts = Number(signal.total_posts ?? 0);
+
+    let boost = 0;
+    if (engagement >= 0.2) boost += 20;
+    else if (engagement >= 0.1) boost += 12;
+    else if (engagement >= 0.05) boost += 6;
+
+    if (views >= 10000) boost += 10;
+    else if (views >= 2500) boost += 6;
+    else if (views >= 500) boost += 3;
+
+    if (posts >= 5) boost += 4;
+
+    contentTypeBoosts[signal.content_type] = boost;
+  }
+
+  const topPatternMemory = memoryByKey.get("top_content_patterns") ?? {};
+  const preferredContentTypes = signals.map((row) => row.content_type);
+  const winningHookPatterns = normalizeHookPatterns(topPatternMemory);
+
+  return {
+    shopId,
+    updatedAt: new Date().toISOString(),
+    preferredContentTypes,
+    contentTypeBoosts,
+    winningHookPatterns,
+    notes: {
+      signalsCount: signals.length,
+      memoryKeys: Array.from(memoryByKey.keys()),
+    },
+  };
+}
+
+
+==================================================
+FILE: ./src/features/shopreel/optimization/mutatePromptStrategy.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import { getOptimizationSnapshot } from "./getOptimizationSnapshot";
+
+function buildHookRules(snapshot: Awaited<ReturnType<typeof getOptimizationSnapshot>>) {
+  const rules: string[] = [];
+
+  if (snapshot.preferredContentTypes.includes("before_after")) {
+    rules.push("Prioritize before/after contrast in hooks when available.");
+  }
+
+  if (snapshot.preferredContentTypes.includes("educational_tip")) {
+    rules.push("Prefer clear educational hooks tied to real findings.");
+  }
+
+  if (snapshot.winningHookPatterns.some((item) => item.includes("inspection"))) {
+    rules.push("Lean into inspection-based trust and findings language.");
+  }
+
+  rules.push("Keep hooks concise and specific to the real event.");
+  rules.push("Prefer proof-driven language over generic hype.");
+  rules.push("Use numbers, contrast, or findings when supported by the source.");
+
+  return rules;
+}
+
+function buildCtaRules(snapshot: Awaited<ReturnType<typeof getOptimizationSnapshot>>) {
+  const rules: string[] = [];
+
+  if (snapshot.preferredContentTypes.includes("repair_story")) {
+    rules.push("Use low-friction CTAs focused on trust and follow-up.");
+  }
+
+  rules.push("Avoid heavy sales CTAs unless performance data strongly supports them.");
+  rules.push("Prefer save/share/follow CTAs for educational and before/after content.");
+
+  return rules;
+}
+
+export async function mutatePromptStrategy(shopId: string) {
+  const supabase = createAdminClient();
+  const snapshot = await getOptimizationSnapshot(shopId);
+
+  const hookRules = buildHookRules(snapshot);
+  const ctaRules = buildCtaRules(snapshot);
+
+  const strategy = {
+    updatedAt: new Date().toISOString(),
+    preferredContentTypes: snapshot.preferredContentTypes,
+    hookRules,
+    ctaRules,
+    winningPatterns: snapshot.winningHookPatterns,
+    contentTypeBoosts: snapshot.contentTypeBoosts,
+  };
+
+  await supabase
+    .from("shop_marketing_memory")
+    .upsert(
+      {
+        shop_id: shopId,
+        memory_key: "prompt_strategy",
+        memory_value: strategy,
+        source_type: "optimization_mutation",
+        confidence: 0.88,
+        updated_at: new Date().toISOString(),
+      } as never,
+      { onConflict: "shop_id,memory_key" },
+    );
+
+  const { data: templates, error: templatesError } = await supabase
+    .from("content_templates")
+    .select("id, config")
+    .eq("tenant_shop_id", shopId)
+    .eq("is_active", true);
+
+  if (templatesError) {
+    throw new Error(templatesError.message);
+  }
+
+  for (const template of (templates ?? []) as Array<{
+    id: string;
+    config: Record<string, unknown> | null;
+  }>) {
+    const config = template.config ?? {};
+
+    const nextConfig = {
+      ...config,
+      optimization_rules: {
+        hookRules,
+        ctaRules,
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    await supabase
+      .from("content_templates")
+      .update({
+        config: nextConfig,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", template.id);
+  }
+
+  return strategy;
+}
+
+
+==================================================
+FILE: ./src/features/shopreel/optimization/updateGlobalBenchmarks.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+
+type AggregateRow = {
+  platform: string | null;
+  content_type: string | null;
+  avg_engagement_score: number | null;
+  avg_views: number | null;
+  avg_impressions: number | null;
+  total_posts: number | null;
+};
+
+export async function updateGlobalBenchmarks() {
+  const supabase = createAdminClient();
+
+  const since = new Date(Date.now() - 90 * 86400000).toISOString();
+
+  const { data: publications, error: publicationsError } = await supabase
+    .from("content_publications")
+    .select("platform, content_piece_id, tenant_shop_id")
+    .not("published_at", "is", null)
+    .gte("published_at", since);
+
+  if (publicationsError) {
+    throw new Error(publicationsError.message);
+  }
+
+  const publicationRows = (publications ?? []) as Array<{
+    platform: string | null;
+    content_piece_id: string | null;
+    tenant_shop_id: string;
+  }>;
+
+  const contentPieceIds = publicationRows
+    .map((row) => row.content_piece_id)
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  if (contentPieceIds.length === 0) {
+    return { ok: true, rows: 0 };
+  }
+
+  const { data: pieces, error: piecesError } = await supabase
+    .from("content_pieces")
+    .select("id, content_type")
+    .in("id", contentPieceIds);
+
+  if (piecesError) {
+    throw new Error(piecesError.message);
+  }
+
+  const pieceTypeById = new Map<string, string>();
+  for (const row of (pieces ?? []) as Array<{ id: string; content_type: string | null }>) {
+    if (typeof row.content_type === "string" && row.content_type.length > 0) {
+      pieceTypeById.set(row.id, row.content_type);
+    }
+  }
+
+  const { data: metrics, error: metricsError } = await supabase
+    .from("video_metrics")
+    .select("video_id, platform, views, impressions, likes, comments, shares, saves, clicks")
+    .gte("metric_date", since.slice(0, 10));
+
+  if (metricsError) {
+    throw new Error(metricsError.message);
+  }
+
+  const bucket = new Map<
+    string,
+    {
+      platform: string;
+      content_type: string;
+      engagementTotal: number;
+      viewsTotal: number;
+      impressionsTotal: number;
+      count: number;
+    }
+  >();
+
+  for (const row of (metrics ?? []) as Array<{
+    video_id: string;
+    platform: string;
+    views: number | null;
+    impressions: number | null;
+    likes: number | null;
+    comments: number | null;
+    shares: number | null;
+    saves: number | null;
+    clicks: number | null;
+  }>) {
+    const contentType = pieceTypeById.get(row.video_id);
+    if (!contentType) continue;
+
+    const platform = row.platform;
+    const views = Number(row.views ?? 0);
+    const impressions = Number(row.impressions ?? 0);
+    const likes = Number(row.likes ?? 0);
+    const comments = Number(row.comments ?? 0);
+    const shares = Number(row.shares ?? 0);
+    const saves = Number(row.saves ?? 0);
+    const clicks = Number(row.clicks ?? 0);
+
+    const engagement =
+      impressions > 0
+        ? (likes + comments * 2 + shares * 3 + saves * 2 + clicks * 4) / Math.max(impressions, 1)
+        : 0;
+
+    const key = `${platform}:${contentType}`;
+
+    const existing = bucket.get(key) ?? {
+      platform,
+      content_type: contentType,
+      engagementTotal: 0,
+      viewsTotal: 0,
+      impressionsTotal: 0,
+      count: 0,
+    };
+
+    existing.engagementTotal += engagement;
+    existing.viewsTotal += views;
+    existing.impressionsTotal += impressions;
+    existing.count += 1;
+
+    bucket.set(key, existing);
+  }
+
+  const rows = Array.from(bucket.values()).map((row) => ({
+    platform: row.platform,
+    content_type: row.content_type,
+    avg_engagement_score: Number((row.engagementTotal / Math.max(row.count, 1)).toFixed(4)),
+    avg_views: Number((row.viewsTotal / Math.max(row.count, 1)).toFixed(2)),
+    avg_impressions: Number((row.impressionsTotal / Math.max(row.count, 1)).toFixed(2)),
+    total_posts: row.count,
+    benchmark_window_days: 90,
+    metadata: {
+      source: "updateGlobalBenchmarks",
+      updated_at: new Date().toISOString(),
+    },
+  }));
+
+  if (rows.length === 0) {
+    return { ok: true, rows: 0 };
+  }
+
+  const { error: upsertError } = await supabase
+    .from("global_content_benchmarks")
+    .upsert(rows as never, {
+      onConflict: "platform,content_type,benchmark_window_days",
+    });
+
+  if (upsertError) {
+    throw new Error(upsertError.message);
+  }
+
+  return {
+    ok: true,
+    rows: rows.length,
+  };
+}
+
+
+==================================================
 FILE: ./src/features/shopreel/platforms/facebook.ts
 ==================================================
 export async function publishToFacebook(videoId: string) {
@@ -20846,45 +22838,44 @@ export async function publishVideo(videoId: string, platform: string) {
 FILE: ./src/features/shopreel/publish/runPublishWorker.ts
 ==================================================
 import { createAdminClient } from "@/lib/supabase/server";
-import { getPlatformIntegration } from "@/features/shopreel/integrations/shared/platformRegistry";
-import type {
-  PublishInput,
-  PublishResult,
-  ShopReelPlatform,
-} from "@/features/shopreel/integrations/shared/types";
+import { createPublicationBundle } from "@/features/shopreel/publishing/lib/createPublicationBundle";
+import { processPublishJob } from "@/features/shopreel/publishing/lib/processPublishJob";
+import type { ShopReelPlatform } from "@/features/shopreel/integrations/shared/types";
 
 type ContentPieceRow = {
   id: string;
   tenant_shop_id: string;
   title: string | null;
   caption: string | null;
-};
-
-type ContentAssetRow = {
-  id: string;
-  file_url: string | null;
-  public_url: string | null;
-  asset_url: string | null;
-  url: string | null;
+  published_at: string | null;
 };
 
 type ConnectedPlatformRow = {
   platform: string | null;
 };
 
-type SuccessfulPublish = {
-  platform: ShopReelPlatform;
-  result: PublishResult;
+type PublicationRow = {
+  id: string;
+  content_piece_id: string | null;
+  platform: string | null;
+  status: string | null;
 };
 
-const AUTO_PUBLISH_PLATFORMS: ShopReelPlatform[] = [
+type PublishJobRow = {
+  id: string;
+  publication_id: string;
+};
+
+type AutoPublishPlatform = "facebook" | "instagram" | "tiktok" | "youtube";
+
+const AUTO_PUBLISH_PLATFORMS: AutoPublishPlatform[] = [
   "facebook",
   "instagram",
   "tiktok",
   "youtube",
 ];
 
-function isAutoPublishPlatform(value: string | null): value is ShopReelPlatform {
+function isAutoPublishPlatform(value: string | null): value is AutoPublishPlatform {
   return (
     value === "facebook" ||
     value === "instagram" ||
@@ -20893,7 +22884,7 @@ function isAutoPublishPlatform(value: string | null): value is ShopReelPlatform 
   );
 }
 
-async function getConnectedPlatforms(shopId: string): Promise<ShopReelPlatform[]> {
+async function getConnectedPlatforms(shopId: string): Promise<AutoPublishPlatform[]> {
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -20907,7 +22898,7 @@ async function getConnectedPlatforms(shopId: string): Promise<ShopReelPlatform[]
   }
 
   const rows = (data ?? []) as ConnectedPlatformRow[];
-  const unique = new Set<ShopReelPlatform>();
+  const unique = new Set<AutoPublishPlatform>();
 
   for (const row of rows) {
     if (
@@ -20921,19 +22912,14 @@ async function getConnectedPlatforms(shopId: string): Promise<ShopReelPlatform[]
   return Array.from(unique);
 }
 
-function pickVideoUrl(asset: ContentAssetRow | null): string | null {
-  if (!asset) return null;
-
-  return asset.public_url ?? asset.file_url ?? asset.asset_url ?? asset.url ?? null;
-}
-
 export async function runPublishWorker(contentPieceId?: string | null) {
   const supabase = createAdminClient();
 
   let query = supabase
     .from("content_pieces")
-    .select("id, tenant_shop_id, title, caption")
+    .select("id, tenant_shop_id, title, caption, published_at")
     .eq("status", "ready")
+    .is("published_at", null)
     .limit(25);
 
   if (contentPieceId) {
@@ -20948,137 +22934,152 @@ export async function runPublishWorker(contentPieceId?: string | null) {
 
   const items = (ready ?? []) as ContentPieceRow[];
 
-  if (items.length === 0) {
-    return { published: 0, attempted: 0, failed: 0 };
-  }
-
-  let published = 0;
   let attempted = 0;
+  let published = 0;
   let failed = 0;
+  const dueJobIds: string[] = [];
 
   for (const item of items) {
     attempted += 1;
-
-    await supabase
-      .from("content_calendar_items")
-      .update({ status: "publishing" })
-      .eq("content_piece_id", item.id);
-
-    const { data: assetData, error: assetError } = await supabase
-      .from("content_assets")
-      .select("id, file_url, public_url, asset_url, url")
-      .eq("content_piece_id", item.id)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (assetError) {
-      await supabase
-        .from("content_calendar_items")
-        .update({ status: "failed_publish" })
-        .eq("content_piece_id", item.id);
-
-      failed += 1;
-      continue;
-    }
-
-    const asset = (assetData ?? null) as ContentAssetRow | null;
-    const videoUrl = pickVideoUrl(asset);
-
-    if (!videoUrl) {
-      await supabase
-        .from("content_calendar_items")
-        .update({ status: "failed_publish" })
-        .eq("content_piece_id", item.id);
-
-      failed += 1;
-      continue;
-    }
 
     const targets = await getConnectedPlatforms(item.tenant_shop_id);
 
     if (targets.length === 0) {
       await supabase
         .from("content_calendar_items")
-        .update({ status: "failed_publish" })
+        .update({
+          status: "failed_publish",
+          updated_at: new Date().toISOString(),
+        })
         .eq("content_piece_id", item.id);
 
       failed += 1;
       continue;
     }
 
-    const settled = await Promise.allSettled(
-      targets.map(async (platform) => {
-        const integration = getPlatformIntegration(platform);
+    const { data: existingPublications, error: existingPublicationsError } = await supabase
+      .from("content_publications")
+      .select("id, content_piece_id, platform, status")
+      .eq("tenant_shop_id", item.tenant_shop_id)
+      .eq("content_piece_id", item.id);
 
-        const payload: PublishInput = {
-          shopId: item.tenant_shop_id,
-          platform,
-          title: item.title ?? "ShopReel Post",
-          caption: item.caption ?? item.title ?? null,
-          videoUrl,
-          contentPieceId: item.id,
-          contentAssetId: asset?.id ?? null,
-        };
-
-        return integration.publishVideo(payload);
-      }),
-    );
-
-    const successes: SuccessfulPublish[] = [];
-
-    for (let i = 0; i < settled.length; i += 1) {
-      const entry = settled[i];
-      const platform = targets[i];
-
-      if (entry.status === "fulfilled" && entry.value.ok) {
-        successes.push({
-          platform,
-          result: entry.value,
-        });
-      }
+    if (existingPublicationsError) {
+      throw new Error(existingPublicationsError.message);
     }
 
-    for (const success of successes) {
-      const { error: publicationInsertError } = await supabase
+    const publications = (existingPublications ?? []) as PublicationRow[];
+
+    for (const platform of targets) {
+      const existing = publications.find(
+        (row) =>
+          row.content_piece_id === item.id &&
+          row.platform === platform &&
+          row.status !== "failed",
+      );
+
+      if (existing) {
+        const { data: existingJob, error: existingJobError } = await supabase
+          .from("shopreel_publish_jobs")
+          .select("id, publication_id")
+          .eq("publication_id", existing.id)
+          .in("status", ["queued", "processing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingJobError) {
+          throw new Error(existingJobError.message);
+        }
+
+        const job = (existingJob ?? null) as PublishJobRow | null;
+        if (job?.id) {
+          dueJobIds.push(job.id);
+        }
+
+        continue;
+      }
+
+      const bundle = await createPublicationBundle({
+        shopId: item.tenant_shop_id,
+        contentPieceId: item.id,
+        platform,
+        publishMode: "autopilot",
+        scheduledFor: new Date().toISOString(),
+        title: item.title,
+        caption: item.caption,
+        enqueueNow: true,
+      });
+
+      if (bundle.publishJob?.id) {
+        dueJobIds.push(bundle.publishJob.id);
+      }
+    }
+  }
+
+  const { data: queuedJobs, error: queuedJobsError } = await supabase
+    .from("shopreel_publish_jobs")
+    .select("id, publication_id")
+    .eq("status", "queued")
+    .lte("run_after", new Date().toISOString())
+    .order("created_at", { ascending: true })
+    .limit(25);
+
+  if (queuedJobsError) {
+    throw new Error(queuedJobsError.message);
+  }
+
+  for (const job of ((queuedJobs ?? []) as PublishJobRow[])) {
+    if (!dueJobIds.includes(job.id)) {
+      dueJobIds.push(job.id);
+    }
+  }
+
+  for (const jobId of dueJobIds) {
+    try {
+      const result = await processPublishJob(jobId);
+
+      const publicationId =
+        result && typeof result === "object" && "publicationId" in result
+          ? String((result as { publicationId: string }).publicationId)
+          : null;
+
+      if (!publicationId) continue;
+
+      const { data: publicationRow, error: publicationRowError } = await supabase
         .from("content_publications")
-        .insert({
-          tenant_shop_id: item.tenant_shop_id,
-          source_shop_id: item.tenant_shop_id,
-          content_piece_id: item.id,
-          platform: success.platform,
-          status: success.result.status,
-          remote_post_id: success.result.remotePostId,
-          remote_post_url: success.result.remotePostUrl ?? null,
-          published_at: new Date().toISOString(),
-        } as never);
+        .select("content_piece_id, status")
+        .eq("id", publicationId)
+        .maybeSingle();
 
-      if (publicationInsertError) {
-        throw new Error(publicationInsertError.message);
+      if (publicationRowError) {
+        throw new Error(publicationRowError.message);
       }
-    }
 
-    if (successes.length > 0) {
-      await supabase
-        .from("content_pieces")
-        .update({
-          status: "published",
-          published_at: new Date().toISOString(),
-        })
-        .eq("id", item.id);
+      const publication = publicationRow as { content_piece_id: string | null; status: string | null } | null;
 
-      await supabase
-        .from("content_calendar_items")
-        .update({ status: "published" })
-        .eq("content_piece_id", item.id);
+      if (!publication?.content_piece_id) continue;
 
-      published += 1;
-    } else {
-      await supabase
-        .from("content_calendar_items")
-        .update({ status: "failed_publish" })
-        .eq("content_piece_id", item.id);
+      if (publication.status === "published") {
+        await supabase
+          .from("content_pieces")
+          .update({
+            status: "published",
+            published_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", publication.content_piece_id);
 
+        await supabase
+          .from("content_calendar_items")
+          .update({
+            status: "published",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("content_piece_id", publication.content_piece_id);
+
+        published += 1;
+      }
+    } catch {
       failed += 1;
     }
   }
@@ -21087,6 +23088,7 @@ export async function runPublishWorker(contentPieceId?: string | null) {
     published,
     attempted,
     failed,
+    processedJobs: dueJobIds.length,
   };
 }
 
@@ -21241,10 +23243,9 @@ import type { Json } from "@/types/supabase";
 
 type ContentPublicationRow = {
   id: string;
-  shop_id: string;
-  content_event_id: string;
+  tenant_shop_id: string;
+  source_shop_id: string;
   content_piece_id: string | null;
-  content_asset_id: string | null;
   platform_account_id: string | null;
   platform:
     | "instagram"
@@ -21262,13 +23263,10 @@ type ContentPublicationRow = {
 type ContentPieceRow = {
   id: string;
   title: string | null;
-  body_text: string | null;
+  caption: string | null;
+  render_url: string | null;
+  thumbnail_url: string | null;
   metadata: Json | null;
-};
-
-type ContentAssetRow = {
-  id: string;
-  public_url: string | null;
 };
 
 type GenerationRow = {
@@ -21282,6 +23280,7 @@ function objectRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
+
   return value as Record<string, unknown>;
 }
 
@@ -21291,9 +23290,7 @@ export async function getPublicationPayload(publicationId: string) {
 
   const { data: publicationData, error: publicationError } = await legacy
     .from("content_publications")
-    .select(
-      "id, shop_id, content_event_id, content_piece_id, content_asset_id, platform_account_id, platform, status, metadata",
-    )
+    .select("id, tenant_shop_id, source_shop_id, content_piece_id, platform_account_id, platform, status, metadata")
     .eq("id", publicationId)
     .single();
 
@@ -21307,7 +23304,7 @@ export async function getPublicationPayload(publicationId: string) {
   if (publication.content_piece_id) {
     const { data: pieceData, error: pieceError } = await legacy
       .from("content_pieces")
-      .select("id, title, body_text, metadata")
+      .select("id, title, caption, render_url, thumbnail_url, metadata")
       .eq("id", publication.content_piece_id)
       .maybeSingle();
 
@@ -21318,28 +23315,13 @@ export async function getPublicationPayload(publicationId: string) {
     piece = (pieceData as ContentPieceRow | null) ?? null;
   }
 
-  let asset: ContentAssetRow | null = null;
-  if (publication.content_asset_id) {
-    const { data: assetData, error: assetError } = await legacy
-      .from("content_assets")
-      .select("id, public_url")
-      .eq("id", publication.content_asset_id)
-      .maybeSingle();
-
-    if (assetError) {
-      throw new Error(assetError.message);
-    }
-
-    asset = (assetData as ContentAssetRow | null) ?? null;
-  }
-
   let generation: GenerationRow | null = null;
 
   if (publication.content_piece_id) {
     const { data: generationData, error: generationError } = await legacy
       .from("shopreel_story_generations")
       .select("id, generation_metadata, story_draft, created_at")
-      .eq("shop_id", publication.shop_id)
+      .eq("shop_id", publication.tenant_shop_id)
       .eq("content_piece_id", publication.content_piece_id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -21355,19 +23337,22 @@ export async function getPublicationPayload(publicationId: string) {
   const generationMetadata = objectRecord(generation?.generation_metadata ?? null);
   const draft = objectRecord(generation?.story_draft ?? null);
   const pieceMetadata = objectRecord(piece?.metadata ?? null);
+  const publicationMetadata = objectRecord(publication.metadata);
 
   const resolvedTitle =
     piece?.title ??
     (typeof draft.title === "string" ? draft.title : null) ??
+    (typeof publicationMetadata.title === "string" ? publicationMetadata.title : null) ??
     publication.platform.replaceAll("_", " ");
 
   const resolvedCaption =
-    piece?.body_text ??
+    piece?.caption ??
     (typeof draft.caption === "string" ? draft.caption : null) ??
+    (typeof publicationMetadata.caption === "string" ? publicationMetadata.caption : null) ??
     null;
 
   const resolvedRenderUrl =
-    asset?.public_url ??
+    piece?.render_url ??
     (typeof generationMetadata.render_url === "string"
       ? generationMetadata.render_url
       : typeof pieceMetadata.render_url === "string"
@@ -21375,11 +23360,12 @@ export async function getPublicationPayload(publicationId: string) {
         : null);
 
   const resolvedThumbnailUrl =
-    typeof generationMetadata.thumbnail_url === "string"
+    piece?.thumbnail_url ??
+    (typeof generationMetadata.thumbnail_url === "string"
       ? generationMetadata.thumbnail_url
       : typeof pieceMetadata.thumbnail_url === "string"
         ? pieceMetadata.thumbnail_url
-        : null;
+        : null);
 
   return {
     publication,
@@ -21412,6 +23398,7 @@ type PublicationPayloadRow = {
   id: string;
   tenant_shop_id?: string;
   source_shop_id?: string;
+  content_piece_id?: string | null;
   platform:
     | "instagram"
     | "facebook"
@@ -21460,6 +23447,7 @@ export async function processPublishJob(jobId: string) {
       attempt_count: (job.attempt_count ?? 0) + 1,
       locked_at: new Date().toISOString(),
       locked_by: "worker:publish",
+      updated_at: new Date().toISOString(),
     })
     .eq("id", jobId);
 
@@ -21487,6 +23475,7 @@ export async function processPublishJob(jobId: string) {
       videoUrl: video.render_url,
       thumbnailUrl: video.thumbnail_url,
       publicationId: publication.id,
+      contentPieceId: publication.content_piece_id ?? null,
     });
 
     const publicationMetadata = jsonObject(publication.metadata);
@@ -21499,19 +23488,40 @@ export async function processPublishJob(jobId: string) {
           result.status === "published" ? new Date().toISOString() : null,
         platform_post_id: result.remotePostId,
         platform_post_url: result.remotePostUrl ?? null,
+        error_text: null,
         metadata: {
           ...publicationMetadata,
           last_attempt_at: new Date().toISOString(),
           attempt_count: (job.attempt_count ?? 0) + 1,
+          publish_result: result,
         },
+        updated_at: new Date().toISOString(),
       })
       .eq("id", publication.id);
+
+    if (publication.content_piece_id) {
+      await supabase.from("content_events").insert({
+        tenant_shop_id: shopId,
+        source_shop_id: shopId,
+        source_system: "shopreel",
+        content_piece_id: publication.content_piece_id,
+        event_type: "published",
+        occurred_at: new Date().toISOString(),
+        payload: {
+          publication_id: publication.id,
+          platform: publication.platform,
+          remote_post_id: result.remotePostId ?? null,
+          remote_post_url: result.remotePostUrl ?? null,
+        },
+      } as never);
+    }
 
     await supabase
       .from("shopreel_publish_jobs")
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq("id", jobId);
 
@@ -21526,11 +23536,21 @@ export async function processPublishJob(jobId: string) {
       error instanceof Error ? error.message : "Unexpected publish error";
 
     await supabase
+      .from("content_publications")
+      .update({
+        status: "failed",
+        error_text: message,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", publication.id);
+
+    await supabase
       .from("shopreel_publish_jobs")
       .update({
         status: "failed",
         completed_at: new Date().toISOString(),
         error_message: message,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", jobId);
 
@@ -22061,6 +24081,181 @@ export async function runRenderWorker(contentPieceId?: string | null) {
   }
 
   return { processed };
+}
+
+
+==================================================
+FILE: ./src/features/shopreel/scheduler/queueScheduledContent.ts
+==================================================
+import { createAdminClient } from "@/lib/supabase/server";
+import { createRenderJob } from "@/features/shopreel/render/createRenderJob";
+
+type CalendarItemRow = {
+  id: string;
+  content_piece_id: string | null;
+  tenant_shop_id: string;
+  scheduled_for: string | null;
+  status: string;
+  metadata: Record<string, unknown> | null;
+};
+
+type ContentPieceRow = {
+  id: string;
+  tenant_shop_id: string;
+  title: string;
+  content_type: string | null;
+  hook: string | null;
+  caption: string | null;
+  cta: string | null;
+  metadata: Record<string, unknown> | null;
+  source_work_order_id: string | null;
+};
+
+function safeObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+export async function queueScheduledContent(input: {
+  shopId: string;
+  contentPieceId?: string | null;
+}) {
+  const supabase = createAdminClient();
+
+  let calendarQuery = supabase
+    .from("content_calendar_items")
+    .select("id, content_piece_id, tenant_shop_id, scheduled_for, status, metadata")
+    .eq("tenant_shop_id", input.shopId)
+    .eq("status", "planned")
+    .lte("scheduled_for", new Date().toISOString())
+    .order("scheduled_for", { ascending: true })
+    .limit(25);
+
+  if (input.contentPieceId) {
+    calendarQuery = calendarQuery.eq("content_piece_id", input.contentPieceId);
+  }
+
+  const { data: rawItems, error: itemsError } = await calendarQuery;
+
+  if (itemsError) {
+    throw new Error(itemsError.message);
+  }
+
+  const items = (rawItems ?? []) as CalendarItemRow[];
+
+  if (items.length === 0) {
+    return {
+      ok: true,
+      queued: 0,
+      renderJobsCreated: 0,
+      itemIds: [],
+    };
+  }
+
+  let queued = 0;
+  let renderJobsCreated = 0;
+
+  for (const item of items) {
+    if (!item.content_piece_id) continue;
+
+    const { data: pieceData, error: pieceError } = await supabase
+      .from("content_pieces")
+      .select("id, tenant_shop_id, title, content_type, hook, caption, cta, metadata, source_work_order_id")
+      .eq("id", item.content_piece_id)
+      .maybeSingle();
+
+    if (pieceError) {
+      throw new Error(pieceError.message);
+    }
+
+    const piece = (pieceData ?? null) as ContentPieceRow | null;
+
+    if (!piece) continue;
+
+    const { error: pieceUpdateError } = await supabase
+      .from("content_pieces")
+      .update({
+        status: "queued",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", piece.id);
+
+    if (pieceUpdateError) {
+      throw new Error(pieceUpdateError.message);
+    }
+
+    const metadata = safeObject(piece.metadata);
+    const calendarMetadata = safeObject(item.metadata);
+
+    const existingRenderJob = await supabase
+      .from("reel_render_jobs")
+      .select("id")
+      .eq("shop_id", input.shopId)
+      .eq("content_piece_id", piece.id)
+      .in("status", ["queued", "processing", "completed"])
+      .limit(1)
+      .maybeSingle();
+
+    if (existingRenderJob.error) {
+      throw new Error(existingRenderJob.error.message);
+    }
+
+    if (!existingRenderJob.data?.id) {
+      await createRenderJob({
+        shopId: input.shopId,
+        contentPieceId: piece.id,
+        workOrderId: piece.source_work_order_id,
+        sourceType:
+          typeof metadata.story_source_kind === "string"
+            ? metadata.story_source_kind
+            : typeof calendarMetadata.source_type === "string"
+              ? calendarMetadata.source_type
+              : piece.content_type ?? "workflow_demo",
+        sourceId:
+          typeof metadata.story_source_id === "string"
+            ? metadata.story_source_id
+            : typeof calendarMetadata.source_id === "string"
+              ? calendarMetadata.source_id
+              : piece.id,
+        renderPayload: {
+          mode: "scheduled_calendar_render",
+          title: piece.title,
+          hook: piece.hook,
+          caption: piece.caption,
+          cta: piece.cta,
+          content_type: piece.content_type,
+          metadata,
+          calendar_metadata: calendarMetadata,
+        },
+      });
+
+      renderJobsCreated += 1;
+    }
+
+    const { error: calendarUpdateError } = await supabase
+      .from("content_calendar_items")
+      .update({
+        status: "queued",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", item.id);
+
+    if (calendarUpdateError) {
+      throw new Error(calendarUpdateError.message);
+    }
+
+    queued += 1;
+  }
+
+  return {
+    ok: true,
+    queued,
+    renderJobsCreated,
+    itemIds: items.map((item) => item.id),
+  };
 }
 
 
@@ -25511,16 +27706,39 @@ FILE: ./src/features/shopreel/worker/processRenderJobs.ts
 ==================================================
 import { createAdminClient } from "@/lib/supabase/server";
 
-export async function processRenderJobs() {
+type RenderJobRow = {
+  id: string;
+  content_piece_id: string | null;
+  publication_id: string | null;
+  render_payload: Record<string, unknown> | null;
+  attempt_count: number | null;
+};
+
+function safeObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+export async function processRenderJobs(contentPieceId?: string | null) {
   const supabase = createAdminClient();
   const legacy = supabase as any;
 
-  const { data: jobs, error } = await legacy
+  let query = legacy
     .from("reel_render_jobs")
     .select("*")
     .eq("status", "queued")
+    .lte("run_after", new Date().toISOString())
     .order("created_at", { ascending: true })
-    .limit(5);
+    .limit(10);
+
+  if (contentPieceId) {
+    query = query.eq("content_piece_id", contentPieceId);
+  }
+
+  const { data: jobs, error } = await query;
 
   if (error) {
     throw new Error(error.message);
@@ -25530,12 +27748,12 @@ export async function processRenderJobs() {
     return { processed: 0 };
   }
 
-  for (const job of jobs) {
+  for (const job of jobs as RenderJobRow[]) {
     try {
       await legacy
         .from("reel_render_jobs")
         .update({
-          status: "rendering",
+          status: "processing",
           locked_at: new Date().toISOString(),
           locked_by: "worker:render",
           attempt_count: (job.attempt_count ?? 0) + 1,
@@ -25549,7 +27767,7 @@ export async function processRenderJobs() {
       await legacy
         .from("reel_render_jobs")
         .update({
-          status: "ready",
+          status: "completed",
           render_url: fakeRenderUrl,
           thumbnail_url: fakeThumbUrl,
           completed_at: new Date().toISOString(),
@@ -25568,6 +27786,14 @@ export async function processRenderJobs() {
             updated_at: new Date().toISOString(),
           })
           .eq("id", job.content_piece_id);
+
+        await legacy
+          .from("content_calendar_items")
+          .update({
+            status: "ready",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("content_piece_id", job.content_piece_id);
       }
 
       await legacy
@@ -25576,6 +27802,7 @@ export async function processRenderJobs() {
           status: "ready",
           updated_at: new Date().toISOString(),
           generation_metadata: {
+            ...safeObject(job.render_payload),
             render_completed_at: new Date().toISOString(),
             render_url: fakeRenderUrl,
             thumbnail_url: fakeThumbUrl,
@@ -25584,11 +27811,13 @@ export async function processRenderJobs() {
         })
         .eq("render_job_id", job.id);
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+
       await legacy
         .from("reel_render_jobs")
         .update({
           status: "failed",
-          error_message: err instanceof Error ? err.message : String(err),
+          error_message: message,
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
@@ -25599,12 +27828,23 @@ export async function processRenderJobs() {
           status: "failed",
           updated_at: new Date().toISOString(),
           generation_metadata: {
+            ...safeObject(job.render_payload),
             render_failed_at: new Date().toISOString(),
-            render_error: err instanceof Error ? err.message : String(err),
+            render_error: message,
             render_worker: "worker:render",
           },
         })
         .eq("render_job_id", job.id);
+
+      if (job.content_piece_id) {
+        await legacy
+          .from("content_calendar_items")
+          .update({
+            status: "failed",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("content_piece_id", job.content_piece_id);
+      }
     }
   }
 
@@ -27525,6 +29765,129 @@ create trigger set_shopreel_creator_requests_updated_at
 before update on public.shopreel_creator_requests
 for each row
 execute function public.set_updated_at();
+
+
+==================================================
+FILE: ./supabase/migrations/202603160001_shopreel_billing.sql
+==================================================
+create extension if not exists pgcrypto;
+
+create table if not exists public.shopreel_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null unique,
+  stripe_customer_id text null,
+  stripe_subscription_id text null unique,
+  stripe_price_id text null,
+  plan text not null
+    check (plan in ('starter', 'creator', 'pro')),
+  status text not null default 'inactive'
+    check (
+      status in (
+        'inactive',
+        'trialing',
+        'active',
+        'past_due',
+        'unpaid',
+        'canceled',
+        'incomplete',
+        'incomplete_expired'
+      )
+    ),
+  generation_limit integer null,
+  period_start timestamptz null,
+  period_end timestamptz null,
+  cancel_at_period_end boolean not null default false,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_shopreel_subscriptions_status
+  on public.shopreel_subscriptions(status);
+
+create table if not exists public.shopreel_usage_periods (
+  id uuid primary key default gen_random_uuid(),
+  shop_id uuid not null,
+  subscription_id uuid null references public.shopreel_subscriptions(id) on delete set null,
+  period_start timestamptz not null,
+  period_end timestamptz not null,
+  generations_used integer not null default 0,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (shop_id, period_start, period_end)
+);
+
+create index if not exists idx_shopreel_usage_periods_shop_period
+  on public.shopreel_usage_periods(shop_id, period_start desc, period_end desc);
+
+create or replace function public.set_shopreel_billing_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end
+$$;
+
+drop trigger if exists trg_shopreel_subscriptions_updated_at on public.shopreel_subscriptions;
+create trigger trg_shopreel_subscriptions_updated_at
+before update on public.shopreel_subscriptions
+for each row
+execute function public.set_shopreel_billing_updated_at();
+
+drop trigger if exists trg_shopreel_usage_periods_updated_at on public.shopreel_usage_periods;
+create trigger trg_shopreel_usage_periods_updated_at
+before update on public.shopreel_usage_periods
+for each row
+execute function public.set_shopreel_billing_updated_at();
+
+alter table public.shopreel_subscriptions enable row level security;
+alter table public.shopreel_usage_periods enable row level security;
+
+drop policy if exists shopreel_subscriptions_all on public.shopreel_subscriptions;
+create policy shopreel_subscriptions_all
+on public.shopreel_subscriptions
+for all
+using (shop_id::text = auth.jwt() ->> 'shop_id')
+with check (shop_id::text = auth.jwt() ->> 'shop_id');
+
+drop policy if exists shopreel_usage_periods_all on public.shopreel_usage_periods;
+create policy shopreel_usage_periods_all
+on public.shopreel_usage_periods
+for all
+using (shop_id::text = auth.jwt() ->> 'shop_id')
+with check (shop_id::text = auth.jwt() ->> 'shop_id');
+
+
+==================================================
+FILE: ./supabase/migrations/202603160002_shopreel_learning_loop.sql
+==================================================
+create extension if not exists pgcrypto;
+
+create table if not exists public.global_content_benchmarks (
+  id uuid primary key default gen_random_uuid(),
+  platform text not null,
+  content_type text not null,
+  avg_engagement_score numeric not null default 0,
+  avg_views numeric not null default 0,
+  avg_impressions numeric not null default 0,
+  total_posts integer not null default 0,
+  benchmark_window_days integer not null default 90,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (platform, content_type, benchmark_window_days)
+);
+
+create index if not exists idx_global_content_benchmarks_platform_type
+  on public.global_content_benchmarks(platform, content_type);
+
+drop trigger if exists trg_global_content_benchmarks_updated_at on public.global_content_benchmarks;
+create trigger trg_global_content_benchmarks_updated_at
+before update on public.global_content_benchmarks
+for each row execute function public.set_updated_at_compat();
 
 
 ==================================================
