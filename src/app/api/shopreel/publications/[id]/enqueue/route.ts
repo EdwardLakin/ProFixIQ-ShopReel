@@ -11,6 +11,7 @@ export async function POST(
     const shopId = await getCurrentShopId();
     const supabase = createAdminClient();
     const legacy = supabase as any;
+    const now = new Date().toISOString();
 
     const { data: publication, error: publicationError } = await legacy
       .from("content_publications")
@@ -52,8 +53,6 @@ export async function POST(
       });
     }
 
-    const now = new Date().toISOString();
-
     const { error: publicationUpdateError } = await legacy
       .from("content_publications")
       .update({
@@ -75,6 +74,7 @@ export async function POST(
         status: "queued",
         attempt_count: 0,
         error_message: null,
+        run_after: now,
         created_at: now,
         updated_at: now,
       })

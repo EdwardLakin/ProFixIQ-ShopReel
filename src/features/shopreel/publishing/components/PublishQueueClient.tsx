@@ -42,7 +42,7 @@ function timeAgoLabel(value: string | null) {
 }
 
 function statusTone(status: string | null | undefined): "default" | "copper" | "muted" {
-  if (status === "published" || status === "completed") return "copper";
+  if (status === "completed" || status === "published") return "copper";
   if (status === "failed") return "muted";
   return "default";
 }
@@ -54,11 +54,12 @@ export default function PublishQueueClient(props: {
   const { initialJobs, initialQueuedPublicationsWithoutJobs } = props;
   const router = useRouter();
 
-  const [jobs, setJobs] = useState<PublishJobRow[]>(initialJobs);
+  const [jobs] = useState<PublishJobRow[]>(initialJobs);
   const [missingPublications, setMissingPublications] = useState<PublicationRow[]>(
     initialQueuedPublicationsWithoutJobs
   );
   const [pendingPublicationId, setPendingPublicationId] = useState<string | null>(null);
+  const [runningJobId, setRunningJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,7 +82,6 @@ export default function PublishQueueClient(props: {
         ok?: boolean;
         error?: string;
         alreadyQueued?: boolean;
-        publishJobId?: string;
       };
 
       if (!res.ok || !json.ok) {
@@ -103,6 +103,31 @@ export default function PublishQueueClient(props: {
       setError(err instanceof Error ? err.message : "Failed to enqueue publication");
     } finally {
       setPendingPublicationId(null);
+    }
+  }
+
+  async function runJob(jobId: string) {
+    try {
+      setRunningJobId(jobId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/publish-jobs/${jobId}/run`, {
+        method: "POST",
+      });
+
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to run publish job");
+      }
+
+      setMessage("Publish worker executed.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run publish job");
+    } finally {
+      setRunningJobId(null);
     }
   }
 
@@ -187,7 +212,18 @@ export default function PublishQueueClient(props: {
                   </div>
                 </div>
 
-                <GlassBadge tone={statusTone(job.status)}>{job.status ?? "queued"}</GlassBadge>
+                <div className="flex flex-wrap items-center gap-3">
+                  <GlassBadge tone={statusTone(job.status)}>{job.status ?? "queued"}</GlassBadge>
+                  {(job.status === "queued" || job.status === "failed") ? (
+                    <GlassButton
+                      variant="secondary"
+                      onClick={() => void runJob(job.id)}
+                      disabled={runningJobId === job.id}
+                    >
+                      {runningJobId === job.id ? "Running..." : "Run Now"}
+                    </GlassButton>
+                  ) : null}
+                </div>
               </div>
             </div>
           ))}

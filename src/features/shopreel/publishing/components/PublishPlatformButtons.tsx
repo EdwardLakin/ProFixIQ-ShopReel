@@ -26,7 +26,7 @@ export default function PublishPlatformButtons(props: {
   const { generationId, canPublish, compact = false } = props;
   const [pendingPlatform, setPendingPlatform] = useState<PublishPlatform | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [alreadyQueued, setAlreadyQueued] = useState(false);
+  const [nextHint, setNextHint] = useState<"queue" | "history" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const buttons = useMemo(() => PLATFORM_ORDER, []);
@@ -38,7 +38,7 @@ export default function PublishPlatformButtons(props: {
       setPendingPlatform(platform);
       setError(null);
       setMessage(null);
-      setAlreadyQueued(false);
+      setNextHint(null);
 
       const res = await fetch(`/api/shopreel/generations/${generationId}/publish`, {
         method: "POST",
@@ -52,18 +52,23 @@ export default function PublishPlatformButtons(props: {
         ok?: boolean;
         error?: string;
         alreadyQueued?: boolean;
+        repairedJob?: boolean;
       };
 
       if (!res.ok || !json.ok) {
         throw new Error(json.error ?? "Failed to queue publish job");
       }
 
-      setAlreadyQueued(Boolean(json.alreadyQueued));
-      setMessage(
-        json.alreadyQueued
-          ? `${formatLabel(platform)} already has a queued publish record.`
-          : `${formatLabel(platform)} publish queued.`
-      );
+      if (json.repairedJob) {
+        setMessage(`${formatLabel(platform)} publish job was repaired and queued.`);
+        setNextHint("queue");
+      } else if (json.alreadyQueued) {
+        setMessage(`${formatLabel(platform)} already has a queued publish job.`);
+        setNextHint("queue");
+      } else {
+        setMessage(`${formatLabel(platform)} publication and publish job queued.`);
+        setNextHint("queue");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to queue publish job");
     } finally {
@@ -103,7 +108,7 @@ export default function PublishPlatformButtons(props: {
           <div className="flex flex-wrap gap-2">
             <Link href="/shopreel/publish-queue">
               <GlassButton variant="ghost">
-                {alreadyQueued ? "Open Publish Queue" : "View Queue"}
+                {nextHint === "queue" ? "Open Publish Queue" : "View Queue"}
               </GlassButton>
             </Link>
             <Link href="/shopreel/published">

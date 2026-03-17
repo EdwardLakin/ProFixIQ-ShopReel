@@ -70,6 +70,7 @@ export async function POST(
       );
     }
 
+    const now = new Date().toISOString();
     const storyDraft = objectRecord(generation.story_draft);
     const metadata = objectRecord(generation.generation_metadata);
 
@@ -80,10 +81,10 @@ export async function POST(
 
     const { data: existingRows, error: existingError } = await legacy
       .from("content_publications")
-      .select("id, status")
+      .select("*")
       .eq("content_piece_id", generation.content_piece_id)
       .eq("platform", platform)
-      .in("status", ["queued", "publishing"])
+      .in("status", ["queued", "publishing", "failed"])
       .order("created_at", { ascending: false })
       .limit(1);
 
@@ -94,14 +95,66 @@ export async function POST(
     const existingPublication = existingRows?.[0] ?? null;
 
     if (existingPublication) {
+      const { data: existingJobs, error: existingJobsError } = await legacy
+        .from("shopreel_publish_jobs")
+        .select("*")
+        .eq("publication_id", existingPublication.id)
+        .in("status", ["queued", "processing"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (existingJobsError) {
+        throw new Error(existingJobsError.message);
+      }
+
+      const existingJob = existingJobs?.[0] ?? null;
+
+      if (existingJob) {
+        return NextResponse.json({
+          ok: true,
+          alreadyQueued: true,
+          repairedJob: false,
+          publicationId: existingPublication.id,
+          publishJobId: existingJob.id,
+        });
+      }
+
+      const { data: repairedJob, error: repairedJobError } = await legacy
+        .from("shopreel_publish_jobs")
+        .insert({
+          shop_id: shopId,
+          publication_id: existingPublication.id,
+          status: "queued",
+          attempt_count: 0,
+          error_message: null,
+          run_after: now,
+          created_at: now,
+          updated_at: now,
+        })
+        .select("*")
+        .single();
+
+      if (repairedJobError) {
+        throw new Error(repairedJobError.message);
+      }
+
+      await legacy
+        .from("content_publications")
+        .update({
+          status: "queued",
+          error_text: null,
+          updated_at: now,
+        })
+        .eq("id", existingPublication.id);
+
       return NextResponse.json({
         ok: true,
-        alreadyQueued: true,
+        alreadyQueued: false,
+        repairedJob: true,
         publicationId: existingPublication.id,
+        publishJobId: repairedJob.id,
       });
     }
-
-    const now = new Date().toISOString();
 
     const { data: publication, error: publicationError } = await legacy
       .from("content_publications")
@@ -112,6 +165,8 @@ export async function POST(
         scheduled_for: null,
         published_at: null,
         platform_post_url: null,
+        platform_post_id: null,
+        platform_account_id: null,
         error_text: null,
         tenant_shop_id: shopId,
         source_shop_id: shopId,
@@ -139,6 +194,8 @@ export async function POST(
         publication_id: publication.id,
         status: "queued",
         attempt_count: 0,
+        error_message: null,
+        run_after: now,
         created_at: now,
         updated_at: now,
       })
@@ -154,6 +211,7 @@ export async function POST(
       publicationId: publication.id,
       publishJobId: publishJob.id,
       alreadyQueued: false,
+      repairedJob: false,
     });
   } catch (error) {
     return NextResponse.json(
