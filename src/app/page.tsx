@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PricingSection from "@/features/landing/components/PricingSection";
 
 const featureCards = [
   {
@@ -91,7 +92,9 @@ export default function LandingPage() {
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <div className="text-sm text-white/50">Content engine</div>
-                    <div className="text-xl font-semibold text-white">One workflow. Multiple channels.</div>
+                    <div className="text-xl font-semibold text-white">
+                      One workflow. Multiple channels.
+                    </div>
                   </div>
                   <div className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-medium text-emerald-300">
                     Live pipeline
@@ -103,7 +106,10 @@ export default function LandingPage() {
                     ["Input", "Photos, videos, jobs, notes, inspections, team activity"],
                     ["AI", "Drafts hooks, captions, concepts, sequences, and variants"],
                     ["Review", "Approve, queue, schedule, or auto-publish"],
-                    ["Output", "Instagram, Facebook, TikTok, YouTube, blog, email, Google Business"],
+                    [
+                      "Output",
+                      "Instagram, Facebook, TikTok, YouTube, blog, email, Google Business",
+                    ],
                   ].map(([label, value]) => (
                     <div
                       key={label}
@@ -175,6 +181,10 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <div className="relative">
+        <PricingSection />
+      </div>
     </main>
   );
 }
