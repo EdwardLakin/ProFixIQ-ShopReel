@@ -74,6 +74,10 @@ export default async function ShopReelPublishCenterPage() {
     }
   }
 
+  const inProgressPublications = (recentPublications ?? []).filter(
+    (item: any) => item.status === "queued" || item.status === "publishing"
+  );
+
   return (
     <GlassShell
       eyebrow="ShopReel"
@@ -222,12 +226,7 @@ export default async function ShopReelPublishCenterPage() {
           description="Queue and worker activity for outbound publishing."
           strong
         >
-          {(recentPublications ?? []).filter(
-            (item: any) =>
-              item.status === "queued" ||
-              item.status === "publishing" ||
-              item.status === "processing"
-          ).length === 0 ? (
+          {inProgressPublications.length === 0 ? (
             <div
               className={cx(
                 "rounded-2xl border p-4 text-sm",
@@ -240,46 +239,39 @@ export default async function ShopReelPublishCenterPage() {
             </div>
           ) : (
             <div className="grid gap-3">
-              {(recentPublications ?? [])
-                .filter(
-                  (item: any) =>
-                    item.status === "queued" ||
-                    item.status === "publishing" ||
-                    item.status === "processing"
-                )
-                .map((item: any) => {
-                  const queueJob = queueByPublicationId.get(item.id);
+              {inProgressPublications.map((item: any) => {
+                const queueJob = queueByPublicationId.get(item.id);
 
-                  return (
-                    <div
-                      key={item.id}
-                      className={cx(
-                        "rounded-2xl border p-4",
-                        glassTheme.border.copper,
-                        glassTheme.glass.panelSoft
-                      )}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                            {(item.metadata as any)?.title ?? item.platform ?? "Publication"}
-                          </div>
-                          <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
-                            {item.platform ?? "platform"} • queued{" "}
-                            {timeAgoLabel(item.created_at ?? null)}
-                          </div>
-                          {queueJob ? (
-                            <div className={cx("mt-2 text-xs", glassTheme.text.muted)}>
-                              Queue job: {queueJob.status ?? "queued"}
-                            </div>
-                          ) : null}
+                return (
+                  <div
+                    key={item.id}
+                    className={cx(
+                      "rounded-2xl border p-4",
+                      glassTheme.border.copper,
+                      glassTheme.glass.panelSoft
+                    )}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                          {(item.metadata as any)?.title ?? item.platform ?? "Publication"}
                         </div>
-
-                        <GlassBadge tone="default">{item.status ?? "queued"}</GlassBadge>
+                        <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
+                          {item.platform ?? "platform"} • queued{" "}
+                          {timeAgoLabel(item.created_at ?? null)}
+                        </div>
+                        {queueJob ? (
+                          <div className={cx("mt-2 text-xs", glassTheme.text.muted)}>
+                            Queue job: {queueJob.status ?? "queued"}
+                          </div>
+                        ) : null}
                       </div>
+
+                      <GlassBadge tone="default">{item.status ?? "queued"}</GlassBadge>
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </GlassCard>

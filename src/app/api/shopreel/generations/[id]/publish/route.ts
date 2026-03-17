@@ -83,7 +83,7 @@ export async function POST(
       .select("id, status")
       .eq("content_piece_id", generation.content_piece_id)
       .eq("platform", platform)
-      .in("status", ["queued", "publishing", "processing"])
+      .in("status", ["queued", "publishing"])
       .order("created_at", { ascending: false })
       .limit(1);
 
@@ -115,6 +115,7 @@ export async function POST(
         error_text: null,
         tenant_shop_id: shopId,
         source_shop_id: shopId,
+        source_system: "shopreel",
         metadata: {
           title,
           generation_id: generation.id,
