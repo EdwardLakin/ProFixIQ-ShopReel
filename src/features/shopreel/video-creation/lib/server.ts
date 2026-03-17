@@ -7,6 +7,11 @@ import {
 } from "./types";
 import { getMediaProviderAdapter } from "../providers";
 import { ensureContentPieceForMediaJob } from "./contentPieces";
+import {
+  enhancePromptWithBrandVoice,
+  createThumbnailAssetForMediaJob,
+} from "./enhancement";
+import { createStoryboardFromMediaJob } from "./storyboards";
 
 type MediaGenerationJobInsert =
   Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Insert"];
@@ -23,6 +28,16 @@ export async function createMediaGenerationJob(
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
 
+  const enhancement = await enhancePromptWithBrandVoice({
+    prompt: input.prompt,
+    negativePrompt: input.negativePrompt,
+    style: input.style,
+    visualMode: input.visualMode,
+    aspectRatio: input.aspectRatio,
+    durationSeconds: input.durationSeconds,
+    jobType: input.jobType,
+  });
+
   const insertPayload: MediaGenerationJobInsert = {
     shop_id: shopId,
     provider: input.jobType === "asset_assembly" ? "assembly" : input.provider,
@@ -30,7 +45,8 @@ export async function createMediaGenerationJob(
     status: "queued",
     title: input.title || null,
     prompt: input.prompt || null,
-    prompt_enhanced: buildEnhancedPrompt(input),
+    prompt_enhanced:
+      enhancement.enhancedPrompt || buildEnhancedPrompt(input),
     negative_prompt: input.negativePrompt || null,
     style: input.style,
     visual_mode: input.visualMode,
@@ -41,6 +57,7 @@ export async function createMediaGenerationJob(
       requested_provider: input.provider,
       requested_job_type: input.jobType,
       title: input.title,
+      enhancement_notes: enhancement.enhancementNotes,
     },
     result_payload: {},
   };
@@ -182,6 +199,8 @@ export async function processMediaGenerationJob(
     }
 
     await ensureContentPieceForMediaJob(completed);
+    await createThumbnailAssetForMediaJob(completed);
+    await createStoryboardFromMediaJob({ mediaJob: completed });
 
     const { data: refreshedCompleted, error: refreshedCompletedError } = await supabase
       .from("shopreel_media_generation_jobs")
