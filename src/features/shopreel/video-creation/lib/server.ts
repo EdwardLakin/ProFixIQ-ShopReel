@@ -71,11 +71,13 @@ export async function createMediaGenerationJob(
   return data;
 }
 
-async function createPlaceholderAsset(args: {
+async function createOutputAsset(args: {
   shopId: string;
   title: string | null;
   assetType: "photo" | "video";
   metadata: Json;
+  publicUrl?: string | null;
+  mimeType?: string | null;
 }): Promise<string> {
   const supabase = createAdminClient();
 
@@ -86,10 +88,10 @@ async function createPlaceholderAsset(args: {
     asset_type: args.assetType,
     title: args.title,
     metadata: args.metadata,
-    public_url: null,
+    public_url: args.publicUrl ?? null,
     storage_path: null,
     bucket: null,
-    mime_type: null,
+    mime_type: args.mimeType ?? null,
     caption: null,
   };
 
@@ -148,10 +150,12 @@ export async function processMediaGenerationJob(
       settings: job.settings,
     });
 
-    const outputAssetId = await createPlaceholderAsset({
+    const outputAssetId = await createOutputAsset({
       shopId: job.shop_id,
       title: job.title,
       assetType: job.job_type === "image" ? "photo" : "video",
+      publicUrl: providerResult.previewUrl ?? null,
+      mimeType: job.job_type === "image" ? "image/png" : "video/mp4",
       metadata: {
         generated_by: "shopreel_video_creation",
         provider: job.provider,
@@ -163,8 +167,8 @@ export async function processMediaGenerationJob(
         visual_mode: job.visual_mode,
         aspect_ratio: job.aspect_ratio,
         duration_seconds: job.duration_seconds,
-        note: "Placeholder generated asset. Provider execution hook not fully wired yet.",
         provider_result: providerResult.resultPayload,
+        real_provider_output: !!providerResult.previewUrl,
       } satisfies Json,
     });
 
@@ -183,7 +187,7 @@ export async function processMediaGenerationJob(
           provider_job_id: providerResult.providerJobId,
           preview_url: providerResult.previewUrl,
           provider_result: providerResult.resultPayload,
-          completed_placeholder: true,
+          real_provider_output: !!providerResult.previewUrl,
         },
       })
       .eq("id", jobId)
