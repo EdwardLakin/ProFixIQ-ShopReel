@@ -8,6 +8,11 @@ import PublishPlatformButtons from "@/features/shopreel/publishing/components/Pu
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
 
+type PlatformStatus = "queued" | "publishing" | "published" | "failed" | "none";
+type PlatformKey = "instagram" | "facebook" | "tiktok" | "youtube";
+
+const PLATFORM_KEYS: PlatformKey[] = ["instagram", "facebook", "tiktok", "youtube"];
+
 function timeAgoLabel(value: string | null) {
   if (!value) return "Unknown";
 
@@ -31,6 +36,16 @@ function publicationTone(
   if (status === "published") return "copper";
   if (status === "failed") return "muted";
   return "default";
+}
+
+function platformTone(status: PlatformStatus): "default" | "copper" | "muted" {
+  if (status === "published") return "copper";
+  if (status === "failed") return "muted";
+  return "default";
+}
+
+function formatPlatformLabel(platform: string, status: PlatformStatus) {
+  return status === "none" ? platform : `${platform} · ${status}`;
 }
 
 export default async function ShopReelPublishCenterPage() {
@@ -59,12 +74,12 @@ export default async function ShopReelPublishCenterPage() {
       .from("content_publications")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(24),
+      .limit(100),
     legacy
       .from("shopreel_publish_jobs")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(24),
+      .limit(100),
   ]);
 
   const queueByPublicationId = new Map<string, any>();
@@ -72,6 +87,14 @@ export default async function ShopReelPublishCenterPage() {
     if (job.publication_id) {
       queueByPublicationId.set(job.publication_id, job);
     }
+  }
+
+  const publicationsByContentPieceId = new Map<string, any[]>();
+  for (const publication of recentPublications ?? []) {
+    if (!publication.content_piece_id) continue;
+    const existing = publicationsByContentPieceId.get(publication.content_piece_id) ?? [];
+    existing.push(publication);
+    publicationsByContentPieceId.set(publication.content_piece_id, existing);
   }
 
   const inProgressPublications = (recentPublications ?? []).filter(
@@ -88,8 +111,8 @@ export default async function ShopReelPublishCenterPage() {
           <Link href="/shopreel/generations">
             <GlassButton variant="ghost">Open generations</GlassButton>
           </Link>
-          <Link href="/shopreel/calendar">
-            <GlassButton variant="secondary">Open calendar</GlassButton>
+          <Link href="/shopreel/publish-queue">
+            <GlassButton variant="secondary">Open queue</GlassButton>
           </Link>
           <Link href="/shopreel/published">
             <GlassButton variant="primary">History</GlassButton>
@@ -103,7 +126,7 @@ export default async function ShopReelPublishCenterPage() {
         <GlassCard
           label="Ready"
           title="Ready to publish"
-          description="Generated content that is ready for review and platform publishing."
+          description={`${(readyGenerations ?? []).length} ready generation(s) available for platform publishing.`}
           strong
         >
           {(readyGenerations ?? []).length === 0 ? (
@@ -128,6 +151,19 @@ export default async function ShopReelPublishCenterPage() {
                   typeof draft.title === "string" && draft.title.trim().length > 0
                     ? draft.title
                     : "Untitled generation";
+
+                const publicationsForItem = item.content_piece_id
+                  ? publicationsByContentPieceId.get(item.content_piece_id) ?? []
+                  : [];
+
+                const latestByPlatform = new Map<PlatformKey, any>();
+                for (const publication of publicationsForItem) {
+                  const platform = publication.platform as PlatformKey | null;
+                  if (!platform || !PLATFORM_KEYS.includes(platform)) continue;
+                  if (!latestByPlatform.has(platform)) {
+                    latestByPlatform.set(platform, publication);
+                  }
+                }
 
                 return (
                   <div
@@ -157,6 +193,19 @@ export default async function ShopReelPublishCenterPage() {
                       </Link>
                     </div>
 
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {PLATFORM_KEYS.map((platform) => {
+                        const latest = latestByPlatform.get(platform) ?? null;
+                        const status: PlatformStatus = latest?.status ?? "none";
+
+                        return (
+                          <GlassBadge key={platform} tone={platformTone(status)}>
+                            {formatPlatformLabel(platform, status)}
+                          </GlassBadge>
+                        );
+                      })}
+                    </div>
+
                     <div className="mt-4">
                       <PublishPlatformButtons
                         generationId={item.id}
@@ -174,7 +223,7 @@ export default async function ShopReelPublishCenterPage() {
         <GlassCard
           label="Scheduled"
           title="Scheduled publishing"
-          description="Items already assigned a future publishing time."
+          description={`${(scheduledPublications ?? []).length} scheduled publication(s).`}
           strong
         >
           {(scheduledPublications ?? []).length === 0 ? (
@@ -223,7 +272,7 @@ export default async function ShopReelPublishCenterPage() {
         <GlassCard
           label="In Progress"
           title="Publishing now"
-          description="Queue and worker activity for outbound publishing."
+          description={`${inProgressPublications.length} publication(s) currently queued or publishing.`}
           strong
         >
           {inProgressPublications.length === 0 ? (
@@ -264,7 +313,11 @@ export default async function ShopReelPublishCenterPage() {
                           <div className={cx("mt-2 text-xs", glassTheme.text.muted)}>
                             Queue job: {queueJob.status ?? "queued"}
                           </div>
-                        ) : null}
+                        ) : (
+                          <div className={cx("mt-2 text-xs", glassTheme.text.muted)}>
+                            No publish job attached yet — open Publish Queue to repair it.
+                          </div>
+                        )}
                       </div>
 
                       <GlassBadge tone="default">{item.status ?? "queued"}</GlassBadge>
@@ -279,7 +332,7 @@ export default async function ShopReelPublishCenterPage() {
         <GlassCard
           label="History"
           title="Published and failed"
-          description="Recent publishing outcomes across all destinations."
+          description={`${(recentPublications ?? []).length} recent publication record(s).`}
           strong
         >
           {(recentPublications ?? []).length === 0 ? (

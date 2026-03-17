@@ -42,7 +42,9 @@ export default function PublishingHistoryClient({
   const router = useRouter();
   const [items, setItems] = useState<PublicationRow[]>(initialPublications);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [queueingId, setQueueingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const total = useMemo(() => items.length, [items]);
 
@@ -54,6 +56,7 @@ export default function PublishingHistoryClient({
 
     try {
       setError(null);
+      setMessage(null);
       setDeletingId(item.id);
 
       const res = await fetch(`/api/shopreel/publications/${item.id}`, {
@@ -75,6 +78,37 @@ export default function PublishingHistoryClient({
     }
   }
 
+  async function enqueuePublication(item: PublicationRow) {
+    try {
+      setError(null);
+      setMessage(null);
+      setQueueingId(item.id);
+
+      const res = await fetch(`/api/shopreel/publications/${item.id}/enqueue`, {
+        method: "POST",
+      });
+
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        alreadyQueued?: boolean;
+      };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to queue publication");
+      }
+
+      setMessage(
+        json.alreadyQueued ? "Publish job already exists." : "Publish job queued."
+      );
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to queue publication");
+    } finally {
+      setQueueingId(null);
+    }
+  }
+
   return (
     <GlassCard
       label="History"
@@ -87,6 +121,19 @@ export default function PublishingHistoryClient({
         </div>
       }
     >
+      {message ? (
+        <div
+          className={cx(
+            "mb-4 rounded-2xl border p-4 text-sm",
+            glassTheme.border.copper,
+            glassTheme.glass.panelSoft,
+            glassTheme.text.copperSoft
+          )}
+        >
+          {message}
+        </div>
+      ) : null}
+
       {error ? (
         <div
           className={cx(
@@ -113,48 +160,67 @@ export default function PublishingHistoryClient({
         </div>
       ) : (
         <div className="grid gap-3">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className={cx(
-                "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
-                glassTheme.border.copper,
-                glassTheme.glass.panelSoft
-              )}
-            >
-              <div className="space-y-1">
-                <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                  {(item.metadata as any)?.title ?? item.platform ?? "Publication"}
-                </div>
-                <div className={cx("text-sm", glassTheme.text.secondary)}>
-                  {item.platform ?? "platform"} • {timeAgoLabel(item.published_at ?? item.created_at)}
-                </div>
-                {item.platform_post_url ? (
-                  <a
-                    href={item.platform_post_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={cx("text-sm underline", glassTheme.text.copperSoft)}
-                  >
-                    Open live post
-                  </a>
-                ) : null}
-              </div>
+          {items.map((item) => {
+            const canQueue = item.status === "queued" || item.status === "failed";
 
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                <GlassBadge tone={item.status === "published" ? "copper" : "default"}>
-                  {item.status ?? "unknown"}
-                </GlassBadge>
-                <GlassButton
-                  variant="ghost"
-                  onClick={() => void deletePublication(item)}
-                  disabled={deletingId === item.id}
-                >
-                  {deletingId === item.id ? "Deleting..." : "Delete"}
-                </GlassButton>
+            return (
+              <div
+                key={item.id}
+                className={cx(
+                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft
+                )}
+              >
+                <div className="space-y-1">
+                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    {(item.metadata as any)?.title ?? item.platform ?? "Publication"}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+                    {item.platform ?? "platform"} • {timeAgoLabel(item.published_at ?? item.created_at)}
+                  </div>
+                  {item.platform_post_url ? (
+                    <a
+                      href={item.platform_post_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cx("text-sm underline", glassTheme.text.copperSoft)}
+                    >
+                      Open live post
+                    </a>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                  <GlassBadge tone={item.status === "published" ? "copper" : "default"}>
+                    {item.status ?? "unknown"}
+                  </GlassBadge>
+
+                  {canQueue ? (
+                    <GlassButton
+                      variant="secondary"
+                      onClick={() => void enqueuePublication(item)}
+                      disabled={queueingId === item.id}
+                    >
+                      {queueingId === item.id
+                        ? "Queueing..."
+                        : item.status === "failed"
+                          ? "Retry"
+                          : "Queue Job"}
+                    </GlassButton>
+                  ) : null}
+
+                  <GlassButton
+                    variant="ghost"
+                    onClick={() => void deletePublication(item)}
+                    disabled={deletingId === item.id}
+                  >
+                    {deletingId === item.id ? "Deleting..." : "Delete"}
+                  </GlassButton>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </GlassCard>

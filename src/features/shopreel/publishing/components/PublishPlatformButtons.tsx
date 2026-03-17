@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
@@ -25,6 +26,7 @@ export default function PublishPlatformButtons(props: {
   const { generationId, canPublish, compact = false } = props;
   const [pendingPlatform, setPendingPlatform] = useState<PublishPlatform | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [alreadyQueued, setAlreadyQueued] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const buttons = useMemo(() => PLATFORM_ORDER, []);
@@ -36,6 +38,7 @@ export default function PublishPlatformButtons(props: {
       setPendingPlatform(platform);
       setError(null);
       setMessage(null);
+      setAlreadyQueued(false);
 
       const res = await fetch(`/api/shopreel/generations/${generationId}/publish`, {
         method: "POST",
@@ -55,9 +58,10 @@ export default function PublishPlatformButtons(props: {
         throw new Error(json.error ?? "Failed to queue publish job");
       }
 
+      setAlreadyQueued(Boolean(json.alreadyQueued));
       setMessage(
         json.alreadyQueued
-          ? `${formatLabel(platform)} was already queued.`
+          ? `${formatLabel(platform)} already has a queued publish record.`
           : `${formatLabel(platform)} publish queued.`
       );
     } catch (err) {
@@ -93,7 +97,20 @@ export default function PublishPlatformButtons(props: {
       ) : null}
 
       {message ? (
-        <div className={cx("text-sm", glassTheme.text.copperSoft)}>{message}</div>
+        <div className="space-y-2">
+          <div className={cx("text-sm", glassTheme.text.copperSoft)}>{message}</div>
+
+          <div className="flex flex-wrap gap-2">
+            <Link href="/shopreel/publish-queue">
+              <GlassButton variant="ghost">
+                {alreadyQueued ? "Open Publish Queue" : "View Queue"}
+              </GlassButton>
+            </Link>
+            <Link href="/shopreel/published">
+              <GlassButton variant="ghost">Open History</GlassButton>
+            </Link>
+          </div>
+        </div>
       ) : null}
 
       {error ? (
