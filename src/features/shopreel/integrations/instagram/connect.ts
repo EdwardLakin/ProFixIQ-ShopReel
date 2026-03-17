@@ -41,6 +41,10 @@ function buildInstagramScopes(): string {
   return [
     "pages_show_list",
     "pages_read_engagement",
+    "pages_read_user_content",
+    "pages_manage_metadata",
+    "pages_manage_posts",
+    "business_management",
     "instagram_basic",
     "instagram_content_publish",
   ].join(",");
