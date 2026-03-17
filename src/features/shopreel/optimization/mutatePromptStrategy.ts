@@ -68,8 +68,8 @@ export async function mutatePromptStrategy(shopId: string) {
 
   const { data: templates, error: templatesError } = await supabase
     .from("content_templates")
-    .select("id, script_guidance, visual_guidance, default_hook, default_cta")
-    .eq("shop_id", shopId)
+    .select("id, config")
+    .eq("tenant_shop_id", shopId)
     .eq("is_active", true);
 
   if (templatesError) {
@@ -78,25 +78,23 @@ export async function mutatePromptStrategy(shopId: string) {
 
   for (const template of (templates ?? []) as Array<{
     id: string;
-    script_guidance: string | null;
-    visual_guidance: string | null;
-    default_hook: string | null;
-    default_cta: string | null;
+    config: Record<string, unknown> | null;
   }>) {
-    const nextScriptGuidance = [
-      template.script_guidance ?? "",
-      "",
-      "Optimization rules:",
-      ...hookRules.map((rule) => `- ${rule}`),
-      ...ctaRules.map((rule) => `- ${rule}`),
-    ]
-      .join("\n")
-      .trim();
+    const config = template.config ?? {};
+
+    const nextConfig = {
+      ...config,
+      optimization_rules: {
+        hookRules,
+        ctaRules,
+        updatedAt: new Date().toISOString(),
+      },
+    };
 
     await supabase
       .from("content_templates")
       .update({
-        script_guidance: nextScriptGuidance,
+        config: nextConfig,
         updated_at: new Date().toISOString(),
       })
       .eq("id", template.id);
