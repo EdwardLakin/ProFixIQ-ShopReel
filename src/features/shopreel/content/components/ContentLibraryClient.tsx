@@ -42,7 +42,9 @@ export default function ContentLibraryClient({ initialItems }: Props) {
   const total = useMemo(() => items.length, [items]);
 
   async function deleteGeneration(item: ContentLibraryItem) {
-    const confirmed = window.confirm(`Delete "${item.title}"?`);
+    const confirmed = window.confirm(
+      `Delete "${item.title}"?\n\nThis removes the generated item and its linked publish/render records.`
+    );
     if (!confirmed) return;
 
     try {
@@ -86,7 +88,7 @@ export default function ContentLibraryClient({ initialItems }: Props) {
             "mb-4 rounded-2xl border p-4 text-sm",
             glassTheme.border.copper,
             glassTheme.glass.panelSoft,
-            glassTheme.text.copperSoft,
+            glassTheme.text.copperSoft
           )}
         >
           {error}
@@ -99,7 +101,7 @@ export default function ContentLibraryClient({ initialItems }: Props) {
             "rounded-2xl border p-4 text-sm",
             glassTheme.border.softer,
             glassTheme.glass.panelSoft,
-            glassTheme.text.secondary,
+            glassTheme.text.secondary
           )}
         >
           No content yet.
@@ -113,31 +115,41 @@ export default function ContentLibraryClient({ initialItems }: Props) {
               <div
                 key={item.id}
                 className={cx(
-                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                  "rounded-2xl border p-4",
                   glassTheme.border.softer,
-                  glassTheme.glass.panelSoft,
+                  glassTheme.glass.panelSoft
                 )}
               >
-                <div className="space-y-1">
-                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                    {item.title}
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {item.title}
+                    </div>
+
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      {formatLabel(item.outputType)} • {formatLabel(item.sourceKind)}
+                    </div>
+
+                    <div className={cx("text-sm", glassTheme.text.muted)}>
+                      Status: {formatLabel(item.status)}
+                    </div>
                   </div>
-                  <div className={cx("text-sm", glassTheme.text.secondary)}>
-                    {formatLabel(item.outputType)} • {formatLabel(item.sourceKind)} •{" "}
-                    {new Date(item.createdAt).toLocaleDateString()}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <GlassBadge tone="default">{formatLabel(item.outputType)}</GlassBadge>
+                    <GlassBadge tone="muted">{formatLabel(item.status)}</GlassBadge>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                  <GlassBadge tone="copper">{formatLabel(item.outputType)}</GlassBadge>
-                  <GlassBadge tone="default">{formatLabel(item.status)}</GlassBadge>
-
+                <div className="mt-4 flex flex-wrap gap-2">
                   <Link href={getReviewPath(item.outputType, item.id)}>
                     <GlassButton variant="ghost">Review</GlassButton>
                   </Link>
-                  <Link href={getEditorPath(item.outputType, item.id)}>
+
+                  <Link href={editorPath(item.outputType, item.id)}>
                     <GlassButton variant="secondary">Edit</GlassButton>
                   </Link>
+
                   <GlassButton
                     variant="ghost"
                     onClick={() => void deleteGeneration(item)}

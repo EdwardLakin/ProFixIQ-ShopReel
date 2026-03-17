@@ -1,155 +1,62 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import type { Json } from "@/types/supabase";
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
-type Params = {
-  params: Promise<{ id: string }>;
-};
-
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function DELETE(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await params;
-    const supabase = await createClient();
+    const { id } = await ctx.params;
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
 
-    const body = (await req.json().catch(() => ({}))) as {
-      status?:
-        | "draft"
-        | "queued"
-        | "publishing"
-        | "published"
-        | "failed"
-        | "cancelled";
-      scheduledFor?: string | null;
-      publishedAt?: string | null;
-      externalPostId?: string | null;
-      externalUrl?: string | null;
-      errorCode?: string | null;
-      errorMessage?: string | null;
-      metadata?: Json | null;
-      title?: string | null;
-      caption?: string | null;
-    };
-
-    const updatePayload: {
-      status?:
-        | "draft"
-        | "queued"
-        | "publishing"
-        | "published"
-        | "failed"
-        | "cancelled";
-      scheduled_for?: string | null;
-      published_at?: string | null;
-      platform_post_id?: string | null;
-      platform_post_url?: string | null;
-      error_code?: string | null;
-      error_message?: string | null;
-      metadata?: Json;
-      title?: string | null;
-      caption?: string | null;
-      updated_at: string;
-    } = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (body.status !== undefined) {
-      updatePayload.status = body.status;
-    }
-
-    if (body.scheduledFor !== undefined) {
-      updatePayload.scheduled_for = body.scheduledFor;
-    }
-
-    if (body.publishedAt !== undefined) {
-      updatePayload.published_at = body.publishedAt;
-    }
-
-    if (body.externalPostId !== undefined) {
-      updatePayload.platform_post_id = body.externalPostId;
-    }
-
-    if (body.externalUrl !== undefined) {
-      updatePayload.platform_post_url = body.externalUrl;
-    }
-
-    if (body.errorCode !== undefined) {
-      updatePayload.error_code = body.errorCode;
-    }
-
-    if (body.errorMessage !== undefined) {
-      updatePayload.error_message = body.errorMessage;
-    }
-
-    if (body.metadata !== undefined) {
-      updatePayload.metadata = body.metadata ?? {};
-    }
-
-    if (body.title !== undefined) {
-      updatePayload.title = body.title;
-    }
-
-    if (body.caption !== undefined) {
-      updatePayload.caption = body.caption;
-    }
-
-    const { data, error } = await supabase
+    const { data: publication, error: lookupError } = await legacy
       .from("content_publications")
-      .update(updatePayload)
+      .select("id, content_piece_id, tenant_shop_id, source_shop_id")
       .eq("id", id)
-      .select("*")
-      .single();
+      .or(`tenant_shop_id.eq.${shopId},source_shop_id.eq.${shopId}`)
+      .maybeSingle();
 
-    if (error || !data) {
+    if (lookupError) {
+      throw new Error(lookupError.message);
+    }
+
+    if (!publication) {
       return NextResponse.json(
-        { ok: false, error: error?.message ?? "Failed to update publication" },
-        { status: 500 },
+        { ok: false, error: "Publication not found" },
+        { status: 404 }
       );
+    }
+
+    await legacy
+      .from("shopreel_publish_jobs")
+      .delete()
+      .eq("publication_id", id)
+      .eq("shop_id", shopId);
+
+    const { error: deleteError } = await legacy
+      .from("content_publications")
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
     }
 
     return NextResponse.json({
       ok: true,
-      publication: data,
+      deletedId: id,
+      contentPieceId: publication.content_piece_id ?? null,
     });
   } catch (error) {
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
+        error: error instanceof Error ? error.message : "Failed to delete publication",
       },
-      { status: 500 },
-    );
-  }
-}
-
-export async function GET(_: NextRequest, { params }: Params) {
-  try {
-    const { id } = await params;
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
-      .from("content_publications")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error || !data) {
-      return NextResponse.json(
-        { ok: false, error: error?.message ?? "Publication not found" },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({
-      ok: true,
-      publication: data,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

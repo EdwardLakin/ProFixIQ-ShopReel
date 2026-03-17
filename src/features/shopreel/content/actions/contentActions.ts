@@ -58,7 +58,7 @@ export async function duplicateContentPiece(contentPieceId: string) {
       metadata: data.metadata ?? {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    } as any)
+    } as never)
     .select("*")
     .single();
 

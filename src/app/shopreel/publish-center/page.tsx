@@ -4,6 +4,7 @@ import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import PublishPlatformButtons from "@/features/shopreel/publishing/components/PublishPlatformButtons";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -150,9 +151,14 @@ export default async function ShopReelPublishCenterPage() {
                       <Link href={`/shopreel/generations/${item.id}`}>
                         <GlassButton variant="ghost">Review</GlassButton>
                       </Link>
-                      <Link href={`/shopreel/story-generations/${item.id}`}>
-                        <GlassButton variant="secondary">Publish</GlassButton>
-                      </Link>
+                    </div>
+
+                    <div className="mt-4">
+                      <PublishPlatformButtons
+                        generationId={item.id}
+                        canPublish={item.status === "ready"}
+                        compact
+                      />
                     </div>
                   </div>
                 );

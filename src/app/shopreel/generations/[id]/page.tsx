@@ -4,11 +4,12 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
-import { getEditorPath, normalizeEditorOutputType } from "@/features/shopreel/lib/editorPaths";
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { StoryDraft, StoryScene } from "@/features/shopreel/story-builder/types";
 import GenerationDeleteButton from "@/features/shopreel/generations/components/GenerationDeleteButton";
+import PublishPlatformButtons from "@/features/shopreel/publishing/components/PublishPlatformButtons";
 
 type BlogSection = {
   key: string;
@@ -50,10 +51,6 @@ function asBlogSections(value: unknown): BlogSection[] {
 
 function formatLabel(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function editorPathForOutputType(outputType: string | null, generationId: string) {
-  return getEditorPath(outputType, generationId);
 }
 
 export default async function ShopReelGenerationDetailPage(
@@ -106,6 +103,7 @@ export default async function ShopReelGenerationDetailPage(
   const publicationId =
     typeof metadata.publication_id === "string" ? metadata.publication_id : null;
   const editorPath = getEditorPath(outputType, generation.id);
+  const canPublish = generation.status === "ready";
 
   return (
     <GlassShell
@@ -123,8 +121,8 @@ export default async function ShopReelGenerationDetailPage(
           </Link>
           <GenerationDeleteButton generationId={generation.id} />
           {generation.status === "ready" ? (
-            <Link href={`/shopreel/published`}>
-              <GlassButton variant="ghost">Published view</GlassButton>
+            <Link href={`/shopreel/publish-center`}>
+              <GlassButton variant="ghost">Publish Center</GlassButton>
             </Link>
           ) : null}
         </>
@@ -146,6 +144,24 @@ export default async function ShopReelGenerationDetailPage(
             {publicationId ? (
               <GlassBadge tone="copper">Publication linked</GlassBadge>
             ) : null}
+          </div>
+
+          <div
+            className={cx(
+              "rounded-2xl border p-4",
+              canPublish ? glassTheme.border.copper : glassTheme.border.softer,
+              glassTheme.glass.panelSoft
+            )}
+          >
+            <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              Publish
+            </div>
+            <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
+              Queue this reviewed generation to one or more destinations.
+            </div>
+            <div className="mt-4">
+              <PublishPlatformButtons generationId={generation.id} canPublish={canPublish} />
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

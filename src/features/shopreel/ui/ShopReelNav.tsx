@@ -43,6 +43,7 @@ const GROUPS: NavGroup[] = [
     label: "Publish",
     items: [
       { label: "Publish Center", href: "/shopreel/publish-center" },
+      { label: "Publish Queue", href: "/shopreel/publish-queue" },
       { label: "Calendar", href: "/shopreel/calendar" },
       { label: "Publishing History", href: "/shopreel/published" },
       { label: "Analytics", href: "/shopreel/analytics" },
