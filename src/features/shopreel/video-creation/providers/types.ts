@@ -18,6 +18,7 @@ export type MediaProviderJobInput = {
 export type MediaProviderResult = {
   providerJobId: string | null;
   previewUrl: string | null;
+  providerStatus?: "queued" | "in_progress" | "completed" | "failed";
   resultPayload: Json;
 };
 

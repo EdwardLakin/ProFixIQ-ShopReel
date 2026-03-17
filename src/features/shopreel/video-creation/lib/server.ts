@@ -77,6 +77,8 @@ async function createOutputAsset(args: {
   assetType: "photo" | "video";
   metadata: Json;
   publicUrl?: string | null;
+  storagePath?: string | null;
+  bucket?: string | null;
   mimeType?: string | null;
 }): Promise<string> {
   const supabase = createAdminClient();
@@ -89,8 +91,8 @@ async function createOutputAsset(args: {
     title: args.title,
     metadata: args.metadata,
     public_url: args.publicUrl ?? null,
-    storage_path: null,
-    bucket: null,
+    storage_path: args.storagePath ?? null,
+    bucket: args.bucket ?? null,
     mime_type: args.mimeType ?? null,
     caption: null,
   };
@@ -106,6 +108,90 @@ async function createOutputAsset(args: {
   }
 
   return data.id;
+}
+
+export async function finalizeCompletedMediaJob(args: {
+  completedJob: MediaGenerationJobRow;
+  providerResult: {
+    providerJobId: string | null;
+    previewUrl: string | null;
+    resultPayload: Json;
+  };
+  storage?: {
+    publicUrl: string | null;
+    storagePath: string | null;
+    bucket: string | null;
+  } | null;
+}) {
+  const supabase = createAdminClient();
+
+  const outputAssetId = await createOutputAsset({
+    shopId: args.completedJob.shop_id,
+    title: args.completedJob.title,
+    assetType: args.completedJob.job_type === "image" ? "photo" : "video",
+    publicUrl: args.storage?.publicUrl ?? args.providerResult.previewUrl ?? null,
+    storagePath: args.storage?.storagePath ?? null,
+    bucket: args.storage?.bucket ?? null,
+    mimeType: args.completedJob.job_type === "image" ? "image/png" : "video/mp4",
+    metadata: {
+      generated_by: "shopreel_video_creation",
+      provider: args.completedJob.provider,
+      provider_job_id: args.providerResult.providerJobId,
+      job_type: args.completedJob.job_type,
+      prompt: args.completedJob.prompt,
+      prompt_enhanced: args.completedJob.prompt_enhanced,
+      style: args.completedJob.style,
+      visual_mode: args.completedJob.visual_mode,
+      aspect_ratio: args.completedJob.aspect_ratio,
+      duration_seconds: args.completedJob.duration_seconds,
+      provider_result: args.providerResult.resultPayload,
+      real_provider_output: true,
+    } satisfies Json,
+  });
+
+  const { data: completed, error: completeError } = await supabase
+    .from("shopreel_media_generation_jobs")
+    .update({
+      status: "completed",
+      provider_job_id: args.providerResult.providerJobId,
+      preview_url: args.storage?.publicUrl ?? args.providerResult.previewUrl ?? null,
+      output_asset_id: outputAssetId,
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      result_payload: {
+        output_asset_id: outputAssetId,
+        provider: args.completedJob.provider,
+        provider_job_id: args.providerResult.providerJobId,
+        preview_url: args.storage?.publicUrl ?? args.providerResult.previewUrl ?? null,
+        provider_result: args.providerResult.resultPayload,
+        real_provider_output: true,
+      },
+    })
+    .eq("id", args.completedJob.id)
+    .select("*")
+    .single();
+
+  if (completeError || !completed) {
+    throw new Error(completeError?.message ?? "Failed to complete generation job");
+  }
+
+  await ensureContentPieceForMediaJob(completed);
+  await createStoryboardFromMediaJob({ mediaJob: completed });
+  await createThumbnailAssetForMediaJob({ mediaJob: completed });
+
+  const { data: refreshedCompleted, error: refreshedCompletedError } = await supabase
+    .from("shopreel_media_generation_jobs")
+    .select("*")
+    .eq("id", args.completedJob.id)
+    .single();
+
+  if (refreshedCompletedError || !refreshedCompleted) {
+    throw new Error(
+      refreshedCompletedError?.message ?? "Failed to reload completed generation job"
+    );
+  }
+
+  return refreshedCompleted;
 }
 
 export async function processMediaGenerationJob(
@@ -150,71 +236,42 @@ export async function processMediaGenerationJob(
       settings: job.settings,
     });
 
-    const outputAssetId = await createOutputAsset({
-      shopId: job.shop_id,
-      title: job.title,
-      assetType: job.job_type === "image" ? "photo" : "video",
-      publicUrl: providerResult.previewUrl ?? null,
-      mimeType: job.job_type === "image" ? "image/png" : "video/mp4",
-      metadata: {
-        generated_by: "shopreel_video_creation",
-        provider: job.provider,
-        provider_job_id: providerResult.providerJobId,
-        job_type: job.job_type,
-        prompt: job.prompt,
-        prompt_enhanced: job.prompt_enhanced,
-        style: job.style,
-        visual_mode: job.visual_mode,
-        aspect_ratio: job.aspect_ratio,
-        duration_seconds: job.duration_seconds,
-        provider_result: providerResult.resultPayload,
-        real_provider_output: !!providerResult.previewUrl,
-      } satisfies Json,
-    });
-
-    const { data: completed, error: completeError } = await supabase
-      .from("shopreel_media_generation_jobs")
-      .update({
-        status: "completed",
-        provider_job_id: providerResult.providerJobId,
-        preview_url: providerResult.previewUrl,
-        output_asset_id: outputAssetId,
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        result_payload: {
-          output_asset_id: outputAssetId,
-          provider: job.provider,
+    if (job.job_type === "video" && providerResult.providerStatus !== "completed") {
+      const { data: processingJob, error: processingError } = await supabase
+        .from("shopreel_media_generation_jobs")
+        .update({
+          status: "processing",
           provider_job_id: providerResult.providerJobId,
           preview_url: providerResult.previewUrl,
-          provider_result: providerResult.resultPayload,
-          real_provider_output: !!providerResult.previewUrl,
-        },
-      })
-      .eq("id", jobId)
-      .select("*")
-      .single();
+          updated_at: new Date().toISOString(),
+          result_payload: {
+            provider: job.provider,
+            provider_job_id: providerResult.providerJobId,
+            provider_status: providerResult.providerStatus ?? "queued",
+            provider_result: providerResult.resultPayload,
+            async_video: true,
+          },
+        })
+        .eq("id", job.id)
+        .select("*")
+        .single();
 
-    if (completeError || !completed) {
-      throw new Error(completeError?.message ?? "Failed to complete generation job");
+      if (processingError || !processingJob) {
+        throw new Error(processingError?.message ?? "Failed to persist async video job");
+      }
+
+      return processingJob;
     }
 
-    await ensureContentPieceForMediaJob(completed);
-    await createStoryboardFromMediaJob({ mediaJob: completed });
-    await createThumbnailAssetForMediaJob({ mediaJob: completed });
-
-    const { data: refreshedCompleted, error: refreshedCompletedError } = await supabase
-      .from("shopreel_media_generation_jobs")
-      .select("*")
-      .eq("id", jobId)
-      .single();
-
-    if (refreshedCompletedError || !refreshedCompleted) {
-      throw new Error(
-        refreshedCompletedError?.message ?? "Failed to reload completed generation job"
-      );
-    }
-
-    return refreshedCompleted;
+    return finalizeCompletedMediaJob({
+      completedJob: job,
+      providerResult: {
+        providerJobId: providerResult.providerJobId,
+        previewUrl: providerResult.previewUrl,
+        resultPayload: providerResult.resultPayload,
+      },
+      storage: null,
+    });
   } catch (error) {
     const { data: failed, error: failedError } = await supabase
       .from("shopreel_media_generation_jobs")

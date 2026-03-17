@@ -76,6 +76,7 @@ export default function VideoCreationStudio({
   const [submitting, setSubmitting] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [runningJobId, setRunningJobId] = useState<string | null>(null);
+  const [syncingJobId, setSyncingJobId] = useState<string | null>(null);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -216,6 +217,31 @@ export default function VideoCreationStudio({
       setError(err instanceof Error ? err.message : "Failed to run generation job");
     } finally {
       setRunningJobId(null);
+    }
+  }
+
+  async function syncJob(jobId: string) {
+    try {
+      setSyncingJobId(jobId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/video-creation/jobs/${jobId}/sync`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to sync generation job");
+      }
+
+      setMessage(json.completed ? "Video job completed and imported." : "Video job synced.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sync generation job");
+    } finally {
+      setSyncingJobId(null);
     }
   }
 
@@ -614,6 +640,16 @@ export default function VideoCreationStudio({
                           disabled={runningJobId === job.id}
                         >
                           {runningJobId === job.id ? "Running..." : "Run Now"}
+                        </GlassButton>
+                      ) : null}
+
+                      {job.provider === "openai" && job.job_type === "video" && job.status === "processing" ? (
+                        <GlassButton
+                          variant="secondary"
+                          onClick={() => void syncJob(job.id)}
+                          disabled={syncingJobId === job.id}
+                        >
+                          {syncingJobId === job.id ? "Syncing..." : "Sync Video"}
                         </GlassButton>
                       ) : null}
 

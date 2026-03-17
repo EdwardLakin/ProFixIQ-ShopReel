@@ -9,3 +9,7 @@ function requireEnv(name: string): string {
 export function getOpenAIApiKey() {
   return requireEnv("OPENAI_API_KEY");
 }
+
+export function getGeneratedMediaBucket() {
+  return requireEnv("SHOPREEL_GENERATED_MEDIA_BUCKET");
+}
