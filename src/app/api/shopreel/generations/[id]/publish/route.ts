@@ -78,7 +78,7 @@ export async function POST(
         ? storyDraft.title
         : "Untitled generation";
 
-    const existingPublicationQuery = await legacy
+    const { data: existingRows, error: existingError } = await legacy
       .from("content_publications")
       .select("id, status")
       .eq("content_piece_id", generation.content_piece_id)
@@ -87,7 +87,11 @@ export async function POST(
       .order("created_at", { ascending: false })
       .limit(1);
 
-    const existingPublication = existingPublicationQuery.data?.[0] ?? null;
+    if (existingError) {
+      throw new Error(existingError.message);
+    }
+
+    const existingPublication = existingRows?.[0] ?? null;
 
     if (existingPublication) {
       return NextResponse.json({
@@ -97,29 +101,29 @@ export async function POST(
       });
     }
 
-    const publicationInsert = {
-      content_piece_id: generation.content_piece_id,
-      platform,
-      status: "queued",
-      scheduled_for: null,
-      published_at: null,
-      platform_post_url: null,
-      error_text: null,
-      tenant_shop_id: shopId,
-      source_shop_id: shopId,
-      metadata: {
-        title,
-        generation_id: generation.id,
-        output_type:
-          typeof metadata.output_type === "string" ? metadata.output_type : "video",
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const now = new Date().toISOString();
 
     const { data: publication, error: publicationError } = await legacy
       .from("content_publications")
-      .insert(publicationInsert)
+      .insert({
+        content_piece_id: generation.content_piece_id,
+        platform,
+        status: "queued",
+        scheduled_for: null,
+        published_at: null,
+        platform_post_url: null,
+        error_text: null,
+        tenant_shop_id: shopId,
+        source_shop_id: shopId,
+        metadata: {
+          title,
+          generation_id: generation.id,
+          output_type:
+            typeof metadata.output_type === "string" ? metadata.output_type : "video",
+        },
+        created_at: now,
+        updated_at: now,
+      })
       .select("*")
       .single();
 
@@ -127,19 +131,16 @@ export async function POST(
       throw new Error(publicationError.message);
     }
 
-    const publishJobInsert = {
-      shop_id: shopId,
-      publication_id: publication.id,
-      status: "queued",
-      attempt_count: 0,
-      last_error: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
     const { data: publishJob, error: publishJobError } = await legacy
       .from("shopreel_publish_jobs")
-      .insert(publishJobInsert)
+      .insert({
+        shop_id: shopId,
+        publication_id: publication.id,
+        status: "queued",
+        attempt_count: 0,
+        created_at: now,
+        updated_at: now,
+      })
       .select("*")
       .single();
 
