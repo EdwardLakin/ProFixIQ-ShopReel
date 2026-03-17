@@ -6,6 +6,7 @@ import {
   type VideoCreationFormInput,
 } from "./types";
 import { getMediaProviderAdapter } from "../providers";
+import { ensureContentPieceForMediaJob } from "./contentPieces";
 
 type MediaGenerationJobInsert =
   Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Insert"];
@@ -180,7 +181,21 @@ export async function processMediaGenerationJob(
       throw new Error(completeError?.message ?? "Failed to complete generation job");
     }
 
-    return completed;
+    await ensureContentPieceForMediaJob(completed);
+
+    const { data: refreshedCompleted, error: refreshedCompletedError } = await supabase
+      .from("shopreel_media_generation_jobs")
+      .select("*")
+      .eq("id", jobId)
+      .single();
+
+    if (refreshedCompletedError || !refreshedCompleted) {
+      throw new Error(
+        refreshedCompletedError?.message ?? "Failed to reload completed generation job"
+      );
+    }
+
+    return refreshedCompleted;
   } catch (error) {
     const { data: failed, error: failedError } = await supabase
       .from("shopreel_media_generation_jobs")

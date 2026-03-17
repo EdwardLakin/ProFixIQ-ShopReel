@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
@@ -23,6 +24,7 @@ import {
   type VideoCreationAspectRatio,
 } from "@/features/shopreel/video-creation/lib/types";
 import { VIDEO_CREATION_PRESETS } from "@/features/shopreel/video-creation/lib/presets";
+import { getMediaJobEditorPath } from "@/features/shopreel/video-creation/lib/editor";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
 type SelectableAsset = Pick<
@@ -474,58 +476,66 @@ export default function VideoCreationStudio({
           </div>
         ) : (
           <div className="grid gap-3">
-            {recentJobs.map((job) => (
-              <div
-                key={job.id}
-                className={cx(
-                  "rounded-2xl border p-4",
-                  glassTheme.border.softer,
-                  glassTheme.glass.panelSoft
-                )}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                      {job.title ?? "Untitled media job"}
-                    </div>
-                    <div className={cx("text-sm", glassTheme.text.secondary)}>
-                      {formatLabel(job.job_type)} • {formatLabel(job.provider)} • {timeAgoLabel(job.created_at)}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
-                      <GlassBadge tone="default">{job.aspect_ratio}</GlassBadge>
-                      {job.style ? <GlassBadge tone="muted">{formatLabel(job.style)}</GlassBadge> : null}
-                      {job.visual_mode ? (
-                        <GlassBadge tone="muted">{formatLabel(job.visual_mode)}</GlassBadge>
+            {recentJobs.map((job) => {
+              const editorPath = getMediaJobEditorPath(job);
+
+              return (
+                <div
+                  key={job.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                        {job.title ?? "Untitled media job"}
+                      </div>
+                      <div className={cx("text-sm", glassTheme.text.secondary)}>
+                        {formatLabel(job.job_type)} • {formatLabel(job.provider)} • {timeAgoLabel(job.created_at)}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
+                        <GlassBadge tone="default">{job.aspect_ratio}</GlassBadge>
+                        {job.style ? <GlassBadge tone="muted">{formatLabel(job.style)}</GlassBadge> : null}
+                        {job.visual_mode ? (
+                          <GlassBadge tone="muted">{formatLabel(job.visual_mode)}</GlassBadge>
+                        ) : null}
+                        {job.output_asset_id ? <GlassBadge tone="copper">Asset ready</GlassBadge> : null}
+                        {job.source_content_piece_id ? (
+                          <GlassBadge tone="copper">Content linked</GlassBadge>
+                        ) : null}
+                      </div>
+                      {job.error_text ? (
+                        <div className={cx("text-sm", glassTheme.text.copperSoft)}>
+                          {job.error_text}
+                        </div>
                       ) : null}
                     </div>
-                    {job.error_text ? (
-                      <div className={cx("text-sm", glassTheme.text.copperSoft)}>
-                        {job.error_text}
-                      </div>
-                    ) : null}
-                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {(job.status === "queued" || job.status === "failed") ? (
-                      <GlassButton
-                        variant="secondary"
-                        onClick={() => void runJob(job.id)}
-                        disabled={runningJobId === job.id}
-                      >
-                        {runningJobId === job.id ? "Running..." : "Run Now"}
-                      </GlassButton>
-                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      {(job.status === "queued" || job.status === "failed") ? (
+                        <GlassButton
+                          variant="secondary"
+                          onClick={() => void runJob(job.id)}
+                          disabled={runningJobId === job.id}
+                        >
+                          {runningJobId === job.id ? "Running..." : "Run Now"}
+                        </GlassButton>
+                      ) : null}
 
-                    {job.output_asset_id ? (
-                      <GlassButton variant="ghost">
-                        Asset Ready
-                      </GlassButton>
-                    ) : null}
+                      {editorPath ? (
+                        <Link href={editorPath}>
+                          <GlassButton variant="ghost">Open in editor</GlassButton>
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </GlassCard>
