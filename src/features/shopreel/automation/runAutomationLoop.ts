@@ -4,6 +4,7 @@ import { queueScheduledContent } from "@/features/shopreel/scheduler/queueSchedu
 import { processRenderJobs } from "@/features/shopreel/worker/processRenderJobs";
 import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
 import { runAnalyticsFeedbackLoop } from "@/features/shopreel/analytics/runAnalyticsFeedbackLoop";
+import { buildPrePublishRanking } from "@/features/shopreel/optimization/buildPrePublishRanking";
 
 export async function runAutomationLoop(shopId: string) {
   const supabase = createAdminClient();
@@ -28,6 +29,7 @@ export async function runAutomationLoop(shopId: string) {
         reason: "Existing calendar pipeline has enough queued work",
       };
 
+  const preQueueRanking = await buildPrePublishRanking(shopId);
   const queued = await queueScheduledContent({ shopId });
   const rendered = await processRenderJobs();
   const published = await runPublishWorker();
@@ -37,6 +39,7 @@ export async function runAutomationLoop(shopId: string) {
     ok: true,
     shopId,
     autopilot,
+    preQueueRanking: preQueueRanking.slice(0, 10),
     queued,
     rendered,
     published,

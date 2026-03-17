@@ -653,6 +653,48 @@ export type Database = {
         }
         Relationships: []
       }
+      global_content_benchmarks: {
+        Row: {
+          avg_engagement_score: number
+          avg_impressions: number
+          avg_views: number
+          benchmark_window_days: number
+          content_type: string
+          created_at: string
+          id: string
+          metadata: Json
+          platform: string
+          total_posts: number
+          updated_at: string
+        }
+        Insert: {
+          avg_engagement_score?: number
+          avg_impressions?: number
+          avg_views?: number
+          benchmark_window_days?: number
+          content_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          platform: string
+          total_posts?: number
+          updated_at?: string
+        }
+        Update: {
+          avg_engagement_score?: number
+          avg_impressions?: number
+          avg_views?: number
+          benchmark_window_days?: number
+          content_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          platform?: string
+          total_posts?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       processed_source_events: {
         Row: {
           event_id: string

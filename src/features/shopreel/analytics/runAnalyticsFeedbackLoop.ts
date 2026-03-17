@@ -2,6 +2,10 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { analyzePerformance } from "./analyzePerformance";
 import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
 import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
+import { syncPlatformMetrics } from "./syncPlatformMetrics";
+import { updateGlobalBenchmarks } from "@/features/shopreel/optimization/updateGlobalBenchmarks";
+import { mutatePromptStrategy } from "@/features/shopreel/optimization/mutatePromptStrategy";
+import { buildPrePublishRanking } from "@/features/shopreel/optimization/buildPrePublishRanking";
 
 type PublicationRow = {
   id: string;
@@ -70,16 +74,25 @@ export async function runAnalyticsFeedbackLoop(shopId: string) {
     }
   }
 
-  const [ranking, memory, signals] = await Promise.all([
-    analyzePerformance(shopId),
-    updateMarketingMemory(shopId),
-    updateLearningSignals(shopId),
-  ]);
+  const [syncedMetrics, ranking, memory, signals, benchmarks, promptStrategy, prePublishRanking] =
+    await Promise.all([
+      syncPlatformMetrics(shopId),
+      analyzePerformance(shopId),
+      updateMarketingMemory(shopId),
+      updateLearningSignals(shopId),
+      updateGlobalBenchmarks(),
+      mutatePromptStrategy(shopId),
+      buildPrePublishRanking(shopId),
+    ]);
 
   const snapshot = {
     updatedAt: new Date().toISOString(),
     ranking: ranking ?? [],
     publicationCount: publishedRows.length,
+    syncedMetrics,
+    benchmarks,
+    promptStrategy,
+    prePublishRankingTop: prePublishRanking.slice(0, 10),
     signalCount:
       signals && typeof signals === "object" && "count" in signals
         ? Number((signals as { count?: number }).count ?? 0)
@@ -94,7 +107,7 @@ export async function runAnalyticsFeedbackLoop(shopId: string) {
         memory_key: "automation_loop_snapshot",
         memory_value: snapshot,
         source_type: "automation_loop",
-        confidence: 0.92,
+        confidence: 0.94,
         updated_at: new Date().toISOString(),
       } as never,
       { onConflict: "shop_id,memory_key" },
@@ -111,5 +124,9 @@ export async function runAnalyticsFeedbackLoop(shopId: string) {
     memory,
     signals,
     snapshot,
+    syncedMetrics,
+    benchmarks,
+    promptStrategy,
+    prePublishRanking,
   };
 }
