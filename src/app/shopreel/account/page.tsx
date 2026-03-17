@@ -79,7 +79,7 @@ export default async function ShopReelAccountPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Account"
+      title="Workspace"
       subtitle="Current shop context, active memberships, and connected publishing accounts."
     >
       <ShopReelNav />

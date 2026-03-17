@@ -6,14 +6,16 @@ import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
 
 function timeAgoLabel(value: string | null) {
-  if (!value) return "unknown";
+  if (!value) return "Unknown";
 
   const now = Date.now();
   const then = new Date(value).getTime();
   const diffMs = Math.max(0, now - then);
+  const diffMinutes = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
+  if (diffMinutes < 60) return `${Math.max(diffMinutes, 1)}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
 
@@ -34,15 +36,15 @@ export default async function ShopReelPublishedPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Published"
-      subtitle="Content distributed through the ShopReel publishing engine."
+      title="Publishing History"
+      subtitle="Recent queued, published, and failed publication attempts."
     >
       <ShopReelNav />
 
       <GlassCard
         label="History"
-        title="Recently published"
-        description="Queued, published, and failed publication attempts."
+        title="Recent outcomes"
+        description="A record of what has already been sent through the publishing engine."
         strong
       >
         {publications.length === 0 ? (
@@ -51,20 +53,20 @@ export default async function ShopReelPublishedPage() {
               "rounded-2xl border p-4 text-sm",
               glassTheme.border.softer,
               glassTheme.glass.panelSoft,
-              glassTheme.text.secondary,
+              glassTheme.text.secondary
             )}
           >
-            No published content yet.
+            No publishing history yet.
           </div>
         ) : (
           <div className="grid gap-3">
-            {publications.map((item) => (
+            {publications.map((item: any) => (
               <div
                 key={item.id}
                 className={cx(
                   "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
                   glassTheme.border.copper,
-                  glassTheme.glass.panelSoft,
+                  glassTheme.glass.panelSoft
                 )}
               >
                 <div className="space-y-1">

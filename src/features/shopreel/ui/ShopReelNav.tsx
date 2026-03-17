@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { glassTheme, cx } from "./system/glassTheme";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 type NavItem = {
   label: string;
@@ -14,93 +14,110 @@ type NavGroup = {
   items: NavItem[];
 };
 
-const NAV_GROUPS: NavGroup[] = [
+const GROUPS: NavGroup[] = [
   {
-    label: "Overview",
+    label: "Home",
     items: [
-      { label: "Dashboard", href: "/shopreel" },
-      { label: "Account", href: "/shopreel/account" },
+      { label: "Home", href: "/shopreel" },
+      { label: "Workspace", href: "/shopreel/account" },
     ],
   },
   {
-    label: "Manual",
+    label: "Create",
     items: [
       { label: "Create", href: "/shopreel/create" },
       { label: "Upload", href: "/shopreel/upload" },
-      { label: "Content", href: "/shopreel/content" },
-    ],
-  },
-  {
-    label: "AI",
-    items: [
       { label: "Opportunities", href: "/shopreel/opportunities" },
-      { label: "Creator Requests", href: "/shopreel/creator-requests" },
-      { label: "Calendar", href: "/shopreel/calendar" },
+      { label: "AI Requests", href: "/shopreel/creator-requests" },
     ],
   },
   {
-    label: "Production",
+    label: "Pipeline",
     items: [
-      { label: "Render Queue", href: "/shopreel/render-queue" },
-      { label: "Published", href: "/shopreel/published" },
-      { label: "Analytics", href: "/shopreel/analytics" },
-      { label: "Settings", href: "/shopreel/settings" },
+      { label: "Library", href: "/shopreel/content" },
+      { label: "Generations", href: "/shopreel/generations" },
+      { label: "Video Processing", href: "/shopreel/render-queue" },
     ],
+  },
+  {
+    label: "Publish",
+    items: [
+      { label: "Publish Center", href: "/shopreel/publish-center" },
+      { label: "Calendar", href: "/shopreel/calendar" },
+      { label: "Publishing History", href: "/shopreel/published" },
+      { label: "Analytics", href: "/shopreel/analytics" },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [{ label: "Settings", href: "/shopreel/settings" }],
   },
 ];
 
-function isActivePath(pathname: string, href: string) {
-  return pathname === href || (href !== "/shopreel" && pathname.startsWith(href + "/"));
+function normalizePathname(pathname: string): string {
+  if (pathname === "/shopreel/dashboard") return "/shopreel";
+  return pathname;
+}
+
+function isActive(pathname: string, href: string): boolean {
+  const current = normalizePathname(pathname);
+
+  if (href === "/shopreel") {
+    return current === "/shopreel";
+  }
+
+  return current === href || current.startsWith(`${href}/`);
 }
 
 export default function ShopReelNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
+  const currentPath = normalizePathname(pathname);
 
   return (
-    <div className="mb-6 space-y-4">
-      {NAV_GROUPS.map((group) => (
-        <div key={group.label} className="space-y-2">
+    <nav className="grid gap-5 lg:grid-cols-5">
+      {GROUPS.map((group) => (
+        <section key={group.label} className="space-y-3">
           <div
             className={cx(
-              "text-[11px] uppercase tracking-[0.22em]",
-              glassTheme.text.muted,
+              "text-xs uppercase tracking-[0.24em]",
+              glassTheme.text.copper
             )}
           >
             {group.label}
           </div>
 
-          <nav className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {group.items.map((item) => {
-              const active = isActivePath(pathname, item.href);
+              const active = isActive(currentPath, item.href);
 
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cx(
-                    "rounded-full border px-4 py-2 text-sm transition",
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition no-underline",
                     active
                       ? cx(
                           glassTheme.border.copper,
-                          glassTheme.glass.panelSoft,
+                          glassTheme.glass.panelStrong,
                           glassTheme.text.primary,
-                          "shadow-[0_0_0_1px_rgba(56,189,248,0.08),0_10px_24px_rgba(0,0,0,0.18)]",
+                          "shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_12px_30px_rgba(0,0,0,0.22)]"
                         )
                       : cx(
                           glassTheme.border.softer,
                           glassTheme.glass.panelSoft,
                           glassTheme.text.secondary,
-                          "hover:text-white hover:bg-white/[0.06]",
-                        ),
+                          "hover:bg-white/[0.06] hover:text-white"
+                        )
                   )}
                 >
                   {item.label}
                 </Link>
               );
             })}
-          </nav>
-        </div>
+          </div>
+        </section>
       ))}
-    </div>
+    </nav>
   );
 }

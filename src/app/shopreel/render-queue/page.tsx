@@ -1,11 +1,10 @@
 import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import GlassNav from "@/features/shopreel/ui/ShopReelNav";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
-import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 import { createAdminClient } from "@/lib/supabase/server";
 
 function timeAgoLabel(value: string) {
@@ -53,14 +52,24 @@ export default async function ShopReelRenderQueuePage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Render queue"
-      subtitle="Rendering pipeline for generated ShopReel stories."
+      title="Video Processing"
+      subtitle="This page is only for render jobs. Review and publish happen in Generations and Publish Center."
+      actions={
+        <>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="ghost">Open Generations</GlassButton>
+          </Link>
+          <Link href="/shopreel/publish-center">
+            <GlassButton variant="secondary">Open Publish Center</GlassButton>
+          </Link>
+        </>
+      }
     >
-      <GlassNav />
+      <ShopReelNav />
 
       <GlassCard
-        label="Renderer"
-        title="Active and pending jobs"
+        label="Processing"
+        title="Active and pending video jobs"
         description="Jobs move from queued → rendering → ready."
         strong
       >
@@ -73,7 +82,7 @@ export default async function ShopReelRenderQueuePage() {
               glassTheme.text.secondary
             )}
           >
-            No render jobs yet.
+            No video processing jobs yet.
           </div>
         ) : (
           <div className="grid gap-3">
@@ -92,30 +101,15 @@ export default async function ShopReelRenderQueuePage() {
                   )}
                 >
                   <div>
-                    <div
-                      className={cx(
-                        "text-base font-medium",
-                        glassTheme.text.primary
-                      )}
-                    >
-                      Render Job
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      Video Job
                     </div>
 
-                    <div
-                      className={cx(
-                        "mt-1 text-sm",
-                        glassTheme.text.secondary
-                      )}
-                    >
+                    <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
                       Content Piece: {job.content_piece_id ?? "unknown"}
                     </div>
 
-                    <div
-                      className={cx(
-                        "mt-1 text-xs",
-                        glassTheme.text.muted
-                      )}
-                    >
+                    <div className={cx("mt-1 text-xs", glassTheme.text.muted)}>
                       Created {timeAgoLabel(job.created_at)}
                     </div>
                   </div>
@@ -126,10 +120,10 @@ export default async function ShopReelRenderQueuePage() {
                         job.status === "rendering"
                           ? "copper"
                           : job.status === "queued"
-                          ? "default"
-                          : job.status === "ready"
-                          ? "default"
-                          : "muted"
+                            ? "default"
+                            : job.status === "ready"
+                              ? "default"
+                              : "muted"
                       }
                     >
                       {job.status}
@@ -137,12 +131,7 @@ export default async function ShopReelRenderQueuePage() {
                   </div>
 
                   <div className="flex flex-wrap items-center justify-end gap-3">
-                    <div
-                      className={cx(
-                        "text-sm md:self-center",
-                        glassTheme.text.muted
-                      )}
-                    >
+                    <div className={cx("text-sm md:self-center", glassTheme.text.muted)}>
                       Attempts {job.attempt_count ?? 0}
                     </div>
 

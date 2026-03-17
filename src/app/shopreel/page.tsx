@@ -12,19 +12,23 @@ export default async function ShopReelPage() {
   const supabase = createAdminClient();
   const legacy = supabase as any;
 
-  const [{ count: sourceCount }, { count: generationCount }, { count: readyCount }, { count: queuedRenderCount }] =
-    await Promise.all([
-      legacy.from("shopreel_story_sources").select("*", { count: "exact", head: true }),
-      legacy.from("shopreel_story_generations").select("*", { count: "exact", head: true }),
-      legacy
-        .from("shopreel_story_generations")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "ready"),
-      legacy
-        .from("reel_render_jobs")
-        .select("*", { count: "exact", head: true })
-        .in("status", ["queued", "rendering"]),
-    ]);
+  const [
+    { count: sourceCount },
+    { count: generationCount },
+    { count: readyCount },
+    { count: queuedRenderCount },
+  ] = await Promise.all([
+    legacy.from("shopreel_story_sources").select("*", { count: "exact", head: true }),
+    legacy.from("shopreel_story_generations").select("*", { count: "exact", head: true }),
+    legacy
+      .from("shopreel_story_generations")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "ready"),
+    legacy
+      .from("reel_render_jobs")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["queued", "rendering"]),
+  ]);
 
   const { data: recentSources } = await legacy
     .from("shopreel_story_sources")
@@ -36,17 +40,17 @@ export default async function ShopReelPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Content automation cockpit"
-      subtitle="Business Mode and Creator Mode now share one engine: story source → story builder → editor → render → publish."
+      subtitle="A simpler operating model: create → review → process → publish."
       actions={
         <>
           <Link href="/shopreel/create">
-            <GlassButton variant="ghost">Creator mode</GlassButton>
-          </Link>
-          <Link href="/shopreel/opportunities">
-            <GlassButton variant="secondary">Business opportunities</GlassButton>
+            <GlassButton variant="ghost">Create</GlassButton>
           </Link>
           <Link href="/shopreel/generations">
-            <GlassButton variant="primary">Open generations</GlassButton>
+            <GlassButton variant="secondary">Review</GlassButton>
+          </Link>
+          <Link href="/shopreel/publish-center">
+            <GlassButton variant="primary">Publish Center</GlassButton>
           </Link>
         </>
       }
@@ -57,26 +61,26 @@ export default async function ShopReelPage() {
         <GlassStat
           label="Story Sources"
           value={String(sourceCount ?? 0)}
-          hint="Saved source queue"
-          trend="Active"
+          hint="Raw source queue"
+          trend="Create"
         />
         <GlassStat
-          label="Story Generations"
+          label="Generations"
           value={String(generationCount ?? 0)}
           hint="Draft + queued + ready"
-          trend="Building"
+          trend="Review"
         />
         <GlassStat
-          label="Queued Renders"
+          label="Video Processing"
           value={String(queuedRenderCount ?? 0)}
           hint="Jobs waiting or rendering"
-          trend="Pipeline"
+          trend="Process"
         />
         <GlassStat
-          label="Ready Stories"
+          label="Ready to Publish"
           value={String(readyCount ?? 0)}
-          hint="Generated and ready"
-          trend="Continue editing"
+          hint="Approved and ready"
+          trend="Publish"
         />
       </section>
 
@@ -84,7 +88,7 @@ export default async function ShopReelPage() {
         <GlassCard
           label="Recent Story Sources"
           title="What the system can build from"
-          description="These are the latest saved sources across business and creator flows."
+          description="The latest saved sources across business and creator flows."
           strong
         >
           <div className="grid gap-3">
@@ -94,7 +98,7 @@ export default async function ShopReelPage() {
                   "rounded-2xl border p-4 text-sm",
                   glassTheme.border.softer,
                   glassTheme.glass.panelSoft,
-                  glassTheme.text.secondary,
+                  glassTheme.text.secondary
                 )}
               >
                 No saved story sources yet.
@@ -104,27 +108,33 @@ export default async function ShopReelPage() {
                 <div
                   key={item.id}
                   className={cx(
-                    "flex items-center justify-between gap-4 rounded-2xl border p-4",
-                    glassTheme.border.copper,
-                    glassTheme.glass.panelSoft,
+                    "rounded-2xl border p-4",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft
                   )}
                 >
-                  <div className="space-y-1">
-                    <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
-                      {item.title}
-                    </div>
-                    <div className={cx("text-sm", glassTheme.text.secondary)}>
-                      {String(item.kind).replaceAll("_", " ")} • {String(item.origin).replaceAll("_", " ")}
-                    </div>
-                  </div>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                        {item.title ?? item.kind ?? "Untitled source"}
+                      </div>
 
-                  <div className="flex gap-2">
-                    <GlassBadge tone="default">
-                      {String(item.generation_mode ?? "assisted")}
-                    </GlassBadge>
-                    {Array.isArray(item.tags) && item.tags[0] ? (
-                      <GlassBadge tone="copper">{String(item.tags[0])}</GlassBadge>
-                    ) : null}
+                      <div className={cx("text-sm leading-6", glassTheme.text.secondary)}>
+                        {item.summary ??
+                          item.description ??
+                          "Saved story source ready for generation."}
+                      </div>
+
+                      <div className={cx("text-sm", glassTheme.text.muted)}>
+                        {item.kind ?? "source"}
+                        {item.mode ? ` • ${item.mode}` : ""}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {item.kind ? <GlassBadge tone="default">{item.kind}</GlassBadge> : null}
+                      {item.mode ? <GlassBadge tone="default">{item.mode}</GlassBadge> : null}
+                    </div>
                   </div>
                 </div>
               ))
@@ -133,36 +143,35 @@ export default async function ShopReelPage() {
         </GlassCard>
 
         <GlassCard
-          label="Modes"
-          title="Two entry paths"
-          description="One engine serving both businesses and creators."
+          label="Operating Model"
+          title="Five clear destinations"
+          description="One engine, organized around the actions users actually take."
+          strong
         >
-          <div className="space-y-4">
-            <div
-              className={cx(
-                "rounded-2xl border p-4",
-                glassTheme.border.copper,
-                glassTheme.glass.panelSoft,
-              )}
-            >
-              <div className={cx("text-sm", glassTheme.text.secondary)}>Business Mode</div>
-              <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
-                Operational events → content
+          <div className="grid gap-3">
+            {[
+              ["Home", "System overview and next-step entry point"],
+              ["Create", "Ideas, uploads, opportunities, AI request flows"],
+              ["Pipeline", "Library, generations, review, and video processing"],
+              ["Publish", "Publish center, schedule, history, analytics"],
+              ["Settings", "Workspace, connections, brand voice, defaults"],
+            ].map(([title, desc]) => (
+              <div
+                key={title}
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft
+                )}
+              >
+                <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                  {title}
+                </div>
+                <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
+                  {desc}
+                </div>
               </div>
-            </div>
-
-            <div
-              className={cx(
-                "rounded-2xl border p-4",
-                glassTheme.border.copper,
-                glassTheme.glass.panelSoft,
-              )}
-            >
-              <div className={cx("text-sm", glassTheme.text.secondary)}>Creator Mode</div>
-              <div className={cx("mt-1 text-lg font-semibold", glassTheme.text.primary)}>
-                Idea → story draft → editor
-              </div>
-            </div>
+            ))}
           </div>
         </GlassCard>
       </section>

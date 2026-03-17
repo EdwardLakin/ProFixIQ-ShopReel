@@ -2,24 +2,20 @@
 
 import { createAdminClient } from "@/lib/supabase/server";
 
-export async function deleteContentPiece(contentPieceId: string) {
-  const supabase = createAdminClient();
-
-  await supabase
-    .from("content_pieces")
-    .delete()
-    .eq("id", contentPieceId);
-
-  return { ok: true };
-}
-
 export async function archiveContentPiece(contentPieceId: string) {
   const supabase = createAdminClient();
 
-  await supabase
+  const { error } = await supabase
     .from("content_pieces")
-    .update({ status: "archived" })
+    .update({
+      status: "archived",
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", contentPieceId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
 
   return { ok: true };
 }
@@ -27,33 +23,48 @@ export async function archiveContentPiece(contentPieceId: string) {
 export async function duplicateContentPiece(contentPieceId: string) {
   const supabase = createAdminClient();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("content_pieces")
     .select("*")
     .eq("id", contentPieceId)
     .single();
 
+  if (error) {
+    throw new Error(error.message);
+  }
+
   if (!data) {
     throw new Error("Content not found");
   }
 
-  const { data: inserted } = await supabase
+  const { data: inserted, error: insertError } = await supabase
     .from("content_pieces")
     .insert({
+      tenant_shop_id: data.tenant_shop_id ?? null,
+      source_shop_id: data.source_shop_id ?? null,
+      source_system: data.source_system ?? "shopreel",
+      template_id: data.template_id ?? null,
       title: data.title,
-      caption: data.caption,
       hook: data.hook,
+      caption: data.caption,
       cta: data.cta,
-      content_type: data.content_type,
       script_text: data.script_text,
       voiceover_text: data.voiceover_text,
-      metadata: data.metadata,
-      platform_targets: data.platform_targets,
       status: "draft",
+      content_type: data.content_type,
+      platform_targets: data.platform_targets ?? [],
+      render_url: null,
+      thumbnail_url: data.thumbnail_url ?? null,
+      metadata: data.metadata ?? {},
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     } as any)
     .select("*")
     .single();
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
 
   return inserted;
 }
