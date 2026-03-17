@@ -1658,6 +1658,7 @@ export type Database = {
           prompt: string | null
           scene_order: number
           shop_id: string
+          sort_order: number | null
           source_asset_id: string | null
           storyboard_id: string
           title: string
@@ -1674,6 +1675,7 @@ export type Database = {
           prompt?: string | null
           scene_order?: number
           shop_id: string
+          sort_order?: number | null
           source_asset_id?: string | null
           storyboard_id: string
           title: string
@@ -1690,6 +1692,7 @@ export type Database = {
           prompt?: string | null
           scene_order?: number
           shop_id?: string
+          sort_order?: number | null
           source_asset_id?: string | null
           storyboard_id?: string
           title?: string
