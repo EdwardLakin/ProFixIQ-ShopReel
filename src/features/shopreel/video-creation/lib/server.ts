@@ -28,14 +28,12 @@ export async function createMediaGenerationJob(
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
 
-  const enhancement = await enhancePromptWithBrandVoice({
-    prompt: input.prompt,
-    negativePrompt: input.negativePrompt,
+  const enhancedPrompt = await enhancePromptWithBrandVoice({
+    prompt: input.prompt || null,
     style: input.style,
     visualMode: input.visualMode,
     aspectRatio: input.aspectRatio,
-    durationSeconds: input.durationSeconds,
-    jobType: input.jobType,
+    durationSeconds: input.jobType === "image" ? null : input.durationSeconds,
   });
 
   const insertPayload: MediaGenerationJobInsert = {
@@ -45,8 +43,7 @@ export async function createMediaGenerationJob(
     status: "queued",
     title: input.title || null,
     prompt: input.prompt || null,
-    prompt_enhanced:
-      enhancement.enhancedPrompt || buildEnhancedPrompt(input),
+    prompt_enhanced: enhancedPrompt || buildEnhancedPrompt(input),
     negative_prompt: input.negativePrompt || null,
     style: input.style,
     visual_mode: input.visualMode,
@@ -57,7 +54,6 @@ export async function createMediaGenerationJob(
       requested_provider: input.provider,
       requested_job_type: input.jobType,
       title: input.title,
-      enhancement_notes: enhancement.enhancementNotes,
     },
     result_payload: {},
   };
@@ -199,8 +195,8 @@ export async function processMediaGenerationJob(
     }
 
     await ensureContentPieceForMediaJob(completed);
-    await createThumbnailAssetForMediaJob(completed);
     await createStoryboardFromMediaJob({ mediaJob: completed });
+    await createThumbnailAssetForMediaJob({ mediaJob: completed });
 
     const { data: refreshedCompleted, error: refreshedCompletedError } = await supabase
       .from("shopreel_media_generation_jobs")
