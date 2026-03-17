@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
@@ -8,29 +9,41 @@ import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 const PLAN_ORDER: BillingPlan[] = ["starter", "growth", "unlimited"];
 
-async function startCheckout(plan: BillingPlan) {
-  const res = await fetch("/api/billing/checkout", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ plan }),
-  });
+export default function PricingSection() {
+  const [loadingPlan, setLoadingPlan] = useState<BillingPlan | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const json = (await res.json()) as {
-    ok?: boolean;
-    url?: string;
-    error?: string;
-  };
+  async function startCheckout(plan: BillingPlan) {
+    try {
+      setError(null);
+      setLoadingPlan(plan);
 
-  if (!res.ok || !json.ok || !json.url) {
-    throw new Error(json.error ?? "Failed to start checkout");
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ plan }),
+      });
+
+      const json = (await res.json()) as {
+        ok?: boolean;
+        url?: string;
+        error?: string;
+      };
+
+      if (!res.ok || !json.ok || !json.url) {
+        throw new Error(json.error ?? "Failed to start checkout");
+      }
+
+      window.location.href = json.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start checkout");
+    } finally {
+      setLoadingPlan(null);
+    }
   }
 
-  window.location.href = json.url;
-}
-
-export default function PricingSection() {
   return (
     <section className="mx-auto w-full max-w-7xl px-6 py-24">
       <div className="mx-auto max-w-3xl text-center">
@@ -61,10 +74,17 @@ export default function PricingSection() {
         </p>
       </div>
 
+      {error ? (
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      ) : null}
+
       <div className="mt-12 grid gap-5 lg:grid-cols-3">
         {PLAN_ORDER.map((planKey) => {
           const plan = BILLING_PLANS[planKey];
           const highlight = plan.key === "growth";
+          const isLoading = loadingPlan === plan.key;
 
           return (
             <GlassCard
@@ -77,8 +97,9 @@ export default function PricingSection() {
                 <GlassButton
                   variant={highlight ? "primary" : "secondary"}
                   onClick={() => void startCheckout(plan.key)}
+                  disabled={loadingPlan !== null}
                 >
-                  Start {plan.name}
+                  {isLoading ? "Redirecting..." : `Start ${plan.name}`}
                 </GlassButton>
               }
             >
