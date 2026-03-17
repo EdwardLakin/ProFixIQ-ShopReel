@@ -1195,6 +1195,131 @@ export type Database = {
         }
         Relationships: []
       }
+      shopreel_media_generation_jobs: {
+        Row: {
+          aspect_ratio: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          duration_seconds: number | null
+          error_text: string | null
+          id: string
+          input_asset_ids: string[]
+          job_type: string
+          model: string | null
+          negative_prompt: string | null
+          output_asset_id: string | null
+          preview_url: string | null
+          prompt: string | null
+          prompt_enhanced: string | null
+          provider: string
+          provider_job_id: string | null
+          result_payload: Json
+          run_after: string
+          settings: Json
+          shop_id: string
+          source_content_piece_id: string | null
+          source_generation_id: string | null
+          started_at: string | null
+          status: string
+          style: string | null
+          title: string | null
+          updated_at: string
+          visual_mode: string | null
+        }
+        Insert: {
+          aspect_ratio?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          error_text?: string | null
+          id?: string
+          input_asset_ids?: string[]
+          job_type: string
+          model?: string | null
+          negative_prompt?: string | null
+          output_asset_id?: string | null
+          preview_url?: string | null
+          prompt?: string | null
+          prompt_enhanced?: string | null
+          provider?: string
+          provider_job_id?: string | null
+          result_payload?: Json
+          run_after?: string
+          settings?: Json
+          shop_id: string
+          source_content_piece_id?: string | null
+          source_generation_id?: string | null
+          started_at?: string | null
+          status?: string
+          style?: string | null
+          title?: string | null
+          updated_at?: string
+          visual_mode?: string | null
+        }
+        Update: {
+          aspect_ratio?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          error_text?: string | null
+          id?: string
+          input_asset_ids?: string[]
+          job_type?: string
+          model?: string | null
+          negative_prompt?: string | null
+          output_asset_id?: string | null
+          preview_url?: string | null
+          prompt?: string | null
+          prompt_enhanced?: string | null
+          provider?: string
+          provider_job_id?: string | null
+          result_payload?: Json
+          run_after?: string
+          settings?: Json
+          shop_id?: string
+          source_content_piece_id?: string | null
+          source_generation_id?: string | null
+          started_at?: string | null
+          status?: string
+          style?: string | null
+          title?: string | null
+          updated_at?: string
+          visual_mode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_media_generation_jobs_output_asset_id_fkey"
+            columns: ["output_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_media_generation_jobs_source_content_piece_id_fkey"
+            columns: ["source_content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_media_generation_jobs_source_content_piece_id_fkey"
+            columns: ["source_content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_media_generation_jobs_source_generation_id_fkey"
+            columns: ["source_generation_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_story_generations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopreel_publish_jobs: {
         Row: {
           attempt_count: number
@@ -1521,6 +1646,149 @@ export type Database = {
           vehicle_label?: string | null
         }
         Relationships: []
+      }
+      shopreel_storyboard_scenes: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          generated_job_id: string | null
+          id: string
+          metadata: Json
+          overlay_text: string | null
+          prompt: string | null
+          scene_order: number
+          shop_id: string
+          source_asset_id: string | null
+          storyboard_id: string
+          title: string
+          updated_at: string
+          voiceover_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          generated_job_id?: string | null
+          id?: string
+          metadata?: Json
+          overlay_text?: string | null
+          prompt?: string | null
+          scene_order?: number
+          shop_id: string
+          source_asset_id?: string | null
+          storyboard_id: string
+          title: string
+          updated_at?: string
+          voiceover_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          generated_job_id?: string | null
+          id?: string
+          metadata?: Json
+          overlay_text?: string | null
+          prompt?: string | null
+          scene_order?: number
+          shop_id?: string
+          source_asset_id?: string | null
+          storyboard_id?: string
+          title?: string
+          updated_at?: string
+          voiceover_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_storyboard_scenes_generated_job_id_fkey"
+            columns: ["generated_job_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_media_generation_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_storyboard_scenes_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_storyboard_scenes_storyboard_id_fkey"
+            columns: ["storyboard_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_storyboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_storyboards: {
+        Row: {
+          aspect_ratio: string
+          created_at: string
+          enhanced_prompt: string | null
+          id: string
+          metadata: Json
+          prompt: string | null
+          shop_id: string
+          source_content_piece_id: string | null
+          source_generation_job_id: string | null
+          style: string | null
+          title: string
+          updated_at: string
+          visual_mode: string | null
+        }
+        Insert: {
+          aspect_ratio?: string
+          created_at?: string
+          enhanced_prompt?: string | null
+          id?: string
+          metadata?: Json
+          prompt?: string | null
+          shop_id: string
+          source_content_piece_id?: string | null
+          source_generation_job_id?: string | null
+          style?: string | null
+          title: string
+          updated_at?: string
+          visual_mode?: string | null
+        }
+        Update: {
+          aspect_ratio?: string
+          created_at?: string
+          enhanced_prompt?: string | null
+          id?: string
+          metadata?: Json
+          prompt?: string | null
+          shop_id?: string
+          source_content_piece_id?: string | null
+          source_generation_job_id?: string | null
+          style?: string | null
+          title?: string
+          updated_at?: string
+          visual_mode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_storyboards_source_content_piece_id_fkey"
+            columns: ["source_content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_storyboards_source_content_piece_id_fkey"
+            columns: ["source_content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_storyboards_source_generation_job_id_fkey"
+            columns: ["source_generation_job_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_media_generation_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shopreel_subscriptions: {
         Row: {
