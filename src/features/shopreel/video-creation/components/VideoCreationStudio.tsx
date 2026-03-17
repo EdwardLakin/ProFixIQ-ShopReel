@@ -25,6 +25,10 @@ import {
 import { VIDEO_CREATION_PRESETS } from "@/features/shopreel/video-creation/lib/presets";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+type SelectableAsset = Pick<
+  Database["public"]["Tables"]["content_assets"]["Row"],
+  "id" | "title" | "asset_type" | "public_url" | "created_at" | "metadata"
+>;
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -49,8 +53,10 @@ function statusTone(status: string): "default" | "copper" | "muted" {
 
 export default function VideoCreationStudio({
   recentJobs,
+  selectableAssets,
 }: {
   recentJobs: MediaJob[];
+  selectableAssets: SelectableAsset[];
 }) {
   const router = useRouter();
 
@@ -63,6 +69,7 @@ export default function VideoCreationStudio({
   const [visualMode, setVisualMode] = useState<VideoCreationVisualMode>("photoreal");
   const [aspectRatio, setAspectRatio] = useState<VideoCreationAspectRatio>("9:16");
   const [durationSeconds, setDurationSeconds] = useState<number>(8);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [runningJobId, setRunningJobId] = useState<string | null>(null);
@@ -73,6 +80,14 @@ export default function VideoCreationStudio({
     if (jobType === "asset_assembly") return "assembly";
     return provider;
   }, [jobType, provider]);
+
+  function toggleAsset(assetId: string) {
+    setSelectedAssetIds((current) =>
+      current.includes(assetId)
+        ? current.filter((id) => id !== assetId)
+        : [...current, assetId]
+    );
+  }
 
   function selectJobType(nextType: VideoCreationJobType) {
     setJobType(nextType);
@@ -100,6 +115,10 @@ export default function VideoCreationStudio({
       setError(null);
       setMessage(null);
 
+      if (jobType === "asset_assembly" && selectedAssetIds.length === 0) {
+        throw new Error("Select at least one asset for asset assembly.");
+      }
+
       const payload: VideoCreationFormInput = {
         title,
         prompt,
@@ -110,7 +129,7 @@ export default function VideoCreationStudio({
         visualMode,
         aspectRatio,
         durationSeconds: jobType === "image" ? null : durationSeconds,
-        inputAssetIds: [],
+        inputAssetIds: selectedAssetIds,
       };
 
       const res = await fetch("/api/shopreel/video-creation/jobs", {
@@ -263,6 +282,58 @@ export default function VideoCreationStudio({
                   />
                 </label>
               </div>
+
+              {jobType === "asset_assembly" ? (
+                <div className="space-y-3">
+                  <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                    Select assets
+                  </div>
+
+                  {selectableAssets.length === 0 ? (
+                    <div
+                      className={cx(
+                        "rounded-2xl border p-4 text-sm",
+                        glassTheme.border.softer,
+                        glassTheme.glass.panelSoft,
+                        glassTheme.text.secondary
+                      )}
+                    >
+                      No assets available yet. Upload media first, then return here to assemble it.
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {selectableAssets.map((asset) => {
+                        const active = selectedAssetIds.includes(asset.id);
+
+                        return (
+                          <button
+                            key={asset.id}
+                            type="button"
+                            onClick={() => toggleAsset(asset.id)}
+                            className={cx(
+                              "rounded-2xl border p-4 text-left transition",
+                              active ? glassTheme.border.copper : glassTheme.border.softer,
+                              glassTheme.glass.panelSoft
+                            )}
+                          >
+                            <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                              {asset.title ?? "Untitled asset"}
+                            </div>
+                            <div className={cx("mt-1 text-xs", glassTheme.text.secondary)}>
+                              {formatLabel(asset.asset_type)} • {timeAgoLabel(asset.created_at)}
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <GlassBadge tone={active ? "copper" : "default"}>
+                                {active ? "Selected" : "Select"}
+                              </GlassBadge>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
 
             <div className="space-y-4">
