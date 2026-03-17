@@ -27,6 +27,7 @@ const GROUPS: NavGroup[] = [
     items: [
       { label: "Create", href: "/shopreel/create" },
       { label: "Upload", href: "/shopreel/upload" },
+      { label: "Video Creation", href: "/shopreel/video-creation" },
       { label: "Opportunities", href: "/shopreel/opportunities" },
       { label: "AI Requests", href: "/shopreel/creator-requests" },
     ],
