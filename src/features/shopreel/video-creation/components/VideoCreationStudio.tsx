@@ -74,7 +74,9 @@ export default function VideoCreationStudio({
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
   const [runningJobId, setRunningJobId] = useState<string | null>(null);
+  const [actionJobId, setActionJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,6 +111,41 @@ export default function VideoCreationStudio({
     setVisualMode(preset.visualMode);
     setAspectRatio(preset.aspectRatio);
     if (preset.durationSeconds) setDurationSeconds(preset.durationSeconds);
+  }
+
+  async function enhancePrompt() {
+    try {
+      setEnhancing(true);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch("/api/shopreel/video-creation/enhance-prompt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+          style,
+          visualMode,
+          aspectRatio,
+          durationSeconds: jobType === "image" ? null : durationSeconds,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to enhance prompt");
+      }
+
+      setPrompt(json.enhancedPrompt ?? prompt);
+      setMessage("Prompt enhanced with brand voice.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to enhance prompt");
+    } finally {
+      setEnhancing(false);
+    }
   }
 
   async function submitJob() {
@@ -179,6 +216,56 @@ export default function VideoCreationStudio({
       setError(err instanceof Error ? err.message : "Failed to run generation job");
     } finally {
       setRunningJobId(null);
+    }
+  }
+
+  async function createStoryboard(jobId: string) {
+    try {
+      setActionJobId(jobId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/video-creation/jobs/${jobId}/storyboard`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to create storyboard");
+      }
+
+      setMessage("Storyboard created from media job.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create storyboard");
+    } finally {
+      setActionJobId(null);
+    }
+  }
+
+  async function createThumbnail(jobId: string) {
+    try {
+      setActionJobId(jobId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/video-creation/jobs/${jobId}/thumbnail`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to create thumbnail");
+      }
+
+      setMessage("Thumbnail asset created from media job.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create thumbnail");
+    } finally {
+      setActionJobId(null);
     }
   }
 
@@ -440,6 +527,9 @@ export default function VideoCreationStudio({
               </div>
 
               <div className="flex flex-wrap gap-3">
+                <GlassButton variant="secondary" onClick={() => void enhancePrompt()} disabled={enhancing}>
+                  {enhancing ? "Enhancing..." : "Enhance Prompt"}
+                </GlassButton>
                 <GlassButton variant="primary" onClick={() => void submitJob()} disabled={submitting}>
                   {submitting ? "Creating..." : "Create media job"}
                 </GlassButton>
@@ -460,7 +550,7 @@ export default function VideoCreationStudio({
       <GlassCard
         label="Recent"
         title="Recent generation jobs"
-        description="Create, process, and review your recent AI media generation runs."
+        description="Create, process, review, storyboard, and thumbnail your recent AI media generation runs."
         strong
       >
         {recentJobs.length === 0 ? (
@@ -478,6 +568,7 @@ export default function VideoCreationStudio({
           <div className="grid gap-3">
             {recentJobs.map((job) => {
               const editorPath = getMediaJobEditorPath(job);
+              const canDerive = job.status === "completed" && !!job.output_asset_id;
 
               return (
                 <div
@@ -523,6 +614,26 @@ export default function VideoCreationStudio({
                           disabled={runningJobId === job.id}
                         >
                           {runningJobId === job.id ? "Running..." : "Run Now"}
+                        </GlassButton>
+                      ) : null}
+
+                      {canDerive ? (
+                        <GlassButton
+                          variant="secondary"
+                          onClick={() => void createStoryboard(job.id)}
+                          disabled={actionJobId === job.id}
+                        >
+                          {actionJobId === job.id ? "Working..." : "Create Storyboard"}
+                        </GlassButton>
+                      ) : null}
+
+                      {canDerive ? (
+                        <GlassButton
+                          variant="secondary"
+                          onClick={() => void createThumbnail(job.id)}
+                          disabled={actionJobId === job.id}
+                        >
+                          {actionJobId === job.id ? "Working..." : "Generate Thumbnail"}
                         </GlassButton>
                       ) : null}
 
