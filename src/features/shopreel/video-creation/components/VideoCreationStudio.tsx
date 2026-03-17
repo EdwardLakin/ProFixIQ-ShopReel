@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Database } from "@/types/supabase";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
@@ -23,20 +24,7 @@ import {
 } from "@/features/shopreel/video-creation/lib/types";
 import { VIDEO_CREATION_PRESETS } from "@/features/shopreel/video-creation/lib/presets";
 
-type MediaJob = {
-  id: string;
-  title: string | null;
-  provider: string;
-  job_type: string;
-  status: string;
-  aspect_ratio: string;
-  style: string | null;
-  visual_mode: string | null;
-  duration_seconds: number | null;
-  output_asset_id: string | null;
-  error_text: string | null;
-  created_at: string;
-};
+type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
