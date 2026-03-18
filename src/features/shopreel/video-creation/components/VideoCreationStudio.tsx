@@ -24,7 +24,7 @@ import {
   type VideoCreationAspectRatio,
 } from "@/features/shopreel/video-creation/lib/types";
 import { VIDEO_CREATION_PRESETS } from "@/features/shopreel/video-creation/lib/presets";
-import { getMediaJobEditorPath } from "@/features/shopreel/video-creation/lib/editor";
+import { getMediaJobPrimaryAction } from "@/features/shopreel/video-creation/lib/editor";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
 type SelectableAsset = Pick<
@@ -78,6 +78,7 @@ export default function VideoCreationStudio({
   const [runningJobId, setRunningJobId] = useState<string | null>(null);
   const [syncingJobId, setSyncingJobId] = useState<string | null>(null);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
+  const [convertingJobId, setConvertingJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -292,6 +293,35 @@ export default function VideoCreationStudio({
       setError(err instanceof Error ? err.message : "Failed to create thumbnail");
     } finally {
       setActionJobId(null);
+    }
+  }
+
+  async function convertToEditableStory(jobId: string) {
+    try {
+      setConvertingJobId(jobId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/video-creation/jobs/${jobId}/convert`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to convert media job");
+      }
+
+      setMessage("Editable story created.");
+      router.refresh();
+
+      if (json.editorPath) {
+        window.location.href = json.editorPath;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to convert media job");
+    } finally {
+      setConvertingJobId(null);
     }
   }
 
@@ -545,7 +575,7 @@ export default function VideoCreationStudio({
                 </div>
                 <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
                   {jobType === "image"
-                    ? "Use this for concept stills, thumbnails, scene art, title cards, and visual inserts."
+                    ? "Use this for concept stills, thumbnails, scene art, and visual inserts."
                     : jobType === "video"
                       ? "Use this for short cinematic B-roll, hero clips, explainers, and premium social motion."
                       : "Use this to turn uploaded or existing assets into a polished vertical reel foundation."}
@@ -593,7 +623,7 @@ export default function VideoCreationStudio({
         ) : (
           <div className="grid gap-3">
             {recentJobs.map((job) => {
-              const editorPath = getMediaJobEditorPath(job);
+              const primaryAction = getMediaJobPrimaryAction(job);
               const canDerive = job.status === "completed" && !!job.output_asset_id;
 
               return (
@@ -628,6 +658,25 @@ export default function VideoCreationStudio({
                       {job.error_text ? (
                         <div className={cx("text-sm", glassTheme.text.copperSoft)}>
                           {job.error_text}
+                        </div>
+                      ) : null}
+
+                      {job.preview_url ? (
+                        <div className="pt-2">
+                          {job.job_type === "image" ? (
+                            <img
+                              src={job.preview_url}
+                              alt={job.title ?? "Generated preview"}
+                              className="max-h-52 rounded-2xl border border-white/10 object-cover"
+                            />
+                          ) : (
+                            <video
+                              src={job.preview_url}
+                              controls
+                              playsInline
+                              className="max-h-52 rounded-2xl border border-white/10"
+                            />
+                          )}
                         </div>
                       ) : null}
                     </div>
@@ -673,9 +722,19 @@ export default function VideoCreationStudio({
                         </GlassButton>
                       ) : null}
 
-                      {editorPath ? (
-                        <Link href={editorPath}>
-                          <GlassButton variant="ghost">Open in editor</GlassButton>
+                      {canDerive && !job.source_generation_id ? (
+                        <GlassButton
+                          variant="secondary"
+                          onClick={() => void convertToEditableStory(job.id)}
+                          disabled={convertingJobId === job.id}
+                        >
+                          {convertingJobId === job.id ? "Converting..." : "Convert to Editable Story"}
+                        </GlassButton>
+                      ) : null}
+
+                      {primaryAction.href && primaryAction.label ? (
+                        <Link href={primaryAction.href}>
+                          <GlassButton variant="ghost">{primaryAction.label}</GlassButton>
                         </Link>
                       ) : null}
                     </div>
