@@ -60,6 +60,36 @@ export default async function ShopReelCampaignItemDetailPage(
   const mediaJob = normalizeMediaJob(itemRaw.media_job);
   const campaign = normalizeMediaJob(itemRaw.campaign as any);
 
+  const { data: scenes, error: scenesError } = await supabase
+    .from("shopreel_campaign_item_scenes")
+    .select(`
+      *,
+      media_job:shopreel_media_generation_jobs (
+        id,
+        status,
+        provider,
+        preview_url,
+        output_asset_id,
+        source_content_piece_id,
+        source_generation_id,
+        error_text,
+        created_at,
+        updated_at
+      )
+    `)
+    .eq("campaign_item_id", itemRaw.id)
+    .eq("shop_id", shopId)
+    .order("scene_order", { ascending: true });
+
+  if (scenesError) {
+    throw new Error(scenesError.message);
+  }
+
+  const normalizedScenes = (scenes ?? []).map((scene) => ({
+    ...scene,
+    media_job: normalizeMediaJob(scene.media_job as any),
+  }));
+
   return (
     <GlassShell
       eyebrow="ShopReel"
@@ -72,6 +102,18 @@ export default async function ShopReelCampaignItemDetailPage(
               <GlassButton variant="ghost">Back to Campaign</GlassButton>
             </Link>
           ) : null}
+          <form action={`/api/shopreel/campaigns/items/${id}/create-scene-jobs`} method="post">
+            <GlassButton variant="secondary">Create Scene Jobs</GlassButton>
+          </form>
+          <form action={`/api/shopreel/campaigns/items/${id}/run-scene-jobs`} method="post">
+            <GlassButton variant="secondary">Run Scene Jobs</GlassButton>
+          </form>
+          <form action={`/api/shopreel/campaigns/items/${id}/sync-scene-jobs`} method="post">
+            <GlassButton variant="secondary">Sync Scene Jobs</GlassButton>
+          </form>
+          <form action={`/api/shopreel/campaigns/items/${id}/assemble`} method="post">
+            <GlassButton variant="primary">Build 20s Final Ad</GlassButton>
+          </form>
           {mediaJob?.source_content_piece_id ? (
             <Link href={`/shopreel/content/${mediaJob.source_content_piece_id}`}>
               <GlassButton variant="secondary">Open Content</GlassButton>
@@ -194,6 +236,77 @@ export default async function ShopReelCampaignItemDetailPage(
           )}
         </GlassCard>
       </section>
+
+      <GlassCard
+        label="Scenes"
+        title="Scene plan"
+        description="Each scene becomes its own generated clip before final assembly."
+        strong
+      >
+        {normalizedScenes.length === 0 ? (
+          <div className={cx("text-sm", glassTheme.text.secondary)}>
+            No scenes created yet. Use Create Scene Jobs to build the multi-scene plan.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {normalizedScenes.map((scene) => {
+              const sceneJob = normalizeMediaJob(scene.media_job as any);
+
+              return (
+                <div
+                  key={scene.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                        Scene {scene.scene_order}: {scene.title}
+                      </div>
+                      <div className={cx("text-xs", glassTheme.text.secondary)}>
+                        {Number(scene.duration_seconds ?? 0)}s
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <GlassBadge tone="default">{scene.status}</GlassBadge>
+                        {sceneJob?.status ? (
+                          <GlassBadge tone={sceneJob.status === "completed" ? "copper" : "muted"}>
+                            Job: {sceneJob.status}
+                          </GlassBadge>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={cx(
+                      "mt-4 rounded-2xl border p-4 text-sm whitespace-pre-wrap",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft,
+                      glassTheme.text.primary
+                    )}
+                  >
+                    {scene.prompt}
+                  </div>
+
+                  {sceneJob?.preview_url ? (
+                    <div className="pt-4">
+                      <video
+                        src={sceneJob.preview_url}
+                        controls
+                        playsInline
+                        className="max-h-56 rounded-2xl border border-white/10"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </GlassCard>
     </GlassShell>
   );
 }
