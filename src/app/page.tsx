@@ -67,12 +67,42 @@ const metricsCards = [
 ];
 
 const loopSteps = [
-  "Business activity",
-  "AI story + campaign creation",
-  "Content published",
-  "Performance analytics",
-  "AI learns what works",
-  "Better future campaigns",
+  {
+    step: "01",
+    title: "Business activity",
+    body:
+      "Your team is already creating the raw material through jobs, inspections, photos, videos, notes, and customer outcomes.",
+  },
+  {
+    step: "02",
+    title: "AI story + campaign creation",
+    body:
+      "ShopReel turns real activity into story angles, videos, captions, campaigns, and platform-ready assets.",
+  },
+  {
+    step: "03",
+    title: "Content published",
+    body:
+      "Assets move through review, queue, scheduling, and publishing across your content pipeline.",
+  },
+  {
+    step: "04",
+    title: "Performance analytics",
+    body:
+      "The system tracks outputs, engagement, views, and campaign-level performance across connected channels.",
+  },
+  {
+    step: "05",
+    title: "AI learns what works",
+    body:
+      "Winning angles, stronger hooks, and better-performing themes become learnings the system can reuse.",
+  },
+  {
+    step: "06",
+    title: "Better future campaigns",
+    body:
+      "Each cycle improves the next one, creating a marketing engine that gets smarter over time.",
+  },
 ];
 
 export default function LandingPage() {
@@ -278,20 +308,30 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-            {loopSteps.map((step, index) => (
-              <div
-                key={step}
-                className="relative rounded-2xl border border-white/10 bg-black/20 p-4"
-              >
-                <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-                  Step {index + 1}
+          <div className="relative mt-10">
+            <div className="absolute left-5 right-5 top-6 hidden h-px bg-gradient-to-r from-cyan-400/0 via-cyan-300/40 to-emerald-300/0 xl:block" />
+
+            <div className="grid gap-4 xl:grid-cols-6">
+              {loopSteps.map((item, index) => (
+                <div
+                  key={item.step}
+                  className="relative rounded-[1.5rem] border border-white/10 bg-black/20 p-5"
+                >
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-400/10 text-sm font-semibold text-cyan-200">
+                      {item.step}
+                    </div>
+
+                    {index < loopSteps.length - 1 ? (
+                      <div className="hidden xl:block h-px flex-1 bg-gradient-to-r from-cyan-300/40 to-transparent" />
+                    ) : null}
+                  </div>
+
+                  <h3 className="text-base font-semibold text-white">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-white/70">{item.body}</p>
                 </div>
-                <div className="mt-2 text-sm font-medium text-white/85">
-                  {step}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
