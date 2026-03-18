@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { StoryDraft, StoryScene } from "@/features/shopreel/story-builder/types";
 import GenerationDeleteButton from "@/features/shopreel/generations/components/GenerationDeleteButton";
+import GenerationTimelineEditor from "@/features/shopreel/generations/components/GenerationTimelineEditor";
 import PublishPlatformButtons from "@/features/shopreel/publishing/components/PublishPlatformButtons";
 
 type BlogSection = {
@@ -302,6 +303,25 @@ export default async function ShopReelGenerationDetailPage(
           </div>
         </GlassCard>
       </section>
+
+      <GenerationTimelineEditor
+        generationId={generation.id}
+        initialDraft={{
+          title: draft?.title ?? null,
+          hook: draft?.hook ?? null,
+          cta: draft?.cta ?? null,
+          caption: draft?.caption ?? null,
+          scriptText: draft?.scriptText ?? null,
+          voiceoverText: draft?.voiceoverText ?? null,
+          scenes: (draft?.scenes ?? []).map((scene) => ({
+            ...scene,
+            durationSeconds:
+              scene?.durationSeconds === undefined
+                ? null
+                : scene.durationSeconds,
+          })),
+        }}
+      />
 
       {outputType === "blog" ? (
         <GlassCard
