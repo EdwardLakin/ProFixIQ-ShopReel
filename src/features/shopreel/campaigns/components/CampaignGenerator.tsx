@@ -1,3 +1,4 @@
+import Link from "next/link";
 "use client";
 
 import { useState } from "react";
@@ -187,9 +188,12 @@ export default function CampaignGenerator({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    <Link
+                      href={`/shopreel/campaigns/${campaign.id}`}
+                      className={cx("text-base font-medium underline-offset-4 hover:underline", glassTheme.text.primary)}
+                    >
                       {campaign.title}
-                    </div>
+                    </Link>
                     <div className={cx("text-sm", glassTheme.text.secondary)}>
                       {timeAgoLabel(campaign.created_at)}
                     </div>

@@ -141,3 +141,84 @@ export async function listCampaignItems(campaignId: string) {
 
   return data ?? [];
 }
+
+
+export async function createMediaJobForCampaignItem(itemId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: item, error: itemError } = await supabase
+    .from("shopreel_campaign_items")
+    .select("*")
+    .eq("id", itemId)
+    .eq("shop_id", shopId)
+    .single();
+
+  if (itemError || !item) {
+    throw new Error(itemError?.message ?? "Campaign item not found");
+  }
+
+  if (item.media_job_id) {
+    return item.media_job_id;
+  }
+
+  const { createMediaGenerationJob } = await import("@/features/shopreel/video-creation/lib/server");
+
+  const mediaJob = await createMediaGenerationJob({
+    title: item.title,
+    prompt: item.prompt,
+    negativePrompt: item.negative_prompt ?? "",
+    jobType: "video",
+    provider: "openai",
+    style: (item.style as any) ?? "cinematic",
+    visualMode: (item.visual_mode as any) ?? "photoreal",
+    aspectRatio: (item.aspect_ratio as any) ?? "9:16",
+    durationSeconds: Number(item.duration_seconds ?? 8),
+    inputAssetIds: [],
+  });
+
+  const { error: updateError } = await supabase
+    .from("shopreel_campaign_items")
+    .update({
+      media_job_id: mediaJob.id,
+      status: "queued",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", item.id);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  return mediaJob.id;
+}
+
+export async function createAllMediaJobsForCampaign(campaignId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: items, error: itemsError } = await supabase
+    .from("shopreel_campaign_items")
+    .select("*")
+    .eq("campaign_id", campaignId)
+    .eq("shop_id", shopId)
+    .order("sort_order", { ascending: true });
+
+  if (itemsError) {
+    throw new Error(itemsError.message);
+  }
+
+  const createdIds: string[] = [];
+
+  for (const item of items ?? []) {
+    if (item.media_job_id) {
+      createdIds.push(item.media_job_id);
+      continue;
+    }
+
+    const mediaJobId = await createMediaJobForCampaignItem(item.id);
+    createdIds.push(mediaJobId);
+  }
+
+  return createdIds;
+}
