@@ -8,6 +8,7 @@ import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import CampaignDetailClient from "@/features/shopreel/campaigns/components/CampaignDetailClient";
+import { listCampaignItemsWithMediaJobs } from "@/features/shopreel/campaigns/lib/server";
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -59,16 +60,7 @@ export default async function ShopReelCampaignDetailPage(
     );
   }
 
-  const { data: items, error: itemsError } = await supabase
-    .from("shopreel_campaign_items")
-    .select("*")
-    .eq("campaign_id", campaign.id)
-    .eq("shop_id", shopId)
-    .order("sort_order", { ascending: true });
-
-  if (itemsError) {
-    throw new Error(itemsError.message);
-  }
+  const items = await listCampaignItemsWithMediaJobs(campaign.id);
 
   return (
     <GlassShell
@@ -160,7 +152,7 @@ export default async function ShopReelCampaignDetailPage(
           </div>
         </GlassCard>
 
-        <CampaignDetailClient campaign={campaign} items={items ?? []} />
+        <CampaignDetailClient campaign={campaign} items={items} />
       </section>
     </GlassShell>
   );

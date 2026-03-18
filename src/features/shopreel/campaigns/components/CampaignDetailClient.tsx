@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
@@ -9,7 +10,30 @@ import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 
 type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"];
-type CampaignItemRow = Database["public"]["Tables"]["shopreel_campaign_items"]["Row"];
+type MediaJobLite = Pick<
+  Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"],
+  | "id"
+  | "status"
+  | "provider"
+  | "preview_url"
+  | "output_asset_id"
+  | "source_content_piece_id"
+  | "source_generation_id"
+  | "error_text"
+  | "created_at"
+  | "updated_at"
+>;
+
+type CampaignItemRow = Database["public"]["Tables"]["shopreel_campaign_items"]["Row"] & {
+  media_job?: MediaJobLite | MediaJobLite[] | null;
+};
+
+function normalizeMediaJob(
+  value: CampaignItemRow["media_job"]
+): MediaJobLite | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
 
 export default function CampaignDetailClient({
   campaign,
@@ -20,7 +44,9 @@ export default function CampaignDetailClient({
 }) {
   const router = useRouter();
   const [workingId, setWorkingId] = useState<string | null>(null);
-  const [batchWorking, setBatchWorking] = useState(false);
+  const [batchCreating, setBatchCreating] = useState(false);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,9 +75,34 @@ export default function CampaignDetailClient({
     }
   }
 
+  async function runMediaJob(itemId: string) {
+    try {
+      setWorkingId(itemId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/campaigns/items/${itemId}/run-job`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to run media job");
+      }
+
+      setMessage("Campaign item media job processed.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run media job");
+    } finally {
+      setWorkingId(null);
+    }
+  }
+
   async function createAllMediaJobs() {
     try {
-      setBatchWorking(true);
+      setBatchCreating(true);
       setError(null);
       setMessage(null);
 
@@ -70,7 +121,57 @@ export default function CampaignDetailClient({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create campaign jobs");
     } finally {
-      setBatchWorking(false);
+      setBatchCreating(false);
+    }
+  }
+
+  async function runAllMediaJobs() {
+    try {
+      setBatchRunning(true);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/campaigns/${campaign.id}/run-all-jobs`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to run campaign jobs");
+      }
+
+      setMessage("Campaign media jobs processed.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run campaign jobs");
+    } finally {
+      setBatchRunning(false);
+    }
+  }
+
+  async function generateCampaign() {
+    try {
+      setGenerating(true);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/campaigns/${campaign.id}/generate`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to generate campaign");
+      }
+
+      setMessage("Campaign generation pipeline completed.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate campaign");
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -82,8 +183,14 @@ export default function CampaignDetailClient({
       strong
     >
       <div className="mb-4 flex flex-wrap gap-3">
-        <GlassButton variant="primary" onClick={() => void createAllMediaJobs()} disabled={batchWorking}>
-          {batchWorking ? "Creating..." : "Create All Media Jobs"}
+        <GlassButton variant="secondary" onClick={() => void createAllMediaJobs()} disabled={batchCreating}>
+          {batchCreating ? "Creating..." : "Create All Media Jobs"}
+        </GlassButton>
+        <GlassButton variant="secondary" onClick={() => void runAllMediaJobs()} disabled={batchRunning}>
+          {batchRunning ? "Running..." : "Run All Jobs"}
+        </GlassButton>
+        <GlassButton variant="primary" onClick={() => void generateCampaign()} disabled={generating}>
+          {generating ? "Generating..." : "Generate Campaign"}
         </GlassButton>
       </div>
 
@@ -91,57 +198,101 @@ export default function CampaignDetailClient({
       {error ? <div className={cx("mb-3 text-sm", glassTheme.text.copperSoft)}>{error}</div> : null}
 
       <div className="grid gap-3">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={cx(
-              "rounded-2xl border p-4",
-              glassTheme.border.softer,
-              glassTheme.glass.panelSoft
-            )}
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                  {item.title}
-                </div>
-                <div className={cx("text-sm", glassTheme.text.secondary)}>
-                  {item.angle}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <GlassBadge tone="default">{item.status}</GlassBadge>
-                  <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
-                  {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
-                </div>
-              </div>
+        {items.map((item) => {
+          const mediaJob = normalizeMediaJob(item.media_job);
 
-              <div className="flex flex-wrap gap-2">
-                {!item.media_job_id ? (
-                  <GlassButton
-                    variant="secondary"
-                    onClick={() => void createMediaJob(item.id)}
-                    disabled={workingId === item.id}
-                  >
-                    {workingId === item.id ? "Creating..." : "Create Media Job"}
-                  </GlassButton>
-                ) : (
-                  <GlassBadge tone="copper">Media job linked</GlassBadge>
-                )}
-              </div>
-            </div>
-
+          return (
             <div
+              key={item.id}
               className={cx(
-                "mt-4 rounded-2xl border p-4 text-sm whitespace-pre-wrap",
+                "rounded-2xl border p-4",
                 glassTheme.border.softer,
-                glassTheme.glass.panelSoft,
-                glassTheme.text.primary
+                glassTheme.glass.panelSoft
               )}
             >
-              {item.prompt}
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    {item.title}
+                  </div>
+                  <div className={cx("text-sm", glassTheme.text.secondary)}>
+                    {item.angle}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <GlassBadge tone="default">{item.status}</GlassBadge>
+                    <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
+                    {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
+                    {mediaJob?.status ? (
+                      <GlassBadge tone={mediaJob.status === "completed" ? "copper" : "default"}>
+                        Job: {mediaJob.status}
+                      </GlassBadge>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {!item.media_job_id ? (
+                    <GlassButton
+                      variant="secondary"
+                      onClick={() => void createMediaJob(item.id)}
+                      disabled={workingId === item.id}
+                    >
+                      {workingId === item.id ? "Creating..." : "Create Media Job"}
+                    </GlassButton>
+                  ) : (
+                    <GlassButton
+                      variant="secondary"
+                      onClick={() => void runMediaJob(item.id)}
+                      disabled={workingId === item.id}
+                    >
+                      {workingId === item.id ? "Running..." : "Run Job"}
+                    </GlassButton>
+                  )}
+
+                  {mediaJob?.source_content_piece_id ? (
+                    <Link href={`/shopreel/content/${mediaJob.source_content_piece_id}`}>
+                      <GlassButton variant="ghost">Open Content</GlassButton>
+                    </Link>
+                  ) : null}
+
+                  {mediaJob?.source_generation_id ? (
+                    <Link href={`/shopreel/editor/video/${mediaJob.source_generation_id}`}>
+                      <GlassButton variant="ghost">Open Editor</GlassButton>
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+
+              <div
+                className={cx(
+                  "mt-4 rounded-2xl border p-4 text-sm whitespace-pre-wrap",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.primary
+                )}
+              >
+                {item.prompt}
+              </div>
+
+              {mediaJob?.preview_url ? (
+                <div className="pt-4">
+                  <video
+                    src={mediaJob.preview_url}
+                    controls
+                    playsInline
+                    className="max-h-56 rounded-2xl border border-white/10"
+                  />
+                </div>
+              ) : null}
+
+              {mediaJob?.error_text ? (
+                <div className={cx("pt-3 text-sm", glassTheme.text.copperSoft)}>
+                  {mediaJob.error_text}
+                </div>
+              ) : null}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </GlassCard>
   );
