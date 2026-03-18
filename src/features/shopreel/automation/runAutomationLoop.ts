@@ -4,6 +4,7 @@ import { queueScheduledContent } from "@/features/shopreel/scheduler/queueSchedu
 import { processRenderJobs } from "@/features/shopreel/worker/processRenderJobs";
 import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
 import { runAnalyticsFeedbackLoop } from "@/features/shopreel/analytics/runAnalyticsFeedbackLoop";
+import { refreshOpportunityScores } from "@/features/shopreel/opportunities/scoring/refreshOpportunityScores";
 import { buildPrePublishRanking } from "@/features/shopreel/optimization/buildPrePublishRanking";
 
 export async function runAutomationLoop(shopId: string) {

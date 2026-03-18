@@ -1975,6 +1975,7 @@ export type Database = {
           shop_id: string
           source_key: string | null
           started_at: string | null
+          suppressed: boolean | null
           tags: string[]
           technician_label: string | null
           title: string
@@ -1999,6 +2000,7 @@ export type Database = {
           shop_id: string
           source_key?: string | null
           started_at?: string | null
+          suppressed?: boolean | null
           tags?: string[]
           technician_label?: string | null
           title: string
@@ -2023,6 +2025,7 @@ export type Database = {
           shop_id?: string
           source_key?: string | null
           started_at?: string | null
+          suppressed?: boolean | null
           tags?: string[]
           technician_label?: string | null
           title?: string

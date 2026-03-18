@@ -1,38 +1,55 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+import { suppressStorySource } from "@/features/shopreel/opportunities/lib/suppressStorySource";
+
+type DB = Database;
+
+const supabase = createClient<DB>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function DELETE(
-  _req: Request,
-  ctx: { params: Promise<{ id: string }> },
+  request: Request,
+  context: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await ctx.params;
-    const shopId = await getCurrentShopId();
-    const supabase = createAdminClient();
-    const legacy = supabase as any;
+  const { id } = await context.params;
 
-    const { error } = await legacy
-      .from("shopreel_content_opportunities")
-      .delete()
-      .eq("id", id)
-      .eq("shop_id", shopId);
+  const { data: opportunity, error: fetchError } = await supabase
+    .from("shopreel_content_opportunities")
+    .select("id, shop_id, story_source_id")
+    .eq("id", id)
+    .single();
 
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return NextResponse.json({
-      ok: true,
-      deletedId: id,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to delete opportunity";
-
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 500 },
-    );
+  if (fetchError || !opportunity) {
+    return NextResponse.json({ error: "Opportunity not found" }, { status: 404 });
   }
+
+  if (opportunity.story_source_id) {
+    const { data: source } = await supabase
+      .from("shopreel_story_sources")
+      .select("source_key")
+      .eq("id", opportunity.story_source_id)
+      .single();
+
+    if (source?.source_key) {
+      await suppressStorySource(
+        supabase,
+        opportunity.shop_id,
+        source.source_key
+      );
+    }
+  }
+
+  const { error } = await supabase
+    .from("shopreel_content_opportunities")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }
