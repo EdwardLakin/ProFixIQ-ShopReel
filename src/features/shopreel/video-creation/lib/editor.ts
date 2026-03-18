@@ -15,7 +15,7 @@ export function getMediaJobPrimaryAction(job: MediaJob): {
 
   if (job.source_content_piece_id) {
     return {
-      href: `/shopreel/content`,
+      href: `/shopreel/content/${job.source_content_piece_id}`,
       label: "Open content",
     };
   }
