@@ -952,6 +952,57 @@ export type Database = {
         }
         Relationships: []
       }
+      shopreel_automation_runs: {
+        Row: {
+          active_campaigns_count: number
+          completed_at: string | null
+          created_at: string
+          error_text: string | null
+          id: string
+          learnings_count: number
+          processing_jobs_count: number
+          queued_jobs_count: number
+          result_summary: Json
+          run_type: string
+          shop_id: string
+          started_at: string
+          status: string
+          synced_jobs_count: number
+        }
+        Insert: {
+          active_campaigns_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_text?: string | null
+          id?: string
+          learnings_count?: number
+          processing_jobs_count?: number
+          queued_jobs_count?: number
+          result_summary?: Json
+          run_type?: string
+          shop_id: string
+          started_at?: string
+          status?: string
+          synced_jobs_count?: number
+        }
+        Update: {
+          active_campaigns_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_text?: string | null
+          id?: string
+          learnings_count?: number
+          processing_jobs_count?: number
+          queued_jobs_count?: number
+          result_summary?: Json
+          run_type?: string
+          shop_id?: string
+          started_at?: string
+          status?: string
+          synced_jobs_count?: number
+        }
+        Relationships: []
+      }
       shopreel_campaign_analytics: {
         Row: {
           campaign_id: string

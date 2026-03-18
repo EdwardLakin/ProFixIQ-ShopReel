@@ -3,8 +3,15 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { syncAllProcessingVideoJobs } from "@/features/shopreel/video-creation/lib/automation";
 import { runCampaignAutomationCycle } from "@/features/shopreel/campaigns/lib/automation";
+import {
+  completeAutomationRun,
+  failAutomationRun,
+  startAutomationRun,
+} from "@/features/shopreel/automation/lib/server";
 
 export async function POST(req: Request) {
+  let runId: string | null = null;
+
   try {
     const expectedSecret = process.env.SHOPREEL_AUTOMATION_SECRET;
 
@@ -24,8 +31,27 @@ export async function POST(req: Request) {
         );
       }
     }
+
+    const run = await startAutomationRun({
+      runType: expectedSecret ? "scheduled" : "manual",
+    });
+    runId = run.id;
+
     const supabase = createAdminClient();
     const shopId = await getCurrentShopId();
+
+    const [{ count: queuedJobsCount }, { count: processingJobsCount }] = await Promise.all([
+      supabase
+        .from("shopreel_media_generation_jobs")
+        .select("*", { count: "exact", head: true })
+        .eq("shop_id", shopId)
+        .eq("status", "queued"),
+      supabase
+        .from("shopreel_media_generation_jobs")
+        .select("*", { count: "exact", head: true })
+        .eq("shop_id", shopId)
+        .eq("status", "processing"),
+    ]);
 
     const videoSyncResults = await syncAllProcessingVideoJobs();
 
@@ -40,10 +66,26 @@ export async function POST(req: Request) {
     }
 
     const campaignResults = [];
+    let totalLearningsInserted = 0;
+
     for (const campaign of campaigns ?? []) {
       const result = await runCampaignAutomationCycle(campaign.id);
+      totalLearningsInserted += Number(result.learnings?.inserted ?? 0);
       campaignResults.push(result);
     }
+
+    await completeAutomationRun({
+      runId,
+      queuedJobsCount: queuedJobsCount ?? 0,
+      processingJobsCount: processingJobsCount ?? 0,
+      syncedJobsCount: videoSyncResults.filter((row) => row.ok).length,
+      activeCampaignsCount: campaigns?.length ?? 0,
+      learningsCount: totalLearningsInserted,
+      resultSummary: {
+        videoSyncResults,
+        campaignResults,
+      },
+    });
 
     return NextResponse.json({
       ok: true,
@@ -51,6 +93,13 @@ export async function POST(req: Request) {
       campaignResults,
     });
   } catch (error) {
+    if (runId) {
+      await failAutomationRun({
+        runId,
+        errorText: error instanceof Error ? error.message : "Failed to run ShopReel automation",
+      });
+    }
+
     return NextResponse.json(
       {
         ok: false,
