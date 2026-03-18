@@ -58,6 +58,45 @@ export default async function ShopReelPage() {
       <ShopReelNav />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Link href="/shopreel/campaigns" className="block">
+          <GlassCard
+            label="Campaigns"
+            title="Campaign Generator"
+            description="Turn one idea into multiple video angles and campaign items."
+            strong
+          />
+        </Link>
+
+        <Link href="/shopreel/operator" className="block">
+          <GlassCard
+            label="Control"
+            title="Operator Dashboard"
+            description="Monitor automation runs, queued jobs, active campaigns, and learnings."
+            strong
+          />
+        </Link>
+
+        <Link href="/shopreel/automation" className="block">
+          <GlassCard
+            label="Loop"
+            title="Automation"
+            description="Run the sync, analytics, and learning loop manually."
+            strong
+          />
+        </Link>
+
+        <Link href="/shopreel/analytics" className="block">
+          <GlassCard
+            label="Performance"
+            title="Analytics"
+            description="Review real publication, event, and campaign performance."
+            strong
+          />
+        </Link>
+      </section>
+
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <GlassStat
           label="Story Sources"
           value={String(sourceCount ?? 0)}

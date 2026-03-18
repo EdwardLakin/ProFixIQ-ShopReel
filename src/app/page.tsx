@@ -3,19 +3,19 @@ import PricingSection from "@/features/landing/components/PricingSection";
 
 const featureCards = [
   {
-    title: "Turn real work into content",
+    title: "Turn real business activity into content",
     body:
-      "Transform photos, videos, job activity, inspections, and customer-facing moments into content opportunities without building a separate marketing workflow.",
+      "Transform photos, videos, jobs, inspections, team activity, customer moments, and real-world work into content opportunities automatically.",
   },
   {
-    title: "Draft faster with AI",
+    title: "Generate campaigns, not just posts",
     body:
-      "Generate hooks, captions, concepts, and publishing-ready content from the work your business is already doing every day.",
+      "Start with one idea, one offer, or one story and let ShopReel split it into multiple angles, hooks, videos, captions, and platform-ready assets.",
   },
   {
-    title: "Publish across channels",
+    title: "Run the full marketing loop",
     body:
-      "Manage social, blogs, email, business profile content, and more from one content pipeline instead of juggling disconnected tools.",
+      "Create, review, publish, track performance, learn what works, and feed winning angles back into future campaigns from one system.",
   },
 ];
 
@@ -28,30 +28,83 @@ const audienceCards = [
   "Local retail and hospitality",
 ];
 
+const workflowSteps = [
+  {
+    label: "Source",
+    value:
+      "Jobs, inspections, media, notes, customer wins, daily business activity",
+  },
+  {
+    label: "Generate",
+    value:
+      "AI turns one idea into videos, posts, angles, campaigns, and content variants",
+  },
+  {
+    label: "Publish",
+    value:
+      "Review, queue, schedule, and publish across your content pipeline",
+  },
+  {
+    label: "Learn",
+    value:
+      "Track performance, extract winning patterns, and improve future campaigns automatically",
+  },
+];
+
+const metricsCards = [
+  {
+    label: "Campaigns",
+    value: "One idea → many assets",
+  },
+  {
+    label: "Workflow",
+    value: "Create → Publish → Learn",
+  },
+  {
+    label: "Channels",
+    value: "Social + blog + email + more",
+  },
+];
+
+const loopSteps = [
+  "Business activity",
+  "AI story + campaign creation",
+  "Content published",
+  "Performance analytics",
+  "AI learns what works",
+  "Better future campaigns",
+];
+
 export default function LandingPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#050816] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.22),transparent_32%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.16),transparent_28%),radial-gradient(circle_at_bottom,rgba(34,197,94,0.14),transparent_34%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.22),transparent_32%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.14),transparent_28%),radial-gradient(circle_at_bottom,rgba(34,197,94,0.12),transparent_34%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_22%,transparent_78%,rgba(255,255,255,0.03))]" />
 
       <section className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-center px-6 py-20">
         <div className="grid items-center gap-14 lg:grid-cols-[1.08fr_0.92fr]">
           <div>
-            <div className="mb-5 inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
-              AI content automation for businesses that already create value every day
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
+                AI content automation for modern businesses
+              </div>
+              <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+                by ProFixIQ
+              </div>
             </div>
 
-            <h1 className="max-w-4xl text-5xl font-semibold leading-[1.02] md:text-7xl">
-              Your business is already creating content.
+            <h1 className="max-w-5xl text-5xl font-semibold leading-[1.02] md:text-7xl">
+              Your business is already creating the story.
               <span className="block bg-gradient-to-r from-[#ffffff] via-[#b6c4ff] to-[#7dd3fc] bg-clip-text text-transparent">
-                ShopReel turns it into growth.
+                ShopReel turns it into campaigns, content, and growth.
               </span>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/70 md:text-xl">
-              Convert everyday work, photos, videos, customer moments, and team activity into
-              publish-ready social posts, blogs, email content, and local marketing assets from
-              one clean workflow.
+            <p className="mt-6 max-w-3xl text-lg leading-8 text-white/70 md:text-xl">
+              ShopReel is the AI content engine built to convert real work into
+              publish-ready marketing. Generate videos, posts, campaigns, and
+              platform-ready assets from everyday business activity, then track
+              what works and improve automatically over time.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-4">
@@ -72,16 +125,19 @@ export default function LandingPage() {
 
             <div className="mt-8 flex flex-wrap gap-3 text-sm text-white/60">
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                Social posts
+                Video campaigns
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                Blogs
+                Social content
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                Email campaigns
+                Blog + email
               </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
-                Google Business content
+                Automation loop
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                Learns what works
               </span>
             </div>
           </div>
@@ -89,53 +145,46 @@ export default function LandingPage() {
           <div className="relative">
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.06] p-5 shadow-2xl shadow-black/30 backdrop-blur-xl">
               <div className="rounded-[1.5rem] border border-white/10 bg-[#0b1022]/90 p-5">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm text-white/50">Content engine</div>
+                    <div className="text-sm text-white/50">Autonomous content engine</div>
                     <div className="text-xl font-semibold text-white">
-                      One workflow. Multiple channels.
+                      One workflow. Multiple outputs. Better every cycle.
                     </div>
                   </div>
                   <div className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-medium text-emerald-300">
-                    Live pipeline
+                    Live loop
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  {[
-                    ["Input", "Photos, videos, jobs, notes, inspections, team activity"],
-                    ["AI", "Drafts hooks, captions, concepts, sequences, and variants"],
-                    ["Review", "Approve, queue, schedule, or auto-publish"],
-                    [
-                      "Output",
-                      "Instagram, Facebook, TikTok, YouTube, blog, email, Google Business",
-                    ],
-                  ].map(([label, value]) => (
+                  {workflowSteps.map((step) => (
                     <div
-                      key={label}
+                      key={step.label}
                       className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                     >
                       <div className="text-xs uppercase tracking-[0.2em] text-cyan-300/80">
-                        {label}
+                        {step.label}
                       </div>
-                      <div className="mt-1 text-sm leading-6 text-white/80">{value}</div>
+                      <div className="mt-1 text-sm leading-6 text-white/80">
+                        {step.value}
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <div className="text-sm text-white/55">Content ready</div>
-                    <div className="mt-1 text-2xl font-semibold text-white">24</div>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <div className="text-sm text-white/55">Channels</div>
-                    <div className="mt-1 text-2xl font-semibold text-white">8</div>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <div className="text-sm text-white/55">Time saved</div>
-                    <div className="mt-1 text-2xl font-semibold text-white">Hours</div>
-                  </div>
+                  {metricsCards.map((card) => (
+                    <div
+                      key={card.label}
+                      className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                    >
+                      <div className="text-sm text-white/55">{card.label}</div>
+                      <div className="mt-1 text-lg font-semibold text-white">
+                        {card.value}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -155,17 +204,18 @@ export default function LandingPage() {
         </div>
 
         <div className="mt-16 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 backdrop-blur">
-          <div className="max-w-2xl">
+          <div className="max-w-3xl">
             <div className="text-sm uppercase tracking-[0.25em] text-violet-300/80">
               Built for modern operators
             </div>
             <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">
-              Not just for repair shops.
+              More than a social media tool.
             </h2>
             <p className="mt-4 text-white/70">
-              ShopReel can support any business that creates real work, visual proof, customer
-              results, team moments, or educational value and wants to turn that into a consistent
-              marketing engine.
+              ShopReel is built for businesses that already create value every
+              day and want a system that can turn that activity into consistent,
+              scalable marketing. It is a campaign generator, content engine,
+              and learning loop in one workflow.
             </p>
           </div>
 
@@ -176,6 +226,70 @@ export default function LandingPage() {
                 className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/80"
               >
                 {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-16 grid gap-5 lg:grid-cols-[1fr_1fr]">
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 backdrop-blur">
+            <div className="text-sm uppercase tracking-[0.25em] text-cyan-300/80">
+              Campaign mode
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold text-white">
+              One idea can become an entire campaign.
+            </h2>
+            <p className="mt-4 text-white/70">
+              Start with a product launch, service offer, customer result,
+              educational theme, or business insight. ShopReel can break it into
+              multiple angles, videos, hooks, captions, and content assets
+              designed for platform-ready publishing.
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 backdrop-blur">
+            <div className="text-sm uppercase tracking-[0.25em] text-emerald-300/80">
+              Learning loop
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold text-white">
+              The system gets smarter as it runs.
+            </h2>
+            <p className="mt-4 text-white/70">
+              ShopReel tracks what performs, identifies winning angles, and feeds
+              those learnings into future campaigns. The goal is not just to
+              create content, but to create a system that compounds results over
+              time.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-16 rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 backdrop-blur">
+          <div className="max-w-3xl">
+            <div className="text-sm uppercase tracking-[0.25em] text-cyan-300/80">
+              Compounding growth loop
+            </div>
+            <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">
+              Business activity turns into a smarter marketing engine.
+            </h2>
+            <p className="mt-4 text-white/70">
+              ShopReel is designed to turn daily operations into content, content
+              into analytics, analytics into learnings, and learnings into even
+              stronger future campaigns.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            {loopSteps.map((step, index) => (
+              <div
+                key={step}
+                className="relative rounded-2xl border border-white/10 bg-black/20 p-4"
+              >
+                <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+                  Step {index + 1}
+                </div>
+                <div className="mt-2 text-sm font-medium text-white/85">
+                  {step}
+                </div>
               </div>
             ))}
           </div>
