@@ -46,6 +46,9 @@ export default function CampaignDetailClient({
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [batchCreating, setBatchCreating] = useState(false);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [syncingProcessing, setSyncingProcessing] = useState(false);
+  const [rollingUp, setRollingUp] = useState(false);
+  const [learning, setLearning] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -175,6 +178,81 @@ export default function CampaignDetailClient({
     }
   }
 
+  async function syncProcessingJobs() {
+    try {
+      setSyncingProcessing(true);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/campaigns/${campaign.id}/sync-processing`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to sync processing jobs");
+      }
+
+      setMessage("Processing jobs synced.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sync processing jobs");
+    } finally {
+      setSyncingProcessing(false);
+    }
+  }
+
+  async function rollupAnalytics() {
+    try {
+      setRollingUp(true);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/campaigns/${campaign.id}/rollup`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to roll up analytics");
+      }
+
+      setMessage("Campaign analytics rolled up.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to roll up analytics");
+    } finally {
+      setRollingUp(false);
+    }
+  }
+
+  async function learnFromCampaign() {
+    try {
+      setLearning(true);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/campaigns/${campaign.id}/learn`, {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to learn from campaign");
+      }
+
+      setMessage("Campaign learnings extracted.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to learn from campaign");
+    } finally {
+      setLearning(false);
+    }
+  }
+
   return (
     <GlassCard
       label="Angles"
@@ -188,6 +266,15 @@ export default function CampaignDetailClient({
         </GlassButton>
         <GlassButton variant="secondary" onClick={() => void runAllMediaJobs()} disabled={batchRunning}>
           {batchRunning ? "Running..." : "Run All Jobs"}
+        </GlassButton>
+        <GlassButton variant="secondary" onClick={() => void syncProcessingJobs()} disabled={syncingProcessing}>
+          {syncingProcessing ? "Syncing..." : "Sync Processing Jobs"}
+        </GlassButton>
+        <GlassButton variant="secondary" onClick={() => void rollupAnalytics()} disabled={rollingUp}>
+          {rollingUp ? "Rolling up..." : "Roll Up Analytics"}
+        </GlassButton>
+        <GlassButton variant="secondary" onClick={() => void learnFromCampaign()} disabled={learning}>
+          {learning ? "Learning..." : "Learn From Campaign"}
         </GlassButton>
         <GlassButton variant="primary" onClick={() => void generateCampaign()} disabled={generating}>
           {generating ? "Generating..." : "Generate Campaign"}

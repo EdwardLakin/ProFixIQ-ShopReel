@@ -952,6 +952,68 @@ export type Database = {
         }
         Relationships: []
       }
+      shopreel_campaign_analytics: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          shop_id: string
+          summary: Json
+          total_completed_jobs: number
+          total_content_pieces: number
+          total_engagement: number
+          total_items: number
+          total_media_jobs: number
+          total_publications: number
+          total_published: number
+          total_views: number
+          updated_at: string
+          winning_angle: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          shop_id: string
+          summary?: Json
+          total_completed_jobs?: number
+          total_content_pieces?: number
+          total_engagement?: number
+          total_items?: number
+          total_media_jobs?: number
+          total_publications?: number
+          total_published?: number
+          total_views?: number
+          updated_at?: string
+          winning_angle?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          shop_id?: string
+          summary?: Json
+          total_completed_jobs?: number
+          total_content_pieces?: number
+          total_engagement?: number
+          total_items?: number
+          total_media_jobs?: number
+          total_publications?: number
+          total_published?: number
+          total_views?: number
+          updated_at?: string
+          winning_angle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_campaign_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "shopreel_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopreel_campaign_items: {
         Row: {
           angle: string
@@ -1040,6 +1102,57 @@ export type Database = {
             columns: ["media_job_id"]
             isOneToOne: false
             referencedRelation: "shopreel_media_generation_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_campaign_learnings: {
+        Row: {
+          campaign_id: string
+          campaign_item_id: string | null
+          confidence: number | null
+          created_at: string
+          id: string
+          learning_key: string
+          learning_type: string
+          learning_value: Json
+          shop_id: string
+        }
+        Insert: {
+          campaign_id: string
+          campaign_item_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          learning_key: string
+          learning_type: string
+          learning_value?: Json
+          shop_id: string
+        }
+        Update: {
+          campaign_id?: string
+          campaign_item_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          learning_key?: string
+          learning_type?: string
+          learning_value?: Json
+          shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_campaign_learnings_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_campaign_learnings_campaign_item_id_fkey"
+            columns: ["campaign_item_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_campaign_items"
             referencedColumns: ["id"]
           },
         ]

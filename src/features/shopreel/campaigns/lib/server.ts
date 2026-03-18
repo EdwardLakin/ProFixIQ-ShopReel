@@ -331,3 +331,205 @@ export async function generateCampaignEndToEnd(campaignId: string) {
     processedJobIds,
   };
 }
+
+
+export async function syncProcessingMediaJobsForCampaign(campaignId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: items, error: itemsError } = await supabase
+    .from("shopreel_campaign_items")
+    .select(`
+      *,
+      media_job:shopreel_media_generation_jobs (*)
+    `)
+    .eq("campaign_id", campaignId)
+    .eq("shop_id", shopId)
+    .order("sort_order", { ascending: true });
+
+  if (itemsError) {
+    throw new Error(itemsError.message);
+  }
+
+  const syncedJobIds: string[] = [];
+
+  for (const item of items ?? []) {
+    const mediaJob = Array.isArray(item.media_job) ? item.media_job[0] : item.media_job;
+    if (!mediaJob?.id) continue;
+    if (mediaJob.status !== "processing") continue;
+    if (mediaJob.provider !== "openai" || mediaJob.job_type !== "video") continue;
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/shopreel/video-creation/jobs/${mediaJob.id}/sync`,
+      { method: "POST" }
+    );
+
+    if (!res.ok) {
+      continue;
+    }
+
+    syncedJobIds.push(mediaJob.id);
+  }
+
+  return syncedJobIds;
+}
+
+export async function rollupCampaignAnalytics(campaignId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: items, error: itemsError } = await supabase
+    .from("shopreel_campaign_items")
+    .select(`
+      *,
+      media_job:shopreel_media_generation_jobs (
+        id,
+        status,
+        source_content_piece_id
+      )
+    `)
+    .eq("campaign_id", campaignId)
+    .eq("shop_id", shopId);
+
+  if (itemsError) {
+    throw new Error(itemsError.message);
+  }
+
+  const normalizedItems = (items ?? []).map((item) => ({
+    ...item,
+    media_job: Array.isArray(item.media_job) ? item.media_job[0] ?? null : item.media_job,
+  }));
+
+  const contentPieceIds = normalizedItems
+    .map((item) => item.media_job?.source_content_piece_id ?? item.content_piece_id ?? null)
+    .filter((value): value is string => !!value);
+
+  let publications: Array<{ id: string; status: string; content_piece_id: string }> = [];
+  if (contentPieceIds.length > 0) {
+    const { data: publicationRows, error: publicationsError } = await supabase
+      .from("content_publications")
+      .select("id, status, content_piece_id")
+      .in("content_piece_id", contentPieceIds);
+
+    if (publicationsError) {
+      throw new Error(publicationsError.message);
+    }
+
+    publications = publicationRows ?? [];
+  }
+
+  let analyticsEvents: Array<{ publication_id: string | null; event_name: string; event_value: number | null }> = [];
+  if (publications.length > 0) {
+    const publicationIds = publications.map((row) => row.id);
+    const { data: analyticsRows, error: analyticsError } = await supabase
+      .from("content_analytics_events")
+      .select("publication_id, event_name, event_value")
+      .in("publication_id", publicationIds);
+
+    if (analyticsError) {
+      throw new Error(analyticsError.message);
+    }
+
+    analyticsEvents = analyticsRows ?? [];
+  }
+
+  const totalViews = analyticsEvents
+    .filter((row) => row.event_name.toLowerCase().includes("view"))
+    .reduce((sum, row) => sum + Number(row.event_value ?? 0), 0);
+
+  const totalEngagement = analyticsEvents
+    .filter((row) =>
+      ["like", "comment", "share", "save", "engagement"].some((key) =>
+        row.event_name.toLowerCase().includes(key)
+      )
+    )
+    .reduce((sum, row) => sum + Number(row.event_value ?? 0), 0);
+
+  const angleScores = normalizedItems.map((item) => {
+    const cpId = item.media_job?.source_content_piece_id ?? item.content_piece_id ?? null;
+    const itemPublications = publications.filter((pub) => pub.content_piece_id === cpId);
+    const itemPublicationIds = itemPublications.map((pub) => pub.id);
+    const itemEvents = analyticsEvents.filter((evt) =>
+      evt.publication_id ? itemPublicationIds.includes(evt.publication_id) : false
+    );
+
+    const score = itemEvents.reduce((sum, evt) => sum + Number(evt.event_value ?? 0), 0);
+
+    return {
+      angle: item.angle,
+      score,
+      itemId: item.id,
+    };
+  });
+
+  angleScores.sort((a, b) => b.score - a.score);
+  const winningAngle = angleScores[0]?.score ? angleScores[0].angle : null;
+
+  const payload = {
+    campaign_id: campaignId,
+    shop_id: shopId,
+    total_items: normalizedItems.length,
+    total_media_jobs: normalizedItems.filter((item) => item.media_job?.id).length,
+    total_completed_jobs: normalizedItems.filter((item) => item.media_job?.status === "completed").length,
+    total_content_pieces: contentPieceIds.length,
+    total_publications: publications.length,
+    total_published: publications.filter((row) => row.status === "published").length,
+    total_views: totalViews,
+    total_engagement: totalEngagement,
+    winning_angle: winningAngle,
+    summary: {
+      angle_scores: angleScores,
+    },
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: upsertError } = await supabase
+    .from("shopreel_campaign_analytics")
+    .upsert(payload, { onConflict: "campaign_id" });
+
+  if (upsertError) {
+    throw new Error(upsertError.message);
+  }
+
+  return payload;
+}
+
+export async function extractCampaignLearnings(campaignId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const analytics = await rollupCampaignAnalytics(campaignId);
+
+  const learningsToInsert = [];
+
+  if (analytics.winning_angle) {
+    learningsToInsert.push({
+      campaign_id: campaignId,
+      shop_id: shopId,
+      campaign_item_id: null,
+      learning_type: "winning_angle",
+      learning_key: analytics.winning_angle,
+      learning_value: {
+        total_views: analytics.total_views,
+        total_engagement: analytics.total_engagement,
+        summary: analytics.summary,
+      } satisfies Json,
+      confidence: analytics.total_engagement > 0 ? 0.8 : 0.4,
+    });
+  }
+
+  if (learningsToInsert.length > 0) {
+    const { error } = await supabase
+      .from("shopreel_campaign_learnings")
+      .insert(learningsToInsert);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  return {
+    inserted: learningsToInsert.length,
+    winningAngle: analytics.winning_angle,
+  };
+}
