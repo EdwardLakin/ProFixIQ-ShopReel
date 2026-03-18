@@ -114,6 +114,11 @@ export default async function ShopReelCampaignItemDetailPage(
           <form action={`/api/shopreel/campaigns/items/${id}/assemble`} method="post">
             <GlassButton variant="primary">Build 20s Final Ad</GlassButton>
           </form>
+          
+          <Link href="/shopreel/publish-center">
+            <GlassButton variant="ghost">Publish Center</GlassButton>
+          </Link>
+
           {mediaJob?.source_content_piece_id ? (
             <Link href={`/shopreel/content/${mediaJob.source_content_piece_id}`}>
               <GlassButton variant="secondary">Open Content</GlassButton>

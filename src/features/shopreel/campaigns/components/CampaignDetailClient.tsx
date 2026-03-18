@@ -8,6 +8,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+import { formatShopReelStatus } from "@/features/shopreel/lib/uiLabels";
 
 type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"];
 type CampaignAnalyticsRow = Database["public"]["Tables"]["shopreel_campaign_analytics"]["Row"];
@@ -42,11 +43,17 @@ export default function CampaignDetailClient({
   items,
   analytics,
   learnings,
+  progress,
 }: {
   campaign: CampaignRow;
   items: CampaignItemRow[];
   analytics: CampaignAnalyticsRow | null;
   learnings: CampaignLearningRow[];
+  progress: {
+    totalItems: number;
+    completedItems: number;
+    progressPercent: number;
+  };
 }) {
   const router = useRouter();
   const [workingId, setWorkingId] = useState<string | null>(null);
@@ -262,12 +269,35 @@ export default function CampaignDetailClient({
   return (
     <div className="grid gap-5">
       <GlassCard
+        label="Progress"
+        title="Campaign Progress"
+        description="Track how many campaign videos have completed."
+        strong
+      >
+        <div className="space-y-4">
+          <div className={cx("text-3xl font-semibold", glassTheme.text.primary)}>
+            {progress.progressPercent}%
+          </div>
+
+          <div className="h-4 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-300/80 via-blue-400/80 to-emerald-300/80 transition-all"
+              style={{ width: `${progress.progressPercent}%` }}
+            />
+          </div>
+
+          <div className={cx("text-sm", glassTheme.text.secondary)}>
+            {progress.completedItems} / {progress.totalItems} videos generated
+          </div>
+        </div>
+      </GlassCard>
+      <GlassCard
         label="Angles"
         title="Campaign items"
         description="Each item becomes a video concept, media job, and content piece."
         strong
       >
-        <div className="mb-4 flex flex-wrap gap-3">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <GlassButton variant="secondary" onClick={() => void createAllMediaJobs()} disabled={batchCreating}>
             {batchCreating ? "Creating..." : "Create All Media Jobs"}
           </GlassButton>
@@ -312,8 +342,8 @@ export default function CampaignDetailClient({
                     <div className={cx("text-sm", glassTheme.text.secondary)}>
                       {item.angle}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <GlassBadge tone="default">{item.status}</GlassBadge>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <GlassBadge tone="default">{formatShopReelStatus(item.status)}</GlassBadge>
                       <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
                       {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
                       {mediaJob?.status ? (
@@ -324,7 +354,7 @@ export default function CampaignDetailClient({
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <Link href={`/shopreel/campaigns/items/${item.id}`}>
                     <GlassButton variant="ghost">Open Item</GlassButton>
                   </Link>
@@ -479,7 +509,7 @@ export default function CampaignDetailClient({
                     glassTheme.glass.panelSoft
                   )}
                 >
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <GlassBadge tone="default">{learningRow.learning_type}</GlassBadge>
                     <GlassBadge tone="muted">{learningRow.learning_key}</GlassBadge>
                     {learningRow.confidence != null ? (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+import { formatShopReelStatus } from "@/features/shopreel/lib/uiLabels";
 
 function timeLabel(value: string | null | undefined) {
   if (!value) return "—";
@@ -91,9 +92,9 @@ export default function OperatorDashboard(props: {
                     glassTheme.glass.panelSoft
                   )}
                 >
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <GlassBadge tone={run.status === "completed" ? "copper" : "default"}>
-                      {run.status}
+                      {formatShopReelStatus(run.status)}
                     </GlassBadge>
                   </div>
                   <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
@@ -135,7 +136,7 @@ export default function OperatorDashboard(props: {
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <GlassBadge tone={job.status === "completed" ? "copper" : "default"}>
-                    {job.status}
+                    {formatShopReelStatus(job.status)}
                   </GlassBadge>
                 </div>
               </div>
@@ -164,7 +165,7 @@ export default function OperatorDashboard(props: {
                   {campaign.title}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <GlassBadge tone="default">{campaign.status}</GlassBadge>
+                  <GlassBadge tone="default">{formatShopReelStatus(campaign.status)}</GlassBadge>
                 </div>
               </Link>
             ))}

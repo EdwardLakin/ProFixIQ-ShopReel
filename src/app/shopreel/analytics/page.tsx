@@ -5,6 +5,7 @@ import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+import { formatShopReelStatus } from "@/features/shopreel/lib/uiLabels";
 
 export default async function ShopReelAnalyticsPage() {
   const supabase = createAdminClient();
@@ -260,7 +261,7 @@ export default async function ShopReelAnalyticsPage() {
                   {piece.title}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <GlassBadge tone="default">{piece.status}</GlassBadge>
+                  <GlassBadge tone="default">{formatShopReelStatus(piece.status)}</GlassBadge>
                   {piece.content_type ? (
                     <GlassBadge tone="muted">{piece.content_type}</GlassBadge>
                   ) : null}

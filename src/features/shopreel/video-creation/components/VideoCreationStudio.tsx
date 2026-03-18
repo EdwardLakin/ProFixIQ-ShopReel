@@ -582,7 +582,7 @@ export default function VideoCreationStudio({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <GlassButton variant="secondary" onClick={() => void enhancePrompt()} disabled={enhancing}>
                   {enhancing ? "Enhancing..." : "Enhance Prompt"}
                 </GlassButton>
@@ -643,7 +643,7 @@ export default function VideoCreationStudio({
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
                         {formatLabel(job.job_type)} • {formatLabel(job.provider)} • {timeAgoLabel(job.created_at)}
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                         <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
                         <GlassBadge tone="default">{job.aspect_ratio}</GlassBadge>
                         {job.style ? <GlassBadge tone="muted">{formatLabel(job.style)}</GlassBadge> : null}
@@ -681,7 +681,7 @@ export default function VideoCreationStudio({
                       ) : null}
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       {(job.status === "queued" || job.status === "failed") ? (
                         <GlassButton
                           variant="secondary"

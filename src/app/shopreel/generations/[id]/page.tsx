@@ -121,6 +121,9 @@ export default async function ShopReelGenerationDetailPage(
             <GlassButton variant="secondary">Open editor</GlassButton>
           </Link>
           <GenerationDeleteButton generationId={generation.id} />
+          <Link href="/shopreel/publish-center">
+            <GlassButton variant="ghost">Publish Center</GlassButton>
+          </Link>
           {generation.status === "ready" ? (
             <Link href={`/shopreel/publish-center`}>
               <GlassButton variant="ghost">Publish Center</GlassButton>
