@@ -1,6 +1,6 @@
-import Link from "next/link";
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
@@ -21,21 +21,26 @@ function timeAgoLabel(value: string) {
 
   if (diffMinutes < 60) return `${Math.max(diffMinutes, 1)}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago}`;
+  if (diffDays < 7) return `${diffDays}d ago`;
 
   return new Date(value).toLocaleDateString();
 }
 
 export default function CampaignGenerator({
   campaigns,
+  seedDefaults,
 }: {
   campaigns: CampaignRow[];
+  seedDefaults: {
+    winningAngles: string[];
+    suggestedHook: string | null;
+  };
 }) {
   const router = useRouter();
 
   const [title, setTitle] = useState("ShopReel vs Traditional Marketing");
   const [coreIdea, setCoreIdea] = useState(
-    "Compare ShopReel to traditional marketing methods and introduce ShopReel as the future of business marketing."
+    `Compare ShopReel to traditional marketing methods and introduce ShopReel as the future of business marketing.${seedDefaults.suggestedHook ? ` ${seedDefaults.suggestedHook}.` : ""}`
   );
   const [audience, setAudience] = useState("Repair shops, local businesses, and creators");
   const [offer, setOffer] = useState("Turn real work into marketing automatically");
@@ -88,6 +93,16 @@ export default function CampaignGenerator({
         description="Take one strong idea and split it into multiple video angles automatically."
         strong
       >
+        {seedDefaults.winningAngles.length > 0 ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {seedDefaults.winningAngles.map((angle) => (
+              <GlassBadge key={angle} tone="copper">
+                Learned winner: {angle}
+              </GlassBadge>
+            ))}
+          </div>
+        ) : null}
+
         <div className="grid gap-4">
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>

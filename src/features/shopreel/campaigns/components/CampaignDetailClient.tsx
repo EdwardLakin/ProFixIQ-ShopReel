@@ -10,6 +10,8 @@ import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 
 type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"];
+type CampaignAnalyticsRow = Database["public"]["Tables"]["shopreel_campaign_analytics"]["Row"];
+type CampaignLearningRow = Database["public"]["Tables"]["shopreel_campaign_learnings"]["Row"];
 type MediaJobLite = Pick<
   Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"],
   | "id"
@@ -38,9 +40,13 @@ function normalizeMediaJob(
 export default function CampaignDetailClient({
   campaign,
   items,
+  analytics,
+  learnings,
 }: {
   campaign: CampaignRow;
   items: CampaignItemRow[];
+  analytics: CampaignAnalyticsRow | null;
+  learnings: CampaignLearningRow[];
 }) {
   const router = useRouter();
   const [workingId, setWorkingId] = useState<string | null>(null);
@@ -254,133 +260,228 @@ export default function CampaignDetailClient({
   }
 
   return (
-    <GlassCard
-      label="Angles"
-      title="Campaign items"
-      description="Each item becomes a video concept, media job, and content piece."
-      strong
-    >
-      <div className="mb-4 flex flex-wrap gap-3">
-        <GlassButton variant="secondary" onClick={() => void createAllMediaJobs()} disabled={batchCreating}>
-          {batchCreating ? "Creating..." : "Create All Media Jobs"}
-        </GlassButton>
-        <GlassButton variant="secondary" onClick={() => void runAllMediaJobs()} disabled={batchRunning}>
-          {batchRunning ? "Running..." : "Run All Jobs"}
-        </GlassButton>
-        <GlassButton variant="secondary" onClick={() => void syncProcessingJobs()} disabled={syncingProcessing}>
-          {syncingProcessing ? "Syncing..." : "Sync Processing Jobs"}
-        </GlassButton>
-        <GlassButton variant="secondary" onClick={() => void rollupAnalytics()} disabled={rollingUp}>
-          {rollingUp ? "Rolling up..." : "Roll Up Analytics"}
-        </GlassButton>
-        <GlassButton variant="secondary" onClick={() => void learnFromCampaign()} disabled={learning}>
-          {learning ? "Learning..." : "Learn From Campaign"}
-        </GlassButton>
-        <GlassButton variant="primary" onClick={() => void generateCampaign()} disabled={generating}>
-          {generating ? "Generating..." : "Generate Campaign"}
-        </GlassButton>
-      </div>
+    <div className="grid gap-5">
+      <GlassCard
+        label="Angles"
+        title="Campaign items"
+        description="Each item becomes a video concept, media job, and content piece."
+        strong
+      >
+        <div className="mb-4 flex flex-wrap gap-3">
+          <GlassButton variant="secondary" onClick={() => void createAllMediaJobs()} disabled={batchCreating}>
+            {batchCreating ? "Creating..." : "Create All Media Jobs"}
+          </GlassButton>
+          <GlassButton variant="secondary" onClick={() => void runAllMediaJobs()} disabled={batchRunning}>
+            {batchRunning ? "Running..." : "Run All Jobs"}
+          </GlassButton>
+          <GlassButton variant="secondary" onClick={() => void syncProcessingJobs()} disabled={syncingProcessing}>
+            {syncingProcessing ? "Syncing..." : "Sync Processing Jobs"}
+          </GlassButton>
+          <GlassButton variant="secondary" onClick={() => void rollupAnalytics()} disabled={rollingUp}>
+            {rollingUp ? "Rolling up..." : "Roll Up Analytics"}
+          </GlassButton>
+          <GlassButton variant="secondary" onClick={() => void learnFromCampaign()} disabled={learning}>
+            {learning ? "Learning..." : "Learn From Campaign"}
+          </GlassButton>
+          <GlassButton variant="primary" onClick={() => void generateCampaign()} disabled={generating}>
+            {generating ? "Generating..." : "Generate Campaign"}
+          </GlassButton>
+        </div>
 
-      {message ? <div className={cx("mb-3 text-sm", glassTheme.text.copperSoft)}>{message}</div> : null}
-      {error ? <div className={cx("mb-3 text-sm", glassTheme.text.copperSoft)}>{error}</div> : null}
+        {message ? <div className={cx("mb-3 text-sm", glassTheme.text.copperSoft)}>{message}</div> : null}
+        {error ? <div className={cx("mb-3 text-sm", glassTheme.text.copperSoft)}>{error}</div> : null}
 
-      <div className="grid gap-3">
-        {items.map((item) => {
-          const mediaJob = normalizeMediaJob(item.media_job);
+        <div className="grid gap-3">
+          {items.map((item) => {
+            const mediaJob = normalizeMediaJob(item.media_job);
 
-          return (
-            <div
-              key={item.id}
-              className={cx(
-                "rounded-2xl border p-4",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft
-              )}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                    {item.title}
+            return (
+              <div
+                key={item.id}
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft
+                )}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {item.title}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      {item.angle}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <GlassBadge tone="default">{item.status}</GlassBadge>
+                      <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
+                      {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
+                      {mediaJob?.status ? (
+                        <GlassBadge tone={mediaJob.status === "completed" ? "copper" : "default"}>
+                          Job: {mediaJob.status}
+                        </GlassBadge>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className={cx("text-sm", glassTheme.text.secondary)}>
-                    {item.angle}
-                  </div>
+
                   <div className="flex flex-wrap gap-2">
-                    <GlassBadge tone="default">{item.status}</GlassBadge>
-                    <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
-                    {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
-                    {mediaJob?.status ? (
-                      <GlassBadge tone={mediaJob.status === "completed" ? "copper" : "default"}>
-                        Job: {mediaJob.status}
-                      </GlassBadge>
+                    {!item.media_job_id ? (
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void createMediaJob(item.id)}
+                        disabled={workingId === item.id}
+                      >
+                        {workingId === item.id ? "Creating..." : "Create Media Job"}
+                      </GlassButton>
+                    ) : (
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void runMediaJob(item.id)}
+                        disabled={workingId === item.id}
+                      >
+                        {workingId === item.id ? "Running..." : "Run Job"}
+                      </GlassButton>
+                    )}
+
+                    {mediaJob?.source_content_piece_id ? (
+                      <Link href={`/shopreel/content/${mediaJob.source_content_piece_id}`}>
+                        <GlassButton variant="ghost">Open Content</GlassButton>
+                      </Link>
+                    ) : null}
+
+                    {mediaJob?.source_generation_id ? (
+                      <Link href={`/shopreel/editor/video/${mediaJob.source_generation_id}`}>
+                        <GlassButton variant="ghost">Open Editor</GlassButton>
+                      </Link>
                     ) : null}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {!item.media_job_id ? (
-                    <GlassButton
-                      variant="secondary"
-                      onClick={() => void createMediaJob(item.id)}
-                      disabled={workingId === item.id}
-                    >
-                      {workingId === item.id ? "Creating..." : "Create Media Job"}
-                    </GlassButton>
-                  ) : (
-                    <GlassButton
-                      variant="secondary"
-                      onClick={() => void runMediaJob(item.id)}
-                      disabled={workingId === item.id}
-                    >
-                      {workingId === item.id ? "Running..." : "Run Job"}
-                    </GlassButton>
+                <div
+                  className={cx(
+                    "mt-4 rounded-2xl border p-4 text-sm whitespace-pre-wrap",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                    glassTheme.text.primary
                   )}
-
-                  {mediaJob?.source_content_piece_id ? (
-                    <Link href={`/shopreel/content/${mediaJob.source_content_piece_id}`}>
-                      <GlassButton variant="ghost">Open Content</GlassButton>
-                    </Link>
-                  ) : null}
-
-                  {mediaJob?.source_generation_id ? (
-                    <Link href={`/shopreel/editor/video/${mediaJob.source_generation_id}`}>
-                      <GlassButton variant="ghost">Open Editor</GlassButton>
-                    </Link>
-                  ) : null}
+                >
+                  {item.prompt}
                 </div>
+
+                {mediaJob?.preview_url ? (
+                  <div className="pt-4">
+                    <video
+                      src={mediaJob.preview_url}
+                      controls
+                      playsInline
+                      className="max-h-56 rounded-2xl border border-white/10"
+                    />
+                  </div>
+                ) : null}
+
+                {mediaJob?.error_text ? (
+                  <div className={cx("pt-3 text-sm", glassTheme.text.copperSoft)}>
+                    {mediaJob.error_text}
+                  </div>
+                ) : null}
               </div>
+            );
+          })}
+        </div>
+      </GlassCard>
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        <GlassCard
+          label="Analytics"
+          title="Campaign rollup"
+          description="Aggregate performance across the campaign."
+          strong
+        >
+          {!analytics ? (
+            <div className={cx("text-sm", glassTheme.text.secondary)}>
+              No analytics rollup yet.
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {[
+                ["Total items", analytics.total_items],
+                ["Media jobs", analytics.total_media_jobs],
+                ["Completed jobs", analytics.total_completed_jobs],
+                ["Content pieces", analytics.total_content_pieces],
+                ["Publications", analytics.total_publications],
+                ["Published", analytics.total_published],
+                ["Views", analytics.total_views],
+                ["Engagement", analytics.total_engagement],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft
+                  )}
+                >
+                  <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                    {label}
+                  </div>
+                  <div className={cx("mt-2 text-lg font-medium", glassTheme.text.primary)}>
+                    {String(value)}
+                  </div>
+                </div>
+              ))}
 
               <div
                 className={cx(
-                  "mt-4 rounded-2xl border p-4 text-sm whitespace-pre-wrap",
-                  glassTheme.border.softer,
-                  glassTheme.glass.panelSoft,
-                  glassTheme.text.primary
+                  "rounded-2xl border p-4 md:col-span-2",
+                  glassTheme.border.copper,
+                  glassTheme.glass.panelSoft
                 )}
               >
-                {item.prompt}
+                <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                  Winning angle
+                </div>
+                <div className={cx("mt-2 text-base font-medium", glassTheme.text.primary)}>
+                  {analytics.winning_angle ?? "No winner yet"}
+                </div>
               </div>
-
-              {mediaJob?.preview_url ? (
-                <div className="pt-4">
-                  <video
-                    src={mediaJob.preview_url}
-                    controls
-                    playsInline
-                    className="max-h-56 rounded-2xl border border-white/10"
-                  />
-                </div>
-              ) : null}
-
-              {mediaJob?.error_text ? (
-                <div className={cx("pt-3 text-sm", glassTheme.text.copperSoft)}>
-                  {mediaJob.error_text}
-                </div>
-              ) : null}
             </div>
-          );
-        })}
-      </div>
-    </GlassCard>
+          )}
+        </GlassCard>
+
+        <GlassCard
+          label="Learnings"
+          title="What the system learned"
+          description="Signals that can be fed into the next campaign."
+          strong
+        >
+          {learnings.length === 0 ? (
+            <div className={cx("text-sm", glassTheme.text.secondary)}>
+              No learnings extracted yet.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {learnings.map((learningRow) => (
+                <div
+                  key={learningRow.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft
+                  )}
+                >
+                  <div className="flex flex-wrap gap-2">
+                    <GlassBadge tone="default">{learningRow.learning_type}</GlassBadge>
+                    <GlassBadge tone="muted">{learningRow.learning_key}</GlassBadge>
+                    {learningRow.confidence != null ? (
+                      <GlassBadge tone="copper">confidence {learningRow.confidence}</GlassBadge>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+      </section>
+    </div>
   );
 }

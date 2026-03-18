@@ -62,6 +62,21 @@ export default async function ShopReelCampaignDetailPage(
 
   const items = await listCampaignItemsWithMediaJobs(campaign.id);
 
+  const { data: analytics } = await supabase
+    .from("shopreel_campaign_analytics")
+    .select("*")
+    .eq("campaign_id", campaign.id)
+    .eq("shop_id", shopId)
+    .maybeSingle();
+
+  const { data: learnings } = await supabase
+    .from("shopreel_campaign_learnings")
+    .select("*")
+    .eq("campaign_id", campaign.id)
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
   return (
     <GlassShell
       eyebrow="ShopReel"
@@ -152,7 +167,7 @@ export default async function ShopReelCampaignDetailPage(
           </div>
         </GlassCard>
 
-        <CampaignDetailClient campaign={campaign} items={items} />
+        <CampaignDetailClient campaign={campaign} items={items} analytics={analytics} learnings={learnings ?? []} />
       </section>
     </GlassShell>
   );
