@@ -9,7 +9,9 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 
-type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"];
+type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"] & {
+  items?: Array<{ count: number | null }> | null;
+};
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -214,12 +216,21 @@ export default function CampaignGenerator({
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <GlassBadge tone="default">{campaign.status}</GlassBadge>
+                      <GlassBadge tone="copper">
+                        {(campaign.items?.[0]?.count ?? 0)} items
+                      </GlassBadge>
                       {(campaign.platform_focus ?? []).map((platform) => (
                         <GlassBadge key={platform} tone="muted">
                           {platform}
                         </GlassBadge>
                       ))}
                     </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/shopreel/campaigns/${campaign.id}`}>
+                      <GlassButton variant="secondary">Review</GlassButton>
+                    </Link>
                   </div>
                 </div>
               </div>

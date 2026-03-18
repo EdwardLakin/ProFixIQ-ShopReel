@@ -112,7 +112,10 @@ export async function listRecentCampaigns(limit = 24) {
 
   const { data, error } = await supabase
     .from("shopreel_campaigns")
-    .select("*")
+    .select(`
+      *,
+      items:shopreel_campaign_items(count)
+    `)
     .eq("shop_id", shopId)
     .order("created_at", { ascending: false })
     .limit(limit);
