@@ -56,6 +56,27 @@ export default function ShopReelOpportunitiesClient({
     }
   }
 
+  async function autoCreateCampaigns() {
+    try {
+      setBusy("auto-campaigns");
+      setError(null);
+      const res = await fetch("/api/shopreel/opportunities/auto-campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minScore: 85, limit: 3 }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to auto-create campaigns");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to auto-create campaigns");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function dismissOpportunity(id: string) {
     try {
       setBusy(id);
@@ -134,13 +155,23 @@ export default function ShopReelOpportunitiesClient({
           </Link>
         </div>
 
-        <GlassButton
-          variant="primary"
-          onClick={() => void runDiscovery()}
-          disabled={busy === "discovery"}
-        >
-          {busy === "discovery" ? "Working..." : "Discover + score"}
-        </GlassButton>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <GlassButton
+            variant="primary"
+            onClick={() => void runDiscovery()}
+            disabled={busy === "discovery"}
+          >
+            {busy === "discovery" ? "Working..." : "Discover + score"}
+          </GlassButton>
+
+          <GlassButton
+            variant="secondary"
+            onClick={() => void autoCreateCampaigns()}
+            disabled={busy === "auto-campaigns"}
+          >
+            {busy === "auto-campaigns" ? "Working..." : "Auto-create top campaigns"}
+          </GlassButton>
+        </div>
       </div>
 
       {error ? <div className="text-sm text-red-300">{error}</div> : null}
