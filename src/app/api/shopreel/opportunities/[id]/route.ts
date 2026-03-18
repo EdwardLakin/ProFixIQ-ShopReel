@@ -10,46 +10,47 @@ const supabase = createClient<DB>(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function DELETE(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
+export async function PATCH(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
+  try {
+    const { id } = await ctx.params;
+    const body = await req.json().catch(() => ({}));
+    const nextStatus =
+      typeof body.status === "string" && body.status.trim()
+        ? body.status.trim()
+        : "dismissed";
 
-  const { data: opportunity, error: fetchError } = await supabase
-    .from("shopreel_content_opportunities")
-    .select("id, shop_id, story_source_id")
-    .eq("id", id)
-    .single();
+    const supabase = createAdminClient();
+    const shopId = await getCurrentShopId();
 
-  if (fetchError || !opportunity) {
-    return NextResponse.json({ error: "Opportunity not found" }, { status: 404 });
-  }
-
-  if (opportunity.story_source_id) {
-    const { data: source } = await supabase
-      .from("shopreel_story_sources")
-      .select("source_key")
-      .eq("id", opportunity.story_source_id)
+    const { data, error } = await supabase
+      .from("shopreel_content_opportunities")
+      .update({
+        status: nextStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .select("*")
       .single();
 
-    if (source?.source_key) {
-      await suppressStorySource(
-        supabase,
-        opportunity.shop_id,
-        source.source_key
-      );
+    if (error || !data) {
+      throw new Error(error?.message ?? "Failed to update opportunity");
     }
+
+    return NextResponse.json({
+      ok: true,
+      opportunity: data,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to update opportunity",
+      },
+      { status: 500 }
+    );
   }
-
-  const { error } = await supabase
-    .from("shopreel_content_opportunities")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ success: true });
 }
