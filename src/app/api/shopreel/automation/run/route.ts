@@ -4,8 +4,26 @@ import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { syncAllProcessingVideoJobs } from "@/features/shopreel/video-creation/lib/automation";
 import { runCampaignAutomationCycle } from "@/features/shopreel/campaigns/lib/automation";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    const expectedSecret = process.env.SHOPREEL_AUTOMATION_SECRET;
+
+    if (expectedSecret) {
+      const authHeader = req.headers.get("authorization");
+      const bearer = authHeader?.startsWith("Bearer ")
+        ? authHeader.slice("Bearer ".length)
+        : null;
+
+      if (bearer !== expectedSecret) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Unauthorized automation request",
+          },
+          { status: 401 }
+        );
+      }
+    }
     const supabase = createAdminClient();
     const shopId = await getCurrentShopId();
 
