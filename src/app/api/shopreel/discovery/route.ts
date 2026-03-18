@@ -1,31 +1,28 @@
 import { NextResponse } from "next/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
-import { saveStorySource } from "@/features/shopreel/story-sources/server";
+import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
 export async function POST() {
   try {
     const shopId = await getCurrentShopId();
+
     const discovered = await discoverStorySources(shopId);
-
-    let created = 0;
-
-    for (const source of discovered) {
-      const result = await saveStorySource(source);
-      if (!result.deduped) created++;
-    }
+    const opportunities = await createOpportunities();
 
     return NextResponse.json({
       ok: true,
-      sourcesCreated: created,
+      discoveredCount: Array.isArray(discovered) ? discovered.length : 0,
+      opportunityCount: Array.isArray(opportunities) ? opportunities.length : 0,
+      opportunities,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Discovery failed";
-
     return NextResponse.json(
-      { ok: false, error: message },
-      { status: 500 },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Discovery failed",
+      },
+      { status: 500 }
     );
   }
 }

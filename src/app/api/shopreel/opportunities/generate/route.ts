@@ -7,14 +7,15 @@ export async function POST() {
 
     return NextResponse.json({
       ok: true,
-      opportunitiesCreated: result.created,
+      opportunitiesCreated: Array.isArray(result) ? result.length : 0,
+      opportunities: result,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed";
-
     return NextResponse.json(
-      { ok: false, error: message },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to generate opportunities",
+      },
       { status: 500 }
     );
   }
