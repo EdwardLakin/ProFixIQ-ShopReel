@@ -4,9 +4,21 @@ import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReel
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
-export default async function ShopReelOpportunitiesPage() {
+export default async function ShopReelOpportunitiesPage(props: {
+  searchParams?: Promise<{ status?: string }>;
+}) {
+  const searchParams = (await props.searchParams) ?? {};
+  const status = searchParams.status ?? "active";
+
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
+
+  const allowedStatuses =
+    status === "dismissed"
+      ? ["dismissed"]
+      : status === "generated"
+        ? ["generated"]
+        : ["ready", "new"];
 
   const { data: opportunities, error } = await supabase
     .from("shopreel_content_opportunities")
@@ -21,7 +33,7 @@ export default async function ShopReelOpportunitiesPage() {
       )
     `)
     .eq("shop_id", shopId)
-    .in("status", ["ready", "new"])
+    .in("status", allowedStatuses)
     .order("score", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -38,10 +50,10 @@ export default async function ShopReelOpportunitiesPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Opportunities"
-      subtitle="Discover, score, generate, and move strong story candidates into editing and publishing."
+      subtitle="Discover, score, generate, and move strong story candidates into campaigns and publishing."
     >
       <ShopReelNav />
-      <ShopReelOpportunitiesClient opportunities={normalized} />
+      <ShopReelOpportunitiesClient opportunities={normalized} activeTab={status} />
     </GlassShell>
   );
 }
