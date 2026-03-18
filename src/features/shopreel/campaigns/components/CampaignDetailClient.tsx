@@ -325,35 +325,45 @@ export default function CampaignDetailClient({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {!item.media_job_id ? (
-                      <GlassButton
-                        variant="secondary"
-                        onClick={() => void createMediaJob(item.id)}
-                        disabled={workingId === item.id}
-                      >
-                        {workingId === item.id ? "Creating..." : "Create Media Job"}
-                      </GlassButton>
-                    ) : (
-                      <GlassButton
-                        variant="secondary"
-                        onClick={() => void runMediaJob(item.id)}
-                        disabled={workingId === item.id}
-                      >
-                        {workingId === item.id ? "Running..." : "Run Job"}
-                      </GlassButton>
-                    )}
+                    <Link href={`/shopreel/campaigns/items/${item.id}`}>
+                    <GlassButton variant="ghost">Open Item</GlassButton>
+                  </Link>
 
-                    {mediaJob?.source_content_piece_id ? (
-                      <Link href={`/shopreel/content/${mediaJob.source_content_piece_id}`}>
-                        <GlassButton variant="ghost">Open Content</GlassButton>
-                      </Link>
-                    ) : null}
+                  {!item.media_job_id ? (
+                    <GlassButton
+                      variant="secondary"
+                      onClick={() => void createMediaJob(item.id)}
+                      disabled={workingId === item.id}
+                    >
+                      {workingId === item.id ? "Creating..." : "Create Media Job"}
+                    </GlassButton>
+                  ) : (
+                    <GlassButton
+                      variant="secondary"
+                      onClick={() => void runMediaJob(item.id)}
+                      disabled={workingId === item.id}
+                    >
+                      {workingId === item.id ? "Running..." : "Run Job"}
+                    </GlassButton>
+                  )}
 
-                    {mediaJob?.source_generation_id ? (
-                      <Link href={`/shopreel/editor/video/${mediaJob.source_generation_id}`}>
-                        <GlassButton variant="ghost">Open Editor</GlassButton>
-                      </Link>
-                    ) : null}
+                  {mediaJob?.source_content_piece_id ? (
+                    <Link href={`/shopreel/content/${mediaJob.source_content_piece_id}`}>
+                      <GlassButton variant="ghost">Open Content</GlassButton>
+                    </Link>
+                  ) : null}
+
+                  {mediaJob?.source_content_piece_id ? (
+                    <Link href="/shopreel/publish-center">
+                      <GlassButton variant="ghost">Publish Center</GlassButton>
+                    </Link>
+                  ) : null}
+
+                  {mediaJob?.source_generation_id ? (
+                    <Link href={`/shopreel/editor/video/${mediaJob.source_generation_id}`}>
+                      <GlassButton variant="ghost">Open Editor</GlassButton>
+                    </Link>
+                  ) : null}
                   </div>
                 </div>
 
