@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/supabase";
-import { suppressStorySource } from "@/features/shopreel/opportunities/lib/suppressStorySource";
-
-type DB = Database;
-
-const supabase = createClient<DB>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
 export async function PATCH(
   req: Request,
@@ -48,7 +40,10 @@ export async function PATCH(
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Failed to update opportunity",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update opportunity",
       },
       { status: 500 }
     );
