@@ -1065,6 +1065,83 @@ export type Database = {
           },
         ]
       }
+      shopreel_campaign_item_scenes: {
+        Row: {
+          campaign_id: string
+          campaign_item_id: string
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          media_job_id: string | null
+          output_asset_id: string | null
+          prompt: string
+          scene_order: number
+          shop_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          campaign_item_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          media_job_id?: string | null
+          output_asset_id?: string | null
+          prompt: string
+          scene_order: number
+          shop_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          campaign_item_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          media_job_id?: string | null
+          output_asset_id?: string | null
+          prompt?: string
+          scene_order?: number
+          shop_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_campaign_item_scenes_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_campaign_item_scenes_campaign_item_id_fkey"
+            columns: ["campaign_item_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_campaign_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_campaign_item_scenes_media_job_id_fkey"
+            columns: ["media_job_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_media_generation_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_campaign_item_scenes_output_asset_id_fkey"
+            columns: ["output_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopreel_campaign_items: {
         Row: {
           angle: string

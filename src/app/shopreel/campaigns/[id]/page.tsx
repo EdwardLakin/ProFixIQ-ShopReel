@@ -62,6 +62,14 @@ export default async function ShopReelCampaignDetailPage(
 
   const items = await listCampaignItemsWithMediaJobs(campaign.id);
 
+  const totalItems = items.length;
+  const completedItems = items.filter((item) => {
+    const mediaJob = Array.isArray(item.media_job) ? item.media_job[0] ?? null : item.media_job;
+    return mediaJob?.status === "completed";
+  }).length;
+  const progressPercent =
+    totalItems > 0 ? Math.max(0, Math.min(100, Math.round((completedItems / totalItems) * 100))) : 0;
+
   const { data: analytics } = await supabase
     .from("shopreel_campaign_analytics")
     .select("*")
@@ -167,7 +175,7 @@ export default async function ShopReelCampaignDetailPage(
           </div>
         </GlassCard>
 
-        <CampaignDetailClient campaign={campaign} items={items} analytics={analytics} learnings={learnings ?? []} />
+        <CampaignDetailClient campaign={campaign} items={items} analytics={analytics} learnings={learnings ?? []} progress={{ totalItems, completedItems, progressPercent }} />
       </section>
     </GlassShell>
   );
