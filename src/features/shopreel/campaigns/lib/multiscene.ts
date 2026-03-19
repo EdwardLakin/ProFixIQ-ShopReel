@@ -12,7 +12,7 @@ export function planScenesForCampaignItem(args: {
   itemTitle: string;
   angle: string;
   prompt: string;
-}) : PlannedScene[] {
+}): PlannedScene[] {
   const base = args.prompt.trim();
 
   return [
@@ -20,25 +20,25 @@ export function planScenesForCampaignItem(args: {
       sceneOrder: 1,
       title: `${args.itemTitle} — Hook`,
       prompt: `${base} Scene objective: create a powerful opening hook in the first seconds. Make it highly visual, attention-grabbing, and premium.`,
-      durationSeconds: 4,
+      durationSeconds: 8,
     },
     {
       sceneOrder: 2,
       title: `${args.itemTitle} — Problem`,
       prompt: `${base} Scene objective: show the old way, pain point, confusion, or frustration clearly and visually.`,
-      durationSeconds: 4,
+      durationSeconds: 8,
     },
     {
       sceneOrder: 3,
       title: `${args.itemTitle} — Solution`,
       prompt: `${base} Scene objective: show the better way, transformation, modern workflow, or system improvement.`,
-      durationSeconds: 4,
+      durationSeconds: 8,
     },
     {
       sceneOrder: 4,
       title: `${args.itemTitle} — Outcome`,
       prompt: `${base} Scene objective: show the payoff, outcome, confidence, growth, or polished end result.`,
-      durationSeconds: 4,
+      durationSeconds: 8,
     },
   ];
 }
@@ -58,6 +58,12 @@ export async function ensureScenesForCampaignItem(campaignItemId: string) {
     throw new Error(itemError?.message ?? "Campaign item not found");
   }
 
+  const plannedScenes = planScenesForCampaignItem({
+    itemTitle: item.title,
+    angle: item.angle,
+    prompt: item.prompt,
+  });
+
   const { data: existingScenes, error: scenesError } = await supabase
     .from("shopreel_campaign_item_scenes")
     .select("*")
@@ -69,37 +75,83 @@ export async function ensureScenesForCampaignItem(campaignItemId: string) {
     throw new Error(scenesError.message);
   }
 
-  if ((existingScenes ?? []).length > 0) {
-    return existingScenes;
+  if ((existingScenes ?? []).length === 0) {
+    const { data: insertedScenes, error: insertError } = await supabase
+      .from("shopreel_campaign_item_scenes")
+      .insert(
+        plannedScenes.map((scene) => ({
+          campaign_item_id: item.id,
+          campaign_id: item.campaign_id,
+          shop_id: item.shop_id,
+          scene_order: scene.sceneOrder,
+          title: scene.title,
+          prompt: scene.prompt,
+          duration_seconds: scene.durationSeconds,
+          status: "draft",
+        }))
+      )
+      .select("*");
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    return insertedScenes ?? [];
   }
 
-  const plannedScenes = planScenesForCampaignItem({
-    itemTitle: item.title,
-    angle: item.angle,
-    prompt: item.prompt,
-  });
+  for (const planned of plannedScenes) {
+    const existing = (existingScenes ?? []).find(
+      (scene) => scene.scene_order === planned.sceneOrder
+    );
 
-  const { data: insertedScenes, error: insertError } = await supabase
+    if (!existing) {
+      const { error: insertMissingError } = await supabase
+        .from("shopreel_campaign_item_scenes")
+        .insert({
+          campaign_item_id: item.id,
+          campaign_id: item.campaign_id,
+          shop_id: item.shop_id,
+          scene_order: planned.sceneOrder,
+          title: planned.title,
+          prompt: planned.prompt,
+          duration_seconds: planned.durationSeconds,
+          status: "draft",
+        });
+
+      if (insertMissingError) {
+        throw new Error(insertMissingError.message);
+      }
+
+      continue;
+    }
+
+    const { error: repairError } = await supabase
+      .from("shopreel_campaign_item_scenes")
+      .update({
+        title: planned.title,
+        prompt: planned.prompt,
+        duration_seconds: planned.durationSeconds,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+
+    if (repairError) {
+      throw new Error(repairError.message);
+    }
+  }
+
+  const { data: refreshedScenes, error: refreshError } = await supabase
     .from("shopreel_campaign_item_scenes")
-    .insert(
-      plannedScenes.map((scene) => ({
-        campaign_item_id: item.id,
-        campaign_id: item.campaign_id,
-        shop_id: item.shop_id,
-        scene_order: scene.sceneOrder,
-        title: scene.title,
-        prompt: scene.prompt,
-        duration_seconds: scene.durationSeconds,
-        status: "draft",
-      }))
-    )
-    .select("*");
+    .select("*")
+    .eq("campaign_item_id", campaignItemId)
+    .eq("shop_id", shopId)
+    .order("scene_order", { ascending: true });
 
-  if (insertError) {
-    throw new Error(insertError.message);
+  if (refreshError) {
+    throw new Error(refreshError.message);
   }
 
-  return insertedScenes ?? [];
+  return refreshedScenes ?? [];
 }
 
 export async function createMediaJobsForCampaignItemScenes(campaignItemId: string) {
@@ -118,7 +170,6 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
   }
 
   const scenes = await ensureScenesForCampaignItem(campaignItemId);
-
   const createdJobIds: string[] = [];
 
   for (const scene of scenes) {
@@ -140,7 +191,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
         style: item.style,
         visual_mode: item.visual_mode,
         aspect_ratio: item.aspect_ratio,
-        duration_seconds: 8,
+        duration_seconds: scene.duration_seconds ?? 8,
         input_asset_ids: [],
         settings: {
           campaign_item_id: item.id,
@@ -148,6 +199,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
           scene_id: scene.id,
           scene_order: scene.scene_order,
           assembly_mode: "multi_scene",
+          pipeline: "premium_runway_scene",
         },
       })
       .select("*")
