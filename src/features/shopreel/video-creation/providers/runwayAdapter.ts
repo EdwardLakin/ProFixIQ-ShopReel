@@ -14,7 +14,10 @@ export const runwayMediaProvider: MediaProviderAdapter = {
     return {
       providerJobId: job.providerTaskId,
       previewUrl: null,
-      providerStatus: "processing",
+
+      // ✅ FIX: must be "queued"
+      providerStatus: "queued",
+
       resultPayload: {
         provider: "runway",
         task_id: job.providerTaskId,
