@@ -173,7 +173,48 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
   const createdJobIds: string[] = [];
 
   for (const scene of scenes) {
-    if (scene.media_job_id) continue;
+    if (scene.media_job_id) {
+      await supabase
+        .from("shopreel_campaign_item_scenes")
+        .update({
+          media_job_id: null,
+          status: "draft",
+          output_asset_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", scene.id);
+
+      const { data: existingJobs } = await supabase
+        .from("shopreel_media_generation_jobs")
+        .select("id, settings")
+        .eq("shop_id", shopId)
+        .order("created_at", { ascending: false });
+
+      const staleJobIds =
+        (existingJobs ?? [])
+          .filter((job) => {
+            const settings =
+              job.settings &&
+              typeof job.settings === "object" &&
+              !Array.isArray(job.settings)
+                ? (job.settings as Record<string, unknown>)
+                : null;
+
+            return (
+              settings?.campaign_item_id === item.id &&
+              settings?.scene_id === scene.id
+            );
+          })
+          .map((job) => job.id);
+
+      if (staleJobIds.length > 0) {
+        await supabase
+          .from("shopreel_media_generation_jobs")
+          .delete()
+          .in("id", staleJobIds)
+          .eq("shop_id", shopId);
+      }
+    }
 
     const { data: mediaJob, error: mediaJobError } = await supabase
       .from("shopreel_media_generation_jobs")
