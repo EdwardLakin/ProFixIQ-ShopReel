@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import CampaignFlowShell from "@/features/shopreel/campaigns/components/CampaignFlowShell";
+import CampaignPageHeader from "@/features/shopreel/campaigns/components/CampaignPageHeader";
 import CampaignItemClient from "@/features/shopreel/campaigns/components/CampaignItemClient";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
@@ -55,13 +55,15 @@ export default async function ShopReelCampaignItemPage(props: {
   }));
 
   return (
-    <GlassShell
-      eyebrow="ShopReel"
-      title="Campaign Item"
-      subtitle="Run, monitor, and assemble this item into a final multi-scene ad."
-    >
-      <ShopReelNav />
+    <CampaignFlowShell>
+      <CampaignPageHeader
+        title={item.title}
+        subtitle="Run, monitor, and assemble this item into a final multi-scene ad."
+        backHref={`/shopreel/campaigns/${item.campaign_id}/production`}
+        backLabel="Back to Campaign"
+      />
+
       <CampaignItemClient item={item} scenes={normalizedScenes} />
-    </GlassShell>
+    </CampaignFlowShell>
   );
 }

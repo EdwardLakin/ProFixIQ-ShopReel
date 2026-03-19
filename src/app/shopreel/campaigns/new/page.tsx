@@ -7,17 +7,17 @@ import CampaignGenerator from "@/features/shopreel/campaigns/components/Campaign
 import { listRecentCampaigns } from "@/features/shopreel/campaigns/lib/server";
 import { getCampaignSeedDefaults } from "@/features/shopreel/campaigns/lib/promptSeeding";
 
-export default async function ShopReelCampaignsPage() {
+export default async function ShopReelCampaignNewPage() {
   const campaigns = await listRecentCampaigns(24);
   const seedDefaults = await getCampaignSeedDefaults();
 
   return (
     <CampaignFlowShell>
       <CampaignPageHeader
-        title="Campaigns"
-        subtitle="Create, review, and run premium ShopReel campaigns from one cleaner workflow."
-        backHref="/shopreel"
-        backLabel="Back to ShopReel"
+        title="New Campaign"
+        subtitle="Describe what you want to create, then review and approve the campaign before generation starts."
+        backHref="/shopreel/campaigns"
+        backLabel="Back to Campaigns"
       />
 
       <CampaignGenerator campaigns={campaigns} seedDefaults={seedDefaults} />

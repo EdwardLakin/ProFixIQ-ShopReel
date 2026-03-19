@@ -67,6 +67,28 @@ export default function CampaignDetailClient({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  async function handleDeleteCampaign() {
+    const confirmed = window.confirm(
+      "Delete this campaign and all related items, scenes, and jobs?"
+    );
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/shopreel/campaigns/${campaign.id}/delete`, {
+      method: "DELETE",
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok || !json?.ok) {
+      window.alert(json?.error ?? "Failed to delete campaign");
+      return;
+    }
+
+    router.push("/shopreel/campaigns");
+    router.refresh();
+  }
+
+
   async function runAction(key: string, url: string) {
     try {
       setBusy(key);
@@ -86,7 +108,24 @@ export default function CampaignDetailClient({
 
   return (
     <div className="grid gap-5">
-      <GlassCard label="Progress" title="Campaign Progress" description="Track how many final ads are complete." strong>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/shopreel/campaigns/new")}
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+          >
+            New Campaign Brief
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDeleteCampaign}
+            className="rounded-full border border-red-400/25 bg-red-500/10 px-4 py-2 text-sm text-red-200 transition hover:bg-red-500/20"
+          >
+            Delete Campaign
+          </button>
+        </div>
+<GlassCard label="Progress" title="Campaign Progress" description="Track how many final ads are complete." strong>
         <div className="space-y-4">
           <div className="text-3xl font-semibold text-white">{progress.progressPercent}%</div>
           <div className="h-4 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">

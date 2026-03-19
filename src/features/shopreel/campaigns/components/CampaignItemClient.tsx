@@ -58,6 +58,48 @@ export default function CampaignItemClient({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  async function handleResetItem() {
+    const confirmed = window.confirm(
+      "Reset this item and clear all linked scene jobs?"
+    );
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/shopreel/campaigns/items/${item.id}/reset`, {
+      method: "POST",
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok || !json?.ok) {
+      window.alert(json?.error ?? "Failed to reset item");
+      return;
+    }
+
+    router.refresh();
+  }
+
+  async function handleDeleteItem() {
+    const confirmed = window.confirm(
+      "Delete this item and all related scenes and jobs?"
+    );
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/shopreel/campaigns/items/${item.id}/delete`, {
+      method: "DELETE",
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok || !json?.ok) {
+      window.alert(json?.error ?? "Failed to delete item");
+      return;
+    }
+
+    router.push(`/shopreel/campaigns/${item.campaign_id}`);
+    router.refresh();
+  }
+
+
   async function runAction(key: string, url: string) {
     try {
       setBusy(key);
@@ -97,7 +139,24 @@ export default function CampaignItemClient({
 
   return (
     <div className="grid gap-5">
-      <GlassCard label="Item" title={item.title} description={item.prompt} strong>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={handleResetItem}
+            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+          >
+            Reset Item
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDeleteItem}
+            className="rounded-full border border-red-400/25 bg-red-500/10 px-4 py-2 text-sm text-red-200 transition hover:bg-red-500/20"
+          >
+            Delete Item
+          </button>
+        </div>
+<GlassCard label="Item" title={item.title} description={item.prompt} strong>
         <div className="flex flex-wrap gap-2">
           <GlassBadge tone="default">{item.status}</GlassBadge>
           <GlassBadge tone="muted">{item.angle}</GlassBadge>

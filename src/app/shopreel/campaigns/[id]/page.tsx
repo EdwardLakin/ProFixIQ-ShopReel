@@ -1,11 +1,9 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-import Link from "next/link";
-import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import CampaignFlowShell from "@/features/shopreel/campaigns/components/CampaignFlowShell";
+import CampaignPageHeader from "@/features/shopreel/campaigns/components/CampaignPageHeader";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
-import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -47,31 +45,26 @@ export default async function ShopReelCampaignDetailPage(
   }
 
   if (!campaign) {
-    return (
-      <GlassShell
-        eyebrow="ShopReel"
-        title="Campaign not found"
-        subtitle="This campaign does not exist for the current workspace."
-      >
-        <ShopReelNav />
-        <GlassCard strong>
-          <div className={cx("text-sm", glassTheme.text.secondary)}>
-            No campaign found.
-          </div>
-        </GlassCard>
-      </GlassShell>
-    );
+    throw new Error("Campaign not found");
   }
 
   const items = await listCampaignItemsWithMediaJobs(campaign.id);
 
   const totalItems = items.length;
   const completedItems = items.filter((item) => {
-    const mediaJob = Array.isArray(item.media_job) ? item.media_job[0] ?? null : item.media_job;
+    const mediaJob = Array.isArray(item.media_job)
+      ? item.media_job[0] ?? null
+      : item.media_job;
     return mediaJob?.status === "completed";
   }).length;
+
   const progressPercent =
-    totalItems > 0 ? Math.max(0, Math.min(100, Math.round((completedItems / totalItems) * 100))) : 0;
+    totalItems > 0
+      ? Math.max(
+          0,
+          Math.min(100, Math.round((completedItems / totalItems) * 100))
+        )
+      : 0;
 
   const { data: analytics } = await supabase
     .from("shopreel_campaign_analytics")
@@ -89,22 +82,13 @@ export default async function ShopReelCampaignDetailPage(
     .limit(20);
 
   return (
-    <GlassShell
-      eyebrow="ShopReel"
-      title={campaign.title}
-      subtitle="Review campaign angles, create media jobs, and turn one idea into many publishable assets."
-      actions={
-        <>
-          <Link href="/shopreel/campaigns">
-            <GlassButton variant="ghost">Back to Campaigns</GlassButton>
-          </Link>
-          <Link href="/shopreel/video-creation">
-            <GlassButton variant="secondary">Video Creation</GlassButton>
-          </Link>
-        </>
-      }
-    >
-      <ShopReelNav />
+    <CampaignFlowShell>
+      <CampaignPageHeader
+        title={campaign.title}
+        subtitle="Generate scenes, run premium production, sync outputs, and build final campaign ads."
+        backHref="/shopreel/campaigns"
+        backLabel="Back to Campaigns"
+      />
 
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <GlassCard
@@ -134,7 +118,12 @@ export default async function ShopReelCampaignDetailPage(
                 glassTheme.glass.panelSoft
               )}
             >
-              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              <div
+                className={cx(
+                  "text-xs uppercase tracking-[0.18em]",
+                  glassTheme.text.muted
+                )}
+              >
                 Audience
               </div>
               <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
@@ -149,7 +138,12 @@ export default async function ShopReelCampaignDetailPage(
                 glassTheme.glass.panelSoft
               )}
             >
-              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              <div
+                className={cx(
+                  "text-xs uppercase tracking-[0.18em]",
+                  glassTheme.text.muted
+                )}
+              >
                 Offer
               </div>
               <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
@@ -164,7 +158,12 @@ export default async function ShopReelCampaignDetailPage(
                 glassTheme.glass.panelSoft
               )}
             >
-              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              <div
+                className={cx(
+                  "text-xs uppercase tracking-[0.18em]",
+                  glassTheme.text.muted
+                )}
+              >
                 Goal
               </div>
               <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
@@ -179,13 +178,13 @@ export default async function ShopReelCampaignDetailPage(
         </GlassCard>
 
         <CampaignDetailClient
-        campaign={campaign}
-        items={items}
-        analytics={analytics}
-        learnings={learnings ?? []}
-        progress={{ totalItems, completedItems, progressPercent }}
-      />
+          campaign={campaign}
+          items={items}
+          analytics={analytics}
+          learnings={learnings ?? []}
+          progress={{ totalItems, completedItems, progressPercent }}
+        />
       </section>
-    </GlassShell>
+    </CampaignFlowShell>
   );
 }
