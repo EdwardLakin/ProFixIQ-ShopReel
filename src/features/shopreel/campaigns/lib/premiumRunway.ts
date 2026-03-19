@@ -3,11 +3,16 @@ import { createRunwaySceneJob } from "@/features/shopreel/video-creation/provide
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { Json } from "@/types/supabase";
 
-function getPromptImageFromScene(scene: {
+function getPromptImageFromScene(_scene: {
   title: string;
   prompt: string;
 }) {
   return "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=720&q=80";
+}
+
+function normalizeDuration(value: number | null | undefined): 5 | 10 {
+  if (value === 10) return 10;
+  return 5;
 }
 
 export async function launchPremiumRunwaySceneJob(mediaJobId: string) {
@@ -25,13 +30,19 @@ export async function launchPremiumRunwaySceneJob(mediaJobId: string) {
     throw new Error(error?.message ?? "Media job not found");
   }
 
+  const duration = normalizeDuration(mediaJob.duration_seconds);
+
   const runway = await createRunwaySceneJob({
-    promptText: mediaJob.prompt_enhanced || mediaJob.prompt || mediaJob.title || "Premium ShopReel scene",
+    promptText:
+      mediaJob.prompt_enhanced ||
+      mediaJob.prompt ||
+      mediaJob.title ||
+      "Premium ShopReel scene",
     promptImage: getPromptImageFromScene({
       title: mediaJob.title ?? "Scene",
       prompt: mediaJob.prompt ?? "",
     }),
-    duration: mediaJob.duration_seconds === 10 ? 10 : 5,
+    duration,
     model: "gen4_turbo",
     ratio: "720:1280",
   });
@@ -46,6 +57,7 @@ export async function launchPremiumRunwaySceneJob(mediaJobId: string) {
   resultPayload.provider_task_id = runway.providerTaskId;
   resultPayload.provider_status = runway.status;
   resultPayload.pipeline = "premium_runway_scene";
+  resultPayload.requested_duration_seconds = duration;
 
   const { error: updateError } = await supabase
     .from("shopreel_media_generation_jobs")
