@@ -16,7 +16,7 @@ export default async function ShopReelCampaignItemPage(props: {
 
   const { data: item, error: itemError } = await supabase
     .from("shopreel_campaign_items")
-    .select("*")
+    .select("*, final_output_asset_id")
     .eq("id", id)
     .eq("shop_id", shopId)
     .single();

@@ -38,6 +38,7 @@ type ItemRow = {
   media_job_id: string | null;
   content_piece_id: string | null;
   metadata?: unknown;
+  final_output_asset_id?: string | null;
 };
 
 function displayStatus(scene: SceneRow) {
@@ -103,6 +104,7 @@ export default function CampaignItemClient({
           <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
           {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
           {item.visual_mode ? <GlassBadge tone="muted">{item.visual_mode}</GlassBadge> : null}
+          {item.final_output_asset_id ? <GlassBadge tone="copper">Final ad ready</GlassBadge> : null}
         </div>
       </GlassCard>
 
