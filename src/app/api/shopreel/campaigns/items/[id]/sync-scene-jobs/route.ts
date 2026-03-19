@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
@@ -13,6 +14,17 @@ export async function POST(
     const supabase = createAdminClient();
     const shopId = await getCurrentShopId();
     const baseUrl = getBaseUrl();
+
+    const { data: item, error: itemError } = await supabase
+      .from("shopreel_campaign_items")
+      .select("id, campaign_id")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .single();
+
+    if (itemError || !item) {
+      throw new Error(itemError?.message ?? "Campaign item not found");
+    }
 
     const { data: scenes, error } = await supabase
       .from("shopreel_campaign_item_scenes")
@@ -58,6 +70,9 @@ export async function POST(
     }
 
     await refreshCampaignItemSceneStatuses(id);
+
+    revalidatePath(`/shopreel/campaigns/${item.campaign_id}`);
+    revalidatePath(`/shopreel/campaigns/items/${item.id}`);
 
     return NextResponse.json({
       ok: true,

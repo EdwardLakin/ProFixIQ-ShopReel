@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import CampaignItemClient from "@/features/shopreel/campaigns/components/CampaignItemClient";
