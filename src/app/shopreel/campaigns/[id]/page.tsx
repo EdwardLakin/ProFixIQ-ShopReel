@@ -84,7 +84,7 @@ export default async function ShopReelCampaignDetailPage(
   return (
     <CampaignFlowShell>
       <CampaignPageHeader
-        title={campaign.title}
+        title=`${campaign.title} — Production`
         subtitle="Generate scenes, run premium production, sync outputs, and build final campaign ads."
         backHref="/shopreel/campaigns"
         backLabel="Back to Campaigns"
