@@ -1,18 +1,24 @@
-import { assemblyMediaProvider } from "./assembly";
-import { lumaMediaProvider } from "./luma";
-import { openAiMediaProvider } from "./openai";
-import { pikaMediaProvider } from "./pika";
-import { runwayMediaProvider } from "./runway";
+export * from "./types";
+export * from "./openai";
+export * from "./runway";
+export * from "./luma";
+export * from "./pika";
+export * from "./assembly";
+
 import type { MediaProviderAdapter } from "./types";
+import { openAiMediaProvider } from "./openai";
 
-const REGISTRY: Record<string, MediaProviderAdapter> = {
-  openai: openAiMediaProvider,
-  runway: runwayMediaProvider,
-  pika: pikaMediaProvider,
-  luma: lumaMediaProvider,
-  assembly: assemblyMediaProvider,
-};
-
-export function getMediaProviderAdapter(name: string): MediaProviderAdapter {
-  return REGISTRY[name] ?? openAiMediaProvider;
+export function getMediaProviderAdapter(provider: string): MediaProviderAdapter {
+  switch (provider) {
+    case "openai":
+      return openAiMediaProvider;
+    case "runway":
+      return openAiMediaProvider;
+    case "luma":
+      return openAiMediaProvider;
+    case "pika":
+      return openAiMediaProvider;
+    default:
+      return openAiMediaProvider;
+  }
 }

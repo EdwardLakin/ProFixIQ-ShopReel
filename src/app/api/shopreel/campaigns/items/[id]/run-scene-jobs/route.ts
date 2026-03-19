@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
+import { launchPremiumRunwaySceneJob } from "@/features/shopreel/campaigns/lib/premiumRunway";
 
 export async function POST(
   _req: Request,
@@ -12,7 +12,6 @@ export async function POST(
     const { id } = await ctx.params;
     const supabase = createAdminClient();
     const shopId = await getCurrentShopId();
-    const baseUrl = getBaseUrl();
 
     const { data: item, error: itemError } = await supabase
       .from("shopreel_campaign_items")
@@ -41,16 +40,13 @@ export async function POST(
     for (const scene of scenes ?? []) {
       if (!scene.media_job_id) continue;
 
-      const res = await fetch(
-        `${baseUrl}/api/shopreel/video-creation/jobs/${scene.media_job_id}/run`,
-        { method: "POST" }
-      );
+      const result = await launchPremiumRunwaySceneJob(scene.media_job_id);
 
       runResults.push({
         sceneId: scene.id,
         mediaJobId: scene.media_job_id,
-        ok: res.ok,
-        status: res.status,
+        providerTaskId: result.providerTaskId,
+        ok: true,
       });
     }
 
@@ -68,7 +64,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Failed to run scene jobs",
+            : "Failed to run premium scene jobs",
       },
       { status: 500 }
     );

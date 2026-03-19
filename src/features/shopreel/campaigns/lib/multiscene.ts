@@ -130,7 +130,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
         shop_id: shopId,
         created_by: null,
         source_content_piece_id: item.content_piece_id,
-        provider: "openai",
+        provider: "runway",
         job_type: "video",
         status: "queued",
         prompt: scene.prompt,
@@ -140,7 +140,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
         style: item.style,
         visual_mode: item.visual_mode,
         aspect_ratio: item.aspect_ratio,
-        duration_seconds: 4,
+        duration_seconds: 5,
         input_asset_ids: [],
         settings: {
           campaign_item_id: item.id,

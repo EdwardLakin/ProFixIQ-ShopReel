@@ -33,7 +33,10 @@ export default async function ShopReelCampaignItemPage(props: {
         id,
         status,
         output_asset_id,
-        preview_url
+        preview_url,
+        provider,
+        provider_job_id,
+        error_text
       )
     `)
     .eq("campaign_item_id", item.id)
