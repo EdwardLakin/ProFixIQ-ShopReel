@@ -7,6 +7,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { formatShopReelStatus } from "@/features/shopreel/lib/uiLabels";
+import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 
 type CampaignRow = {
   id: string;
@@ -88,7 +89,6 @@ export default function CampaignDetailClient({
     router.refresh();
   }
 
-
   async function runAction(key: string, url: string) {
     try {
       setBusy(key);
@@ -108,26 +108,69 @@ export default function CampaignDetailClient({
 
   return (
     <div className="grid gap-5">
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.push("/shopreel/campaigns/new")}
-            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+      <GlassCard
+        label="Production"
+        title="Campaign Production"
+        description="Run the campaign pipeline from scene generation through final assembly."
+        strong
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <GlassButton
+            variant="secondary"
+            onClick={() =>
+              void runAction("generate", `/api/shopreel/campaigns/${campaign.id}/generate`)
+            }
+            disabled={busy === "generate"}
           >
-            New Campaign Brief
-          </button>
+            {busy === "generate" ? "Working..." : "Generate Scenes"}
+          </GlassButton>
 
-          <button
-            type="button"
-            onClick={handleDeleteCampaign}
-            className="rounded-full border border-red-400/25 bg-red-500/10 px-4 py-2 text-sm text-red-200 transition hover:bg-red-500/20"
+          <GlassButton
+            variant="secondary"
+            onClick={() =>
+              void runAction("run-jobs", `/api/shopreel/campaigns/${campaign.id}/run-all-jobs`)
+            }
+            disabled={busy === "run-jobs"}
           >
+            {busy === "run-jobs" ? "Working..." : "Run Scene Jobs"}
+          </GlassButton>
+
+          <GlassButton
+            variant="primary"
+            onClick={() =>
+              void runAction("sync", `/api/shopreel/campaigns/${campaign.id}/sync-processing`)
+            }
+            disabled={busy === "sync"}
+          >
+            {busy === "sync" ? "Working..." : "Sync + Assemble"}
+          </GlassButton>
+
+          <Link href="/shopreel/publish-center">
+            <GlassButton variant="ghost">Publish Center</GlassButton>
+          </Link>
+
+          <Link href="/shopreel/campaigns/new">
+            <GlassButton variant="ghost">New Brief</GlassButton>
+          </Link>
+
+          <GlassButton variant="ghost" onClick={handleDeleteCampaign}>
             Delete Campaign
-          </button>
+          </GlassButton>
         </div>
-<GlassCard label="Progress" title="Campaign Progress" description="Track how many final ads are complete." strong>
+
+        {error ? <div className="mt-3 text-sm text-red-300">{error}</div> : null}
+      </GlassCard>
+
+      <GlassCard
+        label="Progress"
+        title="Campaign Progress"
+        description="Track how many final ads are complete."
+        strong
+      >
         <div className="space-y-4">
-          <div className="text-3xl font-semibold text-white">{progress.progressPercent}%</div>
+          <div className="text-3xl font-semibold text-white">
+            {progress.progressPercent}%
+          </div>
           <div className="h-4 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
             <div
               className="h-full rounded-full bg-gradient-to-r from-cyan-300/80 via-blue-400/80 to-emerald-300/80 transition-all"
@@ -140,64 +183,90 @@ export default function CampaignDetailClient({
         </div>
       </GlassCard>
 
-      <GlassCard label="Actions" title="Campaign Flow" description="Run the full multi-scene campaign pipeline." strong>
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <GlassButton
-            variant="secondary"
-            onClick={() => void runAction("generate", `/api/shopreel/campaigns/${campaign.id}/generate`)}
-            disabled={busy === "generate"}
-          >
-            {busy === "generate" ? "Working..." : "Generate Scenes"}
-          </GlassButton>
+      <GlassCard
+        label="Campaign"
+        title={campaign.title}
+        description={campaign.core_idea}
+        strong
+      >
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <GlassBadge tone="default">
+              {formatShopReelStatus(campaign.status)}
+            </GlassBadge>
+            {campaign.platform_focus.map((platform) => (
+              <GlassBadge key={platform} tone="muted">
+                {platform}
+              </GlassBadge>
+            ))}
+          </div>
 
-          <GlassButton
-            variant="secondary"
-            onClick={() => void runAction("run-jobs", `/api/shopreel/campaigns/${campaign.id}/run-all-jobs`)}
-            disabled={busy === "run-jobs"}
-          >
-            {busy === "run-jobs" ? "Working..." : "Run Scene Jobs"}
-          </GlassButton>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+                Audience
+              </div>
+              <div className="mt-2 text-sm text-white">
+                {campaign.audience ?? "—"}
+              </div>
+            </div>
 
-          <GlassButton
-            variant="primary"
-            onClick={() => void runAction("sync", `/api/shopreel/campaigns/${campaign.id}/sync-processing`)}
-            disabled={busy === "sync"}
-          >
-            {busy === "sync" ? "Working..." : "Sync + Assemble"}
-          </GlassButton>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+                Offer
+              </div>
+              <div className="mt-2 text-sm text-white">
+                {campaign.offer ?? "—"}
+              </div>
+            </div>
 
-          <Link href="/shopreel/publish-center">
-            <GlassButton variant="ghost">Publish Center</GlassButton>
-          </Link>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+                Goal
+              </div>
+              <div className="mt-2 text-sm text-white">
+                {campaign.campaign_goal ?? "—"}
+              </div>
+            </div>
+          </div>
         </div>
-
-        {error ? <div className="mt-3 text-sm text-red-300">{error}</div> : null}
       </GlassCard>
 
-      <GlassCard label="Campaign" title={campaign.title} description={campaign.core_idea} strong>
-        <div className="flex flex-wrap gap-2">
-          <GlassBadge tone="default">{formatShopReelStatus(campaign.status)}</GlassBadge>
-          {campaign.platform_focus.map((platform) => (
-            <GlassBadge key={platform} tone="muted">{platform}</GlassBadge>
-          ))}
-        </div>
-      </GlassCard>
-
-      <GlassCard label="Items" title="Campaign Items" description="Each item becomes a multi-scene final ad." strong>
+      <GlassCard
+        label="Items"
+        title="Campaign Items"
+        description="Each item becomes a multi-scene final ad."
+        strong
+      >
         <div className="grid gap-3">
           {items.map((item) => (
-            <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            <div
+              key={item.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-2">
-                  <div className="text-lg font-semibold text-white">{item.title}</div>
+                  <div className="text-lg font-semibold text-white">
+                    {item.title}
+                  </div>
+
                   <div className="flex flex-wrap gap-2">
-                    <GlassBadge tone="default">{formatShopReelStatus(item.status)}</GlassBadge>
+                    <GlassBadge tone="default">
+                      {formatShopReelStatus(item.status)}
+                    </GlassBadge>
                     <GlassBadge tone="muted">{item.angle}</GlassBadge>
                     <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
-                    {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
-                    {item.visual_mode ? <GlassBadge tone="muted">{item.visual_mode}</GlassBadge> : null}
-                    {item.final_output_asset_id ? <GlassBadge tone="copper">Final ad ready</GlassBadge> : null}
+                    {item.style ? (
+                      <GlassBadge tone="muted">{item.style}</GlassBadge>
+                    ) : null}
+                    {item.visual_mode ? (
+                      <GlassBadge tone="muted">{item.visual_mode}</GlassBadge>
+                    ) : null}
+                    {item.final_output_asset_id ? (
+                      <GlassBadge tone="copper">Final ad ready</GlassBadge>
+                    ) : null}
                   </div>
+
                   <div className="text-sm text-white/70">{item.prompt}</div>
                 </div>
 
@@ -213,31 +282,54 @@ export default function CampaignDetailClient({
       </GlassCard>
 
       {analytics ? (
-        <GlassCard label="Analytics" title="Campaign Results" description="Performance rolled up across outputs." strong>
+        <GlassCard
+          label="Analytics"
+          title="Campaign Results"
+          description="Performance rolled up across outputs."
+          strong
+        >
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-sm text-white/55">Views</div>
-              <div className="mt-1 text-2xl font-semibold text-white">{analytics.total_views}</div>
+              <div className="mt-1 text-2xl font-semibold text-white">
+                {analytics.total_views}
+              </div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-sm text-white/55">Engagement</div>
-              <div className="mt-1 text-2xl font-semibold text-white">{analytics.total_engagement}</div>
+              <div className="mt-1 text-2xl font-semibold text-white">
+                {analytics.total_engagement}
+              </div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-sm text-white/55">Winning angle</div>
-              <div className="mt-1 text-lg font-semibold text-white">{analytics.winning_angle ?? "—"}</div>
+              <div className="mt-1 text-lg font-semibold text-white">
+                {analytics.winning_angle ?? "—"}
+              </div>
             </div>
           </div>
         </GlassCard>
       ) : null}
 
       {learnings.length > 0 ? (
-        <GlassCard label="Learnings" title="Extracted Learnings" description="What the system learned from this campaign." strong>
+        <GlassCard
+          label="Learnings"
+          title="Extracted Learnings"
+          description="What the system learned from this campaign."
+          strong
+        >
           <div className="grid gap-3">
             {learnings.map((learning) => (
-              <div key={learning.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <div className="text-sm font-medium text-white">{learning.learning_key}</div>
-                <div className="text-sm text-white/70">{learning.learning_type}</div>
+              <div
+                key={learning.id}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+              >
+                <div className="text-sm font-medium text-white">
+                  {learning.learning_key}
+                </div>
+                <div className="text-sm text-white/70">
+                  {learning.learning_type}
+                </div>
                 <div className="text-xs text-white/50">
                   Confidence: {learning.confidence ?? "—"}
                 </div>
