@@ -30,7 +30,7 @@ type CampaignItemRow = {
   style: string | null;
   visual_mode: string | null;
   media_job_id: string | null;
-  output_asset_id?: string | null;
+  final_output_asset_id?: string | null;
 };
 
 type CampaignAnalyticsRow = {
@@ -157,6 +157,7 @@ export default function CampaignDetailClient({
                     <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
                     {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
                     {item.visual_mode ? <GlassBadge tone="muted">{item.visual_mode}</GlassBadge> : null}
+                    {item.final_output_asset_id ? <GlassBadge tone="copper">Final ad ready</GlassBadge> : null}
                   </div>
                   <div className="text-sm text-white/70">{item.prompt}</div>
                 </div>

@@ -1150,6 +1150,7 @@ export type Database = {
           content_piece_id: string | null
           created_at: string
           duration_seconds: number | null
+          final_output_asset_id: string | null
           id: string
           media_job_id: string | null
           metadata: Json
@@ -1170,6 +1171,7 @@ export type Database = {
           content_piece_id?: string | null
           created_at?: string
           duration_seconds?: number | null
+          final_output_asset_id?: string | null
           id?: string
           media_job_id?: string | null
           metadata?: Json
@@ -1190,6 +1192,7 @@ export type Database = {
           content_piece_id?: string | null
           created_at?: string
           duration_seconds?: number | null
+          final_output_asset_id?: string | null
           id?: string
           media_job_id?: string | null
           metadata?: Json
@@ -1223,6 +1226,13 @@ export type Database = {
             columns: ["content_piece_id"]
             isOneToOne: false
             referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_campaign_items_final_output_asset_id_fkey"
+            columns: ["final_output_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
             referencedColumns: ["id"]
           },
           {
