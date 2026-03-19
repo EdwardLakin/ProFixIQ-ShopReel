@@ -12,32 +12,32 @@ export function planScenesForCampaignItem(args: {
   itemTitle: string;
   angle: string;
   prompt: string;
-}): PlannedScene[] {
+}) : PlannedScene[] {
   const base = args.prompt.trim();
 
   return [
     {
       sceneOrder: 1,
       title: `${args.itemTitle} — Hook`,
-      prompt: `${base} Scene purpose: create a strong visual hook in the first seconds. Make it bold, cinematic, clear, and attention-grabbing.`,
+      prompt: `${base} Scene objective: create a powerful opening hook in the first seconds. Make it highly visual, attention-grabbing, and premium.`,
       durationSeconds: 5,
     },
     {
       sceneOrder: 2,
       title: `${args.itemTitle} — Problem`,
-      prompt: `${base} Scene purpose: show the pain, old way, bottleneck, or frustration clearly and visually.`,
+      prompt: `${base} Scene objective: show the old way, pain point, confusion, or frustration clearly and visually.`,
       durationSeconds: 5,
     },
     {
       sceneOrder: 3,
       title: `${args.itemTitle} — Solution`,
-      prompt: `${base} Scene purpose: show the modern solution, better workflow, better system, or transformation.`,
+      prompt: `${base} Scene objective: show the better way, transformation, modern workflow, or system improvement.`,
       durationSeconds: 5,
     },
     {
       sceneOrder: 4,
       title: `${args.itemTitle} — Outcome`,
-      prompt: `${base} Scene purpose: show the result, payoff, confidence, speed, growth, or premium finished outcome.`,
+      prompt: `${base} Scene objective: show the payoff, outcome, confidence, growth, or polished end result.`,
       durationSeconds: 5,
     },
   ];

@@ -175,7 +175,13 @@ export default async function ShopReelCampaignDetailPage(
           </div>
         </GlassCard>
 
-        <CampaignDetailClient campaign={campaign} items={items} analytics={analytics} learnings={learnings ?? []} progress={{ totalItems, completedItems, progressPercent }} />
+        <CampaignDetailClient
+        campaign={campaign}
+        items={items}
+        analytics={analytics}
+        learnings={learnings ?? []}
+        progress={{ totalItems, completedItems, progressPercent }}
+      />
       </section>
     </GlassShell>
   );
