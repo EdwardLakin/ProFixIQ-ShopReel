@@ -13,11 +13,13 @@ export function getMediaProviderAdapter(provider: string): MediaProviderAdapter 
     case "openai":
       return openAiMediaProvider;
     case "runway":
-      return openAiMediaProvider;
+      throw new Error(
+        "Runway jobs must use the premium Runway launcher/sync pipeline, not the generic media provider runner."
+      );
     case "luma":
-      return openAiMediaProvider;
+      throw new Error("Luma provider adapter is not implemented yet.");
     case "pika":
-      return openAiMediaProvider;
+      throw new Error("Pika provider adapter is not implemented yet.");
     default:
       return openAiMediaProvider;
   }
