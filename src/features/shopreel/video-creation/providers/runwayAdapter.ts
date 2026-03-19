@@ -2,6 +2,8 @@ import type { MediaProviderAdapter } from "./types";
 import { createRunwaySceneJob } from "./runway";
 
 export const runwayMediaProvider: MediaProviderAdapter = {
+  name: "runway", // ✅ REQUIRED FIX
+
   async run(input) {
     const job = await createRunwaySceneJob({
       promptText: input.promptEnhanced || input.prompt || "Scene",
@@ -14,10 +16,7 @@ export const runwayMediaProvider: MediaProviderAdapter = {
     return {
       providerJobId: job.providerTaskId,
       previewUrl: null,
-
-      // ✅ FIX: must be "queued"
       providerStatus: "queued",
-
       resultPayload: {
         provider: "runway",
         task_id: job.providerTaskId,
