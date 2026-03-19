@@ -78,7 +78,17 @@ export default function CampaignGenerator({
         throw new Error(json.error ?? "Failed to create campaign");
       }
 
-      setMessage("Campaign created.");
+      const campaignId =
+        json.id ??
+        json.campaign?.id ??
+        json.data?.id ??
+        null;
+
+      if (!campaignId) {
+        throw new Error("Campaign created but no campaign id was returned");
+      }
+
+      router.push(`/shopreel/campaigns/${campaignId}/review`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create campaign");
@@ -90,9 +100,9 @@ export default function CampaignGenerator({
   return (
     <div className="grid gap-5">
       <GlassCard
-        label="Campaign Builder"
-        title="Generate a multi-video campaign"
-        description="Take one strong idea and split it into multiple video angles automatically."
+        label="Campaign Brief"
+        title="Start with the campaign idea"
+        description="Describe what you want to promote, who it is for, and what outcome you want. You’ll review the campaign before production starts."
         strong
       >
         {seedDefaults.winningAngles.length > 0 ? (
@@ -166,7 +176,7 @@ export default function CampaignGenerator({
 
           <div className="flex flex-wrap gap-3">
             <GlassButton variant="primary" onClick={() => void create()} disabled={submitting}>
-              {submitting ? "Creating..." : "Create Campaign"}
+              {submitting ? "Creating..." : "Continue to Review"}
             </GlassButton>
           </div>
 
@@ -178,7 +188,7 @@ export default function CampaignGenerator({
       <GlassCard
         label="Recent"
         title="Recent campaigns"
-        description="Campaigns created from one core idea."
+        description="Jump back into a campaign brief, review page, or production flow."
         strong
       >
         {campaigns.length === 0 ? (
@@ -206,7 +216,7 @@ export default function CampaignGenerator({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <Link
-                      href={`/shopreel/campaigns/${campaign.id}`}
+                      href={`/shopreel/campaigns/${campaign.id}/review`}
                       className={cx("text-base font-medium underline-offset-4 hover:underline", glassTheme.text.primary)}
                     >
                       {campaign.title}
@@ -228,8 +238,11 @@ export default function CampaignGenerator({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Link href={`/shopreel/campaigns/${campaign.id}`}>
+                    <Link href={`/shopreel/campaigns/${campaign.id}/review`}>
                       <GlassButton variant="secondary">Review</GlassButton>
+                    </Link>
+                    <Link href={`/shopreel/campaigns/${campaign.id}/production`}>
+                      <GlassButton variant="ghost">Production</GlassButton>
                     </Link>
                   </div>
                 </div>
