@@ -13,8 +13,6 @@ export async function POST(req: Request) {
     };
 
     const campaignId = await createCampaign({
-    // DEBUG
-    console.log('CREATE CAMPAIGN INPUT', {
       title: body.title?.trim() || "Untitled Campaign",
       coreIdea: body.coreIdea?.trim() || "ShopReel marketing campaign",
       audience: body.audience ?? null,
@@ -22,13 +20,11 @@ export async function POST(req: Request) {
       campaignGoal: body.campaignGoal ?? null,
       platformFocus: Array.isArray(body.platformFocus) ? body.platformFocus : [],
     });
-    console.log('CREATED CAMPAIGN ID:', campaignId);
 
     return NextResponse.json({
       ok: true,
-      campaignId,
+      id: campaignId, // ✅ MATCHES UI EXPECTATION
     });
-    console.log('CREATED CAMPAIGN ID:', campaignId);
   } catch (error) {
     return NextResponse.json(
       {
