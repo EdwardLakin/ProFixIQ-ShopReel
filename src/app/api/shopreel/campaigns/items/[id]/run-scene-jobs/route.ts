@@ -15,7 +15,7 @@ export async function POST(
 
     const { data: item, error: itemError } = await supabase
       .from("shopreel_campaign_items")
-      .select("id, campaign_id")
+      .select("id, campaign_id, shop_id")
       .eq("id", id)
       .eq("shop_id", shopId)
       .single();
@@ -24,29 +24,34 @@ export async function POST(
       throw new Error(itemError?.message ?? "Campaign item not found");
     }
 
-    const { data: scenes, error } = await supabase
+    const { data: scenes, error: scenesError } = await supabase
       .from("shopreel_campaign_item_scenes")
       .select("id, media_job_id")
       .eq("campaign_item_id", id)
       .eq("shop_id", shopId)
       .order("scene_order", { ascending: true });
 
-    if (error) {
-      throw new Error(error.message);
+    if (scenesError) {
+      throw new Error(scenesError.message);
     }
 
-    const runResults = [];
+    const results: Array<{
+      sceneId: string;
+      mediaJobId: string;
+      providerTaskId: string;
+    }> = [];
 
     for (const scene of scenes ?? []) {
-      if (!scene.media_job_id) continue;
+      if (!scene.media_job_id) {
+        continue;
+      }
 
       const result = await launchPremiumRunwaySceneJob(scene.media_job_id);
 
-      runResults.push({
+      results.push({
         sceneId: scene.id,
-        mediaJobId: scene.media_job_id,
+        mediaJobId: result.mediaJobId,
         providerTaskId: result.providerTaskId,
-        ok: true,
       });
     }
 
@@ -55,7 +60,8 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
-      runResults,
+      count: results.length,
+      results,
     });
   } catch (error) {
     return NextResponse.json(
