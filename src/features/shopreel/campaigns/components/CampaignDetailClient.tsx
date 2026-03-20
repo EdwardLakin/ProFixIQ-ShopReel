@@ -111,7 +111,7 @@ export default function CampaignDetailClient({
       <GlassCard
         label="Production"
         title="Campaign workspace"
-        description="Run the campaign pipeline from scene generation through final assembly."
+        description="Run the campaign pipeline from scene generation through final final video."
         strong
       >
         <div className="flex flex-wrap items-center gap-3">
@@ -132,7 +132,7 @@ export default function CampaignDetailClient({
             }
             disabled={busy === "run-jobs"}
           >
-            {busy === "run-jobs" ? "Working..." : "Run Scene Jobs"}
+            {busy === "run-jobs" ? "Working..." : "Run Scene Videos"}
           </GlassButton>
 
           <GlassButton

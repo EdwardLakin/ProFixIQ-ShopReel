@@ -48,7 +48,9 @@ function formatPlatformLabel(platform: string, status: PlatformStatus) {
   return status === "none" ? platform : `${platform} · ${status}`;
 }
 
-export default async function ShopReelPublishCenterPage() {
+export default async function ShopReelPublishCenterPage(props: {
+  searchParams?: Promise<{ campaign?: string }>;
+}) {
   const supabase = createAdminClient();
   const legacy = supabase as any;
 
@@ -101,13 +103,21 @@ export default async function ShopReelPublishCenterPage() {
     (item: any) => item.status === "queued" || item.status === "publishing"
   );
 
-  return (
+    const searchParams = (await props.searchParams) ?? {};
+  const campaignId = typeof searchParams.campaign === "string" ? searchParams.campaign : null;
+
+return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Publish Center"
+      title="Publish campaign videos"
       subtitle="One place for ready content, scheduled publishing, active queue jobs, and publishing history."
       actions={
         <>
+        {campaignId ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
+            Opened from campaign <span className="font-medium text-white">{campaignId}</span>. You can publish items from this campaign here.
+          </div>
+        ) : null}
           <Link href="/shopreel/generations">
             <GlassButton variant="ghost">Open generations</GlassButton>
           </Link>

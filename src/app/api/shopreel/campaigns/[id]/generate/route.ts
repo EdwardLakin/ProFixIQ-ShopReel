@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { ensureScenesForCampaignItem, createMediaJobsForCampaignItemScenes } from "@/features/shopreel/campaigns/lib/multiscene";
+import { DEFAULT_CAMPAIGN_ANGLES } from "@/features/shopreel/campaigns/lib/defaultCampaignAngles";
 
 function buildAngles(coreIdea: string, title: string) {
   return [
