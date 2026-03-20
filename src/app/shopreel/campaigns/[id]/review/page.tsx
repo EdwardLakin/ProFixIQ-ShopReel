@@ -39,13 +39,13 @@ export default async function ShopReelCampaignReviewPage(
   return (
     <CampaignFlowShell>
       <CampaignPageHeader
-        title="Review Campaign"
+        title="Quick campaign review"
         subtitle="Inspect the brief, angles, and campaign direction before moving into production."
         backHref="/shopreel/campaigns/new"
         backLabel="Back to Create"
         rightSlot={
           <Link href={`/shopreel/campaigns/${campaign.id}/production`}>
-            <GlassButton variant="primary">Approve & Continue</GlassButton>
+            <GlassButton variant="primary">Looks good</GlassButton>
           </Link>
         }
       />
@@ -162,7 +162,7 @@ export default async function ShopReelCampaignReviewPage(
             </Link>
 
             <Link href={`/shopreel/campaigns/${campaign.id}/production`}>
-              <GlassButton variant="primary">Approve & Generate</GlassButton>
+              <GlassButton variant="primary">Looks good, build scenes</GlassButton>
             </Link>
           </div>
         </GlassCard>

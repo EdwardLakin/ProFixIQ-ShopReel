@@ -145,7 +145,7 @@ export default function CampaignDetailClient({
             {busy === "sync" ? "Working..." : "Sync + Assemble"}
           </GlassButton>
 
-          <Link href="/shopreel/publish-center">
+          <Link href={`/shopreel/publish-center?campaign=${campaign.id}`}>
             <GlassButton variant="ghost">4. Publish</GlassButton>
           </Link>
 
