@@ -12,6 +12,7 @@ import {
   createThumbnailAssetForMediaJob,
 } from "./enhancement";
 import { createStoryboardFromMediaJob } from "./storyboards";
+import { normalizeOpenAIVideoSeconds } from "./normalizeOpenAIVideoSeconds";
 
 type MediaGenerationJobInsert =
   Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Insert"];
@@ -22,18 +23,36 @@ type MediaGenerationJobRow =
 type ContentAssetInsert =
   Database["public"]["Tables"]["content_assets"]["Insert"];
 
+function normalizeJobDurationSeconds(
+  provider: string,
+  jobType: string,
+  durationSeconds: number | null | undefined
+): number | null {
+  if (jobType !== "video") return null;
+  if (provider === "openai") {
+    return normalizeOpenAIVideoSeconds(durationSeconds);
+  }
+  return durationSeconds ?? 8;
+}
+
 export async function createMediaGenerationJob(
   input: VideoCreationFormInput
 ): Promise<MediaGenerationJobRow> {
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
 
+  const normalizedDurationSeconds = normalizeJobDurationSeconds(
+    input.provider,
+    input.jobType,
+    input.durationSeconds
+  );
+
   const enhancedPrompt = await enhancePromptWithBrandVoice({
     prompt: input.prompt || null,
     style: input.style,
     visualMode: input.visualMode,
     aspectRatio: input.aspectRatio,
-    durationSeconds: input.jobType === "image" ? null : input.durationSeconds,
+    durationSeconds: input.jobType === "image" ? null : normalizedDurationSeconds,
   });
 
   const insertPayload: MediaGenerationJobInsert = {
@@ -48,7 +67,7 @@ export async function createMediaGenerationJob(
     style: input.style,
     visual_mode: input.visualMode,
     aspect_ratio: input.aspectRatio,
-    duration_seconds: input.durationSeconds,
+    duration_seconds: normalizedDurationSeconds,
     input_asset_ids: input.inputAssetIds,
     settings: {
       requested_provider: input.provider,
@@ -220,6 +239,11 @@ export async function processMediaGenerationJob(
 
   try {
     const provider = getMediaProviderAdapter(job.provider);
+    const normalizedDurationSeconds = normalizeJobDurationSeconds(
+      job.provider,
+      job.job_type,
+      job.duration_seconds
+    );
 
     const providerResult = await provider.run({
       jobId: job.id,
@@ -231,7 +255,7 @@ export async function processMediaGenerationJob(
       style: job.style,
       visualMode: job.visual_mode,
       aspectRatio: job.aspect_ratio,
-      durationSeconds: job.duration_seconds,
+      durationSeconds: normalizedDurationSeconds,
       inputAssetIds: job.input_asset_ids ?? [],
       settings: job.settings,
     });

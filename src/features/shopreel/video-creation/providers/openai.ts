@@ -1,4 +1,5 @@
 import { getOpenAIApiKey } from "@/features/shopreel/video-creation/lib/env";
+import { normalizeOpenAIVideoSeconds } from "@/features/shopreel/video-creation/lib/normalizeOpenAIVideoSeconds";
 import type { MediaProviderAdapter, MediaProviderJobInput, MediaProviderResult } from "./types";
 
 type OpenAIImageResponse = {
@@ -92,6 +93,8 @@ export const openAiMediaProvider: MediaProviderAdapter = {
     }
 
     if (input.jobType === "video") {
+      const seconds = normalizeOpenAIVideoSeconds(input.durationSeconds);
+
       const response = await fetch("https://api.openai.com/v1/videos", {
         method: "POST",
         headers: {
@@ -102,7 +105,7 @@ export const openAiMediaProvider: MediaProviderAdapter = {
           form.append("model", "sora-2");
           form.append("prompt", prompt);
           form.append("size", mapAspectRatioToVideoSize(input.aspectRatio));
-          form.append("seconds", String(input.durationSeconds ?? 8));
+          form.append("seconds", String(seconds));
           return form;
         })(),
       });

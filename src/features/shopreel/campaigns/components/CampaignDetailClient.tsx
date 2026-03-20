@@ -1,13 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import Link from "next/link";
-import GlassCard from "@/features/shopreel/ui/system/GlassCard";
-import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import { formatShopReelStatus } from "@/features/shopreel/lib/uiLabels";
-import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 
 type CampaignRow = {
   id: string;
@@ -47,6 +46,65 @@ type CampaignLearningRow = {
   confidence: number | null;
 };
 
+type NextAction =
+  | "build_scenes"
+  | "create_videos"
+  | "check_progress"
+  | "publish";
+
+function getNextAction(args: {
+  items: CampaignItemRow[];
+  progress: {
+    totalItems: number;
+    completedItems: number;
+    progressPercent: number;
+  };
+}): {
+  action: NextAction;
+  label: string;
+  description: string;
+} {
+  const { items, progress } = args;
+
+  if (progress.totalItems > 0 && progress.completedItems === progress.totalItems) {
+    return {
+      action: "publish",
+      label: "Publish campaign",
+      description: "Your final videos are ready to review and publish.",
+    };
+  }
+
+  const hasQueuedOrCreatedJobs = items.some((item) => !!item.media_job_id);
+
+  if (hasQueuedOrCreatedJobs) {
+    return {
+      action: "check_progress",
+      label: "Check progress",
+      description:
+        "Refresh the campaign and assemble any videos that are finished.",
+    };
+  }
+
+  const hasSceneLikeStatus = items.some((item) => {
+    const status = item.status.toLowerCase();
+    return status !== "draft";
+  });
+
+  if (hasSceneLikeStatus) {
+    return {
+      action: "create_videos",
+      label: "Create videos",
+      description: "Start generating the videos for this campaign.",
+    };
+  }
+
+  return {
+    action: "build_scenes",
+    label: "Build scenes",
+    description: "Create the scene plan for each video in this campaign.",
+  };
+}
+
 export default function CampaignDetailClient({
   campaign,
   items,
@@ -67,6 +125,13 @@ export default function CampaignDetailClient({
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const nextAction = useMemo(
+    () => getNextAction({ items, progress }),
+    [items, progress]
+  );
 
   async function handleDeleteCampaign() {
     const confirmed = window.confirm(
@@ -89,16 +154,23 @@ export default function CampaignDetailClient({
     router.refresh();
   }
 
-  async function runAction(key: string, url: string) {
+  async function runAction(key: string, url: string, message: string) {
     try {
       setBusy(key);
       setError(null);
+      setStatusMessage(message);
+
       const res = await fetch(url, { method: "POST" });
       const json = await res.json().catch(() => ({}));
+
       if (!res.ok || json?.ok === false) {
         throw new Error(json?.error ?? `Failed action: ${key}`);
       }
+
       router.refresh();
+      window.setTimeout(() => {
+        setStatusMessage(null);
+      }, 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");
     } finally {
@@ -106,56 +178,160 @@ export default function CampaignDetailClient({
     }
   }
 
+  const anyBusy = busy !== null;
+
   return (
     <div className="grid gap-5">
       <GlassCard
         label="Production"
         title="Campaign workspace"
-        description="Run the campaign pipeline from scene generation through final final video."
+        description="Follow the next step to move this campaign from scenes to final videos."
         strong
       >
-        <div className="flex flex-wrap items-center gap-3">
-          <GlassButton
-            variant="secondary"
-            onClick={() =>
-              void runAction("generate", `/api/shopreel/campaigns/${campaign.id}/generate`)
-            }
-            disabled={busy === "generate"}
-          >
-            {busy === "generate" ? "Working..." : "Generate Scenes"}
-          </GlassButton>
+        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+          <div className="text-xs uppercase tracking-[0.22em] text-white/55">
+            Next step
+          </div>
 
-          <GlassButton
-            variant="secondary"
-            onClick={() =>
-              void runAction("run-jobs", `/api/shopreel/campaigns/${campaign.id}/run-all-jobs`)
-            }
-            disabled={busy === "run-jobs"}
-          >
-            {busy === "run-jobs" ? "Working..." : "Run Scene Videos"}
-          </GlassButton>
+          <div className="mt-2 text-lg font-semibold text-white">
+            {nextAction.label}
+          </div>
 
-          <GlassButton
-            variant="primary"
-            onClick={() =>
-              void runAction("sync", `/api/shopreel/campaigns/${campaign.id}/sync-processing`)
-            }
-            disabled={busy === "sync"}
-          >
-            {busy === "sync" ? "Working..." : "Sync + Assemble"}
-          </GlassButton>
+          <div className="mt-1 text-sm text-white/70">
+            {nextAction.description}
+          </div>
 
-          <Link href={`/shopreel/publish-center?campaign=${campaign.id}`}>
-            <GlassButton variant="ghost">4. Publish</GlassButton>
-          </Link>
+          {statusMessage ? (
+            <div className="mt-2 text-sm text-white/60">{statusMessage}</div>
+          ) : null}
 
-          <Link href="/shopreel/campaigns/new">
-            <GlassButton variant="ghost">New Brief</GlassButton>
-          </Link>
+          <div className="mt-4">
+            {nextAction.action === "build_scenes" ? (
+              <GlassButton
+                variant="primary"
+                onClick={() =>
+                  void runAction(
+                    "generate",
+                    `/api/shopreel/campaigns/${campaign.id}/generate`,
+                    "Building scenes for your campaign..."
+                  )
+                }
+                disabled={anyBusy}
+              >
+                {busy === "generate" ? "Working..." : "Build scenes"}
+              </GlassButton>
+            ) : null}
 
-          <GlassButton variant="ghost" onClick={handleDeleteCampaign}>
-            Delete Campaign
-          </GlassButton>
+            {nextAction.action === "create_videos" ? (
+              <GlassButton
+                variant="primary"
+                onClick={() =>
+                  void runAction(
+                    "run-jobs",
+                    `/api/shopreel/campaigns/${campaign.id}/run-all-jobs`,
+                    "Starting video generation..."
+                  )
+                }
+                disabled={anyBusy}
+              >
+                {busy === "run-jobs" ? "Working..." : "Create videos"}
+              </GlassButton>
+            ) : null}
+
+            {nextAction.action === "check_progress" ? (
+              <GlassButton
+                variant="primary"
+                onClick={() =>
+                  void runAction(
+                    "sync",
+                    `/api/shopreel/campaigns/${campaign.id}/sync-processing`,
+                    "Checking progress and assembling finished videos..."
+                  )
+                }
+                disabled={anyBusy}
+              >
+                {busy === "sync" ? "Working..." : "Check progress"}
+              </GlassButton>
+            ) : null}
+
+            {nextAction.action === "publish" ? (
+              <Link href={`/shopreel/publish-center?campaign=${campaign.id}`}>
+                <GlassButton variant="primary">Publish campaign</GlassButton>
+              </Link>
+            ) : null}
+          </div>
+
+          <div className="mt-4">
+            <button
+              type="button"
+              className="text-xs text-white/50 hover:text-white/80"
+              onClick={() => setShowAdvanced((value) => !value)}
+            >
+              {showAdvanced ? "Hide advanced controls" : "Show advanced controls"}
+            </button>
+
+            {showAdvanced ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <GlassButton
+                  variant="secondary"
+                  onClick={() =>
+                    void runAction(
+                      "generate",
+                      `/api/shopreel/campaigns/${campaign.id}/generate`,
+                      "Building scenes for your campaign..."
+                    )
+                  }
+                  disabled={anyBusy}
+                >
+                  {busy === "generate" ? "Working..." : "Build scenes again"}
+                </GlassButton>
+
+                <GlassButton
+                  variant="secondary"
+                  onClick={() =>
+                    void runAction(
+                      "run-jobs",
+                      `/api/shopreel/campaigns/${campaign.id}/run-all-jobs`,
+                      "Starting video generation..."
+                    )
+                  }
+                  disabled={anyBusy}
+                >
+                  {busy === "run-jobs" ? "Working..." : "Create videos again"}
+                </GlassButton>
+
+                <GlassButton
+                  variant="secondary"
+                  onClick={() =>
+                    void runAction(
+                      "sync",
+                      `/api/shopreel/campaigns/${campaign.id}/sync-processing`,
+                      "Checking progress and assembling finished videos..."
+                    )
+                  }
+                  disabled={anyBusy}
+                >
+                  {busy === "sync" ? "Working..." : "Check progress again"}
+                </GlassButton>
+
+                <Link href={`/shopreel/publish-center?campaign=${campaign.id}`}>
+                  <GlassButton variant="ghost">Open publish page</GlassButton>
+                </Link>
+
+                <Link href="/shopreel/campaigns/new">
+                  <GlassButton variant="ghost">New brief</GlassButton>
+                </Link>
+
+                <GlassButton
+                  variant="ghost"
+                  onClick={handleDeleteCampaign}
+                  disabled={anyBusy}
+                >
+                  Delete campaign
+                </GlassButton>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {error ? <div className="mt-3 text-sm text-red-300">{error}</div> : null}
@@ -234,10 +410,15 @@ export default function CampaignDetailClient({
 
       <GlassCard
         label="Items"
-        title="Campaign Items"
-        description="Each item becomes a multi-scene final ad."
+        title="Campaign Videos"
+        description="These are the videos inside this campaign."
         strong
       >
+        <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
+          Most of the time, you can use the main campaign action above and do not need
+          to open each video individually.
+        </div>
+
         <div className="grid gap-3">
           {items.map((item) => (
             <div
@@ -263,7 +444,7 @@ export default function CampaignDetailClient({
                       <GlassBadge tone="muted">{item.visual_mode}</GlassBadge>
                     ) : null}
                     {item.final_output_asset_id ? (
-                      <GlassBadge tone="copper">Final ad ready</GlassBadge>
+                      <GlassBadge tone="copper">Final video ready</GlassBadge>
                     ) : null}
                   </div>
 
@@ -272,7 +453,7 @@ export default function CampaignDetailClient({
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <Link href={`/shopreel/campaigns/items/${item.id}`}>
-                    <GlassButton variant="ghost">Open Item</GlassButton>
+                    <GlassButton variant="ghost">Open video details</GlassButton>
                   </Link>
                 </div>
               </div>
@@ -324,15 +505,15 @@ export default function CampaignDetailClient({
                 key={learning.id}
                 className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
               >
-                <div className="text-sm font-medium text-white">
-                  {learning.learning_key}
+                <div className="flex flex-wrap items-center gap-2">
+                  <GlassBadge tone="muted">{learning.learning_type}</GlassBadge>
+                  {learning.confidence !== null ? (
+                    <GlassBadge tone="default">
+                      {Math.round(learning.confidence * 100)}% confidence
+                    </GlassBadge>
+                  ) : null}
                 </div>
-                <div className="text-sm text-white/70">
-                  {learning.learning_type}
-                </div>
-                <div className="text-xs text-white/50">
-                  Confidence: {learning.confidence ?? "—"}
-                </div>
+                <div className="mt-2 text-sm text-white">{learning.learning_key}</div>
               </div>
             ))}
           </div>
