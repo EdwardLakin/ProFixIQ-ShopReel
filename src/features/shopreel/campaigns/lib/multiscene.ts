@@ -235,7 +235,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
         style: item.style,
         visual_mode: item.visual_mode,
         aspect_ratio: item.aspect_ratio,
-        duration_seconds: scene.duration_seconds ?? 6,
+        duration_seconds: scene.duration_seconds ?? 8,
         input_asset_ids: [],
         settings: {
           campaign_item_id: item.id,
