@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
@@ -48,6 +49,7 @@ export default function CampaignGenerator({
   const [offer, setOffer] = useState("Turn real work into marketing automatically");
   const [campaignGoal, setCampaignGoal] = useState("Brand awareness and product introduction");
   const [submitting, setSubmitting] = useState(false);
+  const pathname = usePathname();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
