@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import { launchPremiumRunwaySceneJob } from "@/features/shopreel/campaigns/lib/premiumRunway";
+import { processMediaGenerationJob } from "@/features/shopreel/video-creation/lib/server";
 
 export async function POST(
   _req: Request,
@@ -38,20 +38,20 @@ export async function POST(
     const results: Array<{
       sceneId: string;
       mediaJobId: string;
-      providerTaskId: string;
+      providerJobId: string | null;
+      status: string;
     }> = [];
 
     for (const scene of scenes ?? []) {
-      if (!scene.media_job_id) {
-        continue;
-      }
+      if (!scene.media_job_id) continue;
 
-      const result = await launchPremiumRunwaySceneJob(scene.media_job_id);
+      const job = await processMediaGenerationJob(scene.media_job_id);
 
       results.push({
         sceneId: scene.id,
-        mediaJobId: result.mediaJobId,
-        providerTaskId: result.providerTaskId,
+        mediaJobId: job.id,
+        providerJobId: job.provider_job_id,
+        status: job.status,
       });
     }
 
@@ -70,7 +70,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Failed to run premium scene jobs",
+            : "Failed to run scene jobs",
       },
       { status: 500 }
     );

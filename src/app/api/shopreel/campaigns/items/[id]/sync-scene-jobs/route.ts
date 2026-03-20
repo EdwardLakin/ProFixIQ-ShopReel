@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { getBaseUrl } from "@/features/shopreel/lib/getBaseUrl";
 import { refreshCampaignItemSceneStatuses } from "@/features/shopreel/campaigns/lib/sceneStatus";
-import { syncPremiumRunwaySceneJob } from "@/features/shopreel/campaigns/lib/premiumRunwaySync";
 
 export async function POST(
   _req: Request,
@@ -13,6 +13,7 @@ export async function POST(
     const { id } = await ctx.params;
     const supabase = createAdminClient();
     const shopId = await getCurrentShopId();
+    const baseUrl = getBaseUrl();
 
     const { data: item, error: itemError } = await supabase
       .from("shopreel_campaign_items")
@@ -36,18 +37,30 @@ export async function POST(
       throw new Error(error.message);
     }
 
-    const syncResults = [];
+    const syncResults: Array<{
+      sceneId: string;
+      mediaJobId: string;
+      ok: boolean;
+      status: number;
+      payload: unknown;
+    }> = [];
 
     for (const scene of scenes ?? []) {
       if (!scene.media_job_id) continue;
 
-      const result = await syncPremiumRunwaySceneJob(scene.media_job_id);
+      const res = await fetch(
+        `${baseUrl}/api/shopreel/video-creation/jobs/${scene.media_job_id}/sync`,
+        { method: "POST" }
+      );
+
+      const payload = await res.json().catch(() => ({}));
 
       syncResults.push({
         sceneId: scene.id,
         mediaJobId: scene.media_job_id,
-        status: result.status,
-        previewUrl: result.previewUrl,
+        ok: res.ok,
+        status: res.status,
+        payload,
       });
     }
 
@@ -67,7 +80,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Failed to sync premium scene jobs",
+            : "Failed to sync scene jobs",
       },
       { status: 500 }
     );

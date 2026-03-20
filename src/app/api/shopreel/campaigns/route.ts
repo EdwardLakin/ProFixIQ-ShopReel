@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      id: campaignId, // ✅ MATCHES UI EXPECTATION
+      id: campaignId,
     });
   } catch (error) {
     return NextResponse.json(

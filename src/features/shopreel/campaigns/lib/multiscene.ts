@@ -8,37 +8,40 @@ type PlannedScene = {
   durationSeconds: number;
 };
 
+const SILENT_VISUAL_RULE =
+  "No spoken dialogue. No voiceover. No subtitles. No captions. No on-screen text. Visual storytelling only.";
+
 export function planScenesForCampaignItem(args: {
   itemTitle: string;
   angle: string;
   prompt: string;
 }): PlannedScene[] {
-  const base = args.prompt.trim();
+  const base = `${args.prompt.trim()} ${SILENT_VISUAL_RULE}`.trim();
 
   return [
     {
       sceneOrder: 1,
       title: `${args.itemTitle} — Hook`,
       prompt: `${base} Scene objective: create a powerful opening hook in the first seconds. Make it highly visual, attention-grabbing, and premium.`,
-      durationSeconds: 8,
+      durationSeconds: 6,
     },
     {
       sceneOrder: 2,
       title: `${args.itemTitle} — Problem`,
       prompt: `${base} Scene objective: show the old way, pain point, confusion, or frustration clearly and visually.`,
-      durationSeconds: 8,
+      durationSeconds: 6,
     },
     {
       sceneOrder: 3,
       title: `${args.itemTitle} — Solution`,
       prompt: `${base} Scene objective: show the better way, transformation, modern workflow, or system improvement.`,
-      durationSeconds: 8,
+      durationSeconds: 6,
     },
     {
       sceneOrder: 4,
       title: `${args.itemTitle} — Outcome`,
       prompt: `${base} Scene objective: show the payoff, outcome, confidence, growth, or polished end result.`,
-      durationSeconds: 8,
+      durationSeconds: 6,
     },
   ];
 }
@@ -222,7 +225,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
         shop_id: shopId,
         created_by: null,
         source_content_piece_id: item.content_piece_id,
-        provider: "runway",
+        provider: "openai",
         job_type: "video",
         status: "queued",
         prompt: scene.prompt,
@@ -232,7 +235,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
         style: item.style,
         visual_mode: item.visual_mode,
         aspect_ratio: item.aspect_ratio,
-        duration_seconds: scene.duration_seconds ?? 8,
+        duration_seconds: scene.duration_seconds ?? 6,
         input_asset_ids: [],
         settings: {
           campaign_item_id: item.id,
@@ -240,7 +243,8 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
           scene_id: scene.id,
           scene_order: scene.scene_order,
           assembly_mode: "multi_scene",
-          pipeline: "premium_runway_scene",
+          pipeline: "sora_scene",
+          silent_visuals_only: true,
         },
       })
       .select("*")

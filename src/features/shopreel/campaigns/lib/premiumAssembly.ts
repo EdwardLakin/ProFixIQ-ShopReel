@@ -1,17 +1,9 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { buildCampaignVoiceoverScript, generateCampaignVoiceoverAudio } from "./voiceover";
 
 const execFileAsync = promisify(execFile);
-
-async function writeConcatFile(videoPaths: string[], workDir: string) {
-  const concatPath = path.join(workDir, "concat.txt");
-  const body = videoPaths.map((p) => `file '${p.replaceAll("'", "'\\''")}'`).join("\n");
-  await fs.writeFile(concatPath, body, "utf8");
-  return concatPath;
-}
 
 export async function assemblePremiumCampaignItem(input: {
   workDir: string;
@@ -27,24 +19,30 @@ export async function assemblePremiumCampaignItem(input: {
   }>;
   outputBaseName: string;
 }) {
-  await fs.mkdir(input.workDir, { recursive: true });
-
   const stitchedVideo = path.join(input.workDir, `${input.outputBaseName}.stitched.mp4`);
   const finalVideo = path.join(input.workDir, `${input.outputBaseName}.final.mp4`);
 
-  const concatFile = await writeConcatFile(
-    input.scenes.map((s) => s.localVideoPath),
-    input.workDir
-  );
+  if (input.scenes.length === 0) {
+    throw new Error("No scenes available for premium assembly");
+  }
 
-  await execFileAsync("ffmpeg", [
+  const stitchArgs = [
     "-y",
-    "-f", "concat",
-    "-safe", "0",
-    "-i", concatFile,
-    "-c", "copy",
+    ...input.scenes.flatMap((scene) => ["-i", scene.localVideoPath]),
+    "-filter_complex",
+    `concat=n=${input.scenes.length}:v=1:a=0[v]`,
+    "-map",
+    "[v]",
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    "-movflags",
+    "+faststart",
     stitchedVideo,
-  ]);
+  ];
+
+  await execFileAsync("ffmpeg", stitchArgs);
 
   const script = await buildCampaignVoiceoverScript({
     campaignTitle: input.campaignTitle,
@@ -63,12 +61,18 @@ export async function assemblePremiumCampaignItem(input: {
 
   await execFileAsync("ffmpeg", [
     "-y",
-    "-i", stitchedVideo,
-    "-i", voice.filePath,
-    "-map", "0:v:0",
-    "-map", "1:a:0",
-    "-c:v", "copy",
-    "-c:a", "aac",
+    "-i",
+    stitchedVideo,
+    "-i",
+    voice.filePath,
+    "-map",
+    "0:v:0",
+    "-map",
+    "1:a:0",
+    "-c:v",
+    "copy",
+    "-c:a",
+    "aac",
     "-shortest",
     finalVideo,
   ]);

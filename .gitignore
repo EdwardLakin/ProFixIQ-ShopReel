@@ -37,3 +37,7 @@ tmp
 temp
 
 supabase.tar.gz
+
+# local dump files
+*_dump.txt
+repo_dump.txt
