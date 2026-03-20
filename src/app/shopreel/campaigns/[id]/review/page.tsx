@@ -45,7 +45,7 @@ export default async function ShopReelCampaignReviewPage(
         backLabel="Back to Create"
         rightSlot={
           <Link href={`/shopreel/campaigns/${campaign.id}/production`}>
-            <GlassButton variant="primary">Looks good</GlassButton>
+            <GlassButton variant="primary">Continue to workspace</GlassButton>
           </Link>
         }
       />
@@ -162,7 +162,7 @@ export default async function ShopReelCampaignReviewPage(
             </Link>
 
             <Link href={`/shopreel/campaigns/${campaign.id}/production`}>
-              <GlassButton variant="primary">Looks good, build scenes</GlassButton>
+              <GlassButton variant="primary">Continue to workspace, build scenes</GlassButton>
             </Link>
           </div>
         </GlassCard>
