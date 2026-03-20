@@ -50,21 +50,36 @@ export default async function ShopReelCampaignDetailPage(
 
   const items = await listCampaignItemsWithMediaJobs(campaign.id);
 
+  const { data: scenes, error: scenesError } = await supabase
+    .from("shopreel_campaign_item_scenes")
+    .select("id, status, media_job_id, output_asset_id")
+    .eq("campaign_id", campaign.id)
+    .eq("shop_id", shopId);
+
+  if (scenesError) {
+    throw new Error(scenesError.message);
+  }
+
   const totalItems = items.length;
-  const completedItems = items.filter((item) => {
-    const mediaJob = Array.isArray(item.media_job)
-      ? item.media_job[0] ?? null
-      : item.media_job;
-    return mediaJob?.status === "completed";
-  }).length;
+  const completedItems = items.filter((item) => !!item.final_output_asset_id).length;
 
   const progressPercent =
     totalItems > 0
-      ? Math.max(
-          0,
-          Math.min(100, Math.round((completedItems / totalItems) * 100))
-        )
+      ? Math.max(0, Math.min(100, Math.round((completedItems / totalItems) * 100)))
       : 0;
+
+  const totalScenes = (scenes ?? []).length;
+  const linkedScenes = (scenes ?? []).filter(
+    (scene) => !!scene.media_job_id && scene.status === "draft"
+  ).length;
+  const queuedScenes = (scenes ?? []).filter((scene) => scene.status === "queued").length;
+  const processingScenes = (scenes ?? []).filter(
+    (scene) => scene.status === "processing"
+  ).length;
+  const completedScenes = (scenes ?? []).filter(
+    (scene) => scene.status === "completed" || !!scene.output_asset_id
+  ).length;
+  const failedScenes = (scenes ?? []).filter((scene) => scene.status === "failed").length;
 
   const { data: analytics } = await supabase
     .from("shopreel_campaign_analytics")
@@ -182,7 +197,17 @@ export default async function ShopReelCampaignDetailPage(
           items={items}
           analytics={analytics}
           learnings={learnings ?? []}
-          progress={{ totalItems, completedItems, progressPercent }}
+          progress={{
+            totalItems,
+            completedItems,
+            progressPercent,
+            totalScenes,
+            linkedScenes,
+            queuedScenes,
+            processingScenes,
+            completedScenes,
+            failedScenes,
+          }}
         />
       </section>
     </CampaignFlowShell>

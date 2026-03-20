@@ -46,60 +46,48 @@ type CampaignLearningRow = {
   confidence: number | null;
 };
 
-type NextAction =
-  | "build_scenes"
-  | "create_videos"
-  | "check_progress"
-  | "publish";
-
-function getNextAction(args: {
-  items: CampaignItemRow[];
-  progress: {
-    totalItems: number;
-    completedItems: number;
-    progressPercent: number;
-  };
-}): {
-  action: NextAction;
-  label: string;
-  description: string;
-} {
-  const { items, progress } = args;
-
+function getNextAction(progress: {
+  totalItems: number;
+  completedItems: number;
+  totalScenes: number;
+  linkedScenes: number;
+  queuedScenes: number;
+  processingScenes: number;
+  completedScenes: number;
+  failedScenes: number;
+}) {
   if (progress.totalItems > 0 && progress.completedItems === progress.totalItems) {
     return {
-      action: "publish",
+      action: "publish" as const,
       label: "Publish campaign",
       description: "Your final videos are ready to review and publish.",
     };
   }
 
-  const hasQueuedOrCreatedJobs = items.some((item) => !!item.media_job_id);
-
-  if (hasQueuedOrCreatedJobs) {
+  if (
+    progress.processingScenes > 0 ||
+    progress.queuedScenes > 0 ||
+    progress.completedScenes > 0 ||
+    progress.failedScenes > 0
+  ) {
     return {
-      action: "check_progress",
+      action: "check_progress" as const,
       label: "Check progress",
       description:
-        "Refresh the campaign and assemble any videos that are finished.",
+        "Your scene videos have started. Refresh progress and assemble anything ready.",
     };
   }
 
-  const hasSceneLikeStatus = items.some((item) => {
-    const status = item.status.toLowerCase();
-    return status !== "draft";
-  });
-
-  if (hasSceneLikeStatus) {
+  if (progress.totalScenes > 0 || progress.linkedScenes > 0) {
     return {
-      action: "create_videos",
+      action: "create_videos" as const,
       label: "Create videos",
-      description: "Start generating the videos for this campaign.",
+      description: "Your scenes are ready. Start generating the campaign videos.",
     };
   }
 
   return {
-    action: "build_scenes",
+    action: "build_scenes" as const,
     label: "Build scenes",
     description: "Create the scene plan for each video in this campaign.",
   };
@@ -120,6 +108,12 @@ export default function CampaignDetailClient({
     totalItems: number;
     completedItems: number;
     progressPercent: number;
+    totalScenes: number;
+    linkedScenes: number;
+    queuedScenes: number;
+    processingScenes: number;
+    completedScenes: number;
+    failedScenes: number;
   };
 }) {
   const router = useRouter();
@@ -128,10 +122,7 @@ export default function CampaignDetailClient({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const nextAction = useMemo(
-    () => getNextAction({ items, progress }),
-    [items, progress]
-  );
+  const nextAction = useMemo(() => getNextAction(progress), [progress]);
 
   async function handleDeleteCampaign() {
     const confirmed = window.confirm(
@@ -199,6 +190,22 @@ export default function CampaignDetailClient({
 
           <div className="mt-1 text-sm text-white/70">
             {nextAction.description}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2 text-sm text-white/60">
+            <span>{progress.totalScenes} scenes</span>
+            <span>•</span>
+            <span>{progress.queuedScenes} queued</span>
+            <span>•</span>
+            <span>{progress.processingScenes} processing</span>
+            <span>•</span>
+            <span>{progress.completedScenes} completed</span>
+            {progress.failedScenes > 0 ? (
+              <>
+                <span>•</span>
+                <span className="text-red-300">{progress.failedScenes} failed</span>
+              </>
+            ) : null}
           </div>
 
           {statusMessage ? (
