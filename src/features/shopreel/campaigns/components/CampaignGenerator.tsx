@@ -176,7 +176,7 @@ export default function CampaignGenerator({
 
           <div className="flex flex-wrap gap-3">
             <GlassButton variant="primary" onClick={() => void create()} disabled={submitting}>
-              {submitting ? "Creating..." : "Continue to Review"}
+              {submitting ? "Creating..." : "Create campaign"}
             </GlassButton>
           </div>
 
@@ -188,7 +188,7 @@ export default function CampaignGenerator({
       <GlassCard
         label="Recent"
         title="Recent campaigns"
-        description="Jump back into a campaign brief, review page, or production flow."
+        description="Start a campaign or jump back into one you were already working on."
         strong
       >
         {campaigns.length === 0 ? (
@@ -239,10 +239,10 @@ export default function CampaignGenerator({
 
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/shopreel/campaigns/${campaign.id}/review`}>
-                      <GlassButton variant="secondary">Review</GlassButton>
+                      <GlassButton variant="secondary">Quick review</GlassButton>
                     </Link>
-                    <Link href={`/shopreel/campaigns/${campaign.id}/production`}>
-                      <GlassButton variant="ghost">Production</GlassButton>
+                    <Link href={`/shopreel/campaigns/${campaign.id}`}>
+                      <GlassButton variant="ghost">Open</GlassButton>
                     </Link>
                   </div>
                 </div>

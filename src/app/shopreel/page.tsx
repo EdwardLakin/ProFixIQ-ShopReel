@@ -61,8 +61,8 @@ export default async function ShopReelPage() {
         <Link href="/shopreel/campaigns" className="block">
           <GlassCard
             label="Campaigns"
-            title="Campaign Generator"
-            description="Turn one idea into multiple video angles and campaign items."
+            title="Campaigns"
+            description="Turn one idea into a simple campaign with multiple videos you can review and publish."
             strong
           />
         </Link>

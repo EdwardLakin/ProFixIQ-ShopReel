@@ -110,7 +110,7 @@ export default function CampaignDetailClient({
     <div className="grid gap-5">
       <GlassCard
         label="Production"
-        title="Campaign Production"
+        title="Campaign workspace"
         description="Run the campaign pipeline from scene generation through final assembly."
         strong
       >
@@ -146,7 +146,7 @@ export default function CampaignDetailClient({
           </GlassButton>
 
           <Link href="/shopreel/publish-center">
-            <GlassButton variant="ghost">Publish Center</GlassButton>
+            <GlassButton variant="ghost">4. Publish</GlassButton>
           </Link>
 
           <Link href="/shopreel/campaigns/new">

@@ -1,4 +1,8 @@
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { redirect } from "next/navigation";
 
-export { default } from "../page";
+export default async function ShopReelCampaignProductionRedirectPage(props: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await props.params;
+  redirect(`/shopreel/campaigns/${id}`);
+}

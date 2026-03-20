@@ -236,7 +236,7 @@ export default function CampaignItemClient({
         <div className="grid gap-3">
           {scenes.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">
-              No scenes yet. Click <strong>Create Scene Jobs</strong>.
+              No scenes yet. Click <strong>Prepare item scenes</strong>.
             </div>
           ) : (
             scenes.map((scene) => {
