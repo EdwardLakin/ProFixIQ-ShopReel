@@ -176,7 +176,7 @@ export default function CampaignGenerator({
 
           <div className="flex flex-wrap gap-3">
             <GlassButton variant="primary" onClick={() => void create()} disabled={submitting}>
-              {submitting ? "Creating..." : "Create campaign"}
+              {submitting ? "Creating..." : "Create campaign workspace"}
             </GlassButton>
           </div>
 
