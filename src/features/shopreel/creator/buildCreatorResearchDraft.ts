@@ -101,7 +101,7 @@ export function buildCreatorResearchDraft(input: CreatorResearchInput): StoryDra
       title: "What matters",
       overlayText: "What matters most",
       voiceoverText: explanationLine,
-      durationSeconds: 6,
+      durationSeconds: 8,
       media: [],
       metadata: { creatorMode: true, sourceAssetCount: 0 },
     },

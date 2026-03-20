@@ -23,25 +23,25 @@ export function planScenesForCampaignItem(args: {
       sceneOrder: 1,
       title: `${args.itemTitle} — Hook`,
       prompt: `${base} Scene objective: create a powerful opening hook in the first seconds. Make it highly visual, attention-grabbing, and premium.`,
-      durationSeconds: 6,
+      durationSeconds: 8,
     },
     {
       sceneOrder: 2,
       title: `${args.itemTitle} — Problem`,
       prompt: `${base} Scene objective: show the old way, pain point, confusion, or frustration clearly and visually.`,
-      durationSeconds: 6,
+      durationSeconds: 8,
     },
     {
       sceneOrder: 3,
       title: `${args.itemTitle} — Solution`,
       prompt: `${base} Scene objective: show the better way, transformation, modern workflow, or system improvement.`,
-      durationSeconds: 6,
+      durationSeconds: 8,
     },
     {
       sceneOrder: 4,
       title: `${args.itemTitle} — Outcome`,
       prompt: `${base} Scene objective: show the payoff, outcome, confidence, growth, or polished end result.`,
-      durationSeconds: 6,
+      durationSeconds: 8,
     },
   ];
 }
