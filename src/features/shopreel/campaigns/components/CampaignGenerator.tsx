@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
@@ -40,10 +40,6 @@ function getCampaignProductionHref(campaignId: string) {
   return `/shopreel/campaigns/${campaignId}/production`;
 }
 
-function isCampaignActive(pathname: string, campaignId: string) {
-  return pathname.includes(`/shopreel/campaigns/${campaignId}`);
-}
-
 function getCampaignStageLabel(status: string) {
   const normalized = status.toLowerCase();
 
@@ -66,7 +62,6 @@ export default function CampaignGenerator({
   };
 }) {
   const router = useRouter();
-  const pathname = usePathname();
 
   const [title, setTitle] = useState("ShopReel vs Traditional Marketing");
   const [coreIdea, setCoreIdea] = useState(
@@ -229,16 +224,12 @@ export default function CampaignGenerator({
         ) : (
           <div className="grid gap-3">
             {campaigns.map((campaign) => {
-              const active = isCampaignActive(pathname, campaign.id);
               const itemCount = campaign.items?.[0]?.count ?? 0;
 
               return (
                 <div
                   key={campaign.id}
-                  className={cx(
-                    "rounded-2xl border p-4 transition",
-                    active ? "border-cyan-300/50 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.04]"
-                  )}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                 >
                   <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                     <div className="min-w-0 space-y-2">
@@ -252,7 +243,6 @@ export default function CampaignGenerator({
                         >
                           {campaign.title}
                         </Link>
-                        {active ? <GlassBadge tone="copper">Currently open</GlassBadge> : null}
                       </div>
 
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
@@ -272,9 +262,7 @@ export default function CampaignGenerator({
 
                     <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                       <Link href={getCampaignReviewHref(campaign.id)}>
-                        <GlassButton variant={active ? "primary" : "secondary"}>
-                          Review
-                        </GlassButton>
+                        <GlassButton variant="secondary">Review</GlassButton>
                       </Link>
                       <Link href={getCampaignProductionHref(campaign.id)}>
                         <GlassButton variant="ghost">Production</GlassButton>
