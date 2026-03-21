@@ -1,9 +1,22 @@
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { buildCampaignVoiceoverScript, generateCampaignVoiceoverAudio } from "./voiceover";
+import ffmpegPath from "ffmpeg-static";
+import {
+  buildCampaignVoiceoverScript,
+  generateCampaignVoiceoverAudio,
+} from "./voiceover";
 
 const execFileAsync = promisify(execFile);
+
+function getFfmpegBinary(): string {
+  const fromEnv = process.env.FFMPEG_PATH?.trim();
+  if (fromEnv) return fromEnv;
+
+  if (ffmpegPath) return ffmpegPath;
+
+  return "ffmpeg";
+}
 
 export async function assemblePremiumCampaignItem(input: {
   workDir: string;
@@ -19,8 +32,16 @@ export async function assemblePremiumCampaignItem(input: {
   }>;
   outputBaseName: string;
 }) {
-  const stitchedVideo = path.join(input.workDir, `${input.outputBaseName}.stitched.mp4`);
-  const finalVideo = path.join(input.workDir, `${input.outputBaseName}.final.mp4`);
+  const ffmpeg = getFfmpegBinary();
+
+  const stitchedVideo = path.join(
+    input.workDir,
+    `${input.outputBaseName}.stitched.mp4`
+  );
+  const finalVideo = path.join(
+    input.workDir,
+    `${input.outputBaseName}.final.mp4`
+  );
 
   if (input.scenes.length === 0) {
     throw new Error("No scenes available for premium assembly");
@@ -42,7 +63,7 @@ export async function assemblePremiumCampaignItem(input: {
     stitchedVideo,
   ];
 
-  await execFileAsync("ffmpeg", stitchArgs);
+  await execFileAsync(ffmpeg, stitchArgs);
 
   const script = await buildCampaignVoiceoverScript({
     campaignTitle: input.campaignTitle,
@@ -59,7 +80,7 @@ export async function assemblePremiumCampaignItem(input: {
     fileBase: `${input.outputBaseName}.voice`,
   });
 
-  await execFileAsync("ffmpeg", [
+  await execFileAsync(ffmpeg, [
     "-y",
     "-i",
     stitchedVideo,
