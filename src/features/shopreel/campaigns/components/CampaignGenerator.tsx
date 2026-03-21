@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
@@ -29,6 +28,33 @@ function timeAgoLabel(value: string) {
   return new Date(value).toLocaleDateString();
 }
 
+function getCampaignHref(campaignId: string) {
+  return `/shopreel/campaigns/${campaignId}`;
+}
+
+function getCampaignReviewHref(campaignId: string) {
+  return `/shopreel/campaigns/${campaignId}/review`;
+}
+
+function getCampaignProductionHref(campaignId: string) {
+  return `/shopreel/campaigns/${campaignId}/production`;
+}
+
+function isCampaignActive(pathname: string, campaignId: string) {
+  return pathname.includes(`/shopreel/campaigns/${campaignId}`);
+}
+
+function getCampaignStageLabel(status: string) {
+  const normalized = status.toLowerCase();
+
+  if (normalized === "draft") return "Brief";
+  if (normalized === "ready") return "Ready";
+  if (normalized === "processing") return "In production";
+  if (normalized === "published") return "Published";
+
+  return status;
+}
+
 export default function CampaignGenerator({
   campaigns,
   seedDefaults,
@@ -40,6 +66,7 @@ export default function CampaignGenerator({
   };
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const [title, setTitle] = useState("ShopReel vs Traditional Marketing");
   const [coreIdea, setCoreIdea] = useState(
@@ -49,7 +76,6 @@ export default function CampaignGenerator({
   const [offer, setOffer] = useState("Turn real work into marketing automatically");
   const [campaignGoal, setCampaignGoal] = useState("Brand awareness and product introduction");
   const [submitting, setSubmitting] = useState(false);
-  const pathname = usePathname();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,11 +106,7 @@ export default function CampaignGenerator({
         throw new Error(json.error ?? "Failed to create campaign");
       }
 
-      const campaignId =
-        json.id ??
-        json.campaign?.id ??
-        json.data?.id ??
-        null;
+      const campaignId = json.id ?? json.campaign?.id ?? json.data?.id ?? null;
 
       if (!campaignId) {
         throw new Error("Campaign created but no campaign id was returned");
@@ -206,50 +228,65 @@ export default function CampaignGenerator({
           </div>
         ) : (
           <div className="grid gap-3">
-            {campaigns.map((campaign) => (
-              <div
-                key={campaign.id}
-                className={cx(
-                  "rounded-2xl border p-4",
-                  glassTheme.border.softer,
-                  glassTheme.glass.panelSoft
-                )}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <Link
-                      href={`/shopreel/campaigns/${campaign.id}/review`}
-                      className={cx("text-base font-medium underline-offset-4 hover:underline", glassTheme.text.primary)}
-                    >
-                      {campaign.title}
-                    </Link>
-                    <div className={cx("text-sm", glassTheme.text.secondary)}>
-                      {timeAgoLabel(campaign.created_at)}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <GlassBadge tone="default">{campaign.status}</GlassBadge>
-                      <GlassBadge tone="copper">
-                        {(campaign.items?.[0]?.count ?? 0)} items
-                      </GlassBadge>
-                      {(campaign.platform_focus ?? []).map((platform) => (
-                        <GlassBadge key={platform} tone="muted">
-                          {platform}
-                        </GlassBadge>
-                      ))}
-                    </div>
-                  </div>
+            {campaigns.map((campaign) => {
+              const active = isCampaignActive(pathname, campaign.id);
+              const itemCount = campaign.items?.[0]?.count ?? 0;
 
-                  <div className="flex flex-wrap gap-2">
-                    <Link href={`/shopreel/campaigns/${campaign.id}/review`}>
-                      <GlassButton variant="secondary">Quick review</GlassButton>
-                    </Link>
-                    <Link href={`/shopreel/campaigns/${campaign.id}`}>
-                      <GlassButton variant="ghost">Open</GlassButton>
-                    </Link>
+              return (
+                <div
+                  key={campaign.id}
+                  className={cx(
+                    "rounded-2xl border p-4 transition",
+                    active ? "border-cyan-300/50 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.04]"
+                  )}
+                >
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                    <div className="min-w-0 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href={getCampaignReviewHref(campaign.id)}
+                          className={cx(
+                            "text-base font-medium underline-offset-4 hover:underline",
+                            glassTheme.text.primary
+                          )}
+                        >
+                          {campaign.title}
+                        </Link>
+                        {active ? <GlassBadge tone="copper">Currently open</GlassBadge> : null}
+                      </div>
+
+                      <div className={cx("text-sm", glassTheme.text.secondary)}>
+                        {timeAgoLabel(campaign.created_at)}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <GlassBadge tone="default">{getCampaignStageLabel(campaign.status)}</GlassBadge>
+                        <GlassBadge tone="copper">{itemCount} videos</GlassBadge>
+                        {(campaign.platform_focus ?? []).map((platform) => (
+                          <GlassBadge key={platform} tone="muted">
+                            {platform}
+                          </GlassBadge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      <Link href={getCampaignReviewHref(campaign.id)}>
+                        <GlassButton variant={active ? "primary" : "secondary"}>
+                          Review
+                        </GlassButton>
+                      </Link>
+                      <Link href={getCampaignProductionHref(campaign.id)}>
+                        <GlassButton variant="ghost">Production</GlassButton>
+                      </Link>
+                      <Link href={getCampaignHref(campaign.id)}>
+                        <GlassButton variant="ghost">Open</GlassButton>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </GlassCard>
