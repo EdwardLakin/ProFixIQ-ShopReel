@@ -1,4 +1,8 @@
-export type VideoCreationJobType = "image" | "video" | "asset_assembly";
+export type VideoCreationJobType =
+  | "image"
+  | "video"
+  | "asset_assembly"
+  | "build_series";
 
 export type VideoCreationAspectRatio =
   | "9:16"
@@ -24,7 +28,12 @@ export type VideoCreationVisualMode =
   | "moody"
   | "bright";
 
-export type VideoCreationProvider = "openai" | "runway" | "pika" | "luma" | "assembly";
+export type VideoCreationProvider =
+  | "openai"
+  | "runway"
+  | "pika"
+  | "luma"
+  | "assembly";
 
 export type VideoCreationFormInput = {
   title: string;
@@ -52,7 +61,12 @@ export const VIDEO_CREATION_JOB_TYPES: Array<{
   {
     value: "video",
     label: "Generate clip",
-    description: "Create short AI-generated motion clips and cinematic inserts.",
+    description: "Create one AI-generated motion clip from a single prompt.",
+  },
+  {
+    value: "build_series",
+    label: "Build series",
+    description: "Turn one idea into a structured 4-scene sequence.",
   },
   {
     value: "asset_assembly",
@@ -105,6 +119,7 @@ export function formatLabel(value: string) {
 
 export function suggestDefaultDuration(jobType: VideoCreationJobType): number | null {
   if (jobType === "video") return 8;
+  if (jobType === "build_series") return 8;
   if (jobType === "asset_assembly") return 15;
   return null;
 }
@@ -117,7 +132,7 @@ export function buildEnhancedPrompt(input: VideoCreationFormInput): string {
     `Aspect ratio: ${input.aspectRatio}.`,
   ];
 
-  if (input.jobType === "video" && input.durationSeconds) {
+  if ((input.jobType === "video" || input.jobType === "build_series") && input.durationSeconds) {
     parts.push(`Target duration: ${input.durationSeconds} seconds.`);
   }
 

@@ -98,7 +98,7 @@ export default function VideoCreationStudio({
   function selectJobType(nextType: VideoCreationJobType) {
     setJobType(nextType);
     const suggested = suggestDefaultDuration(nextType);
-    if (suggested) setDurationSeconds(suggested);
+    if (typeof suggested === "number") setDurationSeconds(suggested);
   }
 
   function applyPreset(presetId: string) {
@@ -158,6 +158,35 @@ export default function VideoCreationStudio({
 
       if (jobType === "asset_assembly" && selectedAssetIds.length === 0) {
         throw new Error("Select at least one asset for asset assembly.");
+      }
+
+      if (jobType === "build_series") {
+        const seriesRes = await fetch("/api/shopreel/video-creation/series", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            prompt,
+            negativePrompt,
+            provider: recommendedProvider,
+            style,
+            visualMode,
+            aspectRatio,
+            durationSeconds,
+          }),
+        });
+
+        const seriesJson = await seriesRes.json();
+
+        if (!seriesRes.ok || !seriesJson.ok) {
+          throw new Error(seriesJson.error ?? "Failed to create series");
+        }
+
+        setMessage(`Series created with ${seriesJson.count ?? 4} queued clips.`);
+        router.refresh();
+        return;
       }
 
       const payload: VideoCreationFormInput = {
@@ -362,7 +391,7 @@ export default function VideoCreationStudio({
 
           <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {VIDEO_CREATION_JOB_TYPES.map((item) => {
                   const active = item.value === jobType;
 
@@ -396,7 +425,7 @@ export default function VideoCreationStudio({
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Brake inspection cinematic reveal"
+                    placeholder="Launch idea, offer, or story title"
                     className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
                   />
                 </label>
@@ -408,7 +437,7 @@ export default function VideoCreationStudio({
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Create a cinematic vertical video showing a heavy-duty brake inspection in a modern repair shop with dramatic light, close-up mechanical detail, premium startup style."
+                    placeholder="Describe the product, service, transformation, story, offer, or marketing message."
                     rows={6}
                     className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
                   />
@@ -421,7 +450,7 @@ export default function VideoCreationStudio({
                   <textarea
                     value={negativePrompt}
                     onChange={(e) => setNegativePrompt(e.target.value)}
-                    placeholder="Avoid blurry frames, distorted hands, unreadable text, low detail, extra wheels, low realism."
+                    placeholder="Avoid blur, distorted anatomy, unreadable text, duplicate objects, inconsistent subjects."
                     rows={3}
                     className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
                   />
@@ -577,8 +606,10 @@ export default function VideoCreationStudio({
                   {jobType === "image"
                     ? "Use this for concept stills, thumbnails, scene art, and visual inserts."
                     : jobType === "video"
-                      ? "Use this for short cinematic B-roll, hero clips, explainers, and premium social motion."
-                      : "Use this to turn uploaded or existing assets into a polished vertical reel foundation."}
+                      ? "Use this for one standalone clip."
+                      : jobType === "build_series"
+                        ? "Use this for one idea that should become a 4-part hook, problem, solution, outcome sequence."
+                        : "Use this to turn uploaded or existing assets into a polished vertical reel foundation."}
                 </div>
               </div>
 
@@ -587,7 +618,11 @@ export default function VideoCreationStudio({
                   {enhancing ? "Enhancing..." : "Enhance Prompt"}
                 </GlassButton>
                 <GlassButton variant="primary" onClick={() => void submitJob()} disabled={submitting}>
-                  {submitting ? "Creating..." : "Create media job"}
+                  {submitting
+                    ? "Creating..."
+                    : jobType === "build_series"
+                      ? "Create series"
+                      : "Create media job"}
                 </GlassButton>
               </div>
 
