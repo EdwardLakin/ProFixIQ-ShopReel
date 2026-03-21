@@ -37,7 +37,7 @@ function timeAgoLabel(value: string) {
 
   if (diffMinutes < 60) return `${Math.max(diffMinutes, 1)}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 7) return `${diffDays}d ago}`;
 
   return new Date(value).toLocaleDateString();
 }
@@ -54,19 +54,50 @@ function getCampaignProductionHref(campaignId: string) {
   return `/shopreel/campaigns/${campaignId}/production`;
 }
 
+function getDisplayStageLabel(campaign: CampaignRow) {
+  const summary = campaign.production_summary;
+  const normalizedStatus = campaign.status.toLowerCase();
+
+  if (summary) {
+    if (summary.finalReadyItems > 0 && summary.finalReadyItems === summary.totalItems && summary.totalItems > 0) {
+      return "Final ready";
+    }
+
+    if (summary.totalScenes > 0 && summary.completedScenes === summary.totalScenes) {
+      return "Ready to assemble";
+    }
+
+    if (summary.processingScenes > 0 || summary.queuedScenes > 0) {
+      return "Generating";
+    }
+
+    if (summary.totalScenes > 0 || summary.totalItems > 0) {
+      return "Started";
+    }
+  }
+
+  if (normalizedStatus === "published") return "Published";
+  if (normalizedStatus === "ready") return "Ready";
+  if (normalizedStatus === "processing") return "Generating";
+
+  return "Brief";
+}
+
 function getStageTone(stageLabel: string) {
   const normalized = stageLabel.toLowerCase();
 
   if (normalized.includes("final")) return "copper" as const;
   if (normalized.includes("assemble")) return "copper" as const;
   if (normalized.includes("generating")) return "default" as const;
-  if (normalized.includes("scene")) return "muted" as const;
+  if (normalized.includes("started")) return "muted" as const;
+  if (normalized.includes("ready")) return "default" as const;
+  if (normalized.includes("published")) return "copper" as const;
 
   return "default" as const;
 }
 
 function getPrimaryAction(campaign: CampaignRow) {
-  const stageLabel = campaign.production_summary?.stageLabel ?? "Brief";
+  const stageLabel = getDisplayStageLabel(campaign);
 
   if (stageLabel === "Brief") {
     return {
@@ -259,6 +290,7 @@ export default function CampaignGenerator({
               const summary = campaign.production_summary;
               const itemCount = summary?.totalItems ?? campaign.items?.length ?? 0;
               const primaryAction = getPrimaryAction(campaign);
+              const stageLabel = getDisplayStageLabel(campaign);
 
               return (
                 <div
@@ -284,8 +316,8 @@ export default function CampaignGenerator({
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        <GlassBadge tone={getStageTone(summary?.stageLabel ?? "Brief")}>
-                          {summary?.stageLabel ?? "Brief"}
+                        <GlassBadge tone={getStageTone(stageLabel)}>
+                          {stageLabel}
                         </GlassBadge>
                         <GlassBadge tone="copper">{itemCount} videos</GlassBadge>
                         {(campaign.platform_focus ?? []).map((platform) => (
@@ -314,9 +346,6 @@ export default function CampaignGenerator({
                           {primaryAction.label}
                         </GlassButton>
                       </Link>
-                      <Link href={getCampaignReviewHref(campaign.id)}>
-                        <GlassButton variant="secondary">Review</GlassButton>
-                      </Link>
                       <Link href={getCampaignHref(campaign.id)}>
                         <GlassButton variant="ghost">Open</GlassButton>
                       </Link>
@@ -331,3 +360,4 @@ export default function CampaignGenerator({
     </div>
   );
 }
+
