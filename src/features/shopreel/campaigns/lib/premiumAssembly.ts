@@ -12,11 +12,13 @@ const execFileAsync = promisify(execFile);
 function getFfmpegBinary(): string {
   const fromEnv = process.env.FFMPEG_PATH?.trim();
   if (fromEnv) return fromEnv;
-
   if (ffmpegPath) return ffmpegPath;
-
   return "ffmpeg";
 }
+
+const FFMPEG_EXEC_OPTIONS = {
+  maxBuffer: 1024 * 1024 * 20,
+};
 
 export async function assemblePremiumCampaignItem(input: {
   workDir: string;
@@ -48,6 +50,9 @@ export async function assemblePremiumCampaignItem(input: {
   }
 
   const stitchArgs = [
+    "-hide_banner",
+    "-loglevel",
+    "error",
     "-y",
     ...input.scenes.flatMap((scene) => ["-i", scene.localVideoPath]),
     "-filter_complex",
@@ -63,7 +68,7 @@ export async function assemblePremiumCampaignItem(input: {
     stitchedVideo,
   ];
 
-  await execFileAsync(ffmpeg, stitchArgs);
+  await execFileAsync(ffmpeg, stitchArgs, FFMPEG_EXEC_OPTIONS);
 
   const script = await buildCampaignVoiceoverScript({
     campaignTitle: input.campaignTitle,
@@ -80,23 +85,30 @@ export async function assemblePremiumCampaignItem(input: {
     fileBase: `${input.outputBaseName}.voice`,
   });
 
-  await execFileAsync(ffmpeg, [
-    "-y",
-    "-i",
-    stitchedVideo,
-    "-i",
-    voice.filePath,
-    "-map",
-    "0:v:0",
-    "-map",
-    "1:a:0",
-    "-c:v",
-    "copy",
-    "-c:a",
-    "aac",
-    "-shortest",
-    finalVideo,
-  ]);
+  await execFileAsync(
+    ffmpeg,
+    [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-y",
+      "-i",
+      stitchedVideo,
+      "-i",
+      voice.filePath,
+      "-map",
+      "0:v:0",
+      "-map",
+      "1:a:0",
+      "-c:v",
+      "copy",
+      "-c:a",
+      "aac",
+      "-shortest",
+      finalVideo,
+    ],
+    FFMPEG_EXEC_OPTIONS
+  );
 
   return {
     script,
