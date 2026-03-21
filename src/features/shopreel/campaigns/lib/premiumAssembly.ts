@@ -1,4 +1,5 @@
 import path from "node:path";
+import { writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import ffmpegPath from "ffmpeg-static";
@@ -19,6 +20,10 @@ function getFfmpegBinary(): string {
 const FFMPEG_EXEC_OPTIONS = {
   maxBuffer: 1024 * 1024 * 20,
 };
+
+function escapeConcatPath(filePath: string) {
+  return filePath.replace(/'/g, "'\\''");
+}
 
 export async function assemblePremiumCampaignItem(input: {
   workDir: string;
@@ -44,31 +49,43 @@ export async function assemblePremiumCampaignItem(input: {
     input.workDir,
     `${input.outputBaseName}.final.mp4`
   );
+  const concatListPath = path.join(
+    input.workDir,
+    `${input.outputBaseName}.concat.txt`
+  );
 
   if (input.scenes.length === 0) {
     throw new Error("No scenes available for premium assembly");
   }
 
-  const stitchArgs = [
-    "-hide_banner",
-    "-loglevel",
-    "error",
-    "-y",
-    ...input.scenes.flatMap((scene) => ["-i", scene.localVideoPath]),
-    "-filter_complex",
-    `concat=n=${input.scenes.length}:v=1:a=0[v]`,
-    "-map",
-    "[v]",
-    "-c:v",
-    "libx264",
-    "-pix_fmt",
-    "yuv420p",
-    "-movflags",
-    "+faststart",
-    stitchedVideo,
-  ];
+  const concatList = input.scenes
+    .map((scene) => `file '${escapeConcatPath(scene.localVideoPath)}'`)
+    .join("\n");
 
-  await execFileAsync(ffmpeg, stitchArgs, FFMPEG_EXEC_OPTIONS);
+  await writeFile(concatListPath, concatList, "utf8");
+
+  await execFileAsync(
+    ffmpeg,
+    [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-y",
+      "-f",
+      "concat",
+      "-safe",
+      "0",
+      "-i",
+      concatListPath,
+      "-map",
+      "0:v:0",
+      "-c:v",
+      "copy",
+      "-an",
+      stitchedVideo,
+    ],
+    FFMPEG_EXEC_OPTIONS
+  );
 
   const script = await buildCampaignVoiceoverScript({
     campaignTitle: input.campaignTitle,
