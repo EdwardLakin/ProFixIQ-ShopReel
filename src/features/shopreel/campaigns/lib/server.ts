@@ -110,12 +110,9 @@ export async function listRecentCampaigns(limit = 24) {
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
 
-  const { data, error } = await supabase
+  const { data: campaigns, error } = await supabase
     .from("shopreel_campaigns")
-    .select(`
-      *,
-      items:shopreel_campaign_items(count)
-    `)
+    .select("*")
     .eq("shop_id", shopId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -124,7 +121,74 @@ export async function listRecentCampaigns(limit = 24) {
     throw new Error(error.message);
   }
 
-  return data ?? [];
+  const campaignIds = (campaigns ?? []).map((campaign) => campaign.id);
+
+  if (campaignIds.length === 0) {
+    return [];
+  }
+
+  const { data: items, error: itemsError } = await supabase
+    .from("shopreel_campaign_items")
+    .select("id, campaign_id, status, final_output_asset_id")
+    .in("campaign_id", campaignIds)
+    .eq("shop_id", shopId);
+
+  if (itemsError) {
+    throw new Error(itemsError.message);
+  }
+
+  const itemIds = (items ?? []).map((item) => item.id);
+
+  let scenes: Array<{
+    id: string;
+    campaign_id: string;
+    campaign_item_id: string;
+    status: string;
+    output_asset_id: string | null;
+    media_job_id: string | null;
+  }> = [];
+
+  if (itemIds.length > 0) {
+    const { data: sceneRows, error: scenesError } = await supabase
+      .from("shopreel_campaign_item_scenes")
+      .select("id, campaign_id, campaign_item_id, status, output_asset_id, media_job_id")
+      .in("campaign_item_id", itemIds)
+      .eq("shop_id", shopId);
+
+    if (scenesError) {
+      throw new Error(scenesError.message);
+    }
+
+    scenes = sceneRows ?? [];
+  }
+
+  return (campaigns ?? []).map((campaign) => {
+    const campaignItems = (items ?? []).filter((item) => item.campaign_id === campaign.id);
+    const campaignScenes = scenes.filter((scene) => scene.campaign_id === campaign.id);
+
+    const completedVideos = campaignItems.filter((item) => !!item.final_output_asset_id).length;
+    const totalVideos = campaignItems.length;
+
+    const queuedScenes = campaignScenes.filter((scene) => scene.status === "queued").length;
+    const processingScenes = campaignScenes.filter((scene) => scene.status === "processing").length;
+    const completedScenes = campaignScenes.filter(
+      (scene) => scene.status === "completed" || !!scene.output_asset_id
+    ).length;
+    const failedScenes = campaignScenes.filter((scene) => scene.status === "failed").length;
+
+    return {
+      ...campaign,
+      summary: {
+        totalVideos,
+        completedVideos,
+        totalScenes: campaignScenes.length,
+        queuedScenes,
+        processingScenes,
+        completedScenes,
+        failedScenes,
+      },
+    };
+  });
 }
 
 export async function listCampaignItems(campaignId: string) {

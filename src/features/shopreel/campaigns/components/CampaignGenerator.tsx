@@ -10,7 +10,21 @@ import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 
 type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"] & {
-  items?: Array<{ count: number | null }> | null;
+  items?: Array<{
+    id: string;
+    status: string;
+    final_output_asset_id: string | null;
+  }> | null;
+  production_summary?: {
+    totalItems: number;
+    finalReadyItems: number;
+    totalScenes: number;
+    queuedScenes: number;
+    processingScenes: number;
+    completedScenes: number;
+    failedScenes: number;
+    stageLabel: string;
+  };
 };
 
 function timeAgoLabel(value: string) {
@@ -40,15 +54,33 @@ function getCampaignProductionHref(campaignId: string) {
   return `/shopreel/campaigns/${campaignId}/production`;
 }
 
-function getCampaignStageLabel(status: string) {
-  const normalized = status.toLowerCase();
+function getStageTone(stageLabel: string) {
+  const normalized = stageLabel.toLowerCase();
 
-  if (normalized === "draft") return "Brief";
-  if (normalized === "ready") return "Ready";
-  if (normalized === "processing") return "In production";
-  if (normalized === "published") return "Published";
+  if (normalized.includes("final")) return "copper" as const;
+  if (normalized.includes("assemble")) return "copper" as const;
+  if (normalized.includes("generating")) return "default" as const;
+  if (normalized.includes("scene")) return "muted" as const;
 
-  return status;
+  return "default" as const;
+}
+
+function getPrimaryAction(campaign: CampaignRow) {
+  const stageLabel = campaign.production_summary?.stageLabel ?? "Brief";
+
+  if (stageLabel === "Brief") {
+    return {
+      href: getCampaignReviewHref(campaign.id),
+      label: "Review",
+      variant: "secondary" as const,
+    };
+  }
+
+  return {
+    href: getCampaignProductionHref(campaign.id),
+    label: "Production",
+    variant: "primary" as const,
+  };
 }
 
 export default function CampaignGenerator({
@@ -224,7 +256,9 @@ export default function CampaignGenerator({
         ) : (
           <div className="grid gap-3">
             {campaigns.map((campaign) => {
-              const itemCount = campaign.items?.[0]?.count ?? 0;
+              const summary = campaign.production_summary;
+              const itemCount = summary?.totalItems ?? campaign.items?.length ?? 0;
+              const primaryAction = getPrimaryAction(campaign);
 
               return (
                 <div
@@ -250,7 +284,9 @@ export default function CampaignGenerator({
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        <GlassBadge tone="default">{getCampaignStageLabel(campaign.status)}</GlassBadge>
+                        <GlassBadge tone={getStageTone(summary?.stageLabel ?? "Brief")}>
+                          {summary?.stageLabel ?? "Brief"}
+                        </GlassBadge>
                         <GlassBadge tone="copper">{itemCount} videos</GlassBadge>
                         {(campaign.platform_focus ?? []).map((platform) => (
                           <GlassBadge key={platform} tone="muted">
@@ -258,14 +294,28 @@ export default function CampaignGenerator({
                           </GlassBadge>
                         ))}
                       </div>
+
+                      {summary ? (
+                        <div className="flex flex-wrap gap-2 text-xs text-white/55">
+                          <span>{summary.completedScenes} scenes complete</span>
+                          <span>•</span>
+                          <span>{summary.processingScenes} processing</span>
+                          <span>•</span>
+                          <span>{summary.queuedScenes} queued</span>
+                          <span>•</span>
+                          <span>{summary.finalReadyItems} final ready</span>
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      <Link href={primaryAction.href}>
+                        <GlassButton variant={primaryAction.variant}>
+                          {primaryAction.label}
+                        </GlassButton>
+                      </Link>
                       <Link href={getCampaignReviewHref(campaign.id)}>
                         <GlassButton variant="secondary">Review</GlassButton>
-                      </Link>
-                      <Link href={getCampaignProductionHref(campaign.id)}>
-                        <GlassButton variant="ghost">Production</GlassButton>
                       </Link>
                       <Link href={getCampaignHref(campaign.id)}>
                         <GlassButton variant="ghost">Open</GlassButton>
