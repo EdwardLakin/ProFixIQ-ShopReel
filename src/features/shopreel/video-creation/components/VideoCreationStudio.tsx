@@ -28,7 +28,7 @@ import { getMediaJobPrimaryAction } from "@/features/shopreel/video-creation/lib
 import {
   getMediaJobSeriesInfo,
   groupMediaJobsIntoSeries,
-} from "@/features/shopreel/video-creation/lib/series";
+} from "@/features/shopreel/video-creation/lib/seriesClient";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
 type SelectableAsset = Pick<
