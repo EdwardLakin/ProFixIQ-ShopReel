@@ -91,11 +91,7 @@ export default function VideoCreationStudio({
     return provider;
   }, [jobType, provider]);
 
-  const seriesGroups = useMemo(
-    () => groupMediaJobsIntoSeries(recentJobs),
-    [recentJobs]
-  );
-
+  const seriesGroups = useMemo(() => groupMediaJobsIntoSeries(recentJobs), [recentJobs]);
   const standaloneJobs = useMemo(
     () => recentJobs.filter((job) => !getMediaJobSeriesInfo(job).seriesKey),
     [recentJobs]
@@ -175,6 +171,10 @@ export default function VideoCreationStudio({
       }
 
       if (jobType === "series") {
+        if (selectedAssetIds.length === 0) {
+          throw new Error("Select uploaded assets first. Build Series is now uploaded-media-first.");
+        }
+
         const seriesRes = await fetch("/api/shopreel/video-creation/series", {
           method: "POST",
           headers: {
@@ -189,6 +189,8 @@ export default function VideoCreationStudio({
             visualMode,
             aspectRatio,
             durationSeconds,
+            inputAssetIds: selectedAssetIds,
+            allowAiConcepts: false,
           }),
         });
 
@@ -199,6 +201,7 @@ export default function VideoCreationStudio({
         }
 
         setMessage(`Series created with ${seriesJson.count ?? 4} queued clips.`);
+        router.push(`/shopreel/video-creation/series/${seriesJson.seriesKey}`);
         router.refresh();
         return;
       }
@@ -368,12 +371,14 @@ export default function VideoCreationStudio({
     }
   }
 
+  const showAssetPicker = jobType === "asset_assembly" || jobType === "series";
+
   return (
     <div className="grid gap-5">
       <GlassCard
         label="Studio"
         title="AI Video Creation"
-        description="Create visuals, clips, and assembled reels with a serious AI media studio workflow."
+        description="Create clips, build from assets, or create an uploaded-media-first series."
         strong
       >
         <div className="grid gap-5">
@@ -452,7 +457,7 @@ export default function VideoCreationStudio({
                     ))}
                   </div>
                   <div className={cx("mt-3 text-sm", glassTheme.text.secondary)}>
-                    This creates four coordinated clips from one idea using the same visual direction.
+                    Build Series is now designed for uploaded media first. It creates four coordinated clips from one idea using the same visual direction.
                   </div>
                 </div>
               ) : null}
@@ -477,7 +482,7 @@ export default function VideoCreationStudio({
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Describe the product, service, transformation, story, offer, or marketing message."
+                    placeholder="Describe the story, offer, transformation, product, service, or message."
                     rows={6}
                     className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
                   />
@@ -497,10 +502,10 @@ export default function VideoCreationStudio({
                 </label>
               </div>
 
-              {jobType === "asset_assembly" ? (
+              {showAssetPicker ? (
                 <div className="space-y-3">
                   <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
-                    Select assets
+                    {jobType === "series" ? "Select uploaded assets for the series" : "Select assets"}
                   </div>
 
                   {selectableAssets.length === 0 ? (
@@ -512,7 +517,7 @@ export default function VideoCreationStudio({
                         glassTheme.text.secondary
                       )}
                     >
-                      No assets available yet. Upload media first, then return here to assemble it.
+                      No assets available yet. Upload media first, then return here.
                     </div>
                   ) : (
                     <div className="grid gap-3 md:grid-cols-2">
@@ -648,7 +653,7 @@ export default function VideoCreationStudio({
                     : jobType === "video"
                       ? "Use this for one standalone clip."
                       : jobType === "series"
-                        ? "Use this for one idea that should become a 4-part hook, problem, solution, outcome sequence."
+                        ? "Use this for a 4-part uploaded-media-first sequence: hook, problem, solution, outcome."
                         : "Use this to turn uploaded or existing assets into a polished vertical reel foundation."}
                 </div>
               </div>
@@ -658,21 +663,12 @@ export default function VideoCreationStudio({
                   {enhancing ? "Enhancing..." : "Enhance Prompt"}
                 </GlassButton>
                 <GlassButton variant="primary" onClick={() => void submitJob()} disabled={submitting}>
-                  {submitting
-                    ? "Creating..."
-                    : jobType === "series"
-                      ? "Create series"
-                      : "Create media job"}
+                  {submitting ? "Creating..." : jobType === "series" ? "Create series" : "Create media job"}
                 </GlassButton>
               </div>
 
-              {message ? (
-                <div className={cx("text-sm", glassTheme.text.copperSoft)}>{message}</div>
-              ) : null}
-
-              {error ? (
-                <div className={cx("text-sm", glassTheme.text.copperSoft)}>{error}</div>
-              ) : null}
+              {message ? <div className={cx("text-sm", glassTheme.text.copperSoft)}>{message}</div> : null}
+              {error ? <div className={cx("text-sm", glassTheme.text.copperSoft)}>{error}</div> : null}
             </div>
           </div>
         </div>
@@ -681,7 +677,7 @@ export default function VideoCreationStudio({
       <GlassCard
         label="Recent"
         title="Recent generation jobs"
-        description="Create, process, review, storyboard, and thumbnail your recent AI media generation runs."
+        description="Series are grouped together below. Standalone jobs remain separate."
         strong
       >
         {recentJobs.length === 0 ? (
@@ -713,27 +709,33 @@ export default function VideoCreationStudio({
                     </div>
                     <div className={cx("text-sm", glassTheme.text.secondary)}>
                       Build Series • {group.jobs.length}
-                      {group.totalScenes ? ` / ${group.totalScenes}` : ""} clips • {timeAgoLabel(group.jobs[0]?.created_at ?? new Date().toISOString())}
+                      {group.totalScenes ? ` / ${group.totalScenes}` : ""} clips •{" "}
+                      {group.sourceMode === "assets" ? "Uploaded media" : "AI concepts"} •{" "}
+                      {timeAgoLabel(group.jobs[0]?.created_at ?? new Date().toISOString())}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <GlassBadge tone="default">{group.completedCount} completed</GlassBadge>
                       <GlassBadge tone="default">{group.processingCount} processing</GlassBadge>
                       <GlassBadge tone="default">{group.queuedCount} queued</GlassBadge>
-                      {group.failedCount > 0 ? (
-                        <GlassBadge tone="muted">{group.failedCount} failed</GlassBadge>
-                      ) : null}
+                      {group.failedCount > 0 ? <GlassBadge tone="muted">{group.failedCount} failed</GlassBadge> : null}
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    <Link href={`/shopreel/video-creation/series/${group.key}`}>
+                      <GlassButton variant="primary">Open series</GlassButton>
+                    </Link>
+
                     {group.jobs.some((job) => job.status === "queued" || job.status === "failed") ? (
                       <GlassButton
                         variant="secondary"
-                        onClick={() => void Promise.all(
-                          group.jobs
-                            .filter((job) => job.status === "queued" || job.status === "failed")
-                            .map((job) => runJob(job.id))
-                        )}
+                        onClick={() =>
+                          void Promise.all(
+                            group.jobs
+                              .filter((job) => job.status === "queued" || job.status === "failed")
+                              .map((job) => runJob(job.id))
+                          )
+                        }
                       >
                         Run series
                       </GlassButton>
@@ -744,120 +746,23 @@ export default function VideoCreationStudio({
                     ) ? (
                       <GlassButton
                         variant="secondary"
-                        onClick={() => void Promise.all(
-                          group.jobs
-                            .filter(
-                              (job) =>
-                                job.provider === "openai" &&
-                                job.job_type === "video" &&
-                                job.status === "processing"
-                            )
-                            .map((job) => syncJob(job.id))
-                        )}
+                        onClick={() =>
+                          void Promise.all(
+                            group.jobs
+                              .filter(
+                                (job) =>
+                                  job.provider === "openai" &&
+                                  job.job_type === "video" &&
+                                  job.status === "processing"
+                              )
+                              .map((job) => syncJob(job.id))
+                          )
+                        }
                       >
                         Sync series
                       </GlassButton>
                     ) : null}
                   </div>
-                </div>
-
-                <div className="mt-4 grid gap-3">
-                  {group.jobs.map((job) => {
-                    const primaryAction = getMediaJobPrimaryAction(job);
-                    const canDerive = job.status === "completed" && !!job.output_asset_id;
-                    const info = getMediaJobSeriesInfo(job);
-
-                    return (
-                      <div
-                        key={job.id}
-                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
-                              {info.sceneOrder ? `${info.sceneOrder}. ` : ""}
-                              {info.sceneLabel ?? job.title ?? "Untitled media job"}
-                            </div>
-                            <div className={cx("text-sm", glassTheme.text.secondary)}>
-                              {formatLabel(job.job_type)} • {formatLabel(job.provider)}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
-                              <GlassBadge tone="default">{job.aspect_ratio}</GlassBadge>
-                              {job.style ? <GlassBadge tone="muted">{formatLabel(job.style)}</GlassBadge> : null}
-                              {job.visual_mode ? (
-                                <GlassBadge tone="muted">{formatLabel(job.visual_mode)}</GlassBadge>
-                              ) : null}
-                              {job.output_asset_id ? <GlassBadge tone="copper">Asset ready</GlassBadge> : null}
-                            </div>
-                            {job.error_text ? (
-                              <div className={cx("text-sm", glassTheme.text.copperSoft)}>
-                                {job.error_text}
-                              </div>
-                            ) : null}
-                          </div>
-
-                          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                            {(job.status === "queued" || job.status === "failed") ? (
-                              <GlassButton
-                                variant="secondary"
-                                onClick={() => void runJob(job.id)}
-                                disabled={runningJobId === job.id}
-                              >
-                                {runningJobId === job.id ? "Running..." : "Run"}
-                              </GlassButton>
-                            ) : null}
-
-                            {job.provider === "openai" && job.job_type === "video" && job.status === "processing" ? (
-                              <GlassButton
-                                variant="secondary"
-                                onClick={() => void syncJob(job.id)}
-                                disabled={syncingJobId === job.id}
-                              >
-                                {syncingJobId === job.id ? "Syncing..." : "Sync"}
-                              </GlassButton>
-                            ) : null}
-
-                            {canDerive ? (
-                              <GlassButton
-                                variant="secondary"
-                                onClick={() => void createStoryboard(job.id)}
-                                disabled={actionJobId === job.id}
-                              >
-                                {actionJobId === job.id ? "Working..." : "Storyboard"}
-                              </GlassButton>
-                            ) : null}
-
-                            {canDerive ? (
-                              <GlassButton
-                                variant="secondary"
-                                onClick={() => void createThumbnail(job.id)}
-                                disabled={actionJobId === job.id}
-                              >
-                                {actionJobId === job.id ? "Working..." : "Thumbnail"}
-                              </GlassButton>
-                            ) : null}
-
-                            {canDerive && !job.source_generation_id ? (
-                              <GlassButton
-                                variant="secondary"
-                                onClick={() => void convertToEditableStory(job.id)}
-                                disabled={convertingJobId === job.id}
-                              >
-                                {convertingJobId === job.id ? "Converting..." : "Editable Story"}
-                              </GlassButton>
-                            ) : null}
-
-                            {primaryAction.href && primaryAction.label ? (
-                              <Link href={primaryAction.href}>
-                                <GlassButton variant="ghost">{primaryAction.label}</GlassButton>
-                              </Link>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
             ))}
@@ -887,13 +792,9 @@ export default function VideoCreationStudio({
                         <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
                         <GlassBadge tone="default">{job.aspect_ratio}</GlassBadge>
                         {job.style ? <GlassBadge tone="muted">{formatLabel(job.style)}</GlassBadge> : null}
-                        {job.visual_mode ? (
-                          <GlassBadge tone="muted">{formatLabel(job.visual_mode)}</GlassBadge>
-                        ) : null}
+                        {job.visual_mode ? <GlassBadge tone="muted">{formatLabel(job.visual_mode)}</GlassBadge> : null}
                         {job.output_asset_id ? <GlassBadge tone="copper">Asset ready</GlassBadge> : null}
-                        {job.source_content_piece_id ? (
-                          <GlassBadge tone="copper">Content linked</GlassBadge>
-                        ) : null}
+                        {job.source_content_piece_id ? <GlassBadge tone="copper">Content linked</GlassBadge> : null}
                       </div>
                       {job.error_text ? (
                         <div className={cx("text-sm", glassTheme.text.copperSoft)}>

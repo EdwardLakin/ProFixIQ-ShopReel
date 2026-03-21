@@ -1,3 +1,5 @@
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { Database, Json } from "@/types/supabase";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
@@ -14,9 +16,12 @@ export type MediaJobSeriesInfo = {
   sceneLabel: string | null;
   sceneOrder: number | null;
   totalScenes: number | null;
+  sourceMode: "assets" | "ai" | null;
 };
 
-export function getMediaJobSeriesInfo(job: Pick<MediaJob, "id" | "settings" | "title">): MediaJobSeriesInfo {
+export function getMediaJobSeriesInfo(
+  job: Pick<MediaJob, "id" | "settings" | "title">
+): MediaJobSeriesInfo {
   const settings = asObject(job.settings);
 
   const seriesKey =
@@ -34,26 +39,34 @@ export function getMediaJobSeriesInfo(job: Pick<MediaJob, "id" | "settings" | "t
       ? settings.series_scene_label
       : null;
 
-  const sceneOrder =
+  const rawSceneOrder =
     typeof settings.series_scene_order === "number"
       ? settings.series_scene_order
       : typeof settings.series_scene_order === "string"
         ? Number(settings.series_scene_order)
         : null;
 
-  const totalScenes =
+  const rawTotalScenes =
     typeof settings.series_total_scenes === "number"
       ? settings.series_total_scenes
       : typeof settings.series_total_scenes === "string"
         ? Number(settings.series_total_scenes)
         : null;
 
+  const sourceMode =
+    settings.series_source_mode === "assets"
+      ? "assets"
+      : settings.series_source_mode === "ai"
+        ? "ai"
+        : null;
+
   return {
     seriesKey,
     seriesTitle,
     sceneLabel,
-    sceneOrder: Number.isFinite(sceneOrder ?? NaN) ? Number(sceneOrder) : null,
-    totalScenes: Number.isFinite(totalScenes ?? NaN) ? Number(totalScenes) : null,
+    sceneOrder: Number.isFinite(rawSceneOrder ?? NaN) ? Number(rawSceneOrder) : null,
+    totalScenes: Number.isFinite(rawTotalScenes ?? NaN) ? Number(rawTotalScenes) : null,
+    sourceMode,
   };
 }
 
@@ -61,6 +74,7 @@ export type MediaJobSeriesGroup = {
   key: string;
   title: string;
   totalScenes: number | null;
+  sourceMode: "assets" | "ai";
   jobs: MediaJob[];
   queuedCount: number;
   processingCount: number;
@@ -73,7 +87,6 @@ export function groupMediaJobsIntoSeries(jobs: MediaJob[]): MediaJobSeriesGroup[
 
   for (const job of jobs) {
     const info = getMediaJobSeriesInfo(job);
-
     if (!info.seriesKey) continue;
 
     const existing = map.get(info.seriesKey);
@@ -90,6 +103,7 @@ export function groupMediaJobsIntoSeries(jobs: MediaJob[]): MediaJobSeriesGroup[
       key: info.seriesKey,
       title: info.seriesTitle ?? job.title ?? "Untitled series",
       totalScenes: info.totalScenes,
+      sourceMode: info.sourceMode ?? "ai",
       jobs: [job],
       queuedCount: job.status === "queued" ? 1 : 0,
       processingCount: job.status === "processing" ? 1 : 0,
@@ -134,7 +148,8 @@ export function planManualSeriesScenes(input: {
   const base = input.prompt.trim();
 
   const continuity = [
-    "Maintain the same subject identity, visual world, environment family, camera language, lighting family, styling logic, and overall mood across all clips.",
+    "Use the same product, subject, location family, camera language, framing logic, color feel, and overall mood across all clips.",
+    "Do not change subject identity between scenes.",
     `Style: ${input.style}.`,
     `Visual mode: ${input.visualMode}.`,
     `Aspect ratio: ${input.aspectRatio}.`,
@@ -148,29 +163,52 @@ export function planManualSeriesScenes(input: {
       sceneOrder: 1,
       sceneLabel: "Hook",
       title: `${input.title} — Hook`,
-      prompt: `${base} Create the opening hook. Highly attention-grabbing. ${continuity}`,
+      prompt: `${base} Create the opening hook. Make it attention-grabbing and instantly clear. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 2,
       sceneLabel: "Problem",
       title: `${input.title} — Problem`,
-      prompt: `${base} Show the problem, pain point, tension, or contrast. ${continuity}`,
+      prompt: `${base} Show the pain point, friction, or contrast. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 3,
       sceneLabel: "Solution",
       title: `${input.title} — Solution`,
-      prompt: `${base} Show the solution, transformation, or better approach. ${continuity}`,
+      prompt: `${base} Show the solution, transformation, or improved approach. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 4,
       sceneLabel: "Outcome",
       title: `${input.title} — Outcome`,
-      prompt: `${base} Show the result, payoff, aspiration, or finished outcome. ${continuity}`,
+      prompt: `${base} Show the result, payoff, confidence, or finished outcome. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
   ];
+}
+
+export async function listMediaJobsForSeries(seriesKey: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data, error } = await supabase
+    .from("shopreel_media_generation_jobs")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? [])
+    .filter((job) => getMediaJobSeriesInfo(job).seriesKey === seriesKey)
+    .sort((a, b) => {
+      const aInfo = getMediaJobSeriesInfo(a);
+      const bInfo = getMediaJobSeriesInfo(b);
+      return (aInfo.sceneOrder ?? 999) - (bInfo.sceneOrder ?? 999);
+    });
 }

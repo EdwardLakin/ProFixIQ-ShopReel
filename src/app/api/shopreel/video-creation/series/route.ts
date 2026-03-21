@@ -12,6 +12,8 @@ type Body = {
   visualMode?: string;
   aspectRatio?: string;
   durationSeconds?: number | null;
+  inputAssetIds?: string[];
+  allowAiConcepts?: boolean;
 };
 
 export async function POST(req: Request) {
@@ -22,12 +24,21 @@ export async function POST(req: Request) {
 
     const title = body.title?.trim();
     const prompt = body.prompt?.trim();
+    const inputAssetIds = Array.isArray(body.inputAssetIds)
+      ? body.inputAssetIds.filter((id) => typeof id === "string" && id.length > 0)
+      : [];
 
     if (!title) throw new Error("Title is required");
     if (!prompt) throw new Error("Prompt is required");
 
+    const allowAiConcepts = body.allowAiConcepts === true;
+    if (inputAssetIds.length === 0 && !allowAiConcepts) {
+      throw new Error("Build Series now requires uploaded assets.");
+    }
+
     const durationSeconds = Number(body.durationSeconds ?? 8);
     const seriesKey = `series_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const sourceMode = inputAssetIds.length > 0 ? "assets" : "ai";
 
     const scenes = planManualSeriesScenes({
       title,
@@ -58,7 +69,7 @@ export async function POST(req: Request) {
           visual_mode: body.visualMode ?? "photoreal",
           aspect_ratio: body.aspectRatio ?? "9:16",
           duration_seconds: scene.durationSeconds,
-          input_asset_ids: [],
+          input_asset_ids: inputAssetIds,
           settings: {
             pipeline: "manual_series",
             series_key: seriesKey,
@@ -66,7 +77,9 @@ export async function POST(req: Request) {
             series_scene_label: scene.sceneLabel,
             series_scene_order: scene.sceneOrder,
             series_total_scenes: 4,
+            series_source_mode: sourceMode,
             continuity_mode: "locked",
+            allow_ai_concepts: allowAiConcepts,
           },
         })
         .select("*")
@@ -81,6 +94,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
+      seriesKey,
       count: createdJobs.length,
       jobs: createdJobs.map((job) => ({
         id: job.id,
