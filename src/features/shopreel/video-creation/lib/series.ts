@@ -1,43 +1,144 @@
-import type {
-  VideoCreationAspectRatio,
-  VideoCreationStyle,
-  VideoCreationVisualMode,
-} from "./types";
+import type { Database, Json } from "@/types/supabase";
 
-export type PlannedSeriesScene = {
+type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+
+function asObject(value: Json | null | undefined): Record<string, Json | undefined> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, Json | undefined>)
+    : {};
+}
+
+export type MediaJobSeriesInfo = {
+  seriesKey: string | null;
+  seriesTitle: string | null;
+  sceneLabel: string | null;
+  sceneOrder: number | null;
+  totalScenes: number | null;
+};
+
+export function getMediaJobSeriesInfo(job: Pick<MediaJob, "id" | "settings" | "title">): MediaJobSeriesInfo {
+  const settings = asObject(job.settings);
+
+  const seriesKey =
+    typeof settings.series_key === "string" && settings.series_key.trim().length > 0
+      ? settings.series_key
+      : null;
+
+  const seriesTitle =
+    typeof settings.series_title === "string" && settings.series_title.trim().length > 0
+      ? settings.series_title
+      : null;
+
+  const sceneLabel =
+    typeof settings.series_scene_label === "string" && settings.series_scene_label.trim().length > 0
+      ? settings.series_scene_label
+      : null;
+
+  const sceneOrder =
+    typeof settings.series_scene_order === "number"
+      ? settings.series_scene_order
+      : typeof settings.series_scene_order === "string"
+        ? Number(settings.series_scene_order)
+        : null;
+
+  const totalScenes =
+    typeof settings.series_total_scenes === "number"
+      ? settings.series_total_scenes
+      : typeof settings.series_total_scenes === "string"
+        ? Number(settings.series_total_scenes)
+        : null;
+
+  return {
+    seriesKey,
+    seriesTitle,
+    sceneLabel,
+    sceneOrder: Number.isFinite(sceneOrder ?? NaN) ? Number(sceneOrder) : null,
+    totalScenes: Number.isFinite(totalScenes ?? NaN) ? Number(totalScenes) : null,
+  };
+}
+
+export type MediaJobSeriesGroup = {
+  key: string;
+  title: string;
+  totalScenes: number | null;
+  jobs: MediaJob[];
+  queuedCount: number;
+  processingCount: number;
+  completedCount: number;
+  failedCount: number;
+};
+
+export function groupMediaJobsIntoSeries(jobs: MediaJob[]): MediaJobSeriesGroup[] {
+  const map = new Map<string, MediaJobSeriesGroup>();
+
+  for (const job of jobs) {
+    const info = getMediaJobSeriesInfo(job);
+
+    if (!info.seriesKey) continue;
+
+    const existing = map.get(info.seriesKey);
+    if (existing) {
+      existing.jobs.push(job);
+      if (job.status === "queued") existing.queuedCount += 1;
+      if (job.status === "processing") existing.processingCount += 1;
+      if (job.status === "completed") existing.completedCount += 1;
+      if (job.status === "failed") existing.failedCount += 1;
+      continue;
+    }
+
+    map.set(info.seriesKey, {
+      key: info.seriesKey,
+      title: info.seriesTitle ?? job.title ?? "Untitled series",
+      totalScenes: info.totalScenes,
+      jobs: [job],
+      queuedCount: job.status === "queued" ? 1 : 0,
+      processingCount: job.status === "processing" ? 1 : 0,
+      completedCount: job.status === "completed" ? 1 : 0,
+      failedCount: job.status === "failed" ? 1 : 0,
+    });
+  }
+
+  return Array.from(map.values())
+    .map((group) => ({
+      ...group,
+      jobs: [...group.jobs].sort((a, b) => {
+        const aInfo = getMediaJobSeriesInfo(a);
+        const bInfo = getMediaJobSeriesInfo(b);
+        return (aInfo.sceneOrder ?? 999) - (bInfo.sceneOrder ?? 999);
+      }),
+    }))
+    .sort((a, b) => {
+      const aDate = new Date(a.jobs[0]?.created_at ?? 0).getTime();
+      const bDate = new Date(b.jobs[0]?.created_at ?? 0).getTime();
+      return bDate - aDate;
+    });
+}
+
+export type PlannedManualSeriesScene = {
   sceneOrder: number;
+  sceneLabel: string;
   title: string;
   prompt: string;
   durationSeconds: number;
 };
 
-type SeriesPlanInput = {
+export function planManualSeriesScenes(input: {
   title: string;
   prompt: string;
   negativePrompt?: string;
-  style: VideoCreationStyle;
-  visualMode: VideoCreationVisualMode;
-  aspectRatio: VideoCreationAspectRatio;
+  style: string;
+  visualMode: string;
+  aspectRatio: string;
   durationSeconds: number;
-};
+}): PlannedManualSeriesScene[] {
+  const base = input.prompt.trim();
 
-const CONTINUITY_RULE =
-  "Maintain the same subject family, environment family, wardrobe logic, styling logic, camera language, lighting family, color world, and overall mood across every scene so the output feels like one cohesive series.";
-
-const SILENT_RULE =
-  "No spoken dialogue. No subtitles. No captions. No on-screen text. Visual storytelling only.";
-
-export function planManualSeriesScenes(input: SeriesPlanInput): PlannedSeriesScene[] {
-  const base = [
-    input.prompt.trim(),
+  const continuity = [
+    "Maintain the same subject identity, visual world, environment family, camera language, lighting family, styling logic, and overall mood across all clips.",
     `Style: ${input.style}.`,
     `Visual mode: ${input.visualMode}.`,
     `Aspect ratio: ${input.aspectRatio}.`,
-    CONTINUITY_RULE,
-    SILENT_RULE,
-    input.negativePrompt?.trim()
-      ? `Avoid: ${input.negativePrompt.trim()}.`
-      : "",
+    input.negativePrompt?.trim() ? `Avoid: ${input.negativePrompt.trim()}.` : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -45,26 +146,30 @@ export function planManualSeriesScenes(input: SeriesPlanInput): PlannedSeriesSce
   return [
     {
       sceneOrder: 1,
+      sceneLabel: "Hook",
       title: `${input.title} — Hook`,
-      prompt: `${base} Scene objective: create a powerful opening hook that stops the scroll immediately.`,
+      prompt: `${base} Create the opening hook. Highly attention-grabbing. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 2,
+      sceneLabel: "Problem",
       title: `${input.title} — Problem`,
-      prompt: `${base} Scene objective: clearly show the pain point, friction, old way, or struggle.`,
+      prompt: `${base} Show the problem, pain point, tension, or contrast. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 3,
+      sceneLabel: "Solution",
       title: `${input.title} — Solution`,
-      prompt: `${base} Scene objective: show the better way, transformation, system, process, or product in action.`,
+      prompt: `${base} Show the solution, transformation, or better approach. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 4,
+      sceneLabel: "Outcome",
       title: `${input.title} — Outcome`,
-      prompt: `${base} Scene objective: show the payoff, result, confidence, momentum, or final polished outcome.`,
+      prompt: `${base} Show the result, payoff, aspiration, or finished outcome. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
   ];

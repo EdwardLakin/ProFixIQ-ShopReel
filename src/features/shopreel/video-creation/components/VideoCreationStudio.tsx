@@ -25,6 +25,10 @@ import {
 } from "@/features/shopreel/video-creation/lib/types";
 import { VIDEO_CREATION_PRESETS } from "@/features/shopreel/video-creation/lib/presets";
 import { getMediaJobPrimaryAction } from "@/features/shopreel/video-creation/lib/editor";
+import {
+  getMediaJobSeriesInfo,
+  groupMediaJobsIntoSeries,
+} from "@/features/shopreel/video-creation/lib/series";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
 type SelectableAsset = Pick<
@@ -86,6 +90,16 @@ export default function VideoCreationStudio({
     if (jobType === "asset_assembly") return "assembly";
     return provider;
   }, [jobType, provider]);
+
+  const seriesGroups = useMemo(
+    () => groupMediaJobsIntoSeries(recentJobs),
+    [recentJobs]
+  );
+
+  const standaloneJobs = useMemo(
+    () => recentJobs.filter((job) => !getMediaJobSeriesInfo(job).seriesKey),
+    [recentJobs]
+  );
 
   function toggleAsset(assetId: string) {
     setSelectedAssetIds((current) =>
@@ -160,7 +174,7 @@ export default function VideoCreationStudio({
         throw new Error("Select at least one asset for asset assembly.");
       }
 
-      if (jobType === "build_series") {
+      if (jobType === "series") {
         const seriesRes = await fetch("/api/shopreel/video-creation/series", {
           method: "POST",
           headers: {
@@ -417,6 +431,32 @@ export default function VideoCreationStudio({
                 })}
               </div>
 
+              {jobType === "series" ? (
+                <div className="rounded-2xl border border-cyan-300/30 bg-cyan-400/[0.05] p-4">
+                  <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                    Series structure
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {["Hook", "Problem", "Solution", "Outcome"].map((label, index) => (
+                      <div
+                        key={label}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                      >
+                        <div className={cx("text-xs", glassTheme.text.muted)}>
+                          Scene {index + 1}
+                        </div>
+                        <div className={cx("mt-1 text-sm font-medium", glassTheme.text.primary)}>
+                          {label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={cx("mt-3 text-sm", glassTheme.text.secondary)}>
+                    This creates four coordinated clips from one idea using the same visual direction.
+                  </div>
+                </div>
+              ) : null}
+
               <div className="grid gap-4">
                 <label className="grid gap-2">
                   <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
@@ -607,7 +647,7 @@ export default function VideoCreationStudio({
                     ? "Use this for concept stills, thumbnails, scene art, and visual inserts."
                     : jobType === "video"
                       ? "Use this for one standalone clip."
-                      : jobType === "build_series"
+                      : jobType === "series"
                         ? "Use this for one idea that should become a 4-part hook, problem, solution, outcome sequence."
                         : "Use this to turn uploaded or existing assets into a polished vertical reel foundation."}
                 </div>
@@ -620,7 +660,7 @@ export default function VideoCreationStudio({
                 <GlassButton variant="primary" onClick={() => void submitJob()} disabled={submitting}>
                   {submitting
                     ? "Creating..."
-                    : jobType === "build_series"
+                    : jobType === "series"
                       ? "Create series"
                       : "Create media job"}
                 </GlassButton>
@@ -656,8 +696,173 @@ export default function VideoCreationStudio({
             No media generation jobs yet.
           </div>
         ) : (
-          <div className="grid gap-3">
-            {recentJobs.map((job) => {
+          <div className="grid gap-4">
+            {seriesGroups.map((group) => (
+              <div
+                key={group.key}
+                className={cx(
+                  "rounded-2xl border p-4",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft
+                )}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {group.title}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      Build Series • {group.jobs.length}
+                      {group.totalScenes ? ` / ${group.totalScenes}` : ""} clips • {timeAgoLabel(group.jobs[0]?.created_at ?? new Date().toISOString())}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <GlassBadge tone="default">{group.completedCount} completed</GlassBadge>
+                      <GlassBadge tone="default">{group.processingCount} processing</GlassBadge>
+                      <GlassBadge tone="default">{group.queuedCount} queued</GlassBadge>
+                      {group.failedCount > 0 ? (
+                        <GlassBadge tone="muted">{group.failedCount} failed</GlassBadge>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {group.jobs.some((job) => job.status === "queued" || job.status === "failed") ? (
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void Promise.all(
+                          group.jobs
+                            .filter((job) => job.status === "queued" || job.status === "failed")
+                            .map((job) => runJob(job.id))
+                        )}
+                      >
+                        Run series
+                      </GlassButton>
+                    ) : null}
+
+                    {group.jobs.some(
+                      (job) => job.provider === "openai" && job.job_type === "video" && job.status === "processing"
+                    ) ? (
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void Promise.all(
+                          group.jobs
+                            .filter(
+                              (job) =>
+                                job.provider === "openai" &&
+                                job.job_type === "video" &&
+                                job.status === "processing"
+                            )
+                            .map((job) => syncJob(job.id))
+                        )}
+                      >
+                        Sync series
+                      </GlassButton>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  {group.jobs.map((job) => {
+                    const primaryAction = getMediaJobPrimaryAction(job);
+                    const canDerive = job.status === "completed" && !!job.output_asset_id;
+                    const info = getMediaJobSeriesInfo(job);
+
+                    return (
+                      <div
+                        key={job.id}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
+                              {info.sceneOrder ? `${info.sceneOrder}. ` : ""}
+                              {info.sceneLabel ?? job.title ?? "Untitled media job"}
+                            </div>
+                            <div className={cx("text-sm", glassTheme.text.secondary)}>
+                              {formatLabel(job.job_type)} • {formatLabel(job.provider)}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
+                              <GlassBadge tone="default">{job.aspect_ratio}</GlassBadge>
+                              {job.style ? <GlassBadge tone="muted">{formatLabel(job.style)}</GlassBadge> : null}
+                              {job.visual_mode ? (
+                                <GlassBadge tone="muted">{formatLabel(job.visual_mode)}</GlassBadge>
+                              ) : null}
+                              {job.output_asset_id ? <GlassBadge tone="copper">Asset ready</GlassBadge> : null}
+                            </div>
+                            {job.error_text ? (
+                              <div className={cx("text-sm", glassTheme.text.copperSoft)}>
+                                {job.error_text}
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                            {(job.status === "queued" || job.status === "failed") ? (
+                              <GlassButton
+                                variant="secondary"
+                                onClick={() => void runJob(job.id)}
+                                disabled={runningJobId === job.id}
+                              >
+                                {runningJobId === job.id ? "Running..." : "Run"}
+                              </GlassButton>
+                            ) : null}
+
+                            {job.provider === "openai" && job.job_type === "video" && job.status === "processing" ? (
+                              <GlassButton
+                                variant="secondary"
+                                onClick={() => void syncJob(job.id)}
+                                disabled={syncingJobId === job.id}
+                              >
+                                {syncingJobId === job.id ? "Syncing..." : "Sync"}
+                              </GlassButton>
+                            ) : null}
+
+                            {canDerive ? (
+                              <GlassButton
+                                variant="secondary"
+                                onClick={() => void createStoryboard(job.id)}
+                                disabled={actionJobId === job.id}
+                              >
+                                {actionJobId === job.id ? "Working..." : "Storyboard"}
+                              </GlassButton>
+                            ) : null}
+
+                            {canDerive ? (
+                              <GlassButton
+                                variant="secondary"
+                                onClick={() => void createThumbnail(job.id)}
+                                disabled={actionJobId === job.id}
+                              >
+                                {actionJobId === job.id ? "Working..." : "Thumbnail"}
+                              </GlassButton>
+                            ) : null}
+
+                            {canDerive && !job.source_generation_id ? (
+                              <GlassButton
+                                variant="secondary"
+                                onClick={() => void convertToEditableStory(job.id)}
+                                disabled={convertingJobId === job.id}
+                              >
+                                {convertingJobId === job.id ? "Converting..." : "Editable Story"}
+                              </GlassButton>
+                            ) : null}
+
+                            {primaryAction.href && primaryAction.label ? (
+                              <Link href={primaryAction.href}>
+                                <GlassButton variant="ghost">{primaryAction.label}</GlassButton>
+                              </Link>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {standaloneJobs.map((job) => {
               const primaryAction = getMediaJobPrimaryAction(job);
               const canDerive = job.status === "completed" && !!job.output_asset_id;
 

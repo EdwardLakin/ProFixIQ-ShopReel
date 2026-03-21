@@ -23,22 +23,20 @@ export async function POST(req: Request) {
     const title = body.title?.trim();
     const prompt = body.prompt?.trim();
 
-    if (!title) {
-      throw new Error("Title is required");
-    }
+    if (!title) throw new Error("Title is required");
+    if (!prompt) throw new Error("Prompt is required");
 
-    if (!prompt) {
-      throw new Error("Prompt is required");
-    }
+    const durationSeconds = Number(body.durationSeconds ?? 8);
+    const seriesKey = `series_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     const scenes = planManualSeriesScenes({
       title,
       prompt,
       negativePrompt: body.negativePrompt?.trim() ?? "",
-      style: (body.style as any) ?? "cinematic",
-      visualMode: (body.visualMode as any) ?? "photoreal",
-      aspectRatio: (body.aspectRatio as any) ?? "9:16",
-      durationSeconds: Number(body.durationSeconds ?? 8),
+      style: body.style ?? "cinematic",
+      visualMode: body.visualMode ?? "photoreal",
+      aspectRatio: body.aspectRatio ?? "9:16",
+      durationSeconds,
     });
 
     const createdJobs = [];
@@ -56,14 +54,16 @@ export async function POST(req: Request) {
           prompt: scene.prompt,
           prompt_enhanced: scene.prompt,
           negative_prompt: body.negativePrompt?.trim() ?? "",
-          style: (body.style as any) ?? "cinematic",
-          visual_mode: (body.visualMode as any) ?? "photoreal",
-          aspect_ratio: (body.aspectRatio as any) ?? "9:16",
+          style: body.style ?? "cinematic",
+          visual_mode: body.visualMode ?? "photoreal",
+          aspect_ratio: body.aspectRatio ?? "9:16",
           duration_seconds: scene.durationSeconds,
           input_asset_ids: [],
           settings: {
             pipeline: "manual_series",
+            series_key: seriesKey,
             series_title: title,
+            series_scene_label: scene.sceneLabel,
             series_scene_order: scene.sceneOrder,
             series_total_scenes: 4,
             continuity_mode: "locked",
