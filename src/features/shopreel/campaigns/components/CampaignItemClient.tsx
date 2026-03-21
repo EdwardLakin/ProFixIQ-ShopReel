@@ -6,6 +6,15 @@ import { useMemo, useState } from "react";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import {
+  VIDEO_CREATION_ASPECT_RATIOS,
+  VIDEO_CREATION_STYLES,
+  VIDEO_CREATION_VISUAL_MODES,
+  formatLabel,
+  type VideoCreationAspectRatio,
+  type VideoCreationStyle,
+  type VideoCreationVisualMode,
+} from "@/features/shopreel/video-creation/lib/types";
 
 type SceneRow = {
   id: string;
@@ -39,7 +48,72 @@ type ItemRow = {
   content_piece_id: string | null;
   metadata?: unknown;
   final_output_asset_id?: string | null;
+  duration_seconds?: number | null;
 };
+
+type CreativeProfile = {
+  style: VideoCreationStyle;
+  visualMode: VideoCreationVisualMode;
+  aspectRatio: VideoCreationAspectRatio;
+  durationSeconds: number;
+  cameraStyle: string;
+  lighting: string;
+  energy: string;
+};
+
+const CAMERA_STYLE_OPTIONS = [
+  "handheld_close",
+  "static_clean",
+  "slow_push_in",
+  "tracking_motion",
+  "mixed_social",
+] as const;
+
+const LIGHTING_OPTIONS = [
+  "soft_natural",
+  "bright_clean",
+  "high_contrast",
+  "moody_premium",
+  "studio_polished",
+] as const;
+
+const ENERGY_OPTIONS = [
+  "confident_modern",
+  "fast_social",
+  "premium_calm",
+  "bold_direct",
+  "relatable_casual",
+] as const;
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function getCreativeProfile(item: ItemRow): CreativeProfile {
+  const metadata = asObject(item.metadata);
+  const creative = asObject(metadata.creative_profile);
+
+  return {
+    style:
+      (typeof creative.style === "string" ? creative.style : item.style ?? "cinematic") as VideoCreationStyle,
+    visualMode:
+      (typeof creative.visualMode === "string" ? creative.visualMode : item.visual_mode ?? "photoreal") as VideoCreationVisualMode,
+    aspectRatio:
+      (typeof creative.aspectRatio === "string" ? creative.aspectRatio : item.aspect_ratio ?? "9:16") as VideoCreationAspectRatio,
+    durationSeconds:
+      typeof creative.durationSeconds === "number"
+        ? creative.durationSeconds
+        : Number(item.duration_seconds ?? 8),
+    cameraStyle:
+      typeof creative.cameraStyle === "string" ? creative.cameraStyle : "handheld_close",
+    lighting:
+      typeof creative.lighting === "string" ? creative.lighting : "soft_natural",
+    energy:
+      typeof creative.energy === "string" ? creative.energy : "confident_modern",
+  };
+}
 
 function displayStatus(scene: SceneRow) {
   if (scene.media_job?.status) return scene.media_job.status;
@@ -100,10 +174,20 @@ export default function CampaignItemClient({
   scenes: SceneRow[];
 }) {
   const router = useRouter();
+  const initialCreative = getCreativeProfile(item);
+
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const [style, setStyle] = useState<VideoCreationStyle>(initialCreative.style);
+  const [visualMode, setVisualMode] = useState<VideoCreationVisualMode>(initialCreative.visualMode);
+  const [aspectRatio, setAspectRatio] = useState<VideoCreationAspectRatio>(initialCreative.aspectRatio);
+  const [durationSeconds, setDurationSeconds] = useState<number>(initialCreative.durationSeconds);
+  const [cameraStyle, setCameraStyle] = useState<string>(initialCreative.cameraStyle);
+  const [lighting, setLighting] = useState<string>(initialCreative.lighting);
+  const [energy, setEnergy] = useState<string>(initialCreative.energy);
 
   async function handleResetItem() {
     const confirmed = window.confirm(
@@ -170,6 +254,58 @@ export default function CampaignItemClient({
     }
   }
 
+  async function saveCreativeProfile(rebuildMediaJobs = false) {
+    try {
+      setBusy(rebuildMediaJobs ? "save-rebuild-creative" : "save-creative");
+      setError(null);
+      setStatusMessage(
+        rebuildMediaJobs
+          ? "Saving creative direction and rebuilding scene jobs..."
+          : "Saving creative direction and refreshing scenes..."
+      );
+
+      const res = await fetch(
+        `/api/shopreel/campaigns/items/${item.id}/creative-profile`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            style,
+            visualMode,
+            aspectRatio,
+            durationSeconds,
+            cameraStyle,
+            lighting,
+            energy,
+            rebuildMediaJobs,
+          }),
+        }
+      );
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || json?.ok === false) {
+        throw new Error(json?.error ?? "Failed to save creative direction");
+      }
+
+      setStatusMessage(
+        rebuildMediaJobs
+          ? "Creative direction saved and scene jobs rebuilt."
+          : "Creative direction saved and scene prompts refreshed."
+      );
+      router.refresh();
+      window.setTimeout(() => {
+        setStatusMessage(null);
+      }, 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save creative direction");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const totalScenes = scenes.length;
   const completedScenes = scenes.filter(
     (scene) => displayStatus(scene) === "completed"
@@ -220,14 +356,163 @@ export default function CampaignItemClient({
         <div className="flex flex-wrap gap-2">
           <GlassBadge tone="default">{item.status}</GlassBadge>
           <GlassBadge tone="muted">{item.angle}</GlassBadge>
-          <GlassBadge tone="muted">{item.aspect_ratio}</GlassBadge>
-          {item.style ? <GlassBadge tone="muted">{item.style}</GlassBadge> : null}
-          {item.visual_mode ? (
-            <GlassBadge tone="muted">{item.visual_mode}</GlassBadge>
-          ) : null}
+          <GlassBadge tone="muted">{aspectRatio}</GlassBadge>
+          <GlassBadge tone="muted">{formatLabel(style)}</GlassBadge>
+          <GlassBadge tone="muted">{formatLabel(visualMode)}</GlassBadge>
+          <GlassBadge tone="muted">{durationSeconds}s</GlassBadge>
           {item.final_output_asset_id ? (
             <GlassBadge tone="copper">Final video ready</GlassBadge>
           ) : null}
+        </div>
+      </GlassCard>
+
+      <GlassCard
+        label="Creative Direction"
+        title="Lock the campaign look"
+        description="Choose the visual direction once, then keep all scenes inside the same creative world."
+        strong
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">
+              Style
+            </span>
+            <select
+              value={style}
+              onChange={(e) => setStyle(e.target.value as VideoCreationStyle)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            >
+              {VIDEO_CREATION_STYLES.map((item) => (
+                <option key={item} value={item}>
+                  {formatLabel(item)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">
+              Visual mode
+            </span>
+            <select
+              value={visualMode}
+              onChange={(e) => setVisualMode(e.target.value as VideoCreationVisualMode)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            >
+              {VIDEO_CREATION_VISUAL_MODES.map((item) => (
+                <option key={item} value={item}>
+                  {formatLabel(item)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">
+              Aspect ratio
+            </span>
+            <select
+              value={aspectRatio}
+              onChange={(e) => setAspectRatio(e.target.value as VideoCreationAspectRatio)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            >
+              {VIDEO_CREATION_ASPECT_RATIOS.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">
+              Duration (seconds)
+            </span>
+            <input
+              type="number"
+              min={3}
+              max={20}
+              value={durationSeconds}
+              onChange={(e) => setDurationSeconds(Number(e.target.value))}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">
+              Camera style
+            </span>
+            <select
+              value={cameraStyle}
+              onChange={(e) => setCameraStyle(e.target.value)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            >
+              {CAMERA_STYLE_OPTIONS.map((item) => (
+                <option key={item} value={item}>
+                  {formatLabel(item)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">
+              Lighting
+            </span>
+            <select
+              value={lighting}
+              onChange={(e) => setLighting(e.target.value)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            >
+              {LIGHTING_OPTIONS.map((item) => (
+                <option key={item} value={item}>
+                  {formatLabel(item)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2 md:col-span-2 xl:col-span-1">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">
+              Energy / pacing
+            </span>
+            <select
+              value={energy}
+              onChange={(e) => setEnergy(e.target.value)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            >
+              {ENERGY_OPTIONS.map((item) => (
+                <option key={item} value={item}>
+                  {formatLabel(item)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <GlassButton
+            variant="secondary"
+            onClick={() => void saveCreativeProfile(false)}
+            disabled={anyBusy}
+          >
+            {busy === "save-creative" ? "Saving..." : "Save creative direction"}
+          </GlassButton>
+
+          <GlassButton
+            variant="primary"
+            onClick={() => void saveCreativeProfile(true)}
+            disabled={anyBusy}
+          >
+            {busy === "save-rebuild-creative"
+              ? "Working..."
+              : "Save + rebuild scene jobs"}
+          </GlassButton>
+        </div>
+
+        <div className="mt-3 text-sm text-white/60">
+          These settings are user-controlled and will be applied across all scenes
+          so the full campaign feels cohesive.
         </div>
       </GlassCard>
 

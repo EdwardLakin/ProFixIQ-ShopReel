@@ -8,40 +8,118 @@ type PlannedScene = {
   durationSeconds: number;
 };
 
+type CreativeProfile = {
+  style?: string | null;
+  visualMode?: string | null;
+  aspectRatio?: string | null;
+  durationSeconds?: number | null;
+  cameraStyle?: string | null;
+  lighting?: string | null;
+  energy?: string | null;
+};
+
 const SILENT_VISUAL_RULE =
   "No spoken dialogue. No voiceover. No subtitles. No captions. No on-screen text. Visual storytelling only.";
+
+const CONTINUITY_RULE =
+  "Maintain strong campaign continuity across every scene. Use the same visual world, same subject family, same environment family, same styling logic, same lighting family, same camera language, and same overall mood so all scenes feel like one cohesive ad campaign.";
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function getCreativeProfileFromMetadata(metadata: unknown): CreativeProfile {
+  const root = asObject(metadata);
+  const creative = asObject(root.creative_profile);
+
+  return {
+    style:
+      typeof creative.style === "string" ? creative.style : null,
+    visualMode:
+      typeof creative.visualMode === "string" ? creative.visualMode : null,
+    aspectRatio:
+      typeof creative.aspectRatio === "string" ? creative.aspectRatio : null,
+    durationSeconds:
+      typeof creative.durationSeconds === "number"
+        ? creative.durationSeconds
+        : null,
+    cameraStyle:
+      typeof creative.cameraStyle === "string" ? creative.cameraStyle : null,
+    lighting:
+      typeof creative.lighting === "string" ? creative.lighting : null,
+    energy:
+      typeof creative.energy === "string" ? creative.energy : null,
+  };
+}
+
+function buildCreativeDirection(profile: CreativeProfile) {
+  const parts = [
+    profile.style ? `Overall style: ${profile.style}.` : "",
+    profile.visualMode ? `Visual mode: ${profile.visualMode}.` : "",
+    profile.aspectRatio ? `Aspect ratio: ${profile.aspectRatio}.` : "",
+    profile.cameraStyle ? `Camera language: ${profile.cameraStyle}.` : "",
+    profile.lighting ? `Lighting: ${profile.lighting}.` : "",
+    profile.energy ? `Energy and pacing: ${profile.energy}.` : "",
+    "Use the same subject type and same environment family throughout the full campaign.",
+    "Keep the scenes visually matched, premium, and clearly part of the same ad.",
+  ].filter(Boolean);
+
+  return parts.join(" ");
+}
 
 export function planScenesForCampaignItem(args: {
   itemTitle: string;
   angle: string;
   prompt: string;
+  creativeProfile?: CreativeProfile;
+  fallbackDurationSeconds?: number | null;
 }): PlannedScene[] {
-  const base = `${args.prompt.trim()} ${SILENT_VISUAL_RULE}`.trim();
+  const creativeProfile = args.creativeProfile ?? {};
+  const durationSeconds = Math.max(
+    3,
+    Number(
+      creativeProfile.durationSeconds ??
+        args.fallbackDurationSeconds ??
+        8
+    )
+  );
+
+  const base = [
+    args.prompt.trim(),
+    CONTINUITY_RULE,
+    buildCreativeDirection(creativeProfile),
+    SILENT_VISUAL_RULE,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
   return [
     {
       sceneOrder: 1,
       title: `${args.itemTitle} — Hook`,
-      prompt: `${base} Scene objective: create a powerful opening hook in the first seconds. Make it highly visual, attention-grabbing, and premium.`,
-      durationSeconds: 8,
+      prompt: `${base} Scene objective: create a powerful opening hook in the first seconds. Make it highly visual, premium, and attention-grabbing while matching the same creative direction as the rest of the campaign.`,
+      durationSeconds,
     },
     {
       sceneOrder: 2,
       title: `${args.itemTitle} — Problem`,
-      prompt: `${base} Scene objective: show the old way, pain point, confusion, or frustration clearly and visually.`,
-      durationSeconds: 8,
+      prompt: `${base} Scene objective: show the old way, pain point, confusion, friction, or frustration clearly and visually while preserving the same visual identity as scene one.`,
+      durationSeconds,
     },
     {
       sceneOrder: 3,
       title: `${args.itemTitle} — Solution`,
-      prompt: `${base} Scene objective: show the better way, transformation, modern workflow, or system improvement.`,
-      durationSeconds: 8,
+      prompt: `${base} Scene objective: show the better way, transformation, modern workflow, product improvement, or system improvement while preserving the same visual identity as the earlier scenes.`,
+      durationSeconds,
     },
     {
       sceneOrder: 4,
       title: `${args.itemTitle} — Outcome`,
-      prompt: `${base} Scene objective: show the payoff, outcome, confidence, growth, or polished end result.`,
-      durationSeconds: 8,
+      prompt: `${base} Scene objective: show the payoff, result, confidence, momentum, growth, or polished end state while preserving the same visual identity as the full campaign.`,
+      durationSeconds,
     },
   ];
 }
@@ -61,10 +139,14 @@ export async function ensureScenesForCampaignItem(campaignItemId: string) {
     throw new Error(itemError?.message ?? "Campaign item not found");
   }
 
+  const creativeProfile = getCreativeProfileFromMetadata(item.metadata);
+
   const plannedScenes = planScenesForCampaignItem({
     itemTitle: item.title,
     angle: item.angle,
     prompt: item.prompt,
+    creativeProfile,
+    fallbackDurationSeconds: item.duration_seconds,
   });
 
   const { data: existingScenes, error: scenesError } = await supabase
@@ -172,6 +254,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
     throw new Error(itemError?.message ?? "Campaign item not found");
   }
 
+  const creativeProfile = getCreativeProfileFromMetadata(item.metadata);
   const scenes = await ensureScenesForCampaignItem(campaignItemId);
   const createdJobIds: string[] = [];
 
@@ -235,7 +318,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
         style: item.style,
         visual_mode: item.visual_mode,
         aspect_ratio: item.aspect_ratio,
-        duration_seconds: scene.duration_seconds ?? 8,
+        duration_seconds: scene.duration_seconds ?? item.duration_seconds ?? 8,
         input_asset_ids: [],
         settings: {
           campaign_item_id: item.id,
@@ -245,6 +328,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
           assembly_mode: "multi_scene",
           pipeline: "sora_scene",
           silent_visuals_only: true,
+          creative_profile: creativeProfile,
         },
       })
       .select("*")
