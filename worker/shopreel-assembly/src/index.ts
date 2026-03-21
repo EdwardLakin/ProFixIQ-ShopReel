@@ -1,6 +1,7 @@
-import { runWorkerLoop } from "./jobs/processPremiumAssemblyJob.js";
+import 'dotenv/config';
 
-runWorkerLoop().catch((error) => {
-  console.error("[assembly-worker] fatal", error);
-  process.exit(1);
-});
+console.log('[assembly-worker] started');
+
+setInterval(() => {
+  console.log('[assembly-worker] heartbeat');
+}, 5000);
