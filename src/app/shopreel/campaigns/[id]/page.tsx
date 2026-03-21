@@ -69,9 +69,6 @@ export default async function ShopReelCampaignDetailPage(
       : 0;
 
   const totalScenes = (scenes ?? []).length;
-  const linkedScenes = (scenes ?? []).filter(
-    (scene) => !!scene.media_job_id && scene.status === "draft"
-  ).length;
   const queuedScenes = (scenes ?? []).filter((scene) => scene.status === "queued").length;
   const processingScenes = (scenes ?? []).filter(
     (scene) => scene.status === "processing"
@@ -80,21 +77,6 @@ export default async function ShopReelCampaignDetailPage(
     (scene) => scene.status === "completed" || !!scene.output_asset_id
   ).length;
   const failedScenes = (scenes ?? []).filter((scene) => scene.status === "failed").length;
-
-  const { data: analytics } = await supabase
-    .from("shopreel_campaign_analytics")
-    .select("*")
-    .eq("campaign_id", campaign.id)
-    .eq("shop_id", shopId)
-    .maybeSingle();
-
-  const { data: learnings } = await supabase
-    .from("shopreel_campaign_learnings")
-    .select("*")
-    .eq("campaign_id", campaign.id)
-    .eq("shop_id", shopId)
-    .order("created_at", { ascending: false })
-    .limit(20);
 
   return (
     <CampaignFlowShell>
@@ -195,14 +177,11 @@ export default async function ShopReelCampaignDetailPage(
         <CampaignDetailClient
           campaign={campaign}
           items={items}
-          analytics={analytics}
-          learnings={learnings ?? []}
           progress={{
             totalItems,
             completedItems,
             progressPercent,
             totalScenes,
-            linkedScenes,
             queuedScenes,
             processingScenes,
             completedScenes,
