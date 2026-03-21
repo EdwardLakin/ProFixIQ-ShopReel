@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       content_analytics_events: {
@@ -1714,6 +1739,108 @@ export type Database = {
           },
         ]
       }
+      shopreel_premium_assembly_jobs: {
+        Row: {
+          attempt_count: number
+          campaign_id: string
+          campaign_item_id: string
+          completed_at: string | null
+          created_at: string
+          error_text: string | null
+          final_output_asset_id: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          result_payload: Json
+          run_after: string
+          settings: Json
+          shop_id: string
+          started_at: string | null
+          status: string
+          stitched_asset_id: string | null
+          updated_at: string
+          voiceover_asset_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          campaign_id: string
+          campaign_item_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_text?: string | null
+          final_output_asset_id?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          result_payload?: Json
+          run_after?: string
+          settings?: Json
+          shop_id: string
+          started_at?: string | null
+          status?: string
+          stitched_asset_id?: string | null
+          updated_at?: string
+          voiceover_asset_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          campaign_id?: string
+          campaign_item_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_text?: string | null
+          final_output_asset_id?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          result_payload?: Json
+          run_after?: string
+          settings?: Json
+          shop_id?: string
+          started_at?: string | null
+          status?: string
+          stitched_asset_id?: string | null
+          updated_at?: string
+          voiceover_asset_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_premium_assembly_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_premium_assembly_jobs_campaign_item_id_fkey"
+            columns: ["campaign_item_id"]
+            isOneToOne: true
+            referencedRelation: "shopreel_campaign_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_premium_assembly_jobs_final_output_asset_id_fkey"
+            columns: ["final_output_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_premium_assembly_jobs_stitched_asset_id_fkey"
+            columns: ["stitched_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_premium_assembly_jobs_voiceover_asset_id_fkey"
+            columns: ["voiceover_asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopreel_publish_jobs: {
         Row: {
           attempt_count: number
@@ -2727,6 +2854,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       content_asset_type: [
