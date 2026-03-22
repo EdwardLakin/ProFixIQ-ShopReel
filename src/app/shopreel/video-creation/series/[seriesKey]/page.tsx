@@ -1,17 +1,18 @@
 import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
-import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
-import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import {
-  getMediaJobSeriesInfo,
-  groupMediaJobsIntoSeries,
-} from "@/features/shopreel/video-creation/lib/seriesClient";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { getMediaJobPrimaryAction } from "@/features/shopreel/video-creation/lib/editor";
+import { getMediaJobSeriesInfo } from "@/features/shopreel/video-creation/lib/series";
+import { listMediaJobsForSeriesKey } from "@/features/shopreel/video-creation/lib/seriesServer";
 
-type Params = Promise<{ seriesKey: string }>;
+function statusTone(status: string): "default" | "copper" | "muted" {
+  if (status === "completed") return "copper";
+  if (status === "failed") return "muted";
+  return "default";
+}
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -23,150 +24,152 @@ function timeAgoLabel(value: string) {
 
   if (diffMinutes < 60) return `${Math.max(diffMinutes, 1)}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago}`;
+  if (diffDays < 7) return `${diffDays}d ago`;
 
   return new Date(value).toLocaleDateString();
 }
 
-function statusTone(status: string): "default" | "copper" | "muted" {
-  if (status === "completed") return "copper";
-  if (status === "failed") return "muted";
-  return "default";
-}
-
-export default async function SeriesDetailPage({
+export default async function ShopReelSeriesDetailPage({
   params,
 }: {
-  params: Params;
+  params: Promise<{ seriesKey: string }>;
 }) {
   const { seriesKey } = await params;
-  const supabase = createAdminClient();
-  const shopId = await getCurrentShopId();
+  const jobs = await listMediaJobsForSeriesKey(seriesKey);
 
-  const { data, error } = await supabase
-    .from("shopreel_media_generation_jobs")
-    .select("*")
-    .eq("shop_id", shopId)
-    .order("created_at", { ascending: false })
-    .limit(250);
+  const title =
+    jobs.length > 0
+      ? getMediaJobSeriesInfo(jobs[0]).seriesTitle ?? jobs[0].title ?? "Series"
+      : "Series";
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const groups = groupMediaJobsIntoSeries(data ?? []);
-  const group = groups.find((item) => item.key === seriesKey);
-
-  if (!group) {
-    return (
-      <GlassShell
-        eyebrow="ShopReel"
-        title="Series not found"
-        subtitle="That grouped series could not be found."
-      >
-        <GlassCard
-          label="Missing"
-          title="Series not found"
-          description="Go back to Video Creation and open another series."
-          strong
-        >
-          <Link href="/shopreel/video-creation">
-            <GlassButton variant="primary">Back to Video Creation</GlassButton>
-          </Link>
-        </GlassCard>
-      </GlassShell>
-    );
-  }
+  const totalScenes = jobs.length;
+  const completedCount = jobs.filter((job) => job.status === "completed").length;
+  const processingCount = jobs.filter((job) => job.status === "processing").length;
+  const queuedCount = jobs.filter((job) => job.status === "queued").length;
+  const failedCount = jobs.filter((job) => job.status === "failed").length;
 
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title={group.title}
-      subtitle="Review the full grouped series in one place."
+      title={title}
+      subtitle="Series detail view for grouped clips, previews, and next actions."
     >
       <div className="grid gap-5">
         <GlassCard
-          label="Series"
-          title={group.title}
-          description={`Created ${timeAgoLabel(group.jobs[0]?.created_at ?? new Date().toISOString())}`}
+          label="Overview"
+          title="Series Status"
+          description="Review the full sequence in one place."
           strong
         >
           <div className="flex flex-wrap gap-2">
-            <GlassBadge tone="default">{group.completedCount} completed</GlassBadge>
-            <GlassBadge tone="default">{group.processingCount} processing</GlassBadge>
-            <GlassBadge tone="default">{group.queuedCount} queued</GlassBadge>
-            {group.failedCount > 0 ? (
-              <GlassBadge tone="muted">{group.failedCount} failed</GlassBadge>
-            ) : null}
-            <GlassBadge tone="muted">
-              {group.sourceMode === "assets" ? "Uploaded media" : "AI concepts"}
-            </GlassBadge>
+            <GlassBadge tone="default">{totalScenes} clips</GlassBadge>
+            <GlassBadge tone="copper">{completedCount} completed</GlassBadge>
+            <GlassBadge tone="default">{processingCount} processing</GlassBadge>
+            <GlassBadge tone="default">{queuedCount} queued</GlassBadge>
+            {failedCount > 0 ? <GlassBadge tone="muted">{failedCount} failed</GlassBadge> : null}
           </div>
 
           <div className="mt-4">
             <Link href="/shopreel/video-creation">
-              <GlassButton variant="secondary">Back to Video Creation</GlassButton>
+              <GlassButton variant="ghost">Back to Video Creation</GlassButton>
             </Link>
           </div>
         </GlassCard>
 
         <GlassCard
           label="Clips"
-          title="Series clips"
-          description="Each clip stays individually reviewable while still grouped as one series."
+          title="Series Clips"
+          description="Each clip remains individually editable and reviewable."
           strong
         >
-          <div className="grid gap-4">
-            {group.jobs.map((job) => {
-              const info = getMediaJobSeriesInfo(job);
-              const primaryAction = getMediaJobPrimaryAction(job);
+          {jobs.length === 0 ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.secondary
+              )}
+            >
+              No clips found for this series.
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {jobs.map((job) => {
+                const info = getMediaJobSeriesInfo(job);
+                const primaryAction = getMediaJobPrimaryAction(job);
 
-              return (
-                <div
-                  key={job.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-2">
-                      <div className="text-base font-medium text-white">
-                        {info.sceneOrder ? `${info.sceneOrder}. ` : ""}
-                        {info.sceneLabel ?? job.title ?? "Untitled clip"}
+                return (
+                  <div
+                    key={job.id}
+                    className={cx(
+                      "rounded-2xl border p-4",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft
+                    )}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                          {info.sceneOrder ? `${info.sceneOrder}. ` : ""}
+                          {info.sceneLabel ?? job.title ?? "Untitled clip"}
+                        </div>
+
+                        <div className={cx("text-sm", glassTheme.text.secondary)}>
+                          {job.provider} • {job.job_type} • {timeAgoLabel(job.created_at)}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
+                          <GlassBadge tone="default">{job.aspect_ratio}</GlassBadge>
+                          {job.style ? <GlassBadge tone="muted">{job.style}</GlassBadge> : null}
+                          {job.visual_mode ? <GlassBadge tone="muted">{job.visual_mode}</GlassBadge> : null}
+                          {job.output_asset_id ? <GlassBadge tone="copper">Asset ready</GlassBadge> : null}
+                        </div>
+
+                        {job.error_text ? (
+                          <div className={cx("text-sm", glassTheme.text.copperSoft)}>
+                            {job.error_text}
+                          </div>
+                        ) : null}
+
+                        {job.prompt ? (
+                          <div className={cx("text-sm leading-6", glassTheme.text.secondary)}>
+                            {job.prompt}
+                          </div>
+                        ) : null}
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
-                        <GlassBadge tone="muted">{job.aspect_ratio}</GlassBadge>
-                        {job.style ? <GlassBadge tone="muted">{job.style}</GlassBadge> : null}
-                        {job.visual_mode ? <GlassBadge tone="muted">{job.visual_mode}</GlassBadge> : null}
-                        {job.output_asset_id ? <GlassBadge tone="copper">Asset ready</GlassBadge> : null}
+                      <div className="flex flex-col gap-3 sm:items-end">
+                        {job.preview_url ? (
+                          <video
+                            src={job.preview_url}
+                            controls
+                            playsInline
+                            className="max-h-56 rounded-2xl border border-white/10"
+                          />
+                        ) : null}
+
+                        <div className="flex flex-wrap gap-2">
+                          {primaryAction.href && primaryAction.label ? (
+                            <Link href={primaryAction.href}>
+                              <GlassButton variant="secondary">{primaryAction.label}</GlassButton>
+                            </Link>
+                          ) : null}
+
+                          {job.output_asset_id && job.source_content_piece_id ? (
+                            <Link href={`/shopreel/content/${job.source_content_piece_id}`}>
+                              <GlassButton variant="ghost">Open content</GlassButton>
+                            </Link>
+                          ) : null}
+                        </div>
                       </div>
-
-                      {job.error_text ? (
-                        <div className="text-sm text-red-300">{job.error_text}</div>
-                      ) : null}
-
-                      {job.preview_url ? (
-                        <video
-                          src={job.preview_url}
-                          controls
-                          playsInline
-                          className="max-h-72 rounded-2xl border border-white/10"
-                        />
-                      ) : null}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {primaryAction.href && primaryAction.label ? (
-                        <Link href={primaryAction.href}>
-                          <GlassButton variant="ghost">{primaryAction.label}</GlassButton>
-                        </Link>
-                      ) : null}
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </GlassCard>
       </div>
     </GlassShell>
