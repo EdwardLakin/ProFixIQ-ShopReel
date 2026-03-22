@@ -1,5 +1,3 @@
-import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { Database, Json } from "@/types/supabase";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
@@ -19,9 +17,7 @@ export type MediaJobSeriesInfo = {
   sourceMode: "assets" | "ai" | null;
 };
 
-export function getMediaJobSeriesInfo(
-  job: Pick<MediaJob, "id" | "settings" | "title">
-): MediaJobSeriesInfo {
+export function getMediaJobSeriesInfo(job: Pick<MediaJob, "id" | "settings" | "title">): MediaJobSeriesInfo {
   const settings = asObject(job.settings);
 
   const seriesKey =
@@ -74,12 +70,12 @@ export type MediaJobSeriesGroup = {
   key: string;
   title: string;
   totalScenes: number | null;
-  sourceMode: "assets" | "ai";
   jobs: MediaJob[];
   queuedCount: number;
   processingCount: number;
   completedCount: number;
   failedCount: number;
+  sourceMode: "assets" | "ai";
 };
 
 export function groupMediaJobsIntoSeries(jobs: MediaJob[]): MediaJobSeriesGroup[] {
@@ -103,12 +99,12 @@ export function groupMediaJobsIntoSeries(jobs: MediaJob[]): MediaJobSeriesGroup[
       key: info.seriesKey,
       title: info.seriesTitle ?? job.title ?? "Untitled series",
       totalScenes: info.totalScenes,
-      sourceMode: info.sourceMode ?? "ai",
       jobs: [job],
       queuedCount: job.status === "queued" ? 1 : 0,
       processingCount: job.status === "processing" ? 1 : 0,
       completedCount: job.status === "completed" ? 1 : 0,
       failedCount: job.status === "failed" ? 1 : 0,
+      sourceMode: info.sourceMode ?? "ai",
     });
   }
 
@@ -122,8 +118,8 @@ export function groupMediaJobsIntoSeries(jobs: MediaJob[]): MediaJobSeriesGroup[
       }),
     }))
     .sort((a, b) => {
-      const aDate = new Date(a.jobs[0]?.created_at ?? 0).getTime();
-      const bDate = new Date(b.jobs[0]?.created_at ?? 0).getTime();
+      const aDate = Math.max(...a.jobs.map((job) => new Date(job.created_at).getTime()));
+      const bDate = Math.max(...b.jobs.map((job) => new Date(job.created_at).getTime()));
       return bDate - aDate;
     });
 }
@@ -148,8 +144,7 @@ export function planManualSeriesScenes(input: {
   const base = input.prompt.trim();
 
   const continuity = [
-    "Use the same product, subject, location family, camera language, framing logic, color feel, and overall mood across all clips.",
-    "Do not change subject identity between scenes.",
+    "Maintain the same subject identity, same environment family, same product or brand world, same camera language, same lighting family, and same overall mood across every scene.",
     `Style: ${input.style}.`,
     `Visual mode: ${input.visualMode}.`,
     `Aspect ratio: ${input.aspectRatio}.`,
@@ -163,52 +158,29 @@ export function planManualSeriesScenes(input: {
       sceneOrder: 1,
       sceneLabel: "Hook",
       title: `${input.title} — Hook`,
-      prompt: `${base} Create the opening hook. Make it attention-grabbing and instantly clear. ${continuity}`,
+      prompt: `${base} Create the opening hook. Highly attention-grabbing. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 2,
       sceneLabel: "Problem",
       title: `${input.title} — Problem`,
-      prompt: `${base} Show the pain point, friction, or contrast. ${continuity}`,
+      prompt: `${base} Show the problem, tension, friction, or pain point. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 3,
       sceneLabel: "Solution",
       title: `${input.title} — Solution`,
-      prompt: `${base} Show the solution, transformation, or improved approach. ${continuity}`,
+      prompt: `${base} Show the solution, shift, product, workflow, or transformation. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
     {
       sceneOrder: 4,
       sceneLabel: "Outcome",
       title: `${input.title} — Outcome`,
-      prompt: `${base} Show the result, payoff, confidence, or finished outcome. ${continuity}`,
+      prompt: `${base} Show the payoff, result, confidence, or finished outcome. ${continuity}`,
       durationSeconds: input.durationSeconds,
     },
   ];
-}
-
-export async function listMediaJobsForSeries(seriesKey: string) {
-  const supabase = createAdminClient();
-  const shopId = await getCurrentShopId();
-
-  const { data, error } = await supabase
-    .from("shopreel_media_generation_jobs")
-    .select("*")
-    .eq("shop_id", shopId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return (data ?? [])
-    .filter((job) => getMediaJobSeriesInfo(job).seriesKey === seriesKey)
-    .sort((a, b) => {
-      const aInfo = getMediaJobSeriesInfo(a);
-      const bInfo = getMediaJobSeriesInfo(b);
-      return (aInfo.sceneOrder ?? 999) - (bInfo.sceneOrder ?? 999);
-    });
 }
