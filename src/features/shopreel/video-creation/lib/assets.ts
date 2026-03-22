@@ -3,7 +3,30 @@ import path from "node:path";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
-export async function listSelectableContentAssets(limit = 50) {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isGeneratedAsset(metadata: unknown) {
+  if (!isPlainObject(metadata)) return false;
+
+  const pipeline = typeof metadata.pipeline === "string" ? metadata.pipeline : null;
+  const source = typeof metadata.source === "string" ? metadata.source : null;
+  const generated = metadata.generated === true;
+
+  if (generated) return true;
+  if (source === "generated") return true;
+
+  return [
+    "shopreel_premium_campaign",
+    "shopreel_thumbnail",
+    "shopreel_storyboard",
+    "shopreel_video_generation",
+    "shopreel_manual_series",
+  ].includes(pipeline ?? "");
+}
+
+export async function listSelectableContentAssets(limit = 100) {
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
 
@@ -11,6 +34,7 @@ export async function listSelectableContentAssets(limit = 50) {
     .from("content_assets")
     .select("*")
     .eq("tenant_shop_id", shopId)
+    .in("asset_type", ["photo", "video"])
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -18,7 +42,7 @@ export async function listSelectableContentAssets(limit = 50) {
     throw new Error(error.message);
   }
 
-  return data ?? [];
+  return (data ?? []).filter((asset) => !isGeneratedAsset(asset.metadata));
 }
 
 export async function uploadLocalFileToGeneratedMedia(input: {
@@ -66,6 +90,8 @@ export async function uploadLocalFileToGeneratedMedia(input: {
       title: input.title ?? path.basename(input.localFilePath),
       metadata: {
         pipeline: "shopreel_premium_campaign",
+        generated: true,
+        source: "generated",
       },
     })
     .select("*")
