@@ -32,6 +32,8 @@ export default function SeriesDetailClient({
   const [running, setRunning] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [runningJobId, setRunningJobId] = useState<string | null>(null);
+  const [syncingJobId, setSyncingJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,24 +42,48 @@ export default function SeriesDetailClient({
     return groups.find((group) => group.key === seriesKey) ?? null;
   }, [jobs, seriesKey]);
 
+  const runnableJobs = useMemo(
+    () => jobs.filter((job) => job.status === "queued" || job.status === "failed"),
+    [jobs]
+  );
+
+  const syncableJobs = useMemo(
+    () =>
+      jobs.filter(
+        (job) =>
+          job.provider === "openai" &&
+          job.job_type === "video" &&
+          job.status === "processing"
+      ),
+    [jobs]
+  );
+
+  const completedJobs = useMemo(
+    () => jobs.filter((job) => job.status === "completed"),
+    [jobs]
+  );
+
   async function runAll() {
     try {
+      if (runnableJobs.length === 0) {
+        setMessage("Nothing to run.");
+        return;
+      }
+
       setRunning(true);
       setError(null);
       setMessage(null);
 
       await Promise.all(
-        jobs
-          .filter((job) => job.status === "queued" || job.status === "failed")
-          .map(async (job) => {
-            const res = await fetch(`/api/shopreel/video-creation/jobs/${job.id}/run`, {
-              method: "POST",
-            });
-            const json = await res.json().catch(() => null);
-            if (!res.ok || !json?.ok) {
-              throw new Error(json?.error ?? `Failed to run ${job.title ?? job.id}`);
-            }
-          })
+        runnableJobs.map(async (job) => {
+          const res = await fetch(`/api/shopreel/video-creation/jobs/${job.id}/run`, {
+            method: "POST",
+          });
+          const json = await res.json().catch(() => null);
+          if (!res.ok || !json?.ok) {
+            throw new Error(json?.error ?? `Failed to run ${job.title ?? job.id}`);
+          }
+        })
       );
 
       setMessage("Series run started.");
@@ -71,27 +97,25 @@ export default function SeriesDetailClient({
 
   async function syncAll() {
     try {
+      if (syncableJobs.length === 0) {
+        setMessage("Nothing to sync.");
+        return;
+      }
+
       setSyncing(true);
       setError(null);
       setMessage(null);
 
       await Promise.all(
-        jobs
-          .filter(
-            (job) =>
-              job.provider === "openai" &&
-              job.job_type === "video" &&
-              job.status === "processing"
-          )
-          .map(async (job) => {
-            const res = await fetch(`/api/shopreel/video-creation/jobs/${job.id}/sync`, {
-              method: "POST",
-            });
-            const json = await res.json().catch(() => null);
-            if (!res.ok || !json?.ok) {
-              throw new Error(json?.error ?? `Failed to sync ${job.title ?? job.id}`);
-            }
-          })
+        syncableJobs.map(async (job) => {
+          const res = await fetch(`/api/shopreel/video-creation/jobs/${job.id}/sync`, {
+            method: "POST",
+          });
+          const json = await res.json().catch(() => null);
+          if (!res.ok || !json?.ok) {
+            throw new Error(json?.error ?? `Failed to sync ${job.title ?? job.id}`);
+          }
+        })
       );
 
       setMessage("Series synced.");
@@ -100,6 +124,54 @@ export default function SeriesDetailClient({
       setError(err instanceof Error ? err.message : "Failed to sync series");
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function runOne(jobId: string) {
+    try {
+      setRunningJobId(jobId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/video-creation/jobs/${jobId}/run`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error ?? "Failed to run clip");
+      }
+
+      setMessage("Clip run started.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run clip");
+    } finally {
+      setRunningJobId(null);
+    }
+  }
+
+  async function syncOne(jobId: string) {
+    try {
+      setSyncingJobId(jobId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/video-creation/jobs/${jobId}/sync`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error ?? "Failed to sync clip");
+      }
+
+      setMessage("Clip synced.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sync clip");
+    } finally {
+      setSyncingJobId(null);
     }
   }
 
@@ -169,13 +241,17 @@ export default function SeriesDetailClient({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <GlassButton variant="primary" onClick={() => void runAll()} disabled={running}>
-            {running ? "Running..." : "Run all"}
-          </GlassButton>
+          {runnableJobs.length > 0 ? (
+            <GlassButton variant="primary" onClick={() => void runAll()} disabled={running}>
+              {running ? "Running..." : `Run all (${runnableJobs.length})`}
+            </GlassButton>
+          ) : null}
 
-          <GlassButton variant="secondary" onClick={() => void syncAll()} disabled={syncing}>
-            {syncing ? "Syncing..." : "Sync all"}
-          </GlassButton>
+          {syncableJobs.length > 0 ? (
+            <GlassButton variant="secondary" onClick={() => void syncAll()} disabled={syncing}>
+              {syncing ? "Syncing..." : `Sync all (${syncableJobs.length})`}
+            </GlassButton>
+          ) : null}
 
           <GlassButton variant="ghost" onClick={() => void deleteSeries()} disabled={deleting}>
             {deleting ? "Deleting..." : "Delete series"}
@@ -184,6 +260,53 @@ export default function SeriesDetailClient({
           <Link href="/shopreel/video-creation">
             <GlassButton variant="ghost">Back</GlassButton>
           </Link>
+        </div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div
+            className={cx(
+              "rounded-2xl border p-3",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft
+            )}
+          >
+            <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              Ready to run
+            </div>
+            <div className={cx("mt-2 text-2xl font-semibold", glassTheme.text.primary)}>
+              {runnableJobs.length}
+            </div>
+          </div>
+
+          <div
+            className={cx(
+              "rounded-2xl border p-3",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft
+            )}
+          >
+            <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              Processing now
+            </div>
+            <div className={cx("mt-2 text-2xl font-semibold", glassTheme.text.primary)}>
+              {syncableJobs.length}
+            </div>
+          </div>
+
+          <div
+            className={cx(
+              "rounded-2xl border p-3",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft
+            )}
+          >
+            <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              Completed
+            </div>
+            <div className={cx("mt-2 text-2xl font-semibold", glassTheme.text.primary)}>
+              {completedJobs.length}
+            </div>
+          </div>
         </div>
 
         {message ? <div className="mt-4 text-sm text-white/70">{message}</div> : null}
@@ -199,6 +322,11 @@ export default function SeriesDetailClient({
         <div className="grid gap-3">
           {jobs.map((job) => {
             const info = getMediaJobSeriesInfo(job);
+            const canRun = job.status === "queued" || job.status === "failed";
+            const canSync =
+              job.provider === "openai" &&
+              job.job_type === "video" &&
+              job.status === "processing";
 
             return (
               <div
@@ -230,15 +358,39 @@ export default function SeriesDetailClient({
                     ) : null}
                   </div>
 
-                  {job.preview_url ? (
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    {canRun ? (
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void runOne(job.id)}
+                        disabled={runningJobId === job.id}
+                      >
+                        {runningJobId === job.id ? "Running..." : "Run"}
+                      </GlassButton>
+                    ) : null}
+
+                    {canSync ? (
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void syncOne(job.id)}
+                        disabled={syncingJobId === job.id}
+                      >
+                        {syncingJobId === job.id ? "Syncing..." : "Sync"}
+                      </GlassButton>
+                    ) : null}
+                  </div>
+                </div>
+
+                {job.preview_url ? (
+                  <div className="mt-4">
                     <video
                       src={job.preview_url}
                       controls
                       playsInline
                       className="max-h-56 rounded-2xl border border-white/10"
                     />
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
               </div>
             );
           })}
