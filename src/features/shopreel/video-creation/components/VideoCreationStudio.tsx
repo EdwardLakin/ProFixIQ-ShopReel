@@ -995,14 +995,6 @@ export default function VideoCreationStudio({
                         </GlassButton>
                       ) : null}
 
-                      <GlassButton
-                        variant="ghost"
-                        onClick={() => void bulkDeleteJobs([job.id], `job "${job.title ?? "Untitled media job"}"`)}
-                        disabled={deleting}
-                      >
-                        {deleting ? "Deleting..." : "Delete"}
-                      </GlassButton>
-
                       {primaryAction.href && primaryAction.label ? (
                         <Link href={primaryAction.href}>
                           <GlassButton variant="ghost">{primaryAction.label}</GlassButton>
