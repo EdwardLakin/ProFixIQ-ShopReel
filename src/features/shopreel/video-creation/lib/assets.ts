@@ -3,16 +3,19 @@ import path from "node:path";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function isGeneratedAsset(metadata: unknown) {
-  if (!isPlainObject(metadata)) return false;
+  const obj = asObject(metadata);
+  if (!obj) return false;
 
-  const pipeline = typeof metadata.pipeline === "string" ? metadata.pipeline : null;
-  const source = typeof metadata.source === "string" ? metadata.source : null;
-  const generated = metadata.generated === true;
+  const pipeline = typeof obj.pipeline === "string" ? obj.pipeline : "";
+  const source = typeof obj.source === "string" ? obj.source : "";
+  const generated = obj.generated === true;
 
   if (generated) return true;
   if (source === "generated") return true;
@@ -23,7 +26,37 @@ function isGeneratedAsset(metadata: unknown) {
     "shopreel_storyboard",
     "shopreel_video_generation",
     "shopreel_manual_series",
-  ].includes(pipeline ?? "");
+    "shopreel_series_output",
+    "shopreel_generated_media",
+  ].includes(pipeline);
+}
+
+function isManualOrSourceAsset(asset: {
+  source_system: string | null;
+  metadata: unknown;
+  bucket: string | null;
+  storage_path: string | null;
+}) {
+  if (isGeneratedAsset(asset.metadata)) return false;
+
+  if (asset.source_system === "profixiq") return true;
+  if (asset.source_system === "shopreel") {
+    const bucket = asset.bucket ?? "";
+    const storagePath = asset.storage_path ?? "";
+
+    if (bucket === "shopreel-media") return true;
+    if (storagePath.includes("/manual/")) return true;
+    if (storagePath.includes("/uploads/")) return true;
+
+    const obj = asObject(asset.metadata);
+    const origin = obj && typeof obj.origin === "string" ? obj.origin : "";
+    if (origin === "manual_upload") return true;
+    if (origin === "source_media") return true;
+
+    return false;
+  }
+
+  return false;
 }
 
 export async function listSelectableContentAssets(limit = 100) {
@@ -42,7 +75,7 @@ export async function listSelectableContentAssets(limit = 100) {
     throw new Error(error.message);
   }
 
-  return (data ?? []).filter((asset) => !isGeneratedAsset(asset.metadata));
+  return (data ?? []).filter((asset) => isManualOrSourceAsset(asset));
 }
 
 export async function uploadLocalFileToGeneratedMedia(input: {
