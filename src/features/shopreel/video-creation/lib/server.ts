@@ -334,3 +334,46 @@ export async function listRecentMediaGenerationJobs(limit = 24) {
 
   return data ?? [];
 }
+
+
+export async function getSeriesJobsByKey(seriesKey: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data, error } = await supabase
+    .from("shopreel_media_generation_jobs")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []).filter((job) => {
+    const settings =
+      job.settings && typeof job.settings === "object" && !Array.isArray(job.settings)
+        ? (job.settings as Record<string, unknown>)
+        : null;
+
+    return settings?.series_key === seriesKey;
+  });
+
+  rows.sort((a, b) => {
+    const aSettings =
+      a.settings && typeof a.settings === "object" && !Array.isArray(a.settings)
+        ? (a.settings as Record<string, unknown>)
+        : null;
+    const bSettings =
+      b.settings && typeof b.settings === "object" && !Array.isArray(b.settings)
+        ? (b.settings as Record<string, unknown>)
+        : null;
+
+    const aOrder = Number(aSettings?.series_scene_order ?? 999);
+    const bOrder = Number(bSettings?.series_scene_order ?? 999);
+
+    return aOrder - bOrder;
+  });
+
+  return rows;
+}
