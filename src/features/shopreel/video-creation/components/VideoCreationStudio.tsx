@@ -28,6 +28,7 @@ import { getMediaJobPrimaryAction } from "@/features/shopreel/video-creation/lib
 import {
   getMediaJobSeriesInfo,
   groupMediaJobsIntoSeries,
+  type MediaJobSeriesGroup,
 } from "@/features/shopreel/video-creation/lib/seriesClient";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
@@ -83,6 +84,8 @@ export default function VideoCreationStudio({
   const [syncingJobId, setSyncingJobId] = useState<string | null>(null);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
   const [convertingJobId, setConvertingJobId] = useState<string | null>(null);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [deletingSeriesKey, setDeletingSeriesKey] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,7 +94,11 @@ export default function VideoCreationStudio({
     return provider;
   }, [jobType, provider]);
 
-  const seriesGroups = useMemo(() => groupMediaJobsIntoSeries(recentJobs), [recentJobs]);
+  const seriesGroups = useMemo<MediaJobSeriesGroup[]>(
+    () => groupMediaJobsIntoSeries(recentJobs),
+    [recentJobs]
+  );
+
   const standaloneJobs = useMemo(
     () => recentJobs.filter((job) => !getMediaJobSeriesInfo(job).seriesKey),
     [recentJobs]
@@ -368,6 +375,62 @@ export default function VideoCreationStudio({
       setError(err instanceof Error ? err.message : "Failed to convert media job");
     } finally {
       setConvertingJobId(null);
+    }
+  }
+
+  async function deleteJob(jobId: string) {
+    const confirmed = window.confirm("Delete this media job?");
+    if (!confirmed) return;
+
+    try {
+      setDeletingJobId(jobId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/video-creation/jobs/${jobId}/delete`, {
+        method: "DELETE",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to delete media job");
+      }
+
+      setMessage("Media job deleted.");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete media job");
+    } finally {
+      setDeletingJobId(null);
+    }
+  }
+
+  async function deleteSeries(seriesKey: string) {
+    const confirmed = window.confirm("Delete this whole series and all clips in it?");
+    if (!confirmed) return;
+
+    try {
+      setDeletingSeriesKey(seriesKey);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch(`/api/shopreel/video-creation/series/${seriesKey}/delete`, {
+        method: "DELETE",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to delete series");
+      }
+
+      setMessage(`Series deleted (${json.deletedCount ?? 0} clips).`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete series");
+    } finally {
+      setDeletingSeriesKey(null);
     }
   }
 
@@ -726,6 +789,14 @@ export default function VideoCreationStudio({
                       <GlassButton variant="primary">Open series</GlassButton>
                     </Link>
 
+                    <GlassButton
+                      variant="ghost"
+                      onClick={() => void deleteSeries(group.key)}
+                      disabled={deletingSeriesKey === group.key}
+                    >
+                      {deletingSeriesKey === group.key ? "Deleting..." : "Delete series"}
+                    </GlassButton>
+
                     {group.jobs.some((job) => job.status === "queued" || job.status === "failed") ? (
                       <GlassButton
                         variant="secondary"
@@ -742,7 +813,10 @@ export default function VideoCreationStudio({
                     ) : null}
 
                     {group.jobs.some(
-                      (job) => job.provider === "openai" && job.job_type === "video" && job.status === "processing"
+                      (job) =>
+                        job.provider === "openai" &&
+                        job.job_type === "video" &&
+                        job.status === "processing"
                     ) ? (
                       <GlassButton
                         variant="secondary"
@@ -823,6 +897,14 @@ export default function VideoCreationStudio({
                     </div>
 
                     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <GlassButton
+                        variant="ghost"
+                        onClick={() => void deleteJob(job.id)}
+                        disabled={deletingJobId === job.id}
+                      >
+                        {deletingJobId === job.id ? "Deleting..." : "Delete"}
+                      </GlassButton>
+
                       {(job.status === "queued" || job.status === "failed") ? (
                         <GlassButton
                           variant="secondary"
