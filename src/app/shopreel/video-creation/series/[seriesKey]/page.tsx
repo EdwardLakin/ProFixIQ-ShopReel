@@ -23,7 +23,7 @@ function timeAgoLabel(value: string) {
 
   if (diffMinutes < 60) return `${Math.max(diffMinutes, 1)}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 7) return `${diffDays}d ago}`;
 
   return new Date(value).toLocaleDateString();
 }
@@ -48,7 +48,7 @@ export default async function SeriesDetailPage({
     .select("*")
     .eq("shop_id", shopId)
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(250);
 
   if (error) {
     throw new Error(error.message);
@@ -62,12 +62,12 @@ export default async function SeriesDetailPage({
       <GlassShell
         eyebrow="ShopReel"
         title="Series not found"
-        subtitle="The requested series could not be found."
+        subtitle="That grouped series could not be found."
       >
         <GlassCard
-          label="Series"
-          title="Missing series"
-          description="Go back to Video Creation and create or open another series."
+          label="Missing"
+          title="Series not found"
+          description="Go back to Video Creation and open another series."
           strong
         >
           <Link href="/shopreel/video-creation">
@@ -82,7 +82,7 @@ export default async function SeriesDetailPage({
     <GlassShell
       eyebrow="ShopReel"
       title={group.title}
-      subtitle="Review the grouped clips for this series."
+      subtitle="Review the full grouped series in one place."
     >
       <div className="grid gap-5">
         <GlassCard
@@ -95,7 +95,9 @@ export default async function SeriesDetailPage({
             <GlassBadge tone="default">{group.completedCount} completed</GlassBadge>
             <GlassBadge tone="default">{group.processingCount} processing</GlassBadge>
             <GlassBadge tone="default">{group.queuedCount} queued</GlassBadge>
-            {group.failedCount > 0 ? <GlassBadge tone="muted">{group.failedCount} failed</GlassBadge> : null}
+            {group.failedCount > 0 ? (
+              <GlassBadge tone="muted">{group.failedCount} failed</GlassBadge>
+            ) : null}
             <GlassBadge tone="muted">
               {group.sourceMode === "assets" ? "Uploaded media" : "AI concepts"}
             </GlassBadge>
@@ -111,7 +113,7 @@ export default async function SeriesDetailPage({
         <GlassCard
           label="Clips"
           title="Series clips"
-          description="Each clip remains editable and reviewable on its own."
+          description="Each clip stays individually reviewable while still grouped as one series."
           strong
         >
           <div className="grid gap-4">
@@ -139,12 +141,16 @@ export default async function SeriesDetailPage({
                         {job.output_asset_id ? <GlassBadge tone="copper">Asset ready</GlassBadge> : null}
                       </div>
 
+                      {job.error_text ? (
+                        <div className="text-sm text-red-300">{job.error_text}</div>
+                      ) : null}
+
                       {job.preview_url ? (
                         <video
                           src={job.preview_url}
                           controls
                           playsInline
-                          className="max-h-64 rounded-2xl border border-white/10"
+                          className="max-h-72 rounded-2xl border border-white/10"
                         />
                       ) : null}
                     </div>
