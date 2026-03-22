@@ -3,26 +3,37 @@ import path from "node:path";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
-function asObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
+function isSelectableSourceAsset(asset: {
+  asset_type: string | null;
+  source_system: string | null;
+  bucket: string | null;
+  metadata: unknown;
+}) {
+  const assetType = asset.asset_type ?? "";
+  const sourceSystem = asset.source_system ?? "";
+  const bucket = asset.bucket ?? "";
 
-function isManualUploadAsset(metadata: unknown) {
-  const meta = asObject(metadata);
-  const pipeline = typeof meta.pipeline === "string" ? meta.pipeline : null;
-  const source = typeof meta.source === "string" ? meta.source : null;
-  const origin = typeof meta.origin === "string" ? meta.origin : null;
+  const metadata =
+    asset.metadata && typeof asset.metadata === "object" && !Array.isArray(asset.metadata)
+      ? (asset.metadata as Record<string, unknown>)
+      : {};
 
-  return (
-    pipeline === "manual_upload" ||
-    pipeline === "shopreel_manual_upload" ||
-    source === "manual_upload" ||
-    source === "manual_asset" ||
-    origin === "manual_upload" ||
-    origin === "manual_asset"
-  );
+  const pipeline =
+    typeof metadata.pipeline === "string" ? metadata.pipeline : null;
+
+  const isImageOrVideo = assetType === "photo" || assetType === "video";
+  const isGeneratedPipeline =
+    pipeline === "shopreel_premium_campaign" ||
+    pipeline === "manual_series" ||
+    pipeline === "sora_scene" ||
+    pipeline === "shopreel_generated" ||
+    pipeline === "thumbnail";
+  const isGeneratedBucket =
+    bucket.includes("generated") || bucket.includes("thumbnail");
+  const isShopreelGeneratedSource =
+    sourceSystem === "shopreel" && (isGeneratedPipeline || isGeneratedBucket);
+
+  return isImageOrVideo && !isShopreelGeneratedSource;
 }
 
 export async function listSelectableContentAssets(limit = 100) {
@@ -41,10 +52,7 @@ export async function listSelectableContentAssets(limit = 100) {
     throw new Error(error.message);
   }
 
-  return (data ?? []).filter((asset) => {
-    if (!asset.public_url) return false;
-    return isManualUploadAsset(asset.metadata);
-  });
+  return (data ?? []).filter(isSelectableSourceAsset);
 }
 
 export async function uploadLocalFileToGeneratedMedia(input: {
