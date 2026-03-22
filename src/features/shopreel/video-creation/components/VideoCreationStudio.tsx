@@ -84,6 +84,7 @@ export default function VideoCreationStudio({
   const [syncingJobId, setSyncingJobId] = useState<string | null>(null);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
   const [convertingJobId, setConvertingJobId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
   const [deletingSeriesKey, setDeletingSeriesKey] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -375,6 +376,45 @@ export default function VideoCreationStudio({
       setError(err instanceof Error ? err.message : "Failed to convert media job");
     } finally {
       setConvertingJobId(null);
+    }
+  }
+
+  async function bulkDeleteJobs(jobIds: string[], label: string) {
+    try {
+      const ids = Array.from(new Set(jobIds.filter(Boolean)));
+      if (ids.length === 0) {
+        throw new Error("Nothing to delete.");
+      }
+
+      const confirmed = window.confirm(`Delete ${label}? This removes the jobs and generated assets.`);
+      if (!confirmed) return;
+
+      setDeleting(true);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch("/api/shopreel/video-creation/jobs/bulk-delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jobIds: ids,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to delete jobs");
+      }
+
+      setMessage(`${json.deletedCount ?? ids.length} job(s) deleted.`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete jobs");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -954,6 +994,14 @@ export default function VideoCreationStudio({
                           {convertingJobId === job.id ? "Converting..." : "Convert to Editable Story"}
                         </GlassButton>
                       ) : null}
+
+                      <GlassButton
+                        variant="ghost"
+                        onClick={() => void bulkDeleteJobs([job.id], `job "${job.title ?? "Untitled media job"}"`)}
+                        disabled={deleting}
+                      >
+                        {deleting ? "Deleting..." : "Delete"}
+                      </GlassButton>
 
                       {primaryAction.href && primaryAction.label ? (
                         <Link href={primaryAction.href}>
