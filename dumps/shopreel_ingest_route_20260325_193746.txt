@@ -1,3 +1,4 @@
+===== src/app/api/integrations/profixiq/events/route.ts =====
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { saveStorySource } from "@/features/shopreel/story-sources/server/saveStorySource";
@@ -82,34 +83,13 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
-    const { data: settings, error: settingsError } = await supabase
+    const { data: settings } = await supabase
       .from("shop_reel_settings")
       .select("shop_id")
       .eq("shop_id", tenantShopId)
       .maybeSingle();
 
-    if (settingsError) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Failed to query shop_reel_settings.",
-          debug: {
-            tenantShopId,
-            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? null,
-            queryError: settingsError.message,
-          },
-        },
-        { status: 500 }
-      );
-    }
-
     if (!settings?.shop_id) {
-      const { data: sampleRows, error: sampleError } = await supabase
-        .from("shop_reel_settings")
-        .select("shop_id")
-        .order("shop_id", { ascending: true })
-        .limit(10);
-
       return NextResponse.json(
         {
           ok: false,
@@ -117,8 +97,6 @@ export async function POST(req: NextRequest) {
           debug: {
             tenantShopId,
             supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? null,
-            sampleShopIds: sampleRows?.map((row) => row.shop_id) ?? [],
-            sampleError: sampleError?.message ?? null,
           },
         },
         { status: 404 }
