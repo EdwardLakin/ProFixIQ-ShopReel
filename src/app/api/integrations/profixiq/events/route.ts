@@ -90,7 +90,14 @@ export async function POST(req: NextRequest) {
 
     if (!settings?.shop_id) {
       return NextResponse.json(
-        { ok: false, error: "Target ShopReel shop is not configured." },
+        {
+          ok: false,
+          error: "Target ShopReel shop is not configured.",
+          debug: {
+            tenantShopId,
+            supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? null,
+          },
+        },
         { status: 404 }
       );
     }
