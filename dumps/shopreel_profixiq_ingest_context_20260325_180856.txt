@@ -1,0 +1,756 @@
+===== src/app/api/shopreel/story-sources/route.ts =====
+import { NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+import { discoverStorySourceCandidates } from "@/features/shopreel/story-sources";
+import { listStorySources } from "@/features/shopreel/story-sources/server";
+
+export async function GET(req: Request) {
+  try {
+    const shopId = await getCurrentShopId();
+    const { searchParams } = new URL(req.url);
+
+    const mode = searchParams.get("mode") ?? "saved";
+    const limitRaw = searchParams.get("limit");
+    const limit = limitRaw ? Number(limitRaw) : 25;
+
+    if (!Number.isFinite(limit) || limit <= 0) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid limit" },
+        { status: 400 },
+      );
+    }
+
+    if (mode === "discover") {
+      const sources = await discoverStorySources(shopId);
+      return NextResponse.json({
+        ok: true,
+        mode,
+        count: Math.min(sources.length, limit),
+        sources: sources.slice(0, limit),
+      });
+    }
+
+    if (mode === "candidates") {
+      const candidates = await discoverStorySourceCandidates(shopId);
+      return NextResponse.json({
+        ok: true,
+        mode,
+        count: Math.min(candidates.length, limit),
+        candidates: candidates.slice(0, limit),
+      });
+    }
+
+    const sources = await listStorySources({
+      shopId,
+      limit,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      mode: "saved",
+      count: sources.length,
+      sources,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load story sources";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+===== src/features/shopreel/story-sources/server/saveStorySource.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { buildStorySourceKey } from "../buildStorySourceKey";
+import type { StorySource } from "../types";
+
+function toJson(value: unknown) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+export async function saveStorySource(source: StorySource) {
+  const supabase = createAdminClient();
+  const sourceKey = buildStorySourceKey(source);
+
+  const { data: existing } = await supabase
+    .from("shopreel_story_sources")
+    .select("id")
+    .eq("shop_id", source.shopId)
+    .eq("source_key", sourceKey)
+    .maybeSingle();
+
+  if (existing?.id) {
+    return { id: existing.id, deduped: true };
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("shopreel_story_sources")
+    .insert({
+      shop_id: source.shopId,
+      title: source.title,
+      description: source.description ?? null,
+      kind: source.kind,
+      origin: source.origin,
+      generation_mode: source.generationMode,
+      occurred_at: source.occurredAt ?? null,
+      started_at: source.startedAt ?? null,
+      ended_at: source.endedAt ?? null,
+      project_id: source.projectId ?? null,
+      project_name: source.projectName ?? null,
+      vehicle_label: source.vehicleLabel ?? null,
+      customer_label: source.customerLabel ?? null,
+      technician_label: source.technicianLabel ?? null,
+      tags: source.tags,
+      notes: source.notes,
+      facts: toJson(source.facts),
+      metadata: toJson(source.metadata),
+      source_key: sourceKey,
+    } as never)
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) {
+    throw new Error(insertError?.message ?? "Failed to save story source");
+  }
+
+  if (source.assets.length > 0) {
+    const { error: assetError } = await supabase
+      .from("shopreel_story_source_assets")
+      .insert(
+        source.assets.map((asset) => ({
+          story_source_id: inserted.id,
+          shop_id: source.shopId,
+          asset_type: asset.assetType,
+          content_asset_id: asset.contentAssetId ?? null,
+          manual_asset_id: asset.manualAssetId ?? null,
+          url: asset.url ?? null,
+          title: asset.title ?? null,
+          caption: asset.caption ?? null,
+          note: asset.note ?? null,
+          taken_at: asset.takenAt ?? null,
+          sort_order: asset.sortOrder,
+          metadata: toJson(asset.metadata),
+        })) as never,
+      );
+
+    if (assetError) {
+      throw new Error(assetError.message);
+    }
+  }
+
+  if (source.refs.length > 0) {
+    const { error: refError } = await supabase
+      .from("shopreel_story_source_refs")
+      .insert(
+        source.refs.map((ref) => ({
+          story_source_id: inserted.id,
+          shop_id: source.shopId,
+          ref_type: ref.type,
+          ref_id: ref.id,
+          metadata: {},
+        })) as never,
+      );
+
+    if (refError) {
+      throw new Error(refError.message);
+    }
+  }
+
+  return { id: inserted.id, deduped: false };
+}
+
+===== src/features/shopreel/story-sources/server.ts =====
+export * from "./server/index";
+
+===== src/features/shopreel/story-sources/types.ts =====
+export type StorySourceKind =
+  | "job_completed"
+  | "inspection_completed"
+  | "repair_completed"
+  | "before_after"
+  | "project_progress"
+  | "project_completed"
+  | "educational_insight"
+  | "expert_tip"
+  | "customer_result"
+  | "product_launch"
+  | "service_highlight"
+  | "milestone"
+  | "manual_upload"
+  | "daily_timeline"
+  | "creator_idea";
+
+export type StorySourceOrigin =
+  | "shop_data"
+  | "manual_upload"
+  | "project"
+  | "creator_mode"
+  | "future_operational_event"
+  | "imported_media"
+  | "day_timeline";
+
+export type StoryGenerationMode =
+  | "assisted"
+  | "manual"
+  | "automatic"
+  | "autopilot";
+
+export type StorySourceAssetType =
+  | "photo"
+  | "video"
+  | "note"
+  | "text"
+  | "other";
+
+export type StorySourceAsset = {
+  id: string;
+  assetType: StorySourceAssetType;
+  contentAssetId?: string | null;
+  manualAssetId?: string | null;
+  url?: string | null;
+  title?: string | null;
+  caption?: string | null;
+  note?: string | null;
+  takenAt?: string | null;
+  sortOrder: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type StorySourceRef = {
+  type:
+    | "content_asset"
+    | "manual_asset"
+    | "content_event"
+    | "content_piece"
+    | "project"
+    | "day_bucket"
+    | "future_work_order"
+    | "future_inspection";
+  id: string;
+};
+
+export type StorySourceFactMap = {
+  hook?: string;
+  contentType?: string;
+  [key: string]: unknown;
+};
+
+export type StorySourceCandidate = {
+  title: string;
+  kind: StorySourceKind;
+  confidence: number;
+  reason?: string | null;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type StorySource = {
+  id: string;
+  shopId: string;
+
+  title: string;
+  description?: string | null;
+
+  kind: StorySourceKind;
+  origin: StorySourceOrigin;
+  generationMode: StoryGenerationMode;
+
+  occurredAt?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+
+  projectId?: string | null;
+  projectName?: string | null;
+
+  vehicleLabel?: string | null;
+  customerLabel?: string | null;
+  technicianLabel?: string | null;
+
+  tags: string[];
+  notes: string[];
+
+  facts: StorySourceFactMap;
+  metadata: Record<string, unknown>;
+
+  assets: StorySourceAsset[];
+  refs: StorySourceRef[];
+
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+===== src/features/shopreel/opportunities/lib/upsertOpportunity.ts =====
+import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+
+type DB = Database;
+
+export async function upsertOpportunity(
+  supabase: SupabaseClient<DB>,
+  shopId: string,
+  storySourceId: string,
+  score: number,
+  metadata: any
+) {
+
+  const { error } = await supabase
+    .from("shopreel_content_opportunities")
+    .upsert(
+      {
+        shop_id: shopId,
+        story_source_id: storySourceId,
+        score,
+        metadata,
+        status: "pending"
+      },
+      {
+        onConflict: "shop_id,story_source_id"
+      }
+    );
+
+  if (error) {
+    throw new Error(`Opportunity upsert failed: ${error.message}`);
+  }
+}
+
+===== src/features/shopreel/opportunities/createOpportunities.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { scoreStorySource } from "./scoreStorySource";
+import type { Json } from "@/types/supabase";
+
+function buildReason(score: number): string {
+  if (score >= 90) return "Very strong story potential";
+  if (score >= 75) return "High-value marketing opportunity";
+  if (score >= 60) return "Promising content opportunity";
+  return "Detected story opportunity";
+}
+
+export async function createOpportunities() {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: sources, error: sourceError } = await supabase
+    .from("shopreel_story_sources")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (sourceError) {
+    throw new Error(sourceError.message);
+  }
+
+  const createdOrUpdated = [];
+
+  for (const source of sources ?? []) {
+    const { data: existing } = await supabase
+      .from("shopreel_content_opportunities")
+      .select("*")
+      .eq("shop_id", shopId)
+      .eq("story_source_id", source.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const current = existing?.[0] ?? null;
+
+    if (current?.status === "dismissed" || current?.status === "generated") {
+      continue;
+    }
+
+    const score = scoreStorySource(source);
+    const reason = buildReason(score);
+
+    if (current) {
+      const currentMetadata =
+        current.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata)
+          ? (current.metadata as Record<string, Json | undefined>)
+          : {};
+
+      const { data: updated, error: updateError } = await supabase
+        .from("shopreel_content_opportunities")
+        .update({
+          score,
+          reason,
+          metadata: {
+            ...currentMetadata,
+            scoring: {
+              source_kind: source.kind,
+              source_origin: source.origin,
+              source_title: source.title,
+            },
+          },
+          status: current.status || "ready",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", current.id)
+        .select("*")
+        .single();
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      createdOrUpdated.push(updated);
+      continue;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("shopreel_content_opportunities")
+      .insert({
+        shop_id: shopId,
+        story_source_id: source.id,
+        score,
+        reason,
+        metadata: {
+          scoring: {
+            source_kind: source.kind,
+            source_origin: source.origin,
+            source_title: source.title,
+          },
+        },
+        status: "ready",
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    createdOrUpdated.push(inserted);
+  }
+
+  return createdOrUpdated;
+}
+
+===== src/features/shopreel/lib/contracts/sourceRefs.ts =====
+export type SourceRefs = {
+  source_shop_id: string;
+  source_vehicle_id?: string | null;
+  source_work_order_id?: string | null;
+  source_inspection_id?: string | null;
+  source_media_upload_id?: string | null;
+  source_inspection_photo_id?: string | null;
+  source_system?: "profixiq";
+};
+
+===== src/features/shopreel/server/getCurrentShopId.ts =====
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+
+const DEFAULT_SHOP_ID =
+  process.env.DEFAULT_SHOP_ID ?? "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+
+type ShopUserRow = {
+  shop_id: string;
+};
+
+type ShopReelSettingsRow = {
+  shop_id: string;
+};
+
+export async function getCurrentShopId(): Promise<string> {
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user?.id) {
+    const { data: membershipData } = await (admin as any)
+      .from("shop_users")
+      .select("shop_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    const membership = (membershipData ?? null) as ShopUserRow | null;
+
+    if (membership?.shop_id) {
+      return membership.shop_id;
+    }
+  }
+
+  const { data: settingsData } = await (admin as any)
+    .from("shop_reel_settings")
+    .select("shop_id")
+    .order("shop_id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const settingsRow = (settingsData ?? null) as ShopReelSettingsRow | null;
+
+  if (settingsRow?.shop_id) {
+    return settingsRow.shop_id;
+  }
+
+  return DEFAULT_SHOP_ID;
+}
+
+===== src/types/supabase.ts =====
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      content_analytics_events: {
+        Row: {
+          content_piece_id: string | null
+          created_at: string
+          event_name: string
+          event_value: number | null
+          id: string
+          occurred_at: string
+          payload: Json
+          platform: Database["public"]["Enums"]["content_platform"] | null
+          publication_id: string | null
+          source_shop_id: string
+          source_system: string
+          tenant_shop_id: string
+        }
+        Insert: {
+          content_piece_id?: string | null
+          created_at?: string
+          event_name: string
+          event_value?: number | null
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          platform?: Database["public"]["Enums"]["content_platform"] | null
+          publication_id?: string | null
+          source_shop_id: string
+          source_system?: string
+          tenant_shop_id: string
+        }
+        Update: {
+          content_piece_id?: string | null
+          created_at?: string
+          event_name?: string
+          event_value?: number | null
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          platform?: Database["public"]["Enums"]["content_platform"] | null
+          publication_id?: string | null
+          source_shop_id?: string
+          source_system?: string
+          tenant_shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_analytics_events_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "content_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "video_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_assets: {
+        Row: {
+          asset_type: Database["public"]["Enums"]["content_asset_type"]
+          bucket: string | null
+          caption: string | null
+          created_at: string
+          duration_seconds: number | null
+          file_size_bytes: number | null
+          id: string
+          metadata: Json
+          mime_type: string | null
+          public_url: string | null
+          source_inspection_id: string | null
+          source_inspection_photo_id: string | null
+          source_media_upload_id: string | null
+          source_shop_id: string
+          source_system: string
+          source_vehicle_id: string | null
+          source_work_order_id: string | null
+          storage_path: string | null
+          tenant_shop_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_type?: Database["public"]["Enums"]["content_asset_type"]
+          bucket?: string | null
+          caption?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          public_url?: string | null
+          source_inspection_id?: string | null
+          source_inspection_photo_id?: string | null
+          source_media_upload_id?: string | null
+          source_shop_id: string
+          source_system?: string
+          source_vehicle_id?: string | null
+          source_work_order_id?: string | null
+          storage_path?: string | null
+          tenant_shop_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: Database["public"]["Enums"]["content_asset_type"]
+          bucket?: string | null
+          caption?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          public_url?: string | null
+          source_inspection_id?: string | null
+          source_inspection_photo_id?: string | null
+          source_media_upload_id?: string | null
+          source_shop_id?: string
+          source_system?: string
+          source_vehicle_id?: string | null
+          source_work_order_id?: string | null
+          storage_path?: string | null
+          tenant_shop_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      content_calendar_items: {
+        Row: {
+          calendar_id: string
+          content_piece_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          scheduled_for: string | null
+          source_shop_id: string
+          source_system: string
+          status: string
+          tenant_shop_id: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_id: string
+          content_piece_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          scheduled_for?: string | null
+          source_shop_id: string
+          source_system?: string
+          status?: string
+          tenant_shop_id: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_id?: string
+          content_piece_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          scheduled_for?: string | null
+          source_shop_id?: string
+          source_system?: string
+          status?: string
+          tenant_shop_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_calendar_items_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "content_calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_calendar_items_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_calendar_items_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_calendars: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          settings: Json
+          source_shop_id: string
+          source_system: string
