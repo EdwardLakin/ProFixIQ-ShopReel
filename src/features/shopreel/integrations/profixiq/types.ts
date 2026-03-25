@@ -1,0 +1,64 @@
+export type ProFixIQStoryEventType =
+  | "inspection.completed"
+  | "inspection.finding.flagged"
+  | "inspection.media.captured"
+  | "workorder.approved"
+  | "workorder.completed"
+  | "media.before_after.added";
+
+export type ProFixIQStoryFinding = {
+  label: string;
+  status?: "failed" | "recommended" | "pass" | "info";
+  category?: string | null;
+};
+
+export type ProFixIQStoryService = {
+  label: string;
+  kind?: "repair" | "maintenance" | "inspection" | "diagnostic";
+};
+
+export type ProFixIQStoryMedia = {
+  url: string;
+  kind: "image" | "video";
+  role?: "before" | "after" | "inspection" | "general";
+  title?: string | null;
+  takenAt?: string | null;
+};
+
+export type ProFixIQStoryEvent = {
+  eventId: string;
+  eventType: ProFixIQStoryEventType;
+  occurredAt: string;
+  source: {
+    app: "profixiq";
+    shopId: string;
+    locationId?: string | null;
+  };
+  subject: {
+    workOrderId?: string | null;
+    workOrderNumber?: string | null;
+    inspectionId?: string | null;
+    vehicleId?: string | null;
+    customerLabel?: string | null;
+    vehicleLabel?: string | null;
+  };
+  storyData: {
+    headline?: string | null;
+    summary?: string | null;
+    findings?: ProFixIQStoryFinding[];
+    services?: ProFixIQStoryService[];
+    media?: ProFixIQStoryMedia[];
+    approvalStatus?: "pending" | "approved" | "declined" | "deferred" | null;
+    technicianSummary?: string | null;
+  };
+  privacy: {
+    containsSensitiveData: false;
+    redactionsApplied: string[];
+  };
+};
+
+export type ProFixIQIngestPayload = ProFixIQStoryEvent & {
+  destination?: {
+    remoteShopId?: string | null;
+  };
+};
