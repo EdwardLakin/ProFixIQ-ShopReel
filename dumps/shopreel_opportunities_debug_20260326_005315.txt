@@ -1,0 +1,736 @@
+===== src/app/shopreel/opportunities/page.tsx =====
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+export default async function ShopReelOpportunitiesPage(props: {
+  searchParams?: Promise<{ status?: string }>;
+}) {
+  const searchParams = (await props.searchParams) ?? {};
+  const status = searchParams.status ?? "active";
+
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const allowedStatuses =
+    status === "dismissed"
+      ? ["dismissed"]
+      : status === "generated"
+        ? ["generated"]
+        : ["ready", "new"];
+
+  const { data: opportunities, error } = await supabase
+    .from("shopreel_content_opportunities")
+    .select(`
+      *,
+      story_source:shopreel_story_sources (
+        id,
+        title,
+        description,
+        kind,
+        origin
+      )
+    `)
+    .eq("shop_id", shopId)
+    .in("status", allowedStatuses)
+    .order("score", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const normalized = (opportunities ?? []).map((row) => ({
+    ...row,
+    story_source: Array.isArray(row.story_source) ? row.story_source[0] ?? null : row.story_source,
+  }));
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Opportunities"
+      subtitle="Discover, score, generate, and move strong story candidates into campaigns and publishing."
+    >
+      <ShopReelNav />
+      <ShopReelOpportunitiesClient opportunities={normalized} activeTab={status} />
+    </GlassShell>
+  );
+}
+
+===== src/features/shopreel/components/ShopReelOpportunitiesClient.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+
+type Opportunity = {
+  id: string;
+  score: number;
+  status: string;
+  reason: string | null;
+  metadata: unknown;
+  story_source_id: string;
+  story_source?: {
+    id: string;
+    title: string;
+    description: string | null;
+    kind: string;
+    origin: string;
+  } | null;
+};
+
+function readLinkedCampaignId(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).linked_campaign_id;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+export default function ShopReelOpportunitiesClient({
+  opportunities,
+  activeTab,
+}: {
+  opportunities: Opportunity[];
+  activeTab: string;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function runDiscovery() {
+    try {
+      setBusy("discovery");
+      setError(null);
+      const res = await fetch("/api/shopreel/discovery", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to run discovery");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run discovery");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function autoCreateCampaigns() {
+    try {
+      setBusy("auto-campaigns");
+      setError(null);
+      const res = await fetch("/api/shopreel/opportunities/auto-campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minScore: 85, limit: 3 }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to auto-create campaigns");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to auto-create campaigns");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function dismissOpportunity(id: string) {
+    try {
+      setBusy(id);
+      setError(null);
+      const res = await fetch(`/api/shopreel/opportunities/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "dismissed" }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to dismiss opportunity");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to dismiss opportunity");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function generateOpportunity(id: string) {
+    try {
+      setBusy(id);
+      setError(null);
+      const res = await fetch(`/api/shopreel/opportunities/${id}/generate`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to generate opportunity");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate opportunity");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function createCampaign(id: string) {
+    try {
+      setBusy(id);
+      setError(null);
+      const res = await fetch(`/api/shopreel/opportunities/${id}/create-campaign`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to create campaign");
+      }
+      if (json.campaign?.id) {
+        router.push(`/shopreel/campaigns/${json.campaign.id}`);
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create campaign");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/shopreel/opportunities?status=active">
+            <GlassButton variant={activeTab === "active" ? "primary" : "ghost"}>Active</GlassButton>
+          </Link>
+          <Link href="/shopreel/opportunities?status=generated">
+            <GlassButton variant={activeTab === "generated" ? "primary" : "ghost"}>Generated</GlassButton>
+          </Link>
+          <Link href="/shopreel/opportunities?status=dismissed">
+            <GlassButton variant={activeTab === "dismissed" ? "primary" : "ghost"}>Dismissed</GlassButton>
+          </Link>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <GlassButton
+            variant="primary"
+            onClick={() => void runDiscovery()}
+            disabled={busy === "discovery"}
+          >
+            {busy === "discovery" ? "Working..." : "Discover + score"}
+          </GlassButton>
+
+          <GlassButton
+            variant="secondary"
+            onClick={() => void autoCreateCampaigns()}
+            disabled={busy === "auto-campaigns"}
+          >
+            {busy === "auto-campaigns" ? "Working..." : "Auto-create top campaigns"}
+          </GlassButton>
+        </div>
+      </div>
+
+      {error ? <div className="text-sm text-red-300">{error}</div> : null}
+
+      {opportunities.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">
+          No opportunities in this tab yet.
+        </div>
+      ) : (
+        opportunities.map((opportunity) => {
+          const linkedCampaignId = readLinkedCampaignId(opportunity.metadata);
+
+          return (
+            <div
+              key={opportunity.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-2">
+                  <div className="text-lg font-semibold text-white">
+                    {opportunity.story_source?.title ?? "Untitled opportunity"}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <GlassBadge tone="default">{opportunity.status}</GlassBadge>
+                    <GlassBadge tone="copper">Score {Math.round(Number(opportunity.score ?? 0))}</GlassBadge>
+                    {opportunity.story_source?.kind ? (
+                      <GlassBadge tone="muted">{opportunity.story_source.kind}</GlassBadge>
+                    ) : null}
+                  </div>
+                  {opportunity.reason ? (
+                    <div className="text-sm text-white/70">{opportunity.reason}</div>
+                  ) : null}
+                  {opportunity.story_source?.description ? (
+                    <div className="text-sm text-white/60">
+                      {opportunity.story_source.description}
+                    </div>
+                  ) : null}
+                  {linkedCampaignId ? (
+                    <Link
+                      href={`/shopreel/campaigns/${linkedCampaignId}`}
+                      className="text-sm text-cyan-300 underline"
+                    >
+                      Open linked campaign
+                    </Link>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  {activeTab === "active" ? (
+                    <>
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void generateOpportunity(opportunity.id)}
+                        disabled={busy === opportunity.id}
+                      >
+                        {busy === opportunity.id ? "Working..." : "Generate"}
+                      </GlassButton>
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void createCampaign(opportunity.id)}
+                        disabled={busy === opportunity.id}
+                      >
+                        {busy === opportunity.id ? "Working..." : "Create Campaign"}
+                      </GlassButton>
+                      <GlassButton
+                        variant="ghost"
+                        onClick={() => void dismissOpportunity(opportunity.id)}
+                        disabled={busy === opportunity.id}
+                      >
+                        Dismiss
+                      </GlassButton>
+                    </>
+                  ) : linkedCampaignId ? (
+                    <Link href={`/shopreel/campaigns/${linkedCampaignId}`}>
+                      <GlassButton variant="ghost">Open Campaign</GlassButton>
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+===== src/app/api/shopreel/opportunities/route.ts =====
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+type OpportunityItem = {
+  id: string;
+  kind: "story_opportunity" | "creator_request";
+  title: string;
+  contentType: string;
+  score: number | null;
+  status: string;
+  source: string;
+  sourceType: "manual_upload" | "shop_data" | "creator_prompt";
+  createdAt: string;
+  generationId: string | null;
+  creatorMode: string | null;
+  summary: string | null;
+};
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function dedupeItems(items: OpportunityItem[]): OpportunityItem[] {
+  const seen = new Set<string>();
+  const result: OpportunityItem[] = [];
+
+  for (const item of items) {
+    const key = `${item.kind}:${item.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+}
+
+export async function GET(req: Request) {
+  try {
+    const shopId = await getCurrentShopId();
+    const { searchParams } = new URL(req.url);
+    const limitRaw = searchParams.get("limit");
+    const limit = limitRaw ? Number(limitRaw) : 50;
+
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data, error } = await legacy
+      .from("shopreel_content_opportunities")
+      .select(`
+        id,
+        score,
+        status,
+        reason,
+        created_at,
+        story_source_id,
+        metadata,
+        shopreel_story_sources!inner (
+          id,
+          title,
+          kind,
+          origin,
+          created_at
+        )
+      `)
+      .eq("shop_id", shopId)
+      .order("score", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const storySourceIds = Array.from(
+      new Set(
+        (data ?? [])
+          .map((row: any) =>
+            typeof row.story_source_id === "string" ? row.story_source_id : null,
+          )
+          .filter((value: string | null): value is string => !!value),
+      ),
+    );
+
+    const generationByStorySourceId = new Map<
+      string,
+      {
+        id: string;
+        outputType: string | null;
+      }
+    >();
+
+    if (storySourceIds.length > 0) {
+      const { data: generations, error: generationError } = await legacy
+        .from("shopreel_story_generations")
+        .select("id, story_source_id, generation_metadata")
+        .eq("shop_id", shopId)
+        .in("story_source_id", storySourceIds)
+        .order("created_at", { ascending: false });
+
+      if (generationError) {
+        throw new Error(generationError.message);
+      }
+
+      for (const generation of generations ?? []) {
+        if (!generation?.story_source_id) continue;
+        if (generationByStorySourceId.has(generation.story_source_id)) continue;
+
+        const generationMetadata = objectRecord(generation.generation_metadata);
+
+        generationByStorySourceId.set(generation.story_source_id, {
+          id: generation.id,
+          outputType:
+            typeof generationMetadata.output_type === "string"
+              ? generationMetadata.output_type
+              : null,
+        });
+      }
+    }
+
+    const creatorRequestIds = Array.from(
+      new Set(
+        (data ?? [])
+          .map((row: any) => {
+            const metadata = objectRecord(row.metadata);
+            return typeof metadata.creator_request_id === "string"
+              ? metadata.creator_request_id
+              : null;
+          })
+          .filter((value: string | null): value is string => !!value),
+      ),
+    );
+
+    const creatorRequestById = new Map<
+      string,
+      {
+        id: string;
+        source_generation_id: string | null;
+        mode: string | null;
+      }
+    >();
+
+    if (creatorRequestIds.length > 0) {
+      const { data: creatorRequests, error: creatorRequestError } = await legacy
+        .from("shopreel_creator_requests")
+        .select("id, source_generation_id, mode")
+        .eq("shop_id", shopId)
+        .in("id", creatorRequestIds);
+
+      if (creatorRequestError) {
+        throw new Error(creatorRequestError.message);
+      }
+
+      for (const request of creatorRequests ?? []) {
+        creatorRequestById.set(request.id, {
+          id: request.id,
+          source_generation_id:
+            typeof request.source_generation_id === "string"
+              ? request.source_generation_id
+              : null,
+          mode: typeof request.mode === "string" ? request.mode : null,
+        });
+      }
+    }
+
+    const items = dedupeItems(
+      (data ?? []).map((row: any) => {
+        const metadata = objectRecord(row.metadata);
+        const storySource = row.shopreel_story_sources ?? null;
+        const isCreator =
+          metadata.source_type === "creator_request" ||
+          storySource?.origin === "creator_mode";
+
+        const creatorRequestId =
+          typeof metadata.creator_request_id === "string"
+            ? metadata.creator_request_id
+            : null;
+
+        const creatorRequest = creatorRequestId
+          ? creatorRequestById.get(creatorRequestId) ?? null
+          : null;
+
+        const generationFromSource =
+          typeof row.story_source_id === "string"
+            ? generationByStorySourceId.get(row.story_source_id) ?? null
+            : null;
+
+        const creatorMode =
+          typeof metadata.creator_mode === "string"
+            ? metadata.creator_mode
+            : typeof metadata.creator_mode_type === "string"
+              ? metadata.creator_mode_type
+              : creatorRequest?.mode ?? null;
+
+        const generationId =
+          typeof metadata.generation_id === "string"
+            ? metadata.generation_id
+            : creatorRequest?.source_generation_id ??
+              generationFromSource?.id ??
+              null;
+
+        return {
+          id: isCreator && creatorRequestId ? creatorRequestId : row.id,
+          kind: isCreator ? "creator_request" : "story_opportunity",
+          title:
+            storySource?.title ??
+            (typeof metadata.creator_title === "string"
+              ? metadata.creator_title
+              : typeof metadata.source_title === "string"
+                ? metadata.source_title
+                : "Untitled"),
+          contentType:
+            creatorMode ??
+            (typeof metadata.output_type === "string"
+              ? metadata.output_type
+              : storySource?.kind ?? "story_source"),
+          score:
+            typeof row.score === "number" ? row.score : Number(row.score ?? 0),
+          status: typeof row.status === "string" ? row.status : "ready",
+          source:
+            typeof storySource?.origin === "string"
+              ? storySource.origin
+              : "shopreel",
+          sourceType: isCreator
+            ? "creator_prompt"
+            : storySource?.origin === "manual_upload"
+              ? "manual_upload"
+              : "shop_data",
+          createdAt:
+            typeof storySource?.created_at === "string"
+              ? storySource.created_at
+              : typeof row.created_at === "string"
+                ? row.created_at
+                : new Date().toISOString(),
+          generationId,
+          creatorMode,
+          summary:
+            typeof row.reason === "string"
+              ? row.reason
+              : typeof metadata.research_summary === "string"
+                ? metadata.research_summary
+                : null,
+        } satisfies OpportunityItem;
+      }),
+    );
+
+    return NextResponse.json({
+      ok: true,
+      items,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load opportunities";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+===== src/features/shopreel/opportunities/createOpportunities.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { scoreStorySource } from "./scoreStorySource";
+import type { Json } from "@/types/supabase";
+
+function buildReason(score: number): string {
+  if (score >= 90) return "Very strong story potential";
+  if (score >= 75) return "High-value marketing opportunity";
+  if (score >= 60) return "Promising content opportunity";
+  return "Detected story opportunity";
+}
+
+export async function createOpportunities() {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: sources, error: sourceError } = await supabase
+    .from("shopreel_story_sources")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (sourceError) {
+    throw new Error(sourceError.message);
+  }
+
+  const createdOrUpdated = [];
+
+  for (const source of sources ?? []) {
+    const { data: existing } = await supabase
+      .from("shopreel_content_opportunities")
+      .select("*")
+      .eq("shop_id", shopId)
+      .eq("story_source_id", source.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const current = existing?.[0] ?? null;
+
+    if (current?.status === "dismissed" || current?.status === "generated") {
+      continue;
+    }
+
+    const score = scoreStorySource(source);
+    const reason = buildReason(score);
+
+    if (current) {
+      const currentMetadata =
+        current.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata)
+          ? (current.metadata as Record<string, Json | undefined>)
+          : {};
+
+      const { data: updated, error: updateError } = await supabase
+        .from("shopreel_content_opportunities")
+        .update({
+          score,
+          reason,
+          metadata: {
+            ...currentMetadata,
+            scoring: {
+              source_kind: source.kind,
+              source_origin: source.origin,
+              source_title: source.title,
+            },
+          },
+          status: current.status || "ready",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", current.id)
+        .select("*")
+        .single();
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      createdOrUpdated.push(updated);
+      continue;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("shopreel_content_opportunities")
+      .insert({
+        shop_id: shopId,
+        story_source_id: source.id,
+        score,
+        reason,
+        metadata: {
+          scoring: {
+            source_kind: source.kind,
+            source_origin: source.origin,
+            source_title: source.title,
+          },
+        },
+        status: "ready",
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    createdOrUpdated.push(inserted);
+  }
+
+  return createdOrUpdated;
+}
+
+===== src/features/shopreel/opportunities/scoreStorySource.ts =====
+type StorySource = {
+  id: string;
+  kind: string;
+  title: string;
+  description: string | null;
+  tags?: string[] | null;
+  notes?: string[] | null;
+};
+
+export function scoreStorySource(source: StorySource) {
+  let score = 40;
+
+  const text = [
+    source.title,
+    source.description ?? "",
+    ...(source.tags ?? []),
+    ...(source.notes ?? []),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (text.includes("brake")) score += 20;
+  if (text.includes("failure")) score += 20;
+  if (text.includes("danger")) score += 20;
+  if (text.includes("before")) score += 15;
+  if (text.includes("after")) score += 15;
+  if (text.includes("inspection")) score += 10;
+  if (text.includes("repair")) score += 12;
+  if (text.includes("worn")) score += 10;
+  if (text.includes("scoring")) score += 8;
+  if (text.includes("safety")) score += 12;
+
+  if (source.kind === "inspection_completed") score += 10;
+  if (source.kind === "repair_completed") score += 15;
+  if (source.kind === "before_after") score += 18;
+  if (source.kind === "educational_insight") score += 8;
+
+  return Math.min(score, 100);
+}

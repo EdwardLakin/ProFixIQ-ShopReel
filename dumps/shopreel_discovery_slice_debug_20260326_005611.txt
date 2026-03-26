@@ -1,0 +1,199 @@
+===== src/features/shopreel/story-sources/index.ts =====
+export * from "./types"
+export * from "./constants"
+export * from "./buildStorySourceKey"
+export * from "./fromOpportunity"
+export * from "./generateContentPieceFromSource"
+export * from "./discoverAndGenerateStories"
+export * from "./discoverStorySourceCandidates"
+
+===== src/features/shopreel/story-sources/fromOpportunity.ts =====
+import type { ContentOpportunity } from "../discovery/discoverContent"
+import type { StorySource, StorySourceKind } from "./types"
+
+function mapKind(opportunity: ContentOpportunity): StorySourceKind {
+  switch (opportunity.contentType) {
+    case "inspection_highlight":
+      return "inspection_completed"
+    case "before_after":
+      return "before_after"
+    case "repair_story":
+      return "repair_completed"
+    case "educational_tip":
+      return "educational_insight"
+    case "workflow_demo":
+    default:
+      return "manual_upload"
+  }
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((v) => (v ?? "").trim()).filter(Boolean)))
+}
+
+export function storySourceFromOpportunity(
+  shopId: string,
+  opportunity: ContentOpportunity,
+): StorySource {
+  return {
+    id: `opportunity:${opportunity.sourceId}`,
+    shopId,
+    title: opportunity.title,
+    description: opportunity.reason,
+    kind: mapKind(opportunity),
+    origin: "future_operational_event",
+    generationMode: "assisted",
+    occurredAt: null,
+    vehicleLabel: null,
+    customerLabel: null,
+    technicianLabel: null,
+    tags: uniqueStrings([
+      opportunity.contentType,
+      opportunity.sourceType,
+      opportunity.workOrderId ? "work_order" : null,
+    ]),
+    assets: opportunity.visualUrls.map((url, index) => ({
+      id: `asset:${opportunity.sourceId}:${index + 1}`,
+      assetType: "photo",
+      url,
+      sortOrder: index,
+      metadata: {
+        imported_from: "discoverContent",
+      },
+    })),
+    refs: [
+      {
+        type: opportunity.workOrderId ? "future_work_order" : "content_piece",
+        id: opportunity.workOrderId ?? opportunity.sourceId,
+      },
+    ],
+    notes: [opportunity.reason],
+    facts: {
+      hook: opportunity.hook,
+      contentType: opportunity.contentType,
+      sourceType: opportunity.sourceType,
+    },
+    metadata: {
+      sourceId: opportunity.sourceId,
+      workOrderId: opportunity.workOrderId,
+      hook: opportunity.hook,
+    },
+  }
+}
+
+===== src/features/shopreel/story-sources/types.ts =====
+export type StorySourceKind =
+  | "job_completed"
+  | "inspection_completed"
+  | "repair_completed"
+  | "before_after"
+  | "project_progress"
+  | "project_completed"
+  | "educational_insight"
+  | "expert_tip"
+  | "customer_result"
+  | "product_launch"
+  | "service_highlight"
+  | "milestone"
+  | "manual_upload"
+  | "daily_timeline"
+  | "creator_idea";
+
+export type StorySourceOrigin =
+  | "shop_data"
+  | "manual_upload"
+  | "project"
+  | "creator_mode"
+  | "future_operational_event"
+  | "imported_media"
+  | "day_timeline";
+
+export type StoryGenerationMode =
+  | "assisted"
+  | "manual"
+  | "automatic"
+  | "autopilot";
+
+export type StorySourceAssetType =
+  | "photo"
+  | "video"
+  | "note"
+  | "text"
+  | "other";
+
+export type StorySourceAsset = {
+  id: string;
+  assetType: StorySourceAssetType;
+  contentAssetId?: string | null;
+  manualAssetId?: string | null;
+  url?: string | null;
+  title?: string | null;
+  caption?: string | null;
+  note?: string | null;
+  takenAt?: string | null;
+  sortOrder: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type StorySourceRef = {
+  type:
+    | "content_asset"
+    | "manual_asset"
+    | "content_event"
+    | "content_piece"
+    | "project"
+    | "day_bucket"
+    | "future_work_order"
+    | "future_inspection";
+  id: string;
+};
+
+export type StorySourceFactMap = {
+  hook?: string;
+  contentType?: string;
+  [key: string]: unknown;
+};
+
+export type StorySourceCandidate = {
+  title: string;
+  kind: StorySourceKind;
+  confidence: number;
+  reason?: string | null;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+export type StorySource = {
+  id: string;
+  shopId: string;
+
+  title: string;
+  description?: string | null;
+
+  kind: StorySourceKind;
+  origin: StorySourceOrigin;
+  generationMode: StoryGenerationMode;
+
+  occurredAt?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+
+  projectId?: string | null;
+  projectName?: string | null;
+
+  vehicleLabel?: string | null;
+  customerLabel?: string | null;
+  technicianLabel?: string | null;
+
+  tags: string[];
+  notes: string[];
+
+  facts: StorySourceFactMap;
+  metadata: Record<string, unknown>;
+
+  assets: StorySourceAsset[];
+  refs: StorySourceRef[];
+
+  createdAt?: string;
+  updatedAt?: string;
+};

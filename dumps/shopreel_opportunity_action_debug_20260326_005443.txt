@@ -1,0 +1,467 @@
+===== src/app/api/shopreel/discovery/route.ts =====
+import { NextResponse } from "next/server";
+import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+export async function POST() {
+  try {
+    const shopId = await getCurrentShopId();
+
+    const discovered = await discoverStorySources(shopId);
+    const opportunities = await createOpportunities();
+
+    return NextResponse.json({
+      ok: true,
+      discoveredCount: Array.isArray(discovered) ? discovered.length : 0,
+      opportunityCount: Array.isArray(opportunities) ? opportunities.length : 0,
+      opportunities,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Discovery failed",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+===== src/app/api/shopreel/opportunities/auto-campaigns/route.ts =====
+import { NextResponse } from "next/server";
+import { autoCreateCampaignsFromTopOpportunities } from "@/features/shopreel/opportunities/autoCreateCampaigns";
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    const minScore =
+      typeof body.minScore === "number" ? body.minScore : 85;
+    const limit =
+      typeof body.limit === "number" ? body.limit : 3;
+
+    const result = await autoCreateCampaignsFromTopOpportunities({
+      minScore,
+      limit,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      ...result,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to auto-create campaigns from opportunities",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+===== src/features/shopreel/discovery/discoverContent.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { storySourceFromOpportunity } from "../story-sources";
+import type { StorySource } from "../story-sources";
+import type { Tables } from "@/types/supabase";
+
+type ContentAssetRow = Pick<
+  Tables<"content_assets">,
+  | "id"
+  | "title"
+  | "caption"
+  | "asset_type"
+  | "public_url"
+  | "created_at"
+  | "metadata"
+  | "source_media_upload_id"
+  | "source_work_order_id"
+  | "source_inspection_id"
+  | "source_vehicle_id"
+>;
+
+type ContentPieceRow = Pick<
+  Tables<"content_pieces">,
+  | "id"
+  | "title"
+  | "hook"
+  | "cta"
+  | "content_type"
+  | "metadata"
+  | "source_work_order_id"
+  | "created_at"
+  | "status"
+>;
+
+export type ContentOpportunity = {
+  sourceType:
+    | "manual_upload"
+    | "content_asset"
+    | "before_after_candidate"
+    | "educational_candidate"
+    | "video_story"
+    | "existing_content_piece";
+  workOrderId: string | null;
+  sourceId: string;
+  title: string;
+  contentType:
+    | "inspection_highlight"
+    | "before_after"
+    | "repair_story"
+    | "educational_tip"
+    | "workflow_demo";
+  hook: string;
+  reason: string;
+  visualUrls: string[];
+};
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function getStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim().length > 0,
+  );
+}
+
+function chooseContentType(row: ContentAssetRow): ContentOpportunity["contentType"] {
+  const metadata = objectRecord(row.metadata);
+  const explicit = typeof metadata.content_type === "string" ? metadata.content_type : null;
+  const tags = getStringList(metadata.tags).map((tag) => tag.toLowerCase());
+
+  if (explicit === "before_after" || tags.includes("before_after")) {
+    return "before_after";
+  }
+
+  if (
+    explicit === "educational_tip" ||
+    explicit === "inspection_highlight" ||
+    tags.includes("educational") ||
+    tags.includes("tip")
+  ) {
+    return "educational_tip";
+  }
+
+  if (explicit === "repair_story" || tags.includes("repair")) {
+    return "repair_story";
+  }
+
+  return row.asset_type === "video" ? "workflow_demo" : "before_after";
+}
+
+function chooseSourceType(
+  row: ContentAssetRow,
+  contentType: ContentOpportunity["contentType"],
+): ContentOpportunity["sourceType"] {
+  if (row.source_media_upload_id) return "manual_upload";
+  if (contentType === "before_after") return "before_after_candidate";
+  if (contentType === "educational_tip") return "educational_candidate";
+  if (row.asset_type === "video") return "video_story";
+  return "content_asset";
+}
+
+function buildTitle(row: ContentAssetRow, contentType: ContentOpportunity["contentType"]): string {
+  if (row.title && row.title.trim().length > 0) return row.title.trim();
+
+  switch (contentType) {
+    case "before_after":
+      return "Before / after story";
+    case "educational_tip":
+      return "Educational story";
+    case "repair_story":
+      return "Repair story";
+    default:
+      return row.asset_type === "video" ? "Video story" : "Photo story";
+  }
+}
+
+function buildHook(
+  row: ContentAssetRow,
+  title: string,
+  contentType: ContentOpportunity["contentType"],
+): string {
+  const metadata = objectRecord(row.metadata);
+  const explicitHook = typeof metadata.hook === "string" ? metadata.hook.trim() : "";
+
+  if (explicitHook.length > 0) return explicitHook;
+  if (row.caption && row.caption.trim().length > 0) return row.caption.trim();
+
+  switch (contentType) {
+    case "before_after":
+      return `${title} — here’s the transformation.`;
+    case "educational_tip":
+      return `${title} — here’s what to know.`;
+    case "repair_story":
+      return `${title} — here’s what happened.`;
+    default:
+      return `${title} — here’s the story.`;
+  }
+}
+
+function buildReason(
+  row: ContentAssetRow,
+  sourceType: ContentOpportunity["sourceType"],
+  contentType: ContentOpportunity["contentType"],
+): string {
+  if (sourceType === "manual_upload") return "Manual upload asset ready for story generation";
+  if (contentType === "before_after") return "Asset metadata suggests a before/after story";
+  if (contentType === "educational_tip") return "Asset metadata suggests an educational story";
+  if (row.asset_type === "video") return "Video asset can be turned into a workflow story";
+  return "Content asset available for story generation";
+}
+
+function normalizePieceContentType(value: string | null): ContentOpportunity["contentType"] {
+  if (
+    value === "inspection_highlight" ||
+    value === "before_after" ||
+    value === "repair_story" ||
+    value === "educational_tip"
+  ) {
+    return value;
+  }
+
+  return "workflow_demo";
+}
+
+function buildPieceOpportunity(row: ContentPieceRow): ContentOpportunity {
+  const metadata = objectRecord(row.metadata);
+
+  return {
+    sourceType: "existing_content_piece",
+    workOrderId: row.source_work_order_id,
+    sourceId: row.id,
+    title: row.title?.trim() || "Existing content piece",
+    contentType: normalizePieceContentType(row.content_type),
+    hook:
+      row.hook?.trim() ||
+      (typeof metadata.hook === "string" && metadata.hook.trim().length > 0
+        ? metadata.hook.trim()
+        : `${row.title?.trim() || "Content piece"} — ready to schedule.`),
+    reason: "Existing content piece available for calendar scheduling",
+    visualUrls: [],
+  };
+}
+
+export async function discoverContent(shopId: string): Promise<ContentOpportunity[]> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("content_assets")
+    .select(`
+      id,
+      title,
+      caption,
+      asset_type,
+      public_url,
+      created_at,
+      metadata,
+      source_media_upload_id,
+      source_work_order_id,
+      source_inspection_id,
+      source_vehicle_id
+    `)
+    .eq("tenant_shop_id", shopId)
+    .in("asset_type", ["photo", "video"])
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows: ContentAssetRow[] = data ?? [];
+
+  const assetOpportunities = rows.map((row) => {
+    const contentType = chooseContentType(row);
+    const sourceType = chooseSourceType(row, contentType);
+    const title = buildTitle(row, contentType);
+
+    return {
+      sourceType,
+      workOrderId: row.source_work_order_id,
+      sourceId: row.id,
+      title,
+      contentType,
+      hook: buildHook(row, title, contentType),
+      reason: buildReason(row, sourceType, contentType),
+      visualUrls: row.public_url ? [row.public_url] : [],
+    } satisfies ContentOpportunity;
+  });
+
+  if (assetOpportunities.length > 0) {
+    return assetOpportunities.slice(0, 20);
+  }
+
+  const { data: pieceData, error: pieceError } = await supabase
+    .from("content_pieces")
+    .select("id, title, hook, cta, content_type, metadata, source_work_order_id, created_at, status")
+    .eq("tenant_shop_id", shopId)
+    .in("status", ["draft", "queued", "processing", "ready", "published"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (pieceError) {
+    throw new Error(pieceError.message);
+  }
+
+  const contentPieces: ContentPieceRow[] = pieceData ?? [];
+  return contentPieces.map(buildPieceOpportunity);
+}
+
+export async function discoverStorySources(shopId: string): Promise<StorySource[]> {
+  const opportunities = await discoverContent(shopId);
+  return opportunities
+    .filter((opportunity) => opportunity.sourceType !== "existing_content_piece")
+    .map((opportunity) => storySourceFromOpportunity(shopId, opportunity));
+}
+
+===== src/features/shopreel/discovery/generateOpportunities.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+
+export async function generateOpportunities(shopId: string) {
+  const supabase = createAdminClient();
+
+  const { data: sources } = await supabase
+    .from("shopreel_story_sources")
+    .select("*")
+    .eq("shop_id", shopId)
+    .limit(20);
+
+  if (!sources) {
+    return { created: 0 };
+  }
+
+  let created = 0;
+
+  for (const source of sources) {
+    await supabase
+      .from("shopreel_content_opportunities")
+      .insert({
+        shop_id: shopId,
+        story_source_id: source.id,
+        status: "pending",
+      });
+
+    created++;
+  }
+
+  return { created };
+}
+
+===== src/features/shopreel/opportunities/autoCreateCampaigns.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { Json } from "@/types/supabase";
+
+type AutoCreateResult = {
+  createdCampaignIds: string[];
+  skippedOpportunityIds: string[];
+};
+
+export async function autoCreateCampaignsFromTopOpportunities(args?: {
+  minScore?: number;
+  limit?: number;
+}) : Promise<AutoCreateResult> {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+  const minScore = args?.minScore ?? 85;
+  const limit = args?.limit ?? 3;
+
+  const { data: opportunities, error } = await supabase
+    .from("shopreel_content_opportunities")
+    .select(`
+      *,
+      story_source:shopreel_story_sources (*)
+    `)
+    .eq("shop_id", shopId)
+    .eq("status", "ready")
+    .gte("score", minScore)
+    .order("score", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const createdCampaignIds: string[] = [];
+  const skippedOpportunityIds: string[] = [];
+
+  for (const opportunity of opportunities ?? []) {
+    const storySource = Array.isArray(opportunity.story_source)
+      ? opportunity.story_source[0] ?? null
+      : opportunity.story_source;
+
+    if (!storySource?.id) {
+      skippedOpportunityIds.push(opportunity.id);
+      continue;
+    }
+
+    const metadata =
+      opportunity.metadata && typeof opportunity.metadata === "object" && !Array.isArray(opportunity.metadata)
+        ? { ...(opportunity.metadata as Record<string, Json | undefined>) }
+        : {};
+
+    if (typeof metadata.linked_campaign_id === "string" && metadata.linked_campaign_id.length > 0) {
+      skippedOpportunityIds.push(opportunity.id);
+      continue;
+    }
+
+    const { data: campaign, error: campaignError } = await supabase
+      .from("shopreel_campaigns")
+      .insert({
+        shop_id: shopId,
+        title: storySource.title,
+        core_idea: storySource.description ?? storySource.title,
+        audience: null,
+        offer: null,
+        campaign_goal: "Auto-created from high scoring opportunity",
+        platform_focus: ["instagram", "facebook", "tiktok", "youtube"],
+        status: "draft",
+        metadata: {
+          source_opportunity_id: opportunity.id,
+          source_story_source_id: storySource.id,
+          auto_created: true,
+        },
+      })
+      .select("*")
+      .single();
+
+    if (campaignError || !campaign) {
+      skippedOpportunityIds.push(opportunity.id);
+      continue;
+    }
+
+    metadata.linked_campaign_id = campaign.id;
+    metadata.auto_created_campaign = true;
+
+    const { error: updateError } = await supabase
+      .from("shopreel_content_opportunities")
+      .update({
+        status: "generated",
+        metadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", opportunity.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    createdCampaignIds.push(campaign.id);
+  }
+
+  return {
+    createdCampaignIds,
+    skippedOpportunityIds,
+  };
+}
