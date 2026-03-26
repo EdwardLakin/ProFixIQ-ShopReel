@@ -1,3 +1,4 @@
+import { requireShopId } from "@/features/shopreel/server/requireShopId";
 import { createRenderJob } from "../render/createRenderJob";
 import { saveStoryGeneration, saveStorySource } from "../story-sources/server";
 import type { StorySource } from "../story-sources";
@@ -12,9 +13,16 @@ export async function generateStoryPipeline(input: {
   createRenderJobNow?: boolean;
   createdBy?: string | null;
 }) {
-  const savedSource = await saveStorySource(input.source);
+  const sourceShopId = await requireShopId(input.source.shopId ?? input.shopId);
 
-  const draft = buildStoryDraftFromSource(input.source);
+  const normalizedSource = {
+    ...input.source,
+    shopId: sourceShopId,
+  };
+
+  const savedSource = await saveStorySource(normalizedSource);
+
+  const draft = buildStoryDraftFromSource(normalizedSource);
 
   const contentPiece = await createContentPieceFromStoryDraft({
     shopId: input.shopId,
@@ -30,7 +38,7 @@ export async function generateStoryPipeline(input: {
         sourceType: input.source.kind,
         sourceId: savedSource.id,
         createdBy: input.createdBy ?? null,
-        storySource: input.source,
+        storySource: normalizedSource,
         storyDraft: draft,
         renderPayload: {
           mode: "story_draft",
@@ -59,7 +67,7 @@ export async function generateStoryPipeline(input: {
 
   return {
     savedSource,
-    source: input.source,
+    source: normalizedSource,
     draft,
     contentPiece,
     renderJob,
