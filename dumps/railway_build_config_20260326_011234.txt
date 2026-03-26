@@ -1,0 +1,122 @@
+===== pwd =====
+/workspaces/ProFixIQ-ShopReel
+
+===== package.json =====
+{
+  "name": "profixiq-shopreel",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@runwayml/sdk": "^3.16.0",
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.99.0",
+    "dotenv": "^17.3.1",
+    "ffmpeg-static": "^5.3.0",
+    "next": "^16.1.6",
+    "openai": "^6.32.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "stripe": "^20.4.1",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "@types/react": "19.2.14",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "3.4.17",
+    "typescript": "^5.9.3"
+  }
+}
+
+===== railway-related files =====
+
+===== root files =====
+./.env
+./.env.local
+./.gitignore
+./LICENSE
+./README.md
+./SHOPREEL_AUTOMATION_ENV.md
+./campaign_creative_dump.txt
+./campaign_routes_dump.txt
+./middleware.ts
+./next-env.d.ts
+./next.config.ts
+./package-lock.json
+./package.json
+./pnpm-lock.yaml
+./postcss.config.js
+./shopreel_account_label_debug.txt
+./shopreel_full_repo_dump_20260320_034157.txt
+./shopreel_keep_replace_remove_map.txt
+./supabase.tar.gz
+./tailwind.config.ts
+./tsconfig.json
+./tsconfig.tsbuildinfo
+./vercel.json
+
+===== if nixpacks.toml exists =====
+no nixpacks.toml
+
+===== if railway.json exists =====
+no railway.json
+
+===== tsconfig.json =====
+{
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "target": "ES2022",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "allowJs": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "typeRoots": [
+      "./types",
+      "./node_modules/@types"
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts",
+    "**/*.ts",
+    "**/*.tsx",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -1,0 +1,633 @@
+===== pwd =====
+/workspaces/ProFixIQ-ShopReel
+
+===== src/app/api/shopreel/discovery/route.ts =====
+import { NextResponse } from "next/server";
+import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+export async function POST() {
+  try {
+    const shopId = await getCurrentShopId();
+
+    const discovered = await discoverStorySources(shopId);
+    const opportunities = await createOpportunities();
+
+    return NextResponse.json({
+      ok: true,
+      discoveredCount: Array.isArray(discovered) ? discovered.length : 0,
+      opportunityCount: Array.isArray(opportunities) ? opportunities.length : 0,
+      opportunities,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Discovery failed",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+===== src/features/shopreel/discovery/discoverContent.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { storySourceFromOpportunity } from "../story-sources";
+import type { StorySource } from "../story-sources";
+import type { Tables } from "@/types/supabase";
+
+type ContentAssetRow = Pick<
+  Tables<"content_assets">,
+  | "id"
+  | "title"
+  | "caption"
+  | "asset_type"
+  | "public_url"
+  | "created_at"
+  | "metadata"
+  | "source_media_upload_id"
+  | "source_work_order_id"
+  | "source_inspection_id"
+  | "source_vehicle_id"
+>;
+
+type ContentPieceRow = Pick<
+  Tables<"content_pieces">,
+  | "id"
+  | "title"
+  | "hook"
+  | "cta"
+  | "content_type"
+  | "metadata"
+  | "source_work_order_id"
+  | "created_at"
+  | "status"
+>;
+
+export type ContentOpportunity = {
+  sourceType:
+    | "manual_upload"
+    | "content_asset"
+    | "before_after_candidate"
+    | "educational_candidate"
+    | "video_story"
+    | "existing_content_piece";
+  workOrderId: string | null;
+  sourceId: string;
+  title: string;
+  contentType:
+    | "inspection_highlight"
+    | "before_after"
+    | "repair_story"
+    | "educational_tip"
+    | "workflow_demo";
+  hook: string;
+  reason: string;
+  visualUrls: string[];
+};
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function getStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim().length > 0,
+  );
+}
+
+function chooseContentType(row: ContentAssetRow): ContentOpportunity["contentType"] {
+  const metadata = objectRecord(row.metadata);
+  const explicit = typeof metadata.content_type === "string" ? metadata.content_type : null;
+  const tags = getStringList(metadata.tags).map((tag) => tag.toLowerCase());
+
+  if (explicit === "before_after" || tags.includes("before_after")) {
+    return "before_after";
+  }
+
+  if (
+    explicit === "educational_tip" ||
+    explicit === "inspection_highlight" ||
+    tags.includes("educational") ||
+    tags.includes("tip")
+  ) {
+    return "educational_tip";
+  }
+
+  if (explicit === "repair_story" || tags.includes("repair")) {
+    return "repair_story";
+  }
+
+  return row.asset_type === "video" ? "workflow_demo" : "before_after";
+}
+
+function chooseSourceType(
+  row: ContentAssetRow,
+  contentType: ContentOpportunity["contentType"],
+): ContentOpportunity["sourceType"] {
+  if (row.source_media_upload_id) return "manual_upload";
+  if (contentType === "before_after") return "before_after_candidate";
+  if (contentType === "educational_tip") return "educational_candidate";
+  if (row.asset_type === "video") return "video_story";
+  return "content_asset";
+}
+
+function buildTitle(row: ContentAssetRow, contentType: ContentOpportunity["contentType"]): string {
+  if (row.title && row.title.trim().length > 0) return row.title.trim();
+
+  switch (contentType) {
+    case "before_after":
+      return "Before / after story";
+    case "educational_tip":
+      return "Educational story";
+    case "repair_story":
+      return "Repair story";
+    default:
+      return row.asset_type === "video" ? "Video story" : "Photo story";
+  }
+}
+
+function buildHook(
+  row: ContentAssetRow,
+  title: string,
+  contentType: ContentOpportunity["contentType"],
+): string {
+  const metadata = objectRecord(row.metadata);
+  const explicitHook = typeof metadata.hook === "string" ? metadata.hook.trim() : "";
+
+  if (explicitHook.length > 0) return explicitHook;
+  if (row.caption && row.caption.trim().length > 0) return row.caption.trim();
+
+  switch (contentType) {
+    case "before_after":
+      return `${title} — here’s the transformation.`;
+    case "educational_tip":
+      return `${title} — here’s what to know.`;
+    case "repair_story":
+      return `${title} — here’s what happened.`;
+    default:
+      return `${title} — here’s the story.`;
+  }
+}
+
+function buildReason(
+  row: ContentAssetRow,
+  sourceType: ContentOpportunity["sourceType"],
+  contentType: ContentOpportunity["contentType"],
+): string {
+  if (sourceType === "manual_upload") return "Manual upload asset ready for story generation";
+  if (contentType === "before_after") return "Asset metadata suggests a before/after story";
+  if (contentType === "educational_tip") return "Asset metadata suggests an educational story";
+  if (row.asset_type === "video") return "Video asset can be turned into a workflow story";
+  return "Content asset available for story generation";
+}
+
+function normalizePieceContentType(value: string | null): ContentOpportunity["contentType"] {
+  if (
+    value === "inspection_highlight" ||
+    value === "before_after" ||
+    value === "repair_story" ||
+    value === "educational_tip"
+  ) {
+    return value;
+  }
+
+  return "workflow_demo";
+}
+
+function buildPieceOpportunity(row: ContentPieceRow): ContentOpportunity {
+  const metadata = objectRecord(row.metadata);
+
+  return {
+    sourceType: "existing_content_piece",
+    workOrderId: row.source_work_order_id,
+    sourceId: row.id,
+    title: row.title?.trim() || "Existing content piece",
+    contentType: normalizePieceContentType(row.content_type),
+    hook:
+      row.hook?.trim() ||
+      (typeof metadata.hook === "string" && metadata.hook.trim().length > 0
+        ? metadata.hook.trim()
+        : `${row.title?.trim() || "Content piece"} — ready to schedule.`),
+    reason: "Existing content piece available for calendar scheduling",
+    visualUrls: [],
+  };
+}
+
+export async function discoverContent(shopId: string): Promise<ContentOpportunity[]> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("content_assets")
+    .select(`
+      id,
+      title,
+      caption,
+      asset_type,
+      public_url,
+      created_at,
+      metadata,
+      source_media_upload_id,
+      source_work_order_id,
+      source_inspection_id,
+      source_vehicle_id
+    `)
+    .eq("tenant_shop_id", shopId)
+    .in("asset_type", ["photo", "video"])
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows: ContentAssetRow[] = data ?? [];
+
+  const assetOpportunities = rows.map((row) => {
+    const contentType = chooseContentType(row);
+    const sourceType = chooseSourceType(row, contentType);
+    const title = buildTitle(row, contentType);
+
+    return {
+      sourceType,
+      workOrderId: row.source_work_order_id,
+      sourceId: row.id,
+      title,
+      contentType,
+      hook: buildHook(row, title, contentType),
+      reason: buildReason(row, sourceType, contentType),
+      visualUrls: row.public_url ? [row.public_url] : [],
+    } satisfies ContentOpportunity;
+  });
+
+  if (assetOpportunities.length > 0) {
+    return assetOpportunities.slice(0, 20);
+  }
+
+  const { data: pieceData, error: pieceError } = await supabase
+    .from("content_pieces")
+    .select("id, title, hook, cta, content_type, metadata, source_work_order_id, created_at, status")
+    .eq("tenant_shop_id", shopId)
+    .in("status", ["draft", "queued", "processing", "ready", "published"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (pieceError) {
+    throw new Error(pieceError.message);
+  }
+
+  const contentPieces: ContentPieceRow[] = pieceData ?? [];
+  return contentPieces.map(buildPieceOpportunity);
+}
+
+export async function discoverStorySources(shopId: string): Promise<StorySource[]> {
+  const opportunities = await discoverContent(shopId);
+  return opportunities
+    .filter((opportunity) => opportunity.sourceType !== "existing_content_piece")
+    .map((opportunity) => storySourceFromOpportunity(shopId, opportunity));
+}
+
+===== src/features/shopreel/story-sources/fromOpportunity.ts =====
+import type { ContentOpportunity } from "../discovery/discoverContent"
+import type { StorySource, StorySourceKind } from "./types"
+
+function mapKind(opportunity: ContentOpportunity): StorySourceKind {
+  switch (opportunity.contentType) {
+    case "inspection_highlight":
+      return "inspection_completed"
+    case "before_after":
+      return "before_after"
+    case "repair_story":
+      return "repair_completed"
+    case "educational_tip":
+      return "educational_insight"
+    case "workflow_demo":
+    default:
+      return "manual_upload"
+  }
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((v) => (v ?? "").trim()).filter(Boolean)))
+}
+
+export function storySourceFromOpportunity(
+  shopId: string,
+  opportunity: ContentOpportunity,
+): StorySource {
+  return {
+    id: `opportunity:${opportunity.sourceId}`,
+    shopId,
+    title: opportunity.title,
+    description: opportunity.reason,
+    kind: mapKind(opportunity),
+    origin: "future_operational_event",
+    generationMode: "assisted",
+    occurredAt: null,
+    vehicleLabel: null,
+    customerLabel: null,
+    technicianLabel: null,
+    tags: uniqueStrings([
+      opportunity.contentType,
+      opportunity.sourceType,
+      opportunity.workOrderId ? "work_order" : null,
+    ]),
+    assets: opportunity.visualUrls.map((url, index) => ({
+      id: `asset:${opportunity.sourceId}:${index + 1}`,
+      assetType: "photo",
+      url,
+      sortOrder: index,
+      metadata: {
+        imported_from: "discoverContent",
+      },
+    })),
+    refs: [
+      {
+        type: opportunity.workOrderId ? "future_work_order" : "content_piece",
+        id: opportunity.workOrderId ?? opportunity.sourceId,
+      },
+    ],
+    notes: [opportunity.reason],
+    facts: {
+      hook: opportunity.hook,
+      contentType: opportunity.contentType,
+      sourceType: opportunity.sourceType,
+    },
+    metadata: {
+      sourceId: opportunity.sourceId,
+      workOrderId: opportunity.workOrderId,
+      hook: opportunity.hook,
+    },
+  }
+}
+
+===== src/features/shopreel/story-sources/server/saveStorySource.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { buildStorySourceKey } from "../buildStorySourceKey";
+import type { StorySource } from "../types";
+
+function toJson(value: unknown) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+export async function saveStorySource(source: StorySource) {
+  const supabase = createAdminClient();
+  const sourceKey = buildStorySourceKey(source);
+
+  const { data: existing } = await supabase
+    .from("shopreel_story_sources")
+    .select("id")
+    .eq("shop_id", source.shopId)
+    .eq("source_key", sourceKey)
+    .maybeSingle();
+
+  if (existing?.id) {
+    return { id: existing.id, deduped: true };
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("shopreel_story_sources")
+    .insert({
+      shop_id: source.shopId,
+      title: source.title,
+      description: source.description ?? null,
+      kind: source.kind,
+      origin: source.origin,
+      generation_mode: source.generationMode,
+      occurred_at: source.occurredAt ?? null,
+      started_at: source.startedAt ?? null,
+      ended_at: source.endedAt ?? null,
+      project_id: source.projectId ?? null,
+      project_name: source.projectName ?? null,
+      vehicle_label: source.vehicleLabel ?? null,
+      customer_label: source.customerLabel ?? null,
+      technician_label: source.technicianLabel ?? null,
+      tags: source.tags,
+      notes: source.notes,
+      facts: toJson(source.facts),
+      metadata: toJson(source.metadata),
+      source_key: sourceKey,
+    } as never)
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) {
+    throw new Error(insertError?.message ?? "Failed to save story source");
+  }
+
+  if (source.assets.length > 0) {
+    const { error: assetError } = await supabase
+      .from("shopreel_story_source_assets")
+      .insert(
+        source.assets.map((asset) => ({
+          story_source_id: inserted.id,
+          shop_id: source.shopId,
+          asset_type: asset.assetType,
+          content_asset_id: asset.contentAssetId ?? null,
+          manual_asset_id: asset.manualAssetId ?? null,
+          url: asset.url ?? null,
+          title: asset.title ?? null,
+          caption: asset.caption ?? null,
+          note: asset.note ?? null,
+          taken_at: asset.takenAt ?? null,
+          sort_order: asset.sortOrder,
+          metadata: toJson(asset.metadata),
+        })) as never,
+      );
+
+    if (assetError) {
+      throw new Error(assetError.message);
+    }
+  }
+
+  if (source.refs.length > 0) {
+    const { error: refError } = await supabase
+      .from("shopreel_story_source_refs")
+      .insert(
+        source.refs.map((ref) => ({
+          story_source_id: inserted.id,
+          shop_id: source.shopId,
+          ref_type: ref.type,
+          ref_id: ref.id,
+          metadata: {},
+        })) as never,
+      );
+
+    if (refError) {
+      throw new Error(refError.message);
+    }
+  }
+
+  return { id: inserted.id, deduped: false };
+}
+
+===== src/features/shopreel/server/getCurrentShopId.ts =====
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+
+const DEFAULT_SHOP_ID =
+  process.env.DEFAULT_SHOP_ID ?? "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+
+type ShopUserRow = {
+  shop_id: string;
+};
+
+type ShopReelSettingsRow = {
+  shop_id: string;
+};
+
+export async function getCurrentShopId(): Promise<string> {
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user?.id) {
+    const { data: membershipData } = await (admin as any)
+      .from("shop_users")
+      .select("shop_id")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    const membership = (membershipData ?? null) as ShopUserRow | null;
+
+    if (membership?.shop_id) {
+      return membership.shop_id;
+    }
+  }
+
+  const { data: settingsData } = await (admin as any)
+    .from("shop_reel_settings")
+    .select("shop_id")
+    .order("shop_id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const settingsRow = (settingsData ?? null) as ShopReelSettingsRow | null;
+
+  if (settingsRow?.shop_id) {
+    return settingsRow.shop_id;
+  }
+
+  return DEFAULT_SHOP_ID;
+}
+
+===== src/features/shopreel/opportunities/createOpportunities.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { scoreStorySource } from "./scoreStorySource";
+import type { Json } from "@/types/supabase";
+
+function buildReason(score: number): string {
+  if (score >= 90) return "Very strong story potential";
+  if (score >= 75) return "High-value marketing opportunity";
+  if (score >= 60) return "Promising content opportunity";
+  return "Detected story opportunity";
+}
+
+export async function createOpportunities() {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: sources, error: sourceError } = await supabase
+    .from("shopreel_story_sources")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (sourceError) {
+    throw new Error(sourceError.message);
+  }
+
+  const createdOrUpdated = [];
+
+  for (const source of sources ?? []) {
+    const { data: existing } = await supabase
+      .from("shopreel_content_opportunities")
+      .select("*")
+      .eq("shop_id", shopId)
+      .eq("story_source_id", source.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const current = existing?.[0] ?? null;
+
+    if (current?.status === "dismissed" || current?.status === "generated") {
+      continue;
+    }
+
+    const score = scoreStorySource(source);
+    const reason = buildReason(score);
+
+    if (current) {
+      const currentMetadata =
+        current.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata)
+          ? (current.metadata as Record<string, Json | undefined>)
+          : {};
+
+      const { data: updated, error: updateError } = await supabase
+        .from("shopreel_content_opportunities")
+        .update({
+          score,
+          reason,
+          metadata: {
+            ...currentMetadata,
+            scoring: {
+              source_kind: source.kind,
+              source_origin: source.origin,
+              source_title: source.title,
+            },
+          },
+          status: current.status || "ready",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", current.id)
+        .select("*")
+        .single();
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      createdOrUpdated.push(updated);
+      continue;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("shopreel_content_opportunities")
+      .insert({
+        shop_id: shopId,
+        story_source_id: source.id,
+        score,
+        reason,
+        metadata: {
+          scoring: {
+            source_kind: source.kind,
+            source_origin: source.origin,
+            source_title: source.title,
+          },
+        },
+        status: "ready",
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    createdOrUpdated.push(inserted);
+  }
+
+  return createdOrUpdated;
+}
