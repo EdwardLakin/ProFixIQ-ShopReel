@@ -20,9 +20,20 @@ export async function generateStoryPipeline(input: {
     shopId: sourceShopId,
   };
 
-  const savedSource = await saveStorySource(normalizedSource);
+  
+  const safeSource = {
+    ...normalizedSource,
+    assets: Array.isArray(normalizedSource.assets) ? normalizedSource.assets : [],
+    refs: Array.isArray(normalizedSource.refs) ? normalizedSource.refs : [],
+    notes: Array.isArray(normalizedSource.notes) ? normalizedSource.notes : [],
+    tags: Array.isArray(normalizedSource.tags) ? normalizedSource.tags : [],
+    facts: normalizedSource.facts ?? {},
+    metadata: normalizedSource.metadata ?? {},
+  };
 
-  const draft = buildStoryDraftFromSource(normalizedSource);
+  const savedSource = await saveStorySource(safeSource);
+
+  const draft = buildStoryDraftFromSource(safeSource);
 
   const contentPiece = await createContentPieceFromStoryDraft({
     shopId: input.shopId,
@@ -38,7 +49,7 @@ export async function generateStoryPipeline(input: {
         sourceType: input.source.kind,
         sourceId: savedSource.id,
         createdBy: input.createdBy ?? null,
-        storySource: normalizedSource,
+        storySource: safeSource,
         storyDraft: draft,
         renderPayload: {
           mode: "story_draft",
@@ -67,7 +78,7 @@ export async function generateStoryPipeline(input: {
 
   return {
     savedSource,
-    source: normalizedSource,
+    source: safeSource,
     draft,
     contentPiece,
     renderJob,
