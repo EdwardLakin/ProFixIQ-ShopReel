@@ -7,6 +7,12 @@ function toJson(value: unknown) {
 }
 
 export async function saveStorySource(source: StorySource) {
+  if (!source.shopId || typeof source.shopId !== "string" || source.shopId.trim().length === 0) {
+    throw new Error(
+      `[saveStorySource] Missing shopId for story source title="${source.title}" kind="${source.kind}"`
+    );
+  }
+
   const supabase = createAdminClient();
   const sourceKey = buildStorySourceKey(source);
 

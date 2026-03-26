@@ -1,8 +1,14 @@
 import crypto from "crypto";
-import type { StorySource, StorySourceAsset, StorySourceKind } from "@/features/shopreel/story-sources/types";
+import type {
+  StorySource,
+  StorySourceAsset,
+  StorySourceKind,
+} from "@/features/shopreel/story-sources/types";
 import type { ProFixIQIngestPayload } from "./types";
 
-function mapEventTypeToKind(eventType: ProFixIQIngestPayload["eventType"]): StorySourceKind {
+function mapEventTypeToKind(
+  eventType: ProFixIQIngestPayload["eventType"]
+): StorySourceKind {
   switch (eventType) {
     case "inspection.completed":
       return "inspection_completed";
@@ -19,6 +25,28 @@ function mapEventTypeToKind(eventType: ProFixIQIngestPayload["eventType"]): Stor
     default:
       return "service_highlight";
   }
+}
+
+function cleanString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
+function firstServiceLabel(payload: ProFixIQIngestPayload): string | null {
+  for (const service of payload.storyData.services ?? []) {
+    const label = cleanString(service.label);
+    if (label) return label;
+  }
+  return null;
+}
+
+function firstFindingLabel(payload: ProFixIQIngestPayload): string | null {
+  for (const finding of payload.storyData.findings ?? []) {
+    const label = cleanString(finding.label);
+    if (label) return label;
+  }
+  return null;
 }
 
 function buildTags(payload: ProFixIQIngestPayload) {
@@ -47,8 +75,8 @@ function buildAssets(payload: ProFixIQIngestPayload): StorySourceAsset[] {
     id: crypto.randomUUID(),
     assetType: media.kind === "video" ? "video" : "photo",
     url: media.url,
-    title: media.title ?? payload.storyData.headline ?? null,
-    caption: payload.storyData.summary ?? null,
+    title: media.title ?? buildTitle(payload),
+    caption: buildDescription(payload),
     note: payload.storyData.technicianSummary ?? null,
     takenAt: media.takenAt ?? payload.occurredAt,
     sortOrder: index,
@@ -75,16 +103,112 @@ function buildNotes(payload: ProFixIQIngestPayload) {
   }
 
   for (const finding of payload.storyData.findings ?? []) {
+    const label = cleanString(finding.label);
+    if (!label) continue;
+
     notes.add(
-      `${finding.status ? `${finding.status.toUpperCase()}: ` : ""}${finding.label}`
+      `${finding.status ? `${finding.status.toUpperCase()}: ` : ""}${label}`
     );
   }
 
   for (const service of payload.storyData.services ?? []) {
-    notes.add(`Service: ${service.label}`);
+    const label = cleanString(service.label);
+    if (!label) continue;
+
+    notes.add(`Service: ${label}`);
   }
 
   return Array.from(notes);
+}
+
+function buildTitle(payload: ProFixIQIngestPayload): string {
+  const explicitHeadline = cleanString(payload.storyData.headline);
+  const vehicle = cleanString(payload.subject.vehicleLabel);
+  const service = firstServiceLabel(payload);
+  const finding = firstFindingLabel(payload);
+
+  const looksLikeTestHeadline =
+    explicitHeadline?.toLowerCase().includes("test") ?? false;
+
+  switch (payload.eventType) {
+    case "workorder.completed":
+      if (service && vehicle) return `${service} completed on ${vehicle}`;
+      if (finding && vehicle) return `${finding} repaired on ${vehicle}`;
+      if (service) return `${service} completed`;
+      if (vehicle) return `Repair completed on ${vehicle}`;
+      if (explicitHeadline && !looksLikeTestHeadline) return explicitHeadline;
+      return "Repair completed";
+
+    case "workorder.approved":
+      if (service && vehicle) return `${service} approved for ${vehicle}`;
+      if (service) return `${service} approved`;
+      if (vehicle) return `Repair approved for ${vehicle}`;
+      if (explicitHeadline && !looksLikeTestHeadline) return explicitHeadline;
+      return "Repair approved";
+
+    case "inspection.finding.flagged":
+      if (finding && vehicle) return `${finding} found on ${vehicle}`;
+      if (finding) return `Inspection finding: ${finding}`;
+      if (vehicle) return `Inspection finding flagged on ${vehicle}`;
+      if (explicitHeadline && !looksLikeTestHeadline) return explicitHeadline;
+      return "Inspection finding flagged";
+
+    case "inspection.media.captured":
+      if (vehicle) return `Service media captured for ${vehicle}`;
+      if (explicitHeadline && !looksLikeTestHeadline) return explicitHeadline;
+      return "Service media captured";
+
+    case "inspection.completed":
+      if (vehicle) return `Inspection completed for ${vehicle}`;
+      if (explicitHeadline && !looksLikeTestHeadline) return explicitHeadline;
+      return "Inspection completed";
+
+    case "media.before_after.added":
+      if (vehicle) return `Before and after added for ${vehicle}`;
+      if (explicitHeadline && !looksLikeTestHeadline) return explicitHeadline;
+      return "Before and after story";
+
+    default:
+      return explicitHeadline ?? payload.eventType;
+  }
+}
+
+function buildDescription(payload: ProFixIQIngestPayload): string | null {
+  const summary = cleanString(payload.storyData.summary);
+  const technicianSummary = cleanString(payload.storyData.technicianSummary);
+
+  const findings = (payload.storyData.findings ?? [])
+    .map((finding) => {
+      const label = cleanString(finding.label);
+      if (!label) return null;
+      return `${finding.status ? `${finding.status.toUpperCase()}: ` : ""}${label}`;
+    })
+    .filter((value): value is string => Boolean(value));
+
+  const services = (payload.storyData.services ?? [])
+    .map((service) => cleanString(service.label))
+    .filter((value): value is string => Boolean(value));
+
+  const looksLikeTestSummary =
+    summary?.toLowerCase().includes("test event") ?? false;
+
+  if (summary && !looksLikeTestSummary) {
+    return summary;
+  }
+
+  if (technicianSummary) {
+    return technicianSummary;
+  }
+
+  if (findings.length > 0) {
+    return findings.slice(0, 3).join(" • ");
+  }
+
+  if (services.length > 0) {
+    return `Services included: ${services.slice(0, 3).join(", ")}`;
+  }
+
+  return null;
 }
 
 export function mapEventToStorySource(args: {
@@ -96,8 +220,8 @@ export function mapEventToStorySource(args: {
   return {
     id: crypto.randomUUID(),
     shopId: tenantShopId,
-    title: payload.storyData.headline ?? payload.eventType,
-    description: payload.storyData.summary ?? null,
+    title: buildTitle(payload),
+    description: buildDescription(payload),
     kind: mapEventTypeToKind(payload.eventType),
     origin: "shop_data",
     generationMode: "automatic",

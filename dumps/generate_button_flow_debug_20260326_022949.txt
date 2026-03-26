@@ -1,0 +1,510 @@
+===== src/features/shopreel/components/ShopReelOpportunitiesClient.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+
+type Opportunity = {
+  id: string;
+  score: number;
+  status: string;
+  reason: string | null;
+  metadata: unknown;
+  story_source_id: string;
+  story_source?: {
+    id: string;
+    title: string;
+    description: string | null;
+    kind: string;
+    origin: string;
+  } | null;
+};
+
+function readLinkedCampaignId(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).linked_campaign_id;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+export default function ShopReelOpportunitiesClient({
+  opportunities,
+  activeTab,
+}: {
+  opportunities: Opportunity[];
+  activeTab: string;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function runDiscovery() {
+    try {
+      setBusy("discovery");
+      setError(null);
+      const res = await fetch("/api/shopreel/discovery", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to run discovery");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run discovery");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function autoCreateCampaigns() {
+    try {
+      setBusy("auto-campaigns");
+      setError(null);
+      const res = await fetch("/api/shopreel/opportunities/auto-campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minScore: 85, limit: 3 }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to auto-create campaigns");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to auto-create campaigns");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function dismissOpportunity(id: string) {
+    try {
+      setBusy(id);
+      setError(null);
+      const res = await fetch(`/api/shopreel/opportunities/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "dismissed" }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to dismiss opportunity");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to dismiss opportunity");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function generateOpportunity(id: string) {
+    try {
+      setBusy(id);
+      setError(null);
+      const res = await fetch(`/api/shopreel/opportunities/${id}/generate`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to generate opportunity");
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate opportunity");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function createCampaign(id: string) {
+    try {
+      setBusy(id);
+      setError(null);
+      const res = await fetch(`/api/shopreel/opportunities/${id}/create-campaign`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to create campaign");
+      }
+      if (json.campaign?.id) {
+        router.push(`/shopreel/campaigns/${json.campaign.id}`);
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create campaign");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/shopreel/opportunities?status=active">
+            <GlassButton variant={activeTab === "active" ? "primary" : "ghost"}>Active</GlassButton>
+          </Link>
+          <Link href="/shopreel/opportunities?status=generated">
+            <GlassButton variant={activeTab === "generated" ? "primary" : "ghost"}>Generated</GlassButton>
+          </Link>
+          <Link href="/shopreel/opportunities?status=dismissed">
+            <GlassButton variant={activeTab === "dismissed" ? "primary" : "ghost"}>Dismissed</GlassButton>
+          </Link>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <GlassButton
+            variant="primary"
+            onClick={() => void runDiscovery()}
+            disabled={busy === "discovery"}
+          >
+            {busy === "discovery" ? "Working..." : "Discover + score"}
+          </GlassButton>
+
+          <GlassButton
+            variant="secondary"
+            onClick={() => void autoCreateCampaigns()}
+            disabled={busy === "auto-campaigns"}
+          >
+            {busy === "auto-campaigns" ? "Working..." : "Auto-create top campaigns"}
+          </GlassButton>
+        </div>
+      </div>
+
+      {error ? <div className="text-sm text-red-300">{error}</div> : null}
+
+      {opportunities.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">
+          No opportunities in this tab yet.
+        </div>
+      ) : (
+        opportunities.map((opportunity) => {
+          const linkedCampaignId = readLinkedCampaignId(opportunity.metadata);
+
+          return (
+            <div
+              key={opportunity.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-2">
+                  <div className="text-lg font-semibold text-white">
+                    {opportunity.story_source?.title ?? "Untitled opportunity"}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <GlassBadge tone="default">{opportunity.status}</GlassBadge>
+                    <GlassBadge tone="copper">Score {Math.round(Number(opportunity.score ?? 0))}</GlassBadge>
+                    {opportunity.story_source?.kind ? (
+                      <GlassBadge tone="muted">{opportunity.story_source.kind}</GlassBadge>
+                    ) : null}
+                  </div>
+                  {opportunity.reason ? (
+                    <div className="text-sm text-white/70">{opportunity.reason}</div>
+                  ) : null}
+                  {opportunity.story_source?.description ? (
+                    <div className="text-sm text-white/60">
+                      {opportunity.story_source.description}
+                    </div>
+                  ) : null}
+                  {linkedCampaignId ? (
+                    <Link
+                      href={`/shopreel/campaigns/${linkedCampaignId}`}
+                      className="text-sm text-cyan-300 underline"
+                    >
+                      Open linked campaign
+                    </Link>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  {activeTab === "active" ? (
+                    <>
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void generateOpportunity(opportunity.id)}
+                        disabled={busy === opportunity.id}
+                      >
+                        {busy === opportunity.id ? "Working..." : "Generate"}
+                      </GlassButton>
+                      <GlassButton
+                        variant="secondary"
+                        onClick={() => void createCampaign(opportunity.id)}
+                        disabled={busy === opportunity.id}
+                      >
+                        {busy === opportunity.id ? "Working..." : "Create Campaign"}
+                      </GlassButton>
+                      <GlassButton
+                        variant="ghost"
+                        onClick={() => void dismissOpportunity(opportunity.id)}
+                        disabled={busy === opportunity.id}
+                      >
+                        Dismiss
+                      </GlassButton>
+                    </>
+                  ) : linkedCampaignId ? (
+                    <Link href={`/shopreel/campaigns/${linkedCampaignId}`}>
+                      <GlassButton variant="ghost">Open Campaign</GlassButton>
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+===== src/app/api/shopreel/opportunities/[id]/generate/route.ts =====
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { generateStoryPipeline } from "@/features/shopreel/story-builder/generateStoryPipeline";
+import type { Json } from "@/types/supabase";
+
+export async function POST(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await ctx.params;
+    const supabase = createAdminClient();
+    const shopId = await getCurrentShopId();
+
+    const { data: opportunity, error: opportunityError } = await supabase
+      .from("shopreel_content_opportunities")
+      .select(`
+        *,
+        story_source:shopreel_story_sources (*)
+      `)
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .single();
+
+    if (opportunityError || !opportunity) {
+      throw new Error(opportunityError?.message ?? "Opportunity not found");
+    }
+
+    const storySource = Array.isArray(opportunity.story_source)
+      ? opportunity.story_source[0] ?? null
+      : opportunity.story_source;
+
+    if (!storySource?.id) {
+      throw new Error("Opportunity is missing story source");
+    }
+
+    const result = await generateStoryPipeline({
+      shopId,
+      source: storySource,
+    });
+
+    const nextMetadata =
+      opportunity.metadata && typeof opportunity.metadata === "object" && !Array.isArray(opportunity.metadata)
+        ? { ...(opportunity.metadata as Record<string, Json | undefined>) }
+        : ({} as Record<string, Json | undefined>);
+
+    nextMetadata.linked_generation_id = result.generation?.id ?? null;
+    nextMetadata.linked_content_piece_id = result.contentPiece?.id ?? null;
+
+    const { error: updateError } = await supabase
+      .from("shopreel_content_opportunities")
+      .update({
+        status: "generated",
+        metadata: nextMetadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", opportunity.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      generation: result.generation ?? null,
+      contentPiece: result.contentPiece ?? null,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to generate from opportunity",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+===== src/features/shopreel/story-builder/generateStoryPipeline.ts =====
+import { createRenderJob } from "../render/createRenderJob";
+import { saveStoryGeneration, saveStorySource } from "../story-sources/server";
+import type { StorySource } from "../story-sources";
+import { buildStoryDraftFromSource } from "./buildStoryDraftFromSource";
+import { createContentPieceFromStoryDraft } from "./createContentPieceFromStoryDraft";
+
+export async function generateStoryPipeline(input: {
+  shopId: string;
+  source: StorySource;
+  templateId?: string | null;
+  sourceSystem?: string | null;
+  createRenderJobNow?: boolean;
+  createdBy?: string | null;
+}) {
+  const savedSource = await saveStorySource(input.source);
+
+  const draft = buildStoryDraftFromSource(input.source);
+
+  const contentPiece = await createContentPieceFromStoryDraft({
+    shopId: input.shopId,
+    draft,
+    templateId: input.templateId ?? null,
+    sourceSystem: input.sourceSystem ?? "shopreel",
+  });
+
+  const renderJob = input.createRenderJobNow
+    ? await createRenderJob({
+        shopId: input.shopId,
+        contentPieceId: contentPiece.id,
+        sourceType: input.source.kind,
+        sourceId: savedSource.id,
+        createdBy: input.createdBy ?? null,
+        storySource: input.source,
+        storyDraft: draft,
+        renderPayload: {
+          mode: "story_draft",
+          title: draft.title,
+          hook: draft.hook ?? null,
+          caption: draft.caption ?? null,
+          cta: draft.cta ?? null,
+          scenes: draft.scenes,
+        },
+      })
+    : null;
+
+  const generation = await saveStoryGeneration({
+    shopId: input.shopId,
+    storySourceId: savedSource.id,
+    contentPieceId: contentPiece.id,
+    renderJobId: renderJob?.id ?? null,
+    draft,
+    status: renderJob ? "queued" : "draft",
+    createdBy: input.createdBy ?? null,
+    metadata: {
+      deduped_source: savedSource.deduped,
+      source_system: input.sourceSystem ?? "shopreel",
+    },
+  });
+
+  return {
+    savedSource,
+    source: input.source,
+    draft,
+    contentPiece,
+    renderJob,
+    generation,
+  };
+}
+
+===== grep generateStoryPipeline callers =====
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-32-      : opportunity.story_source;
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-33-
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-34-    if (!storySource?.id) {
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-35-      throw new Error("Opportunity is missing story source");
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-36-    }
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-37-
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:38:    const result = await generateStoryPipeline({
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-39-      shopId,
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-40-      source: storySource,
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-41-    });
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-42-
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-43-    const nextMetadata =
+src/app/api/shopreel/opportunities/[id]/generate/route.ts-44-      opportunity.metadata && typeof opportunity.metadata === "object" && !Array.isArray(opportunity.metadata)
+--
+src/app/api/shopreel/story-sources/generate/route.ts-153-          { status: 404 },
+src/app/api/shopreel/story-sources/generate/route.ts-154-        );
+src/app/api/shopreel/story-sources/generate/route.ts-155-      }
+src/app/api/shopreel/story-sources/generate/route.ts-156-
+src/app/api/shopreel/story-sources/generate/route.ts-157-      const storySource = toStorySource(result);
+src/app/api/shopreel/story-sources/generate/route.ts-158-
+src/app/api/shopreel/story-sources/generate/route.ts:159:      const generated = await generateStoryPipeline({
+src/app/api/shopreel/story-sources/generate/route.ts-160-        shopId,
+src/app/api/shopreel/story-sources/generate/route.ts-161-        source: storySource,
+src/app/api/shopreel/story-sources/generate/route.ts-162-        sourceSystem: "shopreel",
+src/app/api/shopreel/story-sources/generate/route.ts-163-        createRenderJobNow: body.createRenderJobNow ?? false,
+src/app/api/shopreel/story-sources/generate/route.ts-164-      });
+src/app/api/shopreel/story-sources/generate/route.ts-165-
+--
+src/app/api/shopreel/story-sources/generate/route.ts-172-
+src/app/api/shopreel/story-sources/generate/route.ts-173-    const discovered = await discoverStorySources(shopId);
+src/app/api/shopreel/story-sources/generate/route.ts-174-    const limited = discovered.slice(0, body.limit ?? 1);
+src/app/api/shopreel/story-sources/generate/route.ts-175-
+src/app/api/shopreel/story-sources/generate/route.ts-176-    const results = [];
+src/app/api/shopreel/story-sources/generate/route.ts-177-    for (const source of limited) {
+src/app/api/shopreel/story-sources/generate/route.ts:178:      const generated = await generateStoryPipeline({
+src/app/api/shopreel/story-sources/generate/route.ts-179-        shopId,
+src/app/api/shopreel/story-sources/generate/route.ts-180-        source,
+src/app/api/shopreel/story-sources/generate/route.ts-181-        sourceSystem: "shopreel",
+src/app/api/shopreel/story-sources/generate/route.ts-182-        createRenderJobNow: body.createRenderJobNow ?? false,
+src/app/api/shopreel/story-sources/generate/route.ts-183-      });
+src/app/api/shopreel/story-sources/generate/route.ts-184-      results.push(generated);
+--
+src/app/api/shopreel/story-sources/seed/route.ts-42-      },
+src/app/api/shopreel/story-sources/seed/route.ts-43-      metadata: {
+src/app/api/shopreel/story-sources/seed/route.ts-44-        seeded: true,
+src/app/api/shopreel/story-sources/seed/route.ts-45-      },
+src/app/api/shopreel/story-sources/seed/route.ts-46-    };
+src/app/api/shopreel/story-sources/seed/route.ts-47-
+src/app/api/shopreel/story-sources/seed/route.ts:48:    const generated = await generateStoryPipeline({
+src/app/api/shopreel/story-sources/seed/route.ts-49-      shopId,
+src/app/api/shopreel/story-sources/seed/route.ts-50-      source,
+src/app/api/shopreel/story-sources/seed/route.ts-51-      sourceSystem: "shopreel",
+src/app/api/shopreel/story-sources/seed/route.ts-52-      createRenderJobNow: body.createRenderJobNow ?? false,
+src/app/api/shopreel/story-sources/seed/route.ts-53-    });
+src/app/api/shopreel/story-sources/seed/route.ts-54-
+--
+src/app/api/shopreel/story-pipeline/test/route.ts-22-        { status: 404 },
+src/app/api/shopreel/story-pipeline/test/route.ts-23-      );
+src/app/api/shopreel/story-pipeline/test/route.ts-24-    }
+src/app/api/shopreel/story-pipeline/test/route.ts-25-
+src/app/api/shopreel/story-pipeline/test/route.ts-26-    const results = [];
+src/app/api/shopreel/story-pipeline/test/route.ts-27-    for (const source of limited) {
+src/app/api/shopreel/story-pipeline/test/route.ts:28:      const generated = await generateStoryPipeline({
+src/app/api/shopreel/story-pipeline/test/route.ts-29-        shopId,
+src/app/api/shopreel/story-pipeline/test/route.ts-30-        source,
+src/app/api/shopreel/story-pipeline/test/route.ts-31-        sourceSystem: "shopreel",
+src/app/api/shopreel/story-pipeline/test/route.ts-32-        createRenderJobNow: body.createRenderJobNow ?? false,
+src/app/api/shopreel/story-pipeline/test/route.ts-33-      });
+src/app/api/shopreel/story-pipeline/test/route.ts-34-
+--
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-10-  const sources = await discoverStorySources(input.shopId);
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-11-  const limitedSources = sources.slice(0, input.limit ?? 10);
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-12-
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-13-  const results = [];
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-14-
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-15-  for (const source of limitedSources) {
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts:16:    const result = await generateStoryPipeline({
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-17-      shopId: input.shopId,
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-18-      source,
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-19-      sourceSystem: "shopreel",
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-20-      createRenderJobNow: input.createRenderJobs ?? false,
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-21-      createdBy: input.createdBy ?? null,
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts-22-    });
+--
+src/features/shopreel/story-builder/generateStoryPipeline.ts-1-import { createRenderJob } from "../render/createRenderJob";
+src/features/shopreel/story-builder/generateStoryPipeline.ts-2-import { saveStoryGeneration, saveStorySource } from "../story-sources/server";
+src/features/shopreel/story-builder/generateStoryPipeline.ts-3-import type { StorySource } from "../story-sources";
+src/features/shopreel/story-builder/generateStoryPipeline.ts-4-import { buildStoryDraftFromSource } from "./buildStoryDraftFromSource";
+src/features/shopreel/story-builder/generateStoryPipeline.ts-5-import { createContentPieceFromStoryDraft } from "./createContentPieceFromStoryDraft";
+src/features/shopreel/story-builder/generateStoryPipeline.ts-6-
+src/features/shopreel/story-builder/generateStoryPipeline.ts:7:export async function generateStoryPipeline(input: {
+src/features/shopreel/story-builder/generateStoryPipeline.ts-8-  shopId: string;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-9-  source: StorySource;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-10-  templateId?: string | null;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-11-  sourceSystem?: string | null;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-12-  createRenderJobNow?: boolean;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-13-  createdBy?: string | null;

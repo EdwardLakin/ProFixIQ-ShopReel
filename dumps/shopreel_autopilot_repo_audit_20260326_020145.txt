@@ -1,0 +1,4182 @@
+===== pwd =====
+/workspaces/ProFixIQ-ShopReel
+
+===== package.json =====
+{
+  "name": "profixiq-shopreel",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@runwayml/sdk": "^3.16.0",
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.99.0",
+    "dotenv": "^17.3.1",
+    "ffmpeg-static": "^5.3.0",
+    "next": "^16.1.6",
+    "openai": "^6.32.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "stripe": "^20.4.1",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "@types/react": "19.2.14",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "3.4.17",
+    "typescript": "^5.9.3"
+  }
+}
+
+===== route files matching autopilot / automation / discovery / opportunities / campaigns =====
+src/app/api/shopreel/automation
+src/app/api/shopreel/autopilot
+src/app/api/shopreel/campaigns
+src/app/api/shopreel/campaigns/[id]/automation-cycle
+src/app/api/shopreel/campaigns/automation-run
+src/app/api/shopreel/discovery
+src/app/api/shopreel/opportunities
+src/app/api/shopreel/opportunities/[id]/create-campaign
+src/app/api/shopreel/opportunities/auto-campaigns
+
+===== feature files matching autopilot / automation / discovery / opportunities / campaigns / media =====
+src/features/shopreel/automation/components/AutomationRunner.tsx
+src/features/shopreel/automation/runAutomationLoop.ts
+src/features/shopreel/automation/runShopReelAutopilot.ts
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx
+src/features/shopreel/campaigns/components/CampaignFlowShell.tsx
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx
+src/features/shopreel/campaigns/components/CampaignPageHeader.tsx
+src/features/shopreel/campaigns/lib/automation.ts
+src/features/shopreel/campaigns/lib/defaultCampaignAngles.ts
+src/features/shopreel/campaigns/lib/getCampaignNextAction.ts
+src/features/shopreel/campaigns/lib/getCampaignProgressSummary.ts
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx
+src/features/shopreel/dashboard/components/RunAutomationButton.tsx
+src/features/shopreel/discovery/generateOpportunities.ts
+src/features/shopreel/editor/components/MediaBin.tsx
+src/features/shopreel/integrations/facebook/publish.ts
+src/features/shopreel/integrations/instagram/publish.ts
+src/features/shopreel/integrations/profixiq/upsertIngestedOpportunity.ts
+src/features/shopreel/integrations/tiktok/publish.ts
+src/features/shopreel/integrations/youtube/publish.ts
+src/features/shopreel/manual/lib/createOpportunityFromManualAsset.ts
+src/features/shopreel/media/selectMediaForReel.ts
+src/features/shopreel/opportunities/autoCreateCampaigns.ts
+src/features/shopreel/opportunities/createOpportunities.ts
+src/features/shopreel/opportunities/lib/upsertOpportunity.ts
+src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts
+src/features/shopreel/opportunities/scoring/updateOpportunityScore.ts
+src/features/shopreel/optimization/buildPrePublishRanking.ts
+src/features/shopreel/publish/publishVideo.ts
+src/features/shopreel/publish/runPublishWorker.ts
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx
+src/features/shopreel/publishing/components/PublishQueueClient.tsx
+src/features/shopreel/publishing/components/PublishingHistoryClient.tsx
+src/features/shopreel/publishing/lib/enqueuePublishJob.ts
+src/features/shopreel/publishing/lib/processPublishJob.ts
+src/features/shopreel/scheduler/runScheduledPublishWorker.ts
+src/features/shopreel/story-sources/fromOpportunity.ts
+src/features/shopreel/video-creation/lib/automation.ts
+src/features/shopreel/worker/processPremiumCampaignJobs.ts
+
+===== grep: runShopReelAutopilot =====
+src/app/api/shopreel/autopilot/route.ts:3:import { runShopReelAutopilot } from "@/features/shopreel/automation/runShopReelAutopilot";
+src/app/api/shopreel/autopilot/route.ts:32:    const result = await runShopReelAutopilot(shopId);
+src/features/shopreel/server/scheduler.ts:71:export async function runShopReelAutopilot(
+src/features/shopreel/automation/runShopReelAutopilot.ts:130:export async function runShopReelAutopilot(
+src/features/shopreel/automation/runShopReelAutopilot.ts:180:      generated_by: "runShopReelAutopilot",
+src/features/shopreel/automation/runAutomationLoop.ts:2:import { runShopReelAutopilot } from "./runShopReelAutopilot";
+src/features/shopreel/automation/runAutomationLoop.ts:26:    ? await runShopReelAutopilot(shopId)
+
+===== grep: runAutomationLoop =====
+src/app/api/shopreel/automation/route.ts:2:import { runAutomationLoop } from "@/features/shopreel/automation/runAutomationLoop";
+src/app/api/shopreel/automation/route.ts:32:    const result = await runAutomationLoop(shopId);
+src/features/shopreel/automation/runAutomationLoop.ts:10:export async function runAutomationLoop(shopId: string) {
+
+===== grep: autoCreateCampaignsFromTopOpportunities =====
+src/app/api/shopreel/opportunities/auto-campaigns/route.ts:2:import { autoCreateCampaignsFromTopOpportunities } from "@/features/shopreel/opportunities/autoCreateCampaigns";
+src/app/api/shopreel/opportunities/auto-campaigns/route.ts:12:    const result = await autoCreateCampaignsFromTopOpportunities({
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:10:export async function autoCreateCampaignsFromTopOpportunities(args?: {
+
+===== grep: discoverStorySources =====
+src/app/api/shopreel/discovery/route.ts:2:import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+src/app/api/shopreel/discovery/route.ts:11:    const discovered = await discoverStorySources(shopId);
+src/app/api/shopreel/story-sources/generate/route.ts:3:import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+src/app/api/shopreel/story-sources/generate/route.ts:173:    const discovered = await discoverStorySources(shopId);
+src/app/api/shopreel/story-sources/route.ts:3:import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+src/app/api/shopreel/story-sources/route.ts:24:      const sources = await discoverStorySources(shopId);
+src/app/api/shopreel/story-pipeline/test/route.ts:3:import { discoverStorySources } from "@/features/shopreel/discovery/discoverContent";
+src/app/api/shopreel/story-pipeline/test/route.ts:16:    const sources = await discoverStorySources(shopId);
+src/features/shopreel/discovery/discoverStorySources.ts:1:export { discoverStorySources } from "./discoverContent";
+src/features/shopreel/discovery/discoverContent.ts:255:export async function discoverStorySources(shopId: string): Promise<StorySource[]> {
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts:1:import { discoverStorySources } from "../discovery/discoverContent";
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts:10:  const sources = await discoverStorySources(input.shopId);
+
+===== grep: saveStorySource =====
+src/app/api/shopreel/discovery/route.ts:5:import { saveStorySource } from "@/features/shopreel/story-sources/server/saveStorySource";
+src/app/api/shopreel/discovery/route.ts:15:      const result = await saveStorySource(source);
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:8:import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:138:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:4:import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:158:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/create/from-angle/route.ts:6:import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+src/app/api/shopreel/create/from-angle/route.ts:104:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/create/from-output/route.ts:7:import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+src/app/api/shopreel/create/from-output/route.ts:114:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/create/research-script/route.ts:5:import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+src/app/api/shopreel/create/research-script/route.ts:134:    const savedSource = await saveStorySource(source);
+src/app/api/integrations/profixiq/events/route.ts:3:import { saveStorySource } from "@/features/shopreel/story-sources/server/saveStorySource";
+src/app/api/integrations/profixiq/events/route.ts:133:    const saved = await saveStorySource(source);
+src/features/shopreel/story-sources/server/saveStorySource.ts:9:export async function saveStorySource(source: StorySource) {
+src/features/shopreel/story-sources/server/index.ts:1:export * from "./saveStorySource"
+src/features/shopreel/story-builder/generateStoryPipeline.ts:2:import { saveStoryGeneration, saveStorySource } from "../story-sources/server";
+src/features/shopreel/story-builder/generateStoryPipeline.ts:15:  const savedSource = await saveStorySource(input.source);
+
+===== grep: createOpportunities =====
+src/app/api/shopreel/discovery/route.ts:3:import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+src/app/api/shopreel/discovery/route.ts:19:    const opportunities = await createOpportunities();
+src/app/api/shopreel/opportunities/generate/route.ts:2:import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+src/app/api/shopreel/opportunities/generate/route.ts:6:    const result = await createOpportunities();
+src/features/shopreel/opportunities/createOpportunities.ts:13:export async function createOpportunities() {
+
+===== grep: shopreel_media_generation_jobs =====
+src/types/supabase.ts:1158:            referencedRelation: "shopreel_media_generation_jobs"
+src/types/supabase.ts:1267:            referencedRelation: "shopreel_media_generation_jobs"
+src/types/supabase.ts:1614:      shopreel_media_generation_jobs: {
+src/types/supabase.ts:1713:            foreignKeyName: "shopreel_media_generation_jobs_output_asset_id_fkey"
+src/types/supabase.ts:1720:            foreignKeyName: "shopreel_media_generation_jobs_source_content_piece_id_fkey"
+src/types/supabase.ts:1727:            foreignKeyName: "shopreel_media_generation_jobs_source_content_piece_id_fkey"
+src/types/supabase.ts:1734:            foreignKeyName: "shopreel_media_generation_jobs_source_generation_id_fkey"
+src/types/supabase.ts:2231:            referencedRelation: "shopreel_media_generation_jobs"
+src/types/supabase.ts:2315:            referencedRelation: "shopreel_media_generation_jobs"
+src/app/api/shopreel/video-creation/jobs/[id]/sync/route.ts:20:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/[id]/sync/route.ts:45:        .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/[id]/sync/route.ts:68:        .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/[id]/delete/route.ts:16:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/[id]/delete/route.ts:75:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/[id]/finalize/route.ts:14:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/[id]/storyboard/route.ts:14:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/[id]/thumbnail/route.ts:14:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/bulk-delete/route.ts:31:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/jobs/bulk-delete/route.ts:79:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/series/route.ts:57:        .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/series/[seriesKey]/delete/route.ts:16:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/video-creation/series/[seriesKey]/delete/route.ts:80:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/media-jobs/[id]/thumbnail/route.ts:14:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/campaigns/items/[id]/delete/route.ts:26:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/campaigns/items/[id]/delete/route.ts:47:        .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/campaigns/items/[id]/reset/route.ts:37:      .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/campaigns/items/[id]/reset/route.ts:55:        .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/campaigns/[id]/sync-processing/route.ts:23:        media_job:shopreel_media_generation_jobs (
+src/app/api/shopreel/campaigns/[id]/sync-processing/route.ts:72:          media_job:shopreel_media_generation_jobs (
+src/app/api/shopreel/campaigns/[id]/delete/route.ts:42:          .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/automation/run/route.ts:45:        .from("shopreel_media_generation_jobs")
+src/app/api/shopreel/automation/run/route.ts:50:        .from("shopreel_media_generation_jobs")
+src/app/shopreel/campaigns/items/[id]/page.tsx:32:      media_job:shopreel_media_generation_jobs (
+src/app/shopreel/content/[id]/page.tsx:83:        .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/components/SeriesDetailClient.tsx:16:type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:34:type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:14:type MediaJobRow = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/promptBuilder.ts:3:type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/seriesServer.ts:5:type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/seriesServer.ts:12:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/convertToStoryGeneration.ts:5:  Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/convertToStoryGeneration.ts:54:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/convertToStoryGeneration.ts:129:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/enhancement.ts:6:  Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/finalizeVideo.ts:8:type MediaJobRow = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/finalizeVideo.ts:102:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/storyboards.ts:12:  Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/storyboards.ts:130:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/storyboards.ts:153:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/storyboards.ts:164:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/seriesClient.ts:3:type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/assembly.ts:36:      media_job:shopreel_media_generation_jobs (*)
+src/features/shopreel/video-creation/lib/contentPieces.ts:6:  Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/contentPieces.ts:79:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/editor.ts:3:type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/series.ts:3:type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/server.ts:18:  Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Insert"];
+src/features/shopreel/video-creation/lib/server.ts:21:  Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/video-creation/lib/server.ts:81:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/server.ts:172:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/server.ts:202:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/server.ts:222:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/server.ts:232:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/server.ts:265:        .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/server.ts:301:      .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/server.ts:325:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/server.ts:344:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/automation.ts:9:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/video-creation/lib/openaiVideo.ts:6:  Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
+src/features/shopreel/campaigns/lib/sceneStatus.ts:11:      media_job:shopreel_media_generation_jobs (
+src/features/shopreel/campaigns/lib/multiscene.ts:274:        .from("shopreel_media_generation_jobs")
+src/features/shopreel/campaigns/lib/multiscene.ts:298:          .from("shopreel_media_generation_jobs")
+src/features/shopreel/campaigns/lib/multiscene.ts:306:      .from("shopreel_media_generation_jobs")
+src/features/shopreel/campaigns/lib/premiumRunway.ts:23:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/campaigns/lib/premiumRunway.ts:63:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/campaigns/lib/server.ts:302:      media_job:shopreel_media_generation_jobs (
+src/features/shopreel/campaigns/lib/server.ts:411:      media_job:shopreel_media_generation_jobs (*)
+src/features/shopreel/campaigns/lib/server.ts:452:      media_job:shopreel_media_generation_jobs (
+src/features/shopreel/campaigns/lib/premiumRunwaySync.ts:11:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/campaigns/lib/premiumRunwaySync.ts:44:      .from("shopreel_media_generation_jobs")
+src/features/shopreel/campaigns/lib/premiumRunwaySync.ts:63:      .from("shopreel_media_generation_jobs")
+src/features/shopreel/campaigns/lib/premiumRunwaySync.ts:80:    .from("shopreel_media_generation_jobs")
+src/features/shopreel/dashboard/getDashboardData.ts:24:      .from("shopreel_media_generation_jobs")
+src/features/shopreel/automation/lib/server.ts:90:      .from("shopreel_media_generation_jobs")
+src/features/shopreel/automation/lib/server.ts:95:      .from("shopreel_media_generation_jobs")
+src/features/shopreel/automation/lib/server.ts:115:      .from("shopreel_media_generation_jobs")
+src/features/shopreel/worker/processPremiumCampaignJobs.ts:41:      media_job:shopreel_media_generation_jobs(*)
+
+===== grep: create scene jobs / media jobs / publish worker =====
+src/types/supabase.ts:104:            referencedRelation: "content_publications"
+src/types/supabase.ts:524:      content_publications: {
+src/types/supabase.ts:581:            foreignKeyName: "content_publications_content_piece_id_fkey"
+src/types/supabase.ts:588:            foreignKeyName: "content_publications_content_piece_id_fkey"
+src/types/supabase.ts:595:            foreignKeyName: "content_publications_platform_account_id_fkey"
+src/types/supabase.ts:851:            referencedRelation: "content_publications"
+src/types/supabase.ts:1494:            referencedRelation: "content_publications"
+src/types/supabase.ts:1844:      shopreel_publish_jobs: {
+src/types/supabase.ts:1889:            foreignKeyName: "shopreel_publish_jobs_publication_id_fkey"
+src/types/supabase.ts:1892:            referencedRelation: "content_publications"
+src/types/supabase.ts:1896:            foreignKeyName: "shopreel_publish_jobs_publication_id_fkey"
+src/types/supabase.ts:2593:            foreignKeyName: "content_publications_content_piece_id_fkey"
+src/types/supabase.ts:2600:            foreignKeyName: "content_publications_content_piece_id_fkey"
+src/types/supabase.ts:2607:            foreignKeyName: "content_publications_platform_account_id_fkey"
+src/app/api/shopreel/video-creation/jobs/[id]/sync/route.ts:56:        throw new Error(updateError?.message ?? "Failed to update media job sync status");
+src/app/api/shopreel/video-creation/jobs/[id]/sync/route.ts:81:        throw new Error(failedError?.message ?? "Failed to update failed media job");
+src/app/api/shopreel/video-creation/jobs/[id]/delete/route.ts:94:        error: error instanceof Error ? error.message : "Failed to delete media job",
+src/app/api/shopreel/video-creation/jobs/[id]/convert/route.ts:23:        error: error instanceof Error ? error.message : "Failed to convert media job",
+src/app/api/shopreel/media-jobs/[id]/thumbnail/route.ts:25:        { ok: false, error: "Completed media job has no output asset." },
+src/app/api/shopreel/publish-queue/route.ts:36:      .from("shopreel_publish_jobs")
+src/app/api/shopreel/campaigns/items/[id]/sync-scene-jobs/route.ts:83:            : "Failed to sync scene jobs",
+src/app/api/shopreel/campaigns/items/[id]/run-scene-jobs/route.ts:73:            : "Failed to run scene jobs",
+src/app/api/shopreel/campaigns/items/[id]/run-job/route.ts:20:        error: error instanceof Error ? error.message : "Failed to run campaign media job",
+src/app/api/shopreel/campaigns/items/[id]/create-job/route.ts:20:        error: error instanceof Error ? error.message : "Failed to create media job",
+src/app/api/shopreel/campaigns/items/[id]/create-scene-jobs/route.ts:45:            : "Failed to create scene jobs",
+src/app/api/shopreel/campaigns/[id]/create-all-jobs/route.ts:20:        error: error instanceof Error ? error.message : "Failed to create campaign media jobs",
+src/app/api/shopreel/campaigns/[id]/run-all-jobs/route.ts:59:            : "Failed to run campaign scene jobs",
+src/app/api/shopreel/publications/route.ts:43:      .from("content_publications")
+src/app/api/shopreel/publications/[id]/route.ts:16:      .from("content_publications")
+src/app/api/shopreel/publications/[id]/route.ts:34:      .from("shopreel_publish_jobs")
+src/app/api/shopreel/publications/[id]/route.ts:40:      .from("content_publications")
+src/app/api/shopreel/publications/[id]/enqueue/route.ts:17:      .from("content_publications")
+src/app/api/shopreel/publications/[id]/enqueue/route.ts:35:      .from("shopreel_publish_jobs")
+src/app/api/shopreel/publications/[id]/enqueue/route.ts:57:      .from("content_publications")
+src/app/api/shopreel/publications/[id]/enqueue/route.ts:70:      .from("shopreel_publish_jobs")
+src/app/api/shopreel/publish/route.ts:76:      const result = await integration.publishVideo(body);
+src/app/api/shopreel/publish/route.ts:97:        const result = await integration.publishVideo({
+src/app/api/shopreel/publish-worker/route.ts:2:import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
+src/app/api/shopreel/publish-worker/route.ts:26:    const result = await runPublishWorker(
+src/app/api/shopreel/story-generations/[id]/route.ts:52:        .from("shopreel_publish_jobs")
+src/app/api/shopreel/story-generations/[id]/route.ts:60:        .from("content_publications")
+src/app/api/shopreel/story-generations/[id]/route.ts:75:        .from("content_publications")
+src/app/api/shopreel/publish-jobs/[id]/run/route.ts:16:      .from("shopreel_publish_jobs")
+src/app/api/shopreel/generations/[id]/publish/route.ts:83:      .from("content_publications")
+src/app/api/shopreel/generations/[id]/publish/route.ts:99:        .from("shopreel_publish_jobs")
+src/app/api/shopreel/generations/[id]/publish/route.ts:123:        .from("shopreel_publish_jobs")
+src/app/api/shopreel/generations/[id]/publish/route.ts:142:        .from("content_publications")
+src/app/api/shopreel/generations/[id]/publish/route.ts:160:      .from("content_publications")
+src/app/api/shopreel/generations/[id]/publish/route.ts:191:      .from("shopreel_publish_jobs")
+src/app/api/shopreel/worker/publish/route.ts:23:        .from("shopreel_publish_jobs")
+src/app/shopreel/published/page.tsx:12:    .from("content_publications")
+src/app/shopreel/publish-queue/page.tsx:12:      .from("shopreel_publish_jobs")
+src/app/shopreel/publish-queue/page.tsx:17:      .from("content_publications")
+src/app/shopreel/analytics/page.tsx:22:      .from("content_publications")
+src/app/shopreel/publish-center/page.tsx:70:      .from("content_publications")
+src/app/shopreel/publish-center/page.tsx:76:      .from("content_publications")
+src/app/shopreel/publish-center/page.tsx:81:      .from("shopreel_publish_jobs")
+src/features/publish/publishVideo.ts:1:export async function publishVideo(videoId: string) {
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:319:      setMessage("Storyboard created from media job.");
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:344:      setMessage("Thumbnail asset created from media job.");
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:366:        throw new Error(json.error ?? "Failed to convert media job");
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:376:      setError(err instanceof Error ? err.message : "Failed to convert media job");
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:422:    const confirmed = window.confirm("Delete this media job?");
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:437:        throw new Error(json.error ?? "Failed to delete media job");
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:443:      setError(err instanceof Error ? err.message : "Failed to delete media job");
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:769:                  {submitting ? "Creating..." : jobType === "series" ? "Create series" : "Create media job"}
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:900:                        {job.title ?? "Untitled media job"}
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:180:        description="Create thumbnail/still-frame assets from completed media jobs."
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:186:              No completed media jobs yet.
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:199:                  {job.title ?? "Untitled media job"}
+src/features/shopreel/video-creation/lib/enhancement.ts:77:        note: "Placeholder thumbnail asset created from completed media job.",
+src/features/shopreel/video-creation/lib/storyboards.ts:85:    "Create a premium storyboard from the source media job.";
+src/features/shopreel/video-creation/lib/assembly.ts:56:    throw new Error("All scene media jobs must be completed before assembly.");
+src/features/shopreel/operator/components/OperatorDashboard.tsx:117:          title="Latest media jobs"
+src/features/shopreel/scheduler/runScheduledPublishWorker.ts:1:import { runPublishWorker } from "../publish/runPublishWorker";
+src/features/shopreel/scheduler/runScheduledPublishWorker.ts:6:  return runPublishWorker(contentPieceId ?? null);
+src/features/shopreel/lib/integrations/constants.ts:11:  "content_publications",
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx:194:      "Reset this item and clear all linked scene jobs?"
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx:263:          ? "Saving creative direction and rebuilding scene jobs..."
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx:295:          ? "Creative direction saved and scene jobs rebuilt."
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx:509:              : "Save + rebuild scene jobs"}
+src/features/shopreel/campaigns/lib/multiscene.ts:338:      throw new Error(mediaJobError?.message ?? "Failed to create scene media job");
+src/features/shopreel/campaigns/lib/server.ts:342:    throw new Error("Campaign item does not have a media job yet.");
+src/features/shopreel/campaigns/lib/server.ts:477:      .from("content_publications")
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:22:    .from("content_publications")
+src/features/shopreel/analytics/syncPlatformMetrics.ts:131:    .from("content_publications")
+src/features/shopreel/publishing/types/index.ts:42:export type ContentPublicationRow = Tables<"content_publications">;
+src/features/shopreel/publishing/lib/createPublication.ts:15:    throw new Error(`Unsupported platform for content_publications: ${input.platform}`);
+src/features/shopreel/publishing/lib/createPublication.ts:21:    .from("content_publications")
+src/features/shopreel/publishing/lib/processPublishJob.ts:47:    .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/processPublishJob.ts:59:    .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/processPublishJob.ts:85:    const result = await integration.publishVideo({
+src/features/shopreel/publishing/lib/processPublishJob.ts:99:      .from("content_publications")
+src/features/shopreel/publishing/lib/processPublishJob.ts:135:      .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/processPublishJob.ts:154:      .from("content_publications")
+src/features/shopreel/publishing/lib/processPublishJob.ts:163:      .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:52:    .from("content_publications")
+src/features/shopreel/publishing/lib/enqueuePublishJob.ts:8:    .from("shopreel_publish_jobs")
+src/features/shopreel/publish/publishVideo.ts:7:export async function publishVideo(videoId: string, platform: string) {
+src/features/shopreel/publish/runPublishWorker.ts:76:export async function runPublishWorker(contentPieceId?: string | null) {
+src/features/shopreel/publish/runPublishWorker.ts:122:      .from("content_publications")
+src/features/shopreel/publish/runPublishWorker.ts:143:          .from("shopreel_publish_jobs")
+src/features/shopreel/publish/runPublishWorker.ts:181:    .from("shopreel_publish_jobs")
+src/features/shopreel/publish/runPublishWorker.ts:210:        .from("content_publications")
+src/features/shopreel/optimization/updateGlobalBenchmarks.ts:18:    .from("content_publications")
+src/features/shopreel/automation/runAutomationLoop.ts:5:import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
+src/features/shopreel/automation/runAutomationLoop.ts:36:  const published = await runPublishWorker();
+src/features/shopreel/integrations/email/connect.ts:17:  async publishVideo(): Promise<PublishResult> {
+src/features/shopreel/integrations/instagram/connect.ts:253:  async publishVideo(input) {
+src/features/shopreel/integrations/linkedin/connect.ts:17:  async publishVideo(): Promise<PublishResult> {
+src/features/shopreel/integrations/blog/connect.ts:17:  async publishVideo(): Promise<PublishResult> {
+src/features/shopreel/integrations/facebook/connect.ts:337:  async publishVideo(input) {
+src/features/shopreel/integrations/youtube/connect.ts:16:  async publishVideo() {
+src/features/shopreel/integrations/google-business/connect.ts:17:  async publishVideo(): Promise<PublishResult> {
+src/features/shopreel/integrations/tiktok/connect.ts:16:  async publishVideo(input) {
+src/features/shopreel/integrations/shared/types.ts:50:  publishVideo: (input: PublishInput) => Promise<PublishResult>;
+
+===== src/app/api/shopreel/autopilot =====
+
+===== src/app/api/shopreel/autopilot/route.ts =====
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { runShopReelAutopilot } from "@/features/shopreel/automation/runShopReelAutopilot";
+
+type AutopilotBody = {
+  shopId?: string;
+};
+
+async function safeReadJson(req: NextRequest): Promise<AutopilotBody> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text) as AutopilotBody;
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await safeReadJson(req);
+
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+
+    const result = await runShopReelAutopilot(shopId);
+
+    return NextResponse.json(result);
+    
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Autopilot failed",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+===== src/app/api/shopreel/automation =====
+
+===== src/app/api/shopreel/automation/route.ts =====
+import { NextRequest, NextResponse } from "next/server";
+import { runAutomationLoop } from "@/features/shopreel/automation/runAutomationLoop";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+type Body = {
+  shopId?: string;
+};
+
+async function safeReadJson(req: NextRequest): Promise<Body> {
+  const text = await req.text();
+
+  if (!text.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text) as Body;
+  } catch {
+    return {};
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await safeReadJson(req);
+
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+
+    const result = await runAutomationLoop(shopId);
+
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to run automation loop",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+===== src/app/api/shopreel/automation/run/route.ts =====
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { syncAllProcessingVideoJobs } from "@/features/shopreel/video-creation/lib/automation";
+import { runCampaignAutomationCycle } from "@/features/shopreel/campaigns/lib/automation";
+import {
+  completeAutomationRun,
+  failAutomationRun,
+  startAutomationRun,
+} from "@/features/shopreel/automation/lib/server";
+
+export async function POST(req: Request) {
+  let runId: string | null = null;
+
+  try {
+    const expectedSecret = process.env.SHOPREEL_AUTOMATION_SECRET;
+
+    if (expectedSecret) {
+      const authHeader = req.headers.get("authorization");
+      const bearer = authHeader?.startsWith("Bearer ")
+        ? authHeader.slice("Bearer ".length)
+        : null;
+
+      if (bearer !== expectedSecret) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "Unauthorized automation request",
+          },
+          { status: 401 }
+        );
+      }
+    }
+
+    const run = await startAutomationRun({
+      runType: expectedSecret ? "scheduled" : "manual",
+    });
+    runId = run.id;
+
+    const supabase = createAdminClient();
+    const shopId = await getCurrentShopId();
+
+    const [{ count: queuedJobsCount }, { count: processingJobsCount }] = await Promise.all([
+      supabase
+        .from("shopreel_media_generation_jobs")
+        .select("*", { count: "exact", head: true })
+        .eq("shop_id", shopId)
+        .eq("status", "queued"),
+      supabase
+        .from("shopreel_media_generation_jobs")
+        .select("*", { count: "exact", head: true })
+        .eq("shop_id", shopId)
+        .eq("status", "processing"),
+    ]);
+
+    const videoSyncResults = await syncAllProcessingVideoJobs();
+
+    const { data: campaigns, error } = await supabase
+      .from("shopreel_campaigns")
+      .select("id, status")
+      .eq("shop_id", shopId)
+      .in("status", ["draft", "active", "running"]);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const campaignResults = [];
+    let totalLearningsInserted = 0;
+
+    for (const campaign of campaigns ?? []) {
+      const result = await runCampaignAutomationCycle(campaign.id);
+      totalLearningsInserted += Number(result.learnings?.inserted ?? 0);
+      campaignResults.push(result);
+    }
+
+    await completeAutomationRun({
+      runId,
+      queuedJobsCount: queuedJobsCount ?? 0,
+      processingJobsCount: processingJobsCount ?? 0,
+      syncedJobsCount: videoSyncResults.filter((row) => row.ok).length,
+      activeCampaignsCount: campaigns?.length ?? 0,
+      learningsCount: totalLearningsInserted,
+      resultSummary: {
+        videoSyncResults,
+        campaignResults,
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      videoSyncResults,
+      campaignResults,
+    });
+  } catch (error) {
+    if (runId) {
+      await failAutomationRun({
+        runId,
+        errorText: error instanceof Error ? error.message : "Failed to run ShopReel automation",
+      });
+    }
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to run ShopReel automation",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+===== src/features/shopreel/automation =====
+
+===== src/features/shopreel/automation/components/AutomationRunner.tsx =====
+"use client";
+
+import { useState } from "react";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+
+export default function AutomationRunner() {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function runAutomation() {
+    try {
+      setRunning(true);
+      setError(null);
+      setResult(null);
+
+      const res = await fetch("/api/shopreel/automation/run", {
+        method: "POST",
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to run automation");
+      }
+
+      setResult(JSON.stringify(json, null, 2));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to run automation");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <GlassCard
+      label="Loop Runner"
+      title="Run ShopReel automation"
+      description="Manual trigger for processing video sync, campaign analytics, and learnings."
+      strong
+    >
+      <div className="flex flex-wrap gap-3">
+        <GlassButton variant="primary" onClick={() => void runAutomation()} disabled={running}>
+          {running ? "Running..." : "Run Automation Cycle"}
+        </GlassButton>
+      </div>
+
+      {error ? (
+        <div className={cx("mt-4 text-sm", glassTheme.text.copperSoft)}>{error}</div>
+      ) : null}
+
+      {result ? (
+        <pre
+          className={cx(
+            "mt-4 overflow-x-auto rounded-2xl border p-4 text-xs whitespace-pre-wrap",
+            glassTheme.border.softer,
+            glassTheme.glass.panelSoft,
+            glassTheme.text.secondary
+          )}
+        >
+{result}
+        </pre>
+      ) : null}
+    </GlassCard>
+  );
+}
+
+===== src/features/shopreel/automation/lib/server.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { Json } from "@/types/supabase";
+
+export async function startAutomationRun(args?: { runType?: string }) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data, error } = await supabase
+    .from("shopreel_automation_runs")
+    .insert({
+      shop_id: shopId,
+      run_type: args?.runType ?? "manual",
+      status: "running",
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to start automation run");
+  }
+
+  return data;
+}
+
+export async function completeAutomationRun(args: {
+  runId: string;
+  queuedJobsCount: number;
+  processingJobsCount: number;
+  syncedJobsCount: number;
+  activeCampaignsCount: number;
+  learningsCount: number;
+  resultSummary: Json;
+}) {
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("shopreel_automation_runs")
+    .update({
+      status: "completed",
+      completed_at: new Date().toISOString(),
+      queued_jobs_count: args.queuedJobsCount,
+      processing_jobs_count: args.processingJobsCount,
+      synced_jobs_count: args.syncedJobsCount,
+      active_campaigns_count: args.activeCampaignsCount,
+      learnings_count: args.learningsCount,
+      result_summary: args.resultSummary,
+    })
+    .eq("id", args.runId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function failAutomationRun(args: {
+  runId: string;
+  errorText: string;
+}) {
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("shopreel_automation_runs")
+    .update({
+      status: "failed",
+      completed_at: new Date().toISOString(),
+      error_text: args.errorText,
+    })
+    .eq("id", args.runId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function getOperatorDashboardData() {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const [
+    { count: queuedJobsCount, error: queuedError },
+    { count: processingJobsCount, error: processingError },
+    { count: activeCampaignsCount, error: campaignsError },
+    { count: learningsCount, error: learningsError },
+    { data: latestRuns, error: runsError },
+    { data: latestJobs, error: jobsError },
+    { data: latestCampaigns, error: latestCampaignsError },
+  ] = await Promise.all([
+    supabase
+      .from("shopreel_media_generation_jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("shop_id", shopId)
+      .eq("status", "queued"),
+    supabase
+      .from("shopreel_media_generation_jobs")
+      .select("*", { count: "exact", head: true })
+      .eq("shop_id", shopId)
+      .eq("status", "processing"),
+    supabase
+      .from("shopreel_campaigns")
+      .select("*", { count: "exact", head: true })
+      .eq("shop_id", shopId)
+      .in("status", ["draft", "active", "running"]),
+    supabase
+      .from("shopreel_campaign_learnings")
+      .select("*", { count: "exact", head: true })
+      .eq("shop_id", shopId),
+    supabase
+      .from("shopreel_automation_runs")
+      .select("*")
+      .eq("shop_id", shopId)
+      .order("started_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("shopreel_media_generation_jobs")
+      .select("id, title, status, provider, job_type, created_at, updated_at")
+      .eq("shop_id", shopId)
+      .order("created_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("shopreel_campaigns")
+      .select("id, title, status, created_at, updated_at")
+      .eq("shop_id", shopId)
+      .order("created_at", { ascending: false })
+      .limit(12),
+  ]);
+
+  for (const err of [
+    queuedError,
+    processingError,
+    campaignsError,
+    learningsError,
+    runsError,
+    jobsError,
+    latestCampaignsError,
+  ]) {
+    if (err) throw new Error(err.message);
+  }
+
+  return {
+    summary: {
+      queuedJobsCount: queuedJobsCount ?? 0,
+      processingJobsCount: processingJobsCount ?? 0,
+      activeCampaignsCount: activeCampaignsCount ?? 0,
+      learningsCount: learningsCount ?? 0,
+      lastAutomationRun: latestRuns?.[0] ?? null,
+    },
+    latestRuns: latestRuns ?? [],
+    latestJobs: latestJobs ?? [],
+    latestCampaigns: latestCampaigns ?? [],
+  };
+}
+
+===== src/features/shopreel/automation/runAutomationLoop.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { runShopReelAutopilot } from "./runShopReelAutopilot";
+import { queueScheduledContent } from "@/features/shopreel/scheduler/queueScheduledContent";
+import { processRenderJobs } from "@/features/shopreel/worker/processRenderJobs";
+import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
+import { runAnalyticsFeedbackLoop } from "@/features/shopreel/analytics/runAnalyticsFeedbackLoop";
+import { refreshOpportunityScores } from "@/features/shopreel/opportunities/scoring/refreshOpportunityScores";
+import { buildPrePublishRanking } from "@/features/shopreel/optimization/buildPrePublishRanking";
+
+export async function runAutomationLoop(shopId: string) {
+  const supabase = createAdminClient();
+
+  const { count: activeCalendarCount, error: activeCalendarError } = await supabase
+    .from("content_calendar_items")
+    .select("*", { count: "exact", head: true })
+    .eq("tenant_shop_id", shopId)
+    .in("status", ["planned", "queued", "ready", "publishing"]);
+
+  if (activeCalendarError) {
+    throw new Error(activeCalendarError.message);
+  }
+
+  const shouldAutopilot = (activeCalendarCount ?? 0) < 3;
+
+  const autopilot = shouldAutopilot
+    ? await runShopReelAutopilot(shopId)
+    : {
+        ok: true,
+        skipped: true,
+        reason: "Existing calendar pipeline has enough queued work",
+      };
+
+  const preQueueRanking = await buildPrePublishRanking(shopId);
+  const queued = await queueScheduledContent({ shopId });
+  const rendered = await processRenderJobs();
+  const published = await runPublishWorker();
+  const analytics = await runAnalyticsFeedbackLoop(shopId);
+
+  return {
+    ok: true,
+    shopId,
+    autopilot,
+    preQueueRanking: preQueueRanking.slice(0, 10),
+    queued,
+    rendered,
+    published,
+    analytics,
+  };
+}
+
+===== src/features/shopreel/automation/runShopReelAutopilot.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import {
+  discoverContent,
+  type ContentOpportunity,
+} from "@/features/shopreel/discovery/discoverContent";
+import { detectViralMoments } from "@/features/shopreel/moments/detectViralMoments";
+import { generateHooks } from "@/features/shopreel/hooks/generateHooks";
+import { updateMarketingMemory } from "@/features/shopreel/memory/updateMarketingMemory";
+import { updateLearningSignals } from "@/features/shopreel/learning/updateLearningSignals";
+import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
+import { getOptimizationSnapshot } from "@/features/shopreel/optimization/getOptimizationSnapshot";
+import type { Json } from "@/types/supabase";
+
+type SchedulerCalendarItem = {
+  day: number;
+  scheduledFor: string;
+  contentPieceId: string;
+  title: string;
+  contentType: string;
+  hook: string;
+  cta: string;
+  sourceType: string;
+  sourceId: string;
+  workOrderId: string | null;
+  visualUrls: string[];
+  reason: string;
+  hookOptions: unknown;
+};
+
+type SchedulerResult = {
+  ok: true;
+  shopId: string;
+  readiness: {
+    canPublish: boolean;
+    canAutopilot: boolean;
+    missing: string[];
+  };
+  calendar: {
+    calendarId: string;
+    startDate: string;
+    endDate: string;
+    itemsCreated: number;
+    items: SchedulerCalendarItem[];
+  };
+  memory: unknown;
+  signals: unknown;
+  moments: unknown;
+  optimization: unknown;
+};
+
+function toJson(value: unknown): Json {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toJson(item));
+  }
+
+  if (typeof value === "object") {
+    const output: Record<string, Json | undefined> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      output[key] = toJson(entry);
+    }
+    return output;
+  }
+
+  return String(value);
+}
+
+function defaultCta(contentType: string, fallback: string | null): string {
+  if (fallback && fallback.trim().length > 0) {
+    return fallback.trim();
+  }
+
+  switch (contentType) {
+    case "repair_story":
+      return "Follow for more real repair stories.";
+    case "inspection_highlight":
+      return "Follow for more real inspection findings.";
+    case "before_after":
+      return "Follow to see more before-and-after transformations.";
+    case "educational_tip":
+      return "Follow for more mechanic tips and repair advice.";
+    default:
+      return "Follow for more real repair and inspection content.";
+  }
+}
+
+function baseRank(opportunity: ContentOpportunity): number {
+  switch (opportunity.contentType) {
+    case "before_after":
+      return 100;
+    case "repair_story":
+      return 90;
+    case "inspection_highlight":
+      return 80;
+    case "educational_tip":
+      return 70;
+    default:
+      return 60;
+  }
+}
+
+function buildScheduledFor(dayOffset: number): string {
+  const scheduled = new Date();
+  scheduled.setUTCDate(scheduled.getUTCDate() + dayOffset);
+  scheduled.setUTCHours(16, 0, 0, 0);
+  return scheduled.toISOString();
+}
+
+function uniquePlatformTargets(input: string[]): string[] {
+  return [...new Set(input.filter((value) => typeof value === "string" && value.length > 0))];
+}
+
+async function safeRun<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(`[ShopReel autopilot] ${label} failed`, error);
+    return fallback;
+  }
+}
+
+export async function runShopReelAutopilot(
+  shopId: string,
+): Promise<SchedulerResult> {
+  const supabase = createAdminClient();
+  const settingsBundle = await getShopReelSettings(shopId);
+  const optimization = await safeRun(
+    "getOptimizationSnapshot",
+    () => getOptimizationSnapshot(shopId),
+    {
+      shopId,
+      updatedAt: new Date().toISOString(),
+      preferredContentTypes: [],
+      contentTypeBoosts: {},
+      winningHookPatterns: [],
+      notes: {},
+    },
+  );
+
+  const discovered = await discoverContent(shopId);
+  const moments = await safeRun("detectViralMoments", () => detectViralMoments(shopId), []);
+
+  const ranked = [...discovered]
+    .sort((a, b) => {
+      const aScore =
+        baseRank(a) + Number(optimization.contentTypeBoosts[a.contentType] ?? 0);
+      const bScore =
+        baseRank(b) + Number(optimization.contentTypeBoosts[b.contentType] ?? 0);
+      return bScore - aScore;
+    })
+    .slice(0, 7);
+
+  if (ranked.length === 0) {
+    throw new Error(
+      "No opportunities found for this shop. Add content assets or existing content first, then generate the calendar again.",
+    );
+  }
+
+  const startDate = new Date().toISOString();
+  const endDate = new Date(Date.now() + 7 * 86400000).toISOString();
+
+  const calendarName = `AI Autopilot Calendar ${new Date().toLocaleDateString()}`;
+
+  const calendarInsert = {
+    tenant_shop_id: shopId,
+    source_shop_id: shopId,
+    source_system: "shopreel",
+    name: calendarName,
+    description: "7-day AI-generated ShopReel content calendar.",
+    timezone: "America/Edmonton",
+    settings: toJson({
+      generated_by: "runShopReelAutopilot",
+      readiness_missing: settingsBundle.readiness.missing,
+      opportunity_count: ranked.length,
+      moments_count: Array.isArray(moments) ? moments.length : 0,
+      optimization,
+    }),
+  };
+
+  const { data: insertedCalendarData, error: calendarError } = await supabase
+    .from("content_calendars")
+    .insert(calendarInsert as never)
+    .select("id")
+    .single();
+
+  const insertedCalendar = insertedCalendarData as { id: string } | null;
+
+  if (calendarError || !insertedCalendar) {
+    throw new Error(calendarError?.message ?? "Failed to create content calendar");
+  }
+
+  const enabledTargets = uniquePlatformTargets(settingsBundle.settings?.enabled_platforms ?? []);
+  const defaultCtaValue = settingsBundle.settings?.default_cta ?? null;
+
+  const items: SchedulerCalendarItem[] = [];
+
+  for (let index = 0; index < ranked.length; index += 1) {
+    const opportunity = ranked[index];
+    const hookOptions = await generateHooks(opportunity.contentType);
+    const scheduledFor = buildScheduledFor(index);
+    const resolvedCta = defaultCta(opportunity.contentType, defaultCtaValue);
+
+    let resolvedContentPieceId = "";
+
+    const pieceMetadata = toJson({
+      planned_for_calendar: true,
+      scheduled_for: scheduledFor,
+      source_type: opportunity.sourceType,
+      source_id: opportunity.sourceId,
+      reason: opportunity.reason,
+      visual_urls: opportunity.visualUrls,
+      hook_options: hookOptions,
+      optimization,
+    });
+
+    if (opportunity.sourceType === "existing_content_piece") {
+      resolvedContentPieceId = opportunity.sourceId;
+
+      const { error: updateError } = await supabase
+        .from("content_pieces")
+        .update({
+          hook: opportunity.hook,
+          cta: resolvedCta,
+          platform_targets: enabledTargets,
+          metadata: pieceMetadata,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", resolvedContentPieceId);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+    } else {
+      const pieceInsert = {
+        tenant_shop_id: shopId,
+        source_shop_id: shopId,
+        source_system: "shopreel",
+        source_work_order_id: opportunity.workOrderId,
+        title: opportunity.title,
+        content_type: opportunity.contentType,
+        hook: opportunity.hook,
+        caption: opportunity.hook,
+        cta: resolvedCta,
+        script_text: null,
+        voiceover_text: null,
+        platform_targets: enabledTargets,
+        status: "draft",
+        metadata: pieceMetadata,
+      };
+
+      const { data: contentPieceData, error: contentPieceError } = await supabase
+        .from("content_pieces")
+
+===== src/features/shopreel/opportunities =====
+
+===== src/features/shopreel/opportunities/autoCreateCampaigns.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { Json } from "@/types/supabase";
+
+type AutoCreateResult = {
+  createdCampaignIds: string[];
+  skippedOpportunityIds: string[];
+};
+
+export async function autoCreateCampaignsFromTopOpportunities(args?: {
+  minScore?: number;
+  limit?: number;
+}) : Promise<AutoCreateResult> {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+  const minScore = args?.minScore ?? 85;
+  const limit = args?.limit ?? 3;
+
+  const { data: opportunities, error } = await supabase
+    .from("shopreel_content_opportunities")
+    .select(`
+      *,
+      story_source:shopreel_story_sources (*)
+    `)
+    .eq("shop_id", shopId)
+    .eq("status", "ready")
+    .gte("score", minScore)
+    .order("score", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const createdCampaignIds: string[] = [];
+  const skippedOpportunityIds: string[] = [];
+
+  for (const opportunity of opportunities ?? []) {
+    const storySource = Array.isArray(opportunity.story_source)
+      ? opportunity.story_source[0] ?? null
+      : opportunity.story_source;
+
+    if (!storySource?.id) {
+      skippedOpportunityIds.push(opportunity.id);
+      continue;
+    }
+
+    const metadata =
+      opportunity.metadata && typeof opportunity.metadata === "object" && !Array.isArray(opportunity.metadata)
+        ? { ...(opportunity.metadata as Record<string, Json | undefined>) }
+        : {};
+
+    if (typeof metadata.linked_campaign_id === "string" && metadata.linked_campaign_id.length > 0) {
+      skippedOpportunityIds.push(opportunity.id);
+      continue;
+    }
+
+    const { data: campaign, error: campaignError } = await supabase
+      .from("shopreel_campaigns")
+      .insert({
+        shop_id: shopId,
+        title: storySource.title,
+        core_idea: storySource.description ?? storySource.title,
+        audience: null,
+        offer: null,
+        campaign_goal: "Auto-created from high scoring opportunity",
+        platform_focus: ["instagram", "facebook", "tiktok", "youtube"],
+        status: "draft",
+        metadata: {
+          source_opportunity_id: opportunity.id,
+          source_story_source_id: storySource.id,
+          auto_created: true,
+        },
+      })
+      .select("*")
+      .single();
+
+    if (campaignError || !campaign) {
+      skippedOpportunityIds.push(opportunity.id);
+      continue;
+    }
+
+    metadata.linked_campaign_id = campaign.id;
+    metadata.auto_created_campaign = true;
+
+    const { error: updateError } = await supabase
+      .from("shopreel_content_opportunities")
+      .update({
+        status: "generated",
+        metadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", opportunity.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    createdCampaignIds.push(campaign.id);
+  }
+
+  return {
+    createdCampaignIds,
+    skippedOpportunityIds,
+  };
+}
+
+===== src/features/shopreel/opportunities/createOpportunities.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { scoreStorySource } from "./scoreStorySource";
+import type { Json } from "@/types/supabase";
+
+function buildReason(score: number): string {
+  if (score >= 90) return "Very strong story potential";
+  if (score >= 75) return "High-value marketing opportunity";
+  if (score >= 60) return "Promising content opportunity";
+  return "Detected story opportunity";
+}
+
+export async function createOpportunities() {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: sources, error: sourceError } = await supabase
+    .from("shopreel_story_sources")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (sourceError) {
+    throw new Error(sourceError.message);
+  }
+
+  const createdOrUpdated = [];
+
+  for (const source of sources ?? []) {
+    const { data: existing } = await supabase
+      .from("shopreel_content_opportunities")
+      .select("*")
+      .eq("shop_id", shopId)
+      .eq("story_source_id", source.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const current = existing?.[0] ?? null;
+
+    if (current?.status === "dismissed" || current?.status === "generated") {
+      continue;
+    }
+
+    const score = scoreStorySource(source);
+    const reason = buildReason(score);
+
+    if (current) {
+      const currentMetadata =
+        current.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata)
+          ? (current.metadata as Record<string, Json | undefined>)
+          : {};
+
+      const { data: updated, error: updateError } = await supabase
+        .from("shopreel_content_opportunities")
+        .update({
+          score,
+          reason,
+          metadata: {
+            ...currentMetadata,
+            scoring: {
+              source_kind: source.kind,
+              source_origin: source.origin,
+              source_title: source.title,
+            },
+          },
+          status: current.status || "ready",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", current.id)
+        .select("*")
+        .single();
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      createdOrUpdated.push(updated);
+      continue;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("shopreel_content_opportunities")
+      .insert({
+        shop_id: shopId,
+        story_source_id: source.id,
+        score,
+        reason,
+        metadata: {
+          scoring: {
+            source_kind: source.kind,
+            source_origin: source.origin,
+            source_title: source.title,
+          },
+        },
+        status: "ready",
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    createdOrUpdated.push(inserted);
+  }
+
+  return createdOrUpdated;
+}
+
+===== src/features/shopreel/opportunities/lib/isSourceSuppressed.ts =====
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+
+type DB = Database;
+
+export async function isSourceSuppressed(
+  supabase: ReturnType<typeof createClient<DB>>,
+  shopId: string,
+  sourceKey: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("shopreel_story_sources")
+    .select("suppressed")
+    .eq("shop_id", shopId)
+    .eq("source_key", sourceKey)
+    .single();
+
+  if (error || !data) return false;
+
+  return Boolean((data as any).suppressed);
+}
+
+===== src/features/shopreel/opportunities/lib/suppressStorySource.ts =====
+import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+
+type DB = Database;
+
+export async function suppressStorySource(
+  supabase: SupabaseClient<DB>,
+  shopId: string,
+  sourceKey: string
+) {
+  const { error } = await supabase
+    .from("shopreel_story_sources")
+    .update({ suppressed: true } as any)
+    .eq("shop_id", shopId)
+    .eq("source_key", sourceKey);
+
+  if (error) {
+    throw new Error(`Failed to suppress story source: ${error.message}`);
+  }
+}
+
+===== src/features/shopreel/opportunities/lib/upsertOpportunity.ts =====
+import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+
+type DB = Database;
+
+export async function upsertOpportunity(
+  supabase: SupabaseClient<DB>,
+  shopId: string,
+  storySourceId: string,
+  score: number,
+  metadata: any
+) {
+
+  const { error } = await supabase
+    .from("shopreel_content_opportunities")
+    .upsert(
+      {
+        shop_id: shopId,
+        story_source_id: storySourceId,
+        score,
+        metadata,
+        status: "pending"
+      },
+      {
+        onConflict: "shop_id,story_source_id"
+      }
+    );
+
+  if (error) {
+    throw new Error(`Opportunity upsert failed: ${error.message}`);
+  }
+}
+
+===== src/features/shopreel/opportunities/scoreStorySource.ts =====
+type StorySource = {
+  id: string;
+  kind: string;
+  title: string;
+  description: string | null;
+  tags?: string[] | null;
+  notes?: string[] | null;
+};
+
+export function scoreStorySource(source: StorySource) {
+  let score = 40;
+
+  const text = [
+    source.title,
+    source.description ?? "",
+    ...(source.tags ?? []),
+    ...(source.notes ?? []),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (text.includes("brake")) score += 20;
+  if (text.includes("failure")) score += 20;
+  if (text.includes("danger")) score += 20;
+  if (text.includes("before")) score += 15;
+  if (text.includes("after")) score += 15;
+  if (text.includes("inspection")) score += 10;
+  if (text.includes("repair")) score += 12;
+  if (text.includes("worn")) score += 10;
+  if (text.includes("scoring")) score += 8;
+  if (text.includes("safety")) score += 12;
+
+  if (source.kind === "inspection_completed") score += 10;
+  if (source.kind === "repair_completed") score += 15;
+  if (source.kind === "before_after") score += 18;
+  if (source.kind === "educational_insight") score += 8;
+
+  return Math.min(score, 100);
+}
+
+===== src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { updateOpportunityScore } from "./updateOpportunityScore";
+
+type RefreshResult = {
+  ok: true;
+  shopId: string;
+  updated: number;
+  skipped: number;
+};
+
+export async function refreshOpportunityScores(
+  shopId: string
+): Promise<RefreshResult> {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data: opportunities, error } = await legacy
+    .from("shopreel_content_opportunities")
+    .select("id, story_source_id, status")
+    .eq("shop_id", shopId)
+    .not("story_source_id", "is", null);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  let updated = 0;
+  let skipped = 0;
+
+  for (const opportunity of opportunities ?? []) {
+    if (!opportunity.story_source_id) {
+      skipped += 1;
+      continue;
+    }
+
+    await updateOpportunityScore(
+      supabase,
+      shopId,
+      opportunity.story_source_id
+    );
+
+    updated += 1;
+  }
+
+  return {
+    ok: true,
+    shopId,
+    updated,
+    skipped,
+  };
+}
+
+===== src/features/shopreel/opportunities/scoring/scoreStorySource.ts =====
+import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+
+type DB = Database;
+
+export async function scoreStorySource(
+  supabase: SupabaseClient<DB>,
+  shopId: string,
+  storySourceId: string
+): Promise<number> {
+  let score = 0;
+
+  const { data: source } = await supabase
+    .from("shopreel_story_sources")
+    .select("created_at, kind, metadata")
+    .eq("id", storySourceId)
+    .eq("shop_id", shopId)
+    .single();
+
+  if (source?.created_at) {
+    const ageHours =
+      (Date.now() - new Date(source.created_at).getTime()) / 3600000;
+    const freshness = Math.max(0, 48 - ageHours) / 48;
+    score += freshness * 40;
+  }
+
+  const { count: assetCount } = await supabase
+    .from("shopreel_story_source_assets")
+    .select("*", { count: "exact", head: true })
+    .eq("shop_id", shopId)
+    .eq("story_source_id", storySourceId);
+
+  if (assetCount) {
+    score += Math.min(assetCount * 10, 30);
+  }
+
+  const { count: generationCount } = await supabase
+    .from("shopreel_story_generations")
+    .select("*", { count: "exact", head: true })
+    .eq("shop_id", shopId)
+    .eq("story_source_id", storySourceId);
+
+  if (!generationCount) {
+    score += 20;
+  }
+
+  if (source?.kind === "manual_upload" || source?.kind === "before_after") {
+    score += 10;
+  }
+
+  return Math.round(score);
+}
+
+===== src/features/shopreel/opportunities/scoring/updateOpportunityScore.ts =====
+import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
+import { scoreStorySource } from "./scoreStorySource";
+
+type DB = Database;
+
+export async function updateOpportunityScore(
+  supabase: SupabaseClient<DB>,
+  shopId: string,
+  storySourceId: string
+) {
+
+  const score = await scoreStorySource(
+    supabase,
+    shopId,
+    storySourceId
+  );
+
+  const { error } = await supabase
+    .from("shopreel_content_opportunities")
+    .update({ score })
+    .eq("shop_id", shopId)
+    .eq("story_source_id", storySourceId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+}
+
+===== src/features/shopreel/discovery =====
+
+===== src/features/shopreel/discovery/discoverContent.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { storySourceFromOpportunity } from "../story-sources";
+import type { StorySource } from "../story-sources";
+import type { Tables } from "@/types/supabase";
+
+type ContentAssetRow = Pick<
+  Tables<"content_assets">,
+  | "id"
+  | "title"
+  | "caption"
+  | "asset_type"
+  | "public_url"
+  | "created_at"
+  | "metadata"
+  | "source_media_upload_id"
+  | "source_work_order_id"
+  | "source_inspection_id"
+  | "source_vehicle_id"
+>;
+
+type ContentPieceRow = Pick<
+  Tables<"content_pieces">,
+  | "id"
+  | "title"
+  | "hook"
+  | "cta"
+  | "content_type"
+  | "metadata"
+  | "source_work_order_id"
+  | "created_at"
+  | "status"
+>;
+
+export type ContentOpportunity = {
+  sourceType:
+    | "manual_upload"
+    | "content_asset"
+    | "before_after_candidate"
+    | "educational_candidate"
+    | "video_story"
+    | "existing_content_piece";
+  workOrderId: string | null;
+  sourceId: string;
+  title: string;
+  contentType:
+    | "inspection_highlight"
+    | "before_after"
+    | "repair_story"
+    | "educational_tip"
+    | "workflow_demo";
+  hook: string;
+  reason: string;
+  visualUrls: string[];
+};
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function getStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => typeof item === "string" && item.trim().length > 0,
+  );
+}
+
+function chooseContentType(row: ContentAssetRow): ContentOpportunity["contentType"] {
+  const metadata = objectRecord(row.metadata);
+  const explicit = typeof metadata.content_type === "string" ? metadata.content_type : null;
+  const tags = getStringList(metadata.tags).map((tag) => tag.toLowerCase());
+
+  if (explicit === "before_after" || tags.includes("before_after")) {
+    return "before_after";
+  }
+
+  if (
+    explicit === "educational_tip" ||
+    explicit === "inspection_highlight" ||
+    tags.includes("educational") ||
+    tags.includes("tip")
+  ) {
+    return "educational_tip";
+  }
+
+  if (explicit === "repair_story" || tags.includes("repair")) {
+    return "repair_story";
+  }
+
+  return row.asset_type === "video" ? "workflow_demo" : "before_after";
+}
+
+function chooseSourceType(
+  row: ContentAssetRow,
+  contentType: ContentOpportunity["contentType"],
+): ContentOpportunity["sourceType"] {
+  if (row.source_media_upload_id) return "manual_upload";
+  if (contentType === "before_after") return "before_after_candidate";
+  if (contentType === "educational_tip") return "educational_candidate";
+  if (row.asset_type === "video") return "video_story";
+  return "content_asset";
+}
+
+function buildTitle(row: ContentAssetRow, contentType: ContentOpportunity["contentType"]): string {
+  if (row.title && row.title.trim().length > 0) return row.title.trim();
+
+  switch (contentType) {
+    case "before_after":
+      return "Before / after story";
+    case "educational_tip":
+      return "Educational story";
+    case "repair_story":
+      return "Repair story";
+    default:
+      return row.asset_type === "video" ? "Video story" : "Photo story";
+  }
+}
+
+function buildHook(
+  row: ContentAssetRow,
+  title: string,
+  contentType: ContentOpportunity["contentType"],
+): string {
+  const metadata = objectRecord(row.metadata);
+  const explicitHook = typeof metadata.hook === "string" ? metadata.hook.trim() : "";
+
+  if (explicitHook.length > 0) return explicitHook;
+  if (row.caption && row.caption.trim().length > 0) return row.caption.trim();
+
+  switch (contentType) {
+    case "before_after":
+      return `${title} — here’s the transformation.`;
+    case "educational_tip":
+      return `${title} — here’s what to know.`;
+    case "repair_story":
+      return `${title} — here’s what happened.`;
+    default:
+      return `${title} — here’s the story.`;
+  }
+}
+
+function buildReason(
+  row: ContentAssetRow,
+  sourceType: ContentOpportunity["sourceType"],
+  contentType: ContentOpportunity["contentType"],
+): string {
+  if (sourceType === "manual_upload") return "Manual upload asset ready for story generation";
+  if (contentType === "before_after") return "Asset metadata suggests a before/after story";
+  if (contentType === "educational_tip") return "Asset metadata suggests an educational story";
+  if (row.asset_type === "video") return "Video asset can be turned into a workflow story";
+  return "Content asset available for story generation";
+}
+
+function normalizePieceContentType(value: string | null): ContentOpportunity["contentType"] {
+  if (
+    value === "inspection_highlight" ||
+    value === "before_after" ||
+    value === "repair_story" ||
+    value === "educational_tip"
+  ) {
+    return value;
+  }
+
+  return "workflow_demo";
+}
+
+function buildPieceOpportunity(row: ContentPieceRow): ContentOpportunity {
+  const metadata = objectRecord(row.metadata);
+
+  return {
+    sourceType: "existing_content_piece",
+    workOrderId: row.source_work_order_id,
+    sourceId: row.id,
+    title: row.title?.trim() || "Existing content piece",
+    contentType: normalizePieceContentType(row.content_type),
+    hook:
+      row.hook?.trim() ||
+      (typeof metadata.hook === "string" && metadata.hook.trim().length > 0
+        ? metadata.hook.trim()
+        : `${row.title?.trim() || "Content piece"} — ready to schedule.`),
+    reason: "Existing content piece available for calendar scheduling",
+    visualUrls: [],
+  };
+}
+
+export async function discoverContent(shopId: string): Promise<ContentOpportunity[]> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("content_assets")
+    .select(`
+      id,
+      title,
+      caption,
+      asset_type,
+      public_url,
+      created_at,
+      metadata,
+      source_media_upload_id,
+      source_work_order_id,
+      source_inspection_id,
+      source_vehicle_id
+    `)
+    .eq("tenant_shop_id", shopId)
+    .in("asset_type", ["photo", "video"])
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows: ContentAssetRow[] = data ?? [];
+
+  const assetOpportunities = rows.map((row) => {
+    const contentType = chooseContentType(row);
+    const sourceType = chooseSourceType(row, contentType);
+    const title = buildTitle(row, contentType);
+
+    return {
+      sourceType,
+      workOrderId: row.source_work_order_id,
+      sourceId: row.id,
+      title,
+      contentType,
+      hook: buildHook(row, title, contentType),
+      reason: buildReason(row, sourceType, contentType),
+      visualUrls: row.public_url ? [row.public_url] : [],
+    } satisfies ContentOpportunity;
+  });
+
+  if (assetOpportunities.length > 0) {
+    return assetOpportunities.slice(0, 20);
+  }
+
+  const { data: pieceData, error: pieceError } = await supabase
+    .from("content_pieces")
+    .select("id, title, hook, cta, content_type, metadata, source_work_order_id, created_at, status")
+    .eq("tenant_shop_id", shopId)
+    .in("status", ["draft", "queued", "processing", "ready", "published"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (pieceError) {
+    throw new Error(pieceError.message);
+  }
+
+  const contentPieces: ContentPieceRow[] = pieceData ?? [];
+  return contentPieces.map(buildPieceOpportunity);
+}
+
+export async function discoverStorySources(shopId: string): Promise<StorySource[]> {
+  const opportunities = await discoverContent(shopId);
+  return opportunities
+    .filter((opportunity) => opportunity.sourceType !== "existing_content_piece")
+    .map((opportunity) => storySourceFromOpportunity(shopId, opportunity));
+}
+
+===== src/features/shopreel/discovery/discoverStorySources.ts =====
+export { discoverStorySources } from "./discoverContent";
+
+===== src/features/shopreel/discovery/generateOpportunities.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+
+export async function generateOpportunities(shopId: string) {
+  const supabase = createAdminClient();
+
+  const { data: sources } = await supabase
+    .from("shopreel_story_sources")
+    .select("*")
+    .eq("shop_id", shopId)
+    .limit(20);
+
+  if (!sources) {
+    return { created: 0 };
+  }
+
+  let created = 0;
+
+  for (const source of sources) {
+    await supabase
+      .from("shopreel_content_opportunities")
+      .insert({
+        shop_id: shopId,
+        story_source_id: source.id,
+        status: "pending",
+      });
+
+    created++;
+  }
+
+  return { created };
+}
+
+===== src/features/shopreel/campaigns =====
+
+===== src/features/shopreel/campaigns/components/CampaignDetailClient.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import { formatShopReelStatus } from "@/features/shopreel/lib/uiLabels";
+
+type CampaignRow = {
+  id: string;
+  title: string;
+  core_idea: string;
+  audience: string | null;
+  offer: string | null;
+  campaign_goal: string | null;
+  status: string;
+  platform_focus: string[];
+  created_at: string;
+};
+
+type CampaignItemRow = {
+  id: string;
+  title: string;
+  angle: string;
+  prompt: string;
+  status: string;
+  aspect_ratio: string;
+  style: string | null;
+  visual_mode: string | null;
+  media_job_id: string | null;
+  final_output_asset_id?: string | null;
+};
+
+function getNextAction(progress: {
+  totalItems: number;
+  completedItems: number;
+  totalScenes: number;
+  queuedScenes: number;
+  processingScenes: number;
+  completedScenes: number;
+  failedScenes: number;
+}) {
+  if (progress.totalItems > 0 && progress.completedItems === progress.totalItems) {
+    return { action: "publish", label: "Publish campaign" };
+  }
+
+  if (
+    progress.processingScenes > 0 ||
+    progress.queuedScenes > 0 ||
+    progress.completedScenes > 0 ||
+    progress.failedScenes > 0
+  ) {
+    return { action: "check_progress", label: "Check progress" };
+  }
+
+  if (progress.totalScenes > 0) {
+    return { action: "create_videos", label: "Create videos" };
+  }
+
+  return { action: "build_scenes", label: "Build scenes" };
+}
+
+export default function CampaignDetailClient({
+  campaign,
+  items,
+  progress,
+}: {
+  campaign: CampaignRow;
+  items: CampaignItemRow[];
+  progress: {
+    totalItems: number;
+    completedItems: number;
+    progressPercent: number;
+    totalScenes: number;
+    queuedScenes: number;
+    processingScenes: number;
+    completedScenes: number;
+    failedScenes: number;
+  };
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const nextAction = useMemo(() => getNextAction(progress), [progress]);
+
+  async function runAction(key: string, url: string) {
+    try {
+      setBusy(key);
+      setError(null);
+
+      const res = await fetch(url, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || json?.ok === false) {
+        throw new Error(json?.error ?? "Action failed");
+      }
+
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Action failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="grid gap-5">
+      <GlassCard title="Campaign Workspace" strong>
+        <div className="flex flex-wrap gap-3">
+
+          {nextAction.action === "build_scenes" && (
+            <GlassButton
+              onClick={() =>
+                runAction("generate", `/api/shopreel/campaigns/${campaign.id}/generate`)
+              }
+            >
+              Build scenes
+            </GlassButton>
+          )}
+
+          {nextAction.action === "create_videos" && (
+            <GlassButton
+              onClick={() =>
+                runAction("run", `/api/shopreel/campaigns/${campaign.id}/run-all-jobs`)
+              }
+            >
+              Generate videos
+            </GlassButton>
+          )}
+
+          {nextAction.action === "check_progress" && (
+            <GlassButton
+              onClick={() =>
+                runAction("sync", `/api/shopreel/campaigns/${campaign.id}/sync-processing`)
+              }
+            >
+              Check progress
+            </GlassButton>
+          )}
+
+          {nextAction.action === "publish" && (
+            <Link href={`/shopreel/publish-center?campaign=${campaign.id}`}>
+              <GlassButton>Publish</GlassButton>
+            </Link>
+          )}
+
+        </div>
+
+        {error && <div className="text-red-400 text-sm mt-3">{error}</div>}
+      </GlassCard>
+
+      <GlassCard title="Progress" strong>
+        <div className="text-white text-lg">
+          {progress.completedItems} / {progress.totalItems} complete
+        </div>
+      </GlassCard>
+
+      <GlassCard title="Campaign Videos" strong>
+        <div className="grid gap-3">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="border border-white/10 rounded-xl p-4 flex justify-between items-center"
+            >
+              <div>
+                <div className="text-white font-semibold">{item.title}</div>
+                <div className="text-white/60 text-sm">{item.angle}</div>
+              </div>
+
+              <div className="flex gap-2 items-center">
+                <GlassBadge tone={item.final_output_asset_id ? "copper" : "default"}>
+                  {item.final_output_asset_id ? "Ready" : formatShopReelStatus(item.status)}
+                </GlassBadge>
+
+                <Link href={`/shopreel/campaigns/items/${item.id}`}>
+                  <GlassButton variant="ghost">
+                    Open
+                  </GlassButton>
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+===== src/features/shopreel/campaigns/components/CampaignFlowShell.tsx =====
+import type { ReactNode } from "react";
+
+type CampaignFlowShellProps = {
+  children: ReactNode;
+};
+
+export default function CampaignFlowShell({
+  children,
+}: CampaignFlowShellProps) {
+  return (
+    <div className="min-h-screen w-full bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.22),_transparent_42%),linear-gradient(180deg,#071120_0%,#06101d_38%,#050914_100%)]">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-16 pt-6 md:px-6 lg:px-8">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+===== src/features/shopreel/campaigns/components/CampaignGenerator.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Database } from "@/types/supabase";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+
+type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"] & {
+  items?: Array<{
+    id: string;
+    status: string;
+    final_output_asset_id: string | null;
+  }> | null;
+  production_summary?: {
+    totalItems: number;
+    finalReadyItems: number;
+    totalScenes: number;
+    queuedScenes: number;
+    processingScenes: number;
+    completedScenes: number;
+    failedScenes: number;
+    stageLabel: string;
+  };
+};
+
+function timeAgoLabel(value: string) {
+  const now = Date.now();
+  const then = new Date(value).getTime();
+  const diffMs = Math.max(0, now - then);
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMinutes < 60) return `${Math.max(diffMinutes, 1)}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago}`;
+
+  return new Date(value).toLocaleDateString();
+}
+
+function getCampaignHref(campaignId: string) {
+  return `/shopreel/campaigns/${campaignId}`;
+}
+
+function getCampaignReviewHref(campaignId: string) {
+  return `/shopreel/campaigns/${campaignId}/review`;
+}
+
+function getCampaignProductionHref(campaignId: string) {
+  return `/shopreel/campaigns/${campaignId}/production`;
+}
+
+function getDisplayStageLabel(campaign: CampaignRow) {
+  const summary = campaign.production_summary;
+  const normalizedStatus = campaign.status.toLowerCase();
+
+  if (summary) {
+    if (summary.finalReadyItems > 0 && summary.finalReadyItems === summary.totalItems && summary.totalItems > 0) {
+      return "Final ready";
+    }
+
+    if (summary.totalScenes > 0 && summary.completedScenes === summary.totalScenes) {
+      return "Ready to assemble";
+    }
+
+    if (summary.processingScenes > 0 || summary.queuedScenes > 0) {
+      return "Generating";
+    }
+
+    if (summary.totalScenes > 0 || summary.totalItems > 0) {
+      return "Started";
+    }
+  }
+
+  if (normalizedStatus === "published") return "Published";
+  if (normalizedStatus === "ready") return "Ready";
+  if (normalizedStatus === "processing") return "Generating";
+
+  return "Brief";
+}
+
+function getStageTone(stageLabel: string) {
+  const normalized = stageLabel.toLowerCase();
+
+  if (normalized.includes("final")) return "copper" as const;
+  if (normalized.includes("assemble")) return "copper" as const;
+  if (normalized.includes("generating")) return "default" as const;
+  if (normalized.includes("started")) return "muted" as const;
+  if (normalized.includes("ready")) return "default" as const;
+  if (normalized.includes("published")) return "copper" as const;
+
+  return "default" as const;
+}
+
+function getPrimaryAction(campaign: CampaignRow) {
+  const stageLabel = getDisplayStageLabel(campaign);
+
+  if (stageLabel === "Brief") {
+    return {
+      href: getCampaignReviewHref(campaign.id),
+      label: "Review",
+      variant: "secondary" as const,
+    };
+  }
+
+  return {
+    href: getCampaignProductionHref(campaign.id),
+    label: "Production",
+    variant: "primary" as const,
+  };
+}
+
+export default function CampaignGenerator({
+  campaigns,
+  seedDefaults,
+}: {
+  campaigns: CampaignRow[];
+  seedDefaults: {
+    winningAngles: string[];
+    suggestedHook: string | null;
+  };
+}) {
+  const router = useRouter();
+
+  const [title, setTitle] = useState("ShopReel vs Traditional Marketing");
+  const [coreIdea, setCoreIdea] = useState(
+    `Compare ShopReel to traditional marketing methods and introduce ShopReel as the future of business marketing.${seedDefaults.suggestedHook ? ` ${seedDefaults.suggestedHook}.` : ""}`
+  );
+  const [audience, setAudience] = useState("Repair shops, local businesses, and creators");
+  const [offer, setOffer] = useState("Turn real work into marketing automatically");
+  const [campaignGoal, setCampaignGoal] = useState("Brand awareness and product introduction");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function create() {
+    try {
+      setSubmitting(true);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch("/api/shopreel/campaigns", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          coreIdea,
+          audience,
+          offer,
+          campaignGoal,
+          platformFocus: ["instagram", "facebook", "tiktok", "youtube"],
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to create campaign");
+      }
+
+      const campaignId = json.id ?? json.campaign?.id ?? json.data?.id ?? null;
+
+      if (!campaignId) {
+        throw new Error("Campaign created but no campaign id was returned");
+      }
+
+      router.push(`/shopreel/campaigns/${campaignId}/review`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create campaign");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-5">
+      <GlassCard
+        label="Campaign Brief"
+        title="Start with the campaign idea"
+        description="Describe what you want to promote, who it is for, and what outcome you want. You’ll review the campaign before production starts."
+        strong
+      >
+        {seedDefaults.winningAngles.length > 0 ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {seedDefaults.winningAngles.map((angle) => (
+              <GlassBadge key={angle} tone="copper">
+                Learned winner: {angle}
+              </GlassBadge>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="grid gap-4">
+          <label className="grid gap-2">
+            <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              Campaign Title
+            </span>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              Core Idea
+            </span>
+            <textarea
+              value={coreIdea}
+              onChange={(e) => setCoreIdea(e.target.value)}
+              rows={5}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            />
+          </label>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2">
+              <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Audience
+              </span>
+              <input
+                value={audience}
+                onChange={(e) => setAudience(e.target.value)}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                Offer
+              </span>
+              <input
+                value={offer}
+                onChange={(e) => setOffer(e.target.value)}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+              />
+            </label>
+          </div>
+
+          <label className="grid gap-2">
+            <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+              Campaign Goal
+            </span>
+            <input
+              value={campaignGoal}
+              onChange={(e) => setCampaignGoal(e.target.value)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            />
+          </label>
+
+          <div className="flex flex-wrap gap-3">
+            <GlassButton variant="primary" onClick={() => void create()} disabled={submitting}>
+
+===== src/features/shopreel/campaigns/components/CampaignItemClient.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import {
+  VIDEO_CREATION_ASPECT_RATIOS,
+  VIDEO_CREATION_STYLES,
+  VIDEO_CREATION_VISUAL_MODES,
+  formatLabel,
+  type VideoCreationAspectRatio,
+  type VideoCreationStyle,
+  type VideoCreationVisualMode,
+} from "@/features/shopreel/video-creation/lib/types";
+
+type SceneRow = {
+  id: string;
+  title: string;
+  prompt: string;
+  status: string;
+  scene_order: number;
+  duration_seconds: number | null;
+  media_job_id: string | null;
+  output_asset_id?: string | null;
+  media_job?: {
+    id: string;
+    status: string;
+    output_asset_id: string | null;
+    preview_url: string | null;
+    error_text?: string | null;
+  } | null;
+};
+
+type ItemRow = {
+  id: string;
+  campaign_id: string;
+  title: string;
+  angle: string;
+  prompt: string;
+  status: string;
+  aspect_ratio: string;
+  style: string | null;
+  visual_mode: string | null;
+  media_job_id: string | null;
+  content_piece_id: string | null;
+  metadata?: unknown;
+  final_output_asset_id?: string | null;
+  duration_seconds?: number | null;
+};
+
+type CreativeProfile = {
+  style: VideoCreationStyle;
+  visualMode: VideoCreationVisualMode;
+  aspectRatio: VideoCreationAspectRatio;
+  durationSeconds: number;
+  cameraStyle: string;
+  lighting: string;
+  energy: string;
+};
+
+const CAMERA_STYLE_OPTIONS = [
+  "handheld_close",
+  "static_clean",
+  "slow_push_in",
+  "tracking_motion",
+  "mixed_social",
+] as const;
+
+const LIGHTING_OPTIONS = [
+  "soft_natural",
+  "bright_clean",
+  "high_contrast",
+  "moody_premium",
+  "studio_polished",
+] as const;
+
+const ENERGY_OPTIONS = [
+  "confident_modern",
+  "fast_social",
+  "premium_calm",
+  "bold_direct",
+  "relatable_casual",
+] as const;
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function getCreativeProfile(item: ItemRow): CreativeProfile {
+  const metadata = asObject(item.metadata);
+  const creative = asObject(metadata.creative_profile);
+
+  return {
+    style:
+      (typeof creative.style === "string" ? creative.style : item.style ?? "cinematic") as VideoCreationStyle,
+    visualMode:
+      (typeof creative.visualMode === "string" ? creative.visualMode : item.visual_mode ?? "photoreal") as VideoCreationVisualMode,
+    aspectRatio:
+      (typeof creative.aspectRatio === "string" ? creative.aspectRatio : item.aspect_ratio ?? "9:16") as VideoCreationAspectRatio,
+    durationSeconds:
+      typeof creative.durationSeconds === "number"
+        ? creative.durationSeconds
+        : Number(item.duration_seconds ?? 8),
+    cameraStyle:
+      typeof creative.cameraStyle === "string" ? creative.cameraStyle : "handheld_close",
+    lighting:
+      typeof creative.lighting === "string" ? creative.lighting : "soft_natural",
+    energy:
+      typeof creative.energy === "string" ? creative.energy : "confident_modern",
+  };
+}
+
+function displayStatus(scene: SceneRow) {
+  if (scene.media_job?.status) return scene.media_job.status;
+  if (scene.media_job_id && scene.status === "draft") return "linked";
+  return scene.status;
+}
+
+function getNextAction(args: {
+  totalScenes: number;
+  linkedScenes: number;
+  queuedScenes: number;
+  processingScenes: number;
+  completedScenes: number;
+  failedScenes: number;
+  finalOutputReady: boolean;
+}) {
+  if (args.finalOutputReady) {
+    return {
+      action: "ready" as const,
+      label: "Final video ready",
+      description: "This campaign video is ready.",
+    };
+  }
+
+  if (
+    args.processingScenes > 0 ||
+    args.queuedScenes > 0 ||
+    args.completedScenes > 0 ||
+    args.failedScenes > 0
+  ) {
+    return {
+      action: "check_progress" as const,
+      label: "Check progress",
+      description: "Refresh scene status and assemble the final video when ready.",
+    };
+  }
+
+  if (args.totalScenes > 0 || args.linkedScenes > 0) {
+    return {
+      action: "create_videos" as const,
+      label: "Create videos",
+      description: "Start generating the scene videos for this campaign video.",
+    };
+  }
+
+  return {
+    action: "build_scenes" as const,
+    label: "Build scenes",
+    description: "Prepare the scenes for this campaign video.",
+  };
+}
+
+export default function CampaignItemClient({
+  item,
+  scenes,
+}: {
+  item: ItemRow;
+  scenes: SceneRow[];
+}) {
+  const router = useRouter();
+  const initialCreative = getCreativeProfile(item);
+
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const [style, setStyle] = useState<VideoCreationStyle>(initialCreative.style);
+  const [visualMode, setVisualMode] = useState<VideoCreationVisualMode>(initialCreative.visualMode);
+  const [aspectRatio, setAspectRatio] = useState<VideoCreationAspectRatio>(initialCreative.aspectRatio);
+  const [durationSeconds, setDurationSeconds] = useState<number>(initialCreative.durationSeconds);
+  const [cameraStyle, setCameraStyle] = useState<string>(initialCreative.cameraStyle);
+  const [lighting, setLighting] = useState<string>(initialCreative.lighting);
+  const [energy, setEnergy] = useState<string>(initialCreative.energy);
+
+  async function handleResetItem() {
+    const confirmed = window.confirm(
+      "Reset this item and clear all linked scene jobs?"
+    );
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/shopreel/campaigns/items/${item.id}/reset`, {
+      method: "POST",
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok || !json?.ok) {
+      window.alert(json?.error ?? "Failed to reset item");
+      return;
+    }
+
+    router.refresh();
+  }
+
+  async function handleDeleteItem() {
+    const confirmed = window.confirm(
+      "Delete this item and all related scenes and jobs?"
+    );
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/shopreel/campaigns/items/${item.id}/delete`, {
+      method: "DELETE",
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok || !json?.ok) {
+      window.alert(json?.error ?? "Failed to delete item");
+      return;
+    }
+
+    router.push(`/shopreel/campaigns/${item.campaign_id}`);
+    router.refresh();
+  }
+
+  async function runAction(key: string, url: string, message: string) {
+    try {
+      setBusy(key);
+      setError(null);
+      setStatusMessage(message);
+
+      const res = await fetch(url, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || json?.ok === false) {
+        throw new Error(json?.error ?? `Failed action: ${key}`);
+      }
+
+      router.refresh();
+      window.setTimeout(() => {
+        setStatusMessage(null);
+      }, 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Action failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveCreativeProfile(rebuildMediaJobs = false) {
+    try {
+      setBusy(rebuildMediaJobs ? "save-rebuild-creative" : "save-creative");
+      setError(null);
+
+===== src/features/shopreel/campaigns/components/CampaignPageHeader.tsx =====
+"use client";
+
+import Link from "next/link";
+
+type CampaignPageHeaderProps = {
+  title: string;
+  subtitle?: string;
+  backHref?: string;
+  backLabel?: string;
+  rightSlot?: React.ReactNode;
+};
+
+export default function CampaignPageHeader({
+  title,
+  subtitle,
+  backHref = "/shopreel/campaigns",
+  backLabel = "Back",
+  rightSlot,
+}: CampaignPageHeaderProps) {
+  return (
+    <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <div className="mb-2">
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
+          >
+            <span aria-hidden="true">←</span>
+            <span>{backLabel}</span>
+          </Link>
+        </div>
+
+        <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+          {title}
+        </h1>
+
+        {subtitle ? (
+          <p className="mt-2 max-w-3xl text-sm text-white/70 md:text-base">
+            {subtitle}
+          </p>
+        ) : null}
+      </div>
+
+      {rightSlot ? <div className="shrink-0">{rightSlot}</div> : null}
+    </div>
+  );
+}
+
+===== src/features/shopreel/campaigns/lib/automation.ts =====
+import {
+  syncProcessingMediaJobsForCampaign,
+  rollupCampaignAnalytics,
+  extractCampaignLearnings,
+} from "@/features/shopreel/campaigns/lib/server";
+
+export async function runCampaignAutomationCycle(campaignId: string) {
+  const syncedJobIds = await syncProcessingMediaJobsForCampaign(campaignId);
+  const analytics = await rollupCampaignAnalytics(campaignId);
+  const learnings = await extractCampaignLearnings(campaignId);
+
+  return {
+    campaignId,
+    syncedJobIds,
+    analytics,
+    learnings,
+  };
+}
+
+===== src/features/shopreel/campaigns/lib/defaultCampaignAngles.ts =====
+export type DefaultCampaignAngle = {
+  key: string;
+  label: string;
+  name: string;
+  description: string;
+};
+
+export const DEFAULT_CAMPAIGN_ANGLES: DefaultCampaignAngle[] = [
+  {
+    key: "problem",
+    label: "Problem",
+    name: "Problem",
+    description: "Call out the pain, frustration, or problem the audience is dealing with.",
+  },
+  {
+    key: "old_way",
+    label: "Old Way",
+    name: "Old Way",
+    description: "Show the outdated or frustrating way this is usually handled.",
+  },
+  {
+    key: "new_way",
+    label: "New Way",
+    name: "New Way",
+    description: "Show the better, simpler, or faster way your product or process solves it.",
+  },
+  {
+    key: "how_it_works",
+    label: "How It Works",
+    name: "How It Works",
+    description: "Break down how the product, service, or workflow actually works.",
+  },
+  {
+    key: "outcome",
+    label: "Outcome",
+    name: "Outcome",
+    description: "Show the result, transformation, or benefit after using it.",
+  },
+  {
+    key: "call_to_action",
+    label: "Call To Action",
+    name: "Call To Action",
+    description: "Invite the audience to take the next step.",
+  },
+];
+
+===== src/features/shopreel/campaigns/lib/getCampaignNextAction.ts =====
+type SceneLike = {
+  id: string;
+  status?: string | null;
+  output_asset_id?: string | null;
+};
+
+type ItemLike = {
+  id: string;
+  status?: string | null;
+  final_output_asset_id?: string | null;
+  scenes?: SceneLike[] | null;
+};
+
+export type CampaignNextAction =
+  | "build_scenes"
+  | "create_videos"
+  | "check_progress"
+  | "publish";
+
+export type CampaignNextActionInfo = {
+  action: CampaignNextAction;
+  label: string;
+  description: string;
+};
+
+export function getCampaignNextAction(items: ItemLike[]): CampaignNextActionInfo {
+  if (!items.length) {
+    return {
+      action: "build_scenes",
+      label: "Build scenes",
+      description: "Create the scene plan for this campaign.",
+    };
+  }
+
+  const allScenes = items.flatMap((item) => item.scenes ?? []);
+  const hasNoScenes = items.some((item) => !item.scenes || item.scenes.length === 0);
+
+  if (hasNoScenes || allScenes.length === 0) {
+    return {
+      action: "build_scenes",
+      label: "Build scenes",
+      description: "Create the scene plan for each campaign video.",
+    };
+  }
+
+  const hasPendingSceneOutputs = allScenes.some(
+    (scene) => !scene.output_asset_id || (scene.status ?? "").toLowerCase() !== "completed"
+  );
+
+  if (hasPendingSceneOutputs) {
+    const hasNeverStarted = allScenes.some((scene) => {
+      const status = (scene.status ?? "").toLowerCase();
+      return !status || status === "queued" || status === "pending" || status === "draft";
+    });
+
+    if (hasNeverStarted) {
+      return {
+        action: "create_videos",
+        label: "Create videos",
+        description: "Start generating the campaign scene videos.",
+      };
+    }
+
+    return {
+      action: "check_progress",
+      label: "Check progress",
+      description: "Refresh statuses and assemble completed items.",
+    };
+  }
+
+  const hasMissingFinalVideos = items.some((item) => !item.final_output_asset_id);
+
+  if (hasMissingFinalVideos) {
+    return {
+      action: "check_progress",
+      label: "Check progress",
+      description: "Assemble finished scenes into final campaign videos.",
+    };
+  }
+
+  return {
+    action: "publish",
+    label: "Publish campaign",
+    description: "Everything is ready. Review and publish your videos.",
+  };
+}
+
+===== src/features/shopreel/campaigns/lib/getCampaignProgressSummary.ts =====
+type SceneLike = {
+  id: string;
+  status?: string | null;
+  output_asset_id?: string | null;
+};
+
+type ItemLike = {
+  id: string;
+  status?: string | null;
+  final_output_asset_id?: string | null;
+  scenes?: SceneLike[] | null;
+};
+
+export type CampaignProgressSummary = {
+  totalVideos: number;
+  videosWithScenes: number;
+  videosReady: number;
+  sceneVideosReady: number;
+  totalSceneVideos: number;
+  stage:
+    | "not_started"
+    | "scenes_planned"
+    | "creating_videos"
+    | "ready_to_publish";
+  stageLabel: string;
+};
+
+export function getCampaignProgressSummary(
+  items: ItemLike[]
+): CampaignProgressSummary {
+  const totalVideos = items.length;
+  const videosWithScenes = items.filter(
+    (item) => (item.scenes ?? []).length > 0
+  ).length;
+
+  const allScenes = items.flatMap((item) => item.scenes ?? []);
+  const totalSceneVideos = allScenes.length;
+  const sceneVideosReady = allScenes.filter((scene) => {
+    const status = (scene.status ?? "").toLowerCase();
+    return status === "completed" && !!scene.output_asset_id;
+  }).length;
+
+  const videosReady = items.filter((item) => !!item.final_output_asset_id).length;
+
+  let stage: CampaignProgressSummary["stage"] = "not_started";
+  let stageLabel = "Not started";
+
+  if (totalVideos === 0 || videosWithScenes === 0) {
+    stage = "not_started";
+    stageLabel = "Build scenes";
+  } else if (videosReady === totalVideos && totalVideos > 0) {
+    stage = "ready_to_publish";
+    stageLabel = "Ready to publish";
+  } else if (sceneVideosReady > 0 || totalSceneVideos > 0) {
+    stage = "creating_videos";
+    stageLabel = "Creating videos";
+  } else {
+    stage = "scenes_planned";
+    stageLabel = "Scenes planned";
+  }
+
+  return {
+    totalVideos,
+    videosWithScenes,
+    videosReady,
+    sceneVideosReady,
+    totalSceneVideos,
+    stage,
+    stageLabel,
+  };
+}
+
+===== src/features/shopreel/campaigns/lib/multiscene.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+type PlannedScene = {
+  sceneOrder: number;
+  title: string;
+  prompt: string;
+  durationSeconds: number;
+};
+
+type CreativeProfile = {
+  style?: string | null;
+  visualMode?: string | null;
+  aspectRatio?: string | null;
+  durationSeconds?: number | null;
+  cameraStyle?: string | null;
+  lighting?: string | null;
+  energy?: string | null;
+};
+
+const SILENT_VISUAL_RULE =
+  "No spoken dialogue. No voiceover. No subtitles. No captions. No on-screen text. Visual storytelling only.";
+
+const CONTINUITY_RULE =
+  "Maintain strong campaign continuity across every scene. Use the same visual world, same subject family, same environment family, same styling logic, same lighting family, same camera language, and same overall mood so all scenes feel like one cohesive ad campaign.";
+
+function asObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function getCreativeProfileFromMetadata(metadata: unknown): CreativeProfile {
+  const root = asObject(metadata);
+  const creative = asObject(root.creative_profile);
+
+  return {
+    style:
+      typeof creative.style === "string" ? creative.style : null,
+    visualMode:
+      typeof creative.visualMode === "string" ? creative.visualMode : null,
+    aspectRatio:
+      typeof creative.aspectRatio === "string" ? creative.aspectRatio : null,
+    durationSeconds:
+      typeof creative.durationSeconds === "number"
+        ? creative.durationSeconds
+        : null,
+    cameraStyle:
+      typeof creative.cameraStyle === "string" ? creative.cameraStyle : null,
+    lighting:
+      typeof creative.lighting === "string" ? creative.lighting : null,
+    energy:
+      typeof creative.energy === "string" ? creative.energy : null,
+  };
+}
+
+function buildCreativeDirection(profile: CreativeProfile) {
+  const parts = [
+    profile.style ? `Overall style: ${profile.style}.` : "",
+    profile.visualMode ? `Visual mode: ${profile.visualMode}.` : "",
+    profile.aspectRatio ? `Aspect ratio: ${profile.aspectRatio}.` : "",
+    profile.cameraStyle ? `Camera language: ${profile.cameraStyle}.` : "",
+    profile.lighting ? `Lighting: ${profile.lighting}.` : "",
+    profile.energy ? `Energy and pacing: ${profile.energy}.` : "",
+    "Use the same subject type and same environment family throughout the full campaign.",
+    "Keep the scenes visually matched, premium, and clearly part of the same ad.",
+  ].filter(Boolean);
+
+  return parts.join(" ");
+}
+
+export function planScenesForCampaignItem(args: {
+  itemTitle: string;
+  angle: string;
+  prompt: string;
+  creativeProfile?: CreativeProfile;
+  fallbackDurationSeconds?: number | null;
+}): PlannedScene[] {
+  const creativeProfile = args.creativeProfile ?? {};
+  const durationSeconds = Math.max(
+    3,
+    Number(
+      creativeProfile.durationSeconds ??
+        args.fallbackDurationSeconds ??
+        8
+    )
+  );
+
+  const base = [
+    args.prompt.trim(),
+    CONTINUITY_RULE,
+    buildCreativeDirection(creativeProfile),
+    SILENT_VISUAL_RULE,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return [
+    {
+      sceneOrder: 1,
+      title: `${args.itemTitle} — Hook`,
+      prompt: `${base} Scene objective: create a powerful opening hook in the first seconds. Make it highly visual, premium, and attention-grabbing while matching the same creative direction as the rest of the campaign.`,
+      durationSeconds,
+    },
+    {
+      sceneOrder: 2,
+      title: `${args.itemTitle} — Problem`,
+      prompt: `${base} Scene objective: show the old way, pain point, confusion, friction, or frustration clearly and visually while preserving the same visual identity as scene one.`,
+      durationSeconds,
+    },
+    {
+      sceneOrder: 3,
+      title: `${args.itemTitle} — Solution`,
+      prompt: `${base} Scene objective: show the better way, transformation, modern workflow, product improvement, or system improvement while preserving the same visual identity as the earlier scenes.`,
+      durationSeconds,
+    },
+    {
+      sceneOrder: 4,
+      title: `${args.itemTitle} — Outcome`,
+      prompt: `${base} Scene objective: show the payoff, result, confidence, momentum, growth, or polished end state while preserving the same visual identity as the full campaign.`,
+      durationSeconds,
+    },
+  ];
+}
+
+export async function ensureScenesForCampaignItem(campaignItemId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: item, error: itemError } = await supabase
+    .from("shopreel_campaign_items")
+    .select("*")
+    .eq("id", campaignItemId)
+    .eq("shop_id", shopId)
+    .single();
+
+  if (itemError || !item) {
+    throw new Error(itemError?.message ?? "Campaign item not found");
+  }
+
+  const creativeProfile = getCreativeProfileFromMetadata(item.metadata);
+
+  const plannedScenes = planScenesForCampaignItem({
+    itemTitle: item.title,
+    angle: item.angle,
+    prompt: item.prompt,
+    creativeProfile,
+    fallbackDurationSeconds: item.duration_seconds,
+  });
+
+  const { data: existingScenes, error: scenesError } = await supabase
+    .from("shopreel_campaign_item_scenes")
+    .select("*")
+    .eq("campaign_item_id", campaignItemId)
+    .eq("shop_id", shopId)
+    .order("scene_order", { ascending: true });
+
+  if (scenesError) {
+    throw new Error(scenesError.message);
+  }
+
+  if ((existingScenes ?? []).length === 0) {
+    const { data: insertedScenes, error: insertError } = await supabase
+      .from("shopreel_campaign_item_scenes")
+      .insert(
+        plannedScenes.map((scene) => ({
+          campaign_item_id: item.id,
+          campaign_id: item.campaign_id,
+          shop_id: item.shop_id,
+          scene_order: scene.sceneOrder,
+          title: scene.title,
+          prompt: scene.prompt,
+          duration_seconds: scene.durationSeconds,
+          status: "draft",
+        }))
+      )
+      .select("*");
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    return insertedScenes ?? [];
+  }
+
+  for (const planned of plannedScenes) {
+    const existing = (existingScenes ?? []).find(
+      (scene) => scene.scene_order === planned.sceneOrder
+    );
+
+    if (!existing) {
+      const { error: insertMissingError } = await supabase
+        .from("shopreel_campaign_item_scenes")
+        .insert({
+          campaign_item_id: item.id,
+          campaign_id: item.campaign_id,
+          shop_id: item.shop_id,
+          scene_order: planned.sceneOrder,
+          title: planned.title,
+          prompt: planned.prompt,
+          duration_seconds: planned.durationSeconds,
+          status: "draft",
+        });
+
+      if (insertMissingError) {
+        throw new Error(insertMissingError.message);
+      }
+
+      continue;
+    }
+
+    const { error: repairError } = await supabase
+      .from("shopreel_campaign_item_scenes")
+      .update({
+        title: planned.title,
+        prompt: planned.prompt,
+        duration_seconds: planned.durationSeconds,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+
+    if (repairError) {
+      throw new Error(repairError.message);
+    }
+  }
+
+  const { data: refreshedScenes, error: refreshError } = await supabase
+    .from("shopreel_campaign_item_scenes")
+    .select("*")
+    .eq("campaign_item_id", campaignItemId)
+    .eq("shop_id", shopId)
+    .order("scene_order", { ascending: true });
+
+  if (refreshError) {
+    throw new Error(refreshError.message);
+  }
+
+  return refreshedScenes ?? [];
+}
+
+export async function createMediaJobsForCampaignItemScenes(campaignItemId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: item, error: itemError } = await supabase
+    .from("shopreel_campaign_items")
+    .select("*")
+    .eq("id", campaignItemId)
+    .eq("shop_id", shopId)
+    .single();
+
+  if (itemError || !item) {
+    throw new Error(itemError?.message ?? "Campaign item not found");
+  }
+
+  const creativeProfile = getCreativeProfileFromMetadata(item.metadata);
+  const scenes = await ensureScenesForCampaignItem(campaignItemId);
+  const createdJobIds: string[] = [];
+
+
+===== src/features/shopreel/campaigns/lib/premiumAssembly.ts =====
+import path from "node:path";
+import { writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import ffmpegPath from "ffmpeg-static";
+import {
+  buildCampaignVoiceoverScript,
+  generateCampaignVoiceoverAudio,
+} from "./voiceover";
+
+const execFileAsync = promisify(execFile);
+
+function getFfmpegBinary(): string {
+  const fromEnv = process.env.FFMPEG_PATH?.trim();
+  if (fromEnv) return fromEnv;
+  if (ffmpegPath) return ffmpegPath;
+  return "ffmpeg";
+}
+
+const FFMPEG_EXEC_OPTIONS = {
+  maxBuffer: 1024 * 1024 * 20,
+};
+
+function escapeConcatPath(filePath: string) {
+  return filePath.replace(/'/g, "'\\''");
+}
+
+export async function assemblePremiumCampaignItem(input: {
+  workDir: string;
+  campaignTitle: string;
+  angle: string;
+  audience?: string | null;
+  offer?: string | null;
+  goal?: string | null;
+  scenes: Array<{
+    title: string;
+    prompt: string;
+    localVideoPath: string;
+  }>;
+  outputBaseName: string;
+}) {
+  const ffmpeg = getFfmpegBinary();
+
+  const stitchedVideo = path.join(
+    input.workDir,
+    `${input.outputBaseName}.stitched.mp4`
+  );
+  const finalVideo = path.join(
+    input.workDir,
+    `${input.outputBaseName}.final.mp4`
+  );
+  const concatListPath = path.join(
+    input.workDir,
+    `${input.outputBaseName}.concat.txt`
+  );
+
+  if (input.scenes.length === 0) {
+    throw new Error("No scenes available for premium assembly");
+  }
+
+  const concatList = input.scenes
+    .map((scene) => `file '${escapeConcatPath(scene.localVideoPath)}'`)
+    .join("\n");
+
+  await writeFile(concatListPath, concatList, "utf8");
+
+  await execFileAsync(
+    ffmpeg,
+    [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-y",
+      "-f",
+      "concat",
+      "-safe",
+      "0",
+      "-i",
+      concatListPath,
+      "-map",
+      "0:v:0",
+      "-c:v",
+      "copy",
+      "-an",
+      stitchedVideo,
+    ],
+    FFMPEG_EXEC_OPTIONS
+  );
+
+  const script = await buildCampaignVoiceoverScript({
+    campaignTitle: input.campaignTitle,
+    angle: input.angle,
+    audience: input.audience,
+    offer: input.offer,
+    goal: input.goal,
+    scenes: input.scenes.map((s) => ({ title: s.title, prompt: s.prompt })),
+  });
+
+  const voice = await generateCampaignVoiceoverAudio({
+    script,
+    outputDir: input.workDir,
+    fileBase: `${input.outputBaseName}.voice`,
+  });
+
+  await execFileAsync(
+    ffmpeg,
+    [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-y",
+      "-i",
+      stitchedVideo,
+      "-i",
+      voice.filePath,
+      "-map",
+      "0:v:0",
+      "-map",
+      "1:a:0",
+      "-c:v",
+      "copy",
+      "-c:a",
+      "aac",
+      "-shortest",
+      finalVideo,
+    ],
+    FFMPEG_EXEC_OPTIONS
+  );
+
+  return {
+    script,
+    stitchedVideo,
+    voiceoverPath: voice.filePath,
+    finalVideo,
+  };
+}
+
+===== src/features/shopreel/campaigns/lib/premiumRunway.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { createRunwaySceneJob } from "@/features/shopreel/video-creation/providers/runway";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { Json } from "@/types/supabase";
+
+function getPromptImageFromScene(_scene: {
+  title: string;
+  prompt: string;
+}) {
+  return "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=720&q=80";
+}
+
+function normalizeDuration(value: number | null | undefined): 5 | 10 {
+  if (value === 10) return 10;
+  return 5;
+}
+
+export async function launchPremiumRunwaySceneJob(mediaJobId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: mediaJob, error } = await supabase
+    .from("shopreel_media_generation_jobs")
+    .select("*")
+    .eq("id", mediaJobId)
+    .eq("shop_id", shopId)
+    .single();
+
+  if (error || !mediaJob) {
+    throw new Error(error?.message ?? "Media job not found");
+  }
+
+  const duration = normalizeDuration(mediaJob.duration_seconds);
+
+  const runway = await createRunwaySceneJob({
+    promptText:
+      mediaJob.prompt_enhanced ||
+      mediaJob.prompt ||
+      mediaJob.title ||
+      "Premium ShopReel scene",
+    promptImage: getPromptImageFromScene({
+      title: mediaJob.title ?? "Scene",
+      prompt: mediaJob.prompt ?? "",
+    }),
+    duration,
+    model: "gen4_turbo",
+    ratio: "720:1280",
+  });
+
+  const resultPayload =
+    mediaJob.result_payload &&
+    typeof mediaJob.result_payload === "object" &&
+    !Array.isArray(mediaJob.result_payload)
+      ? { ...(mediaJob.result_payload as Record<string, Json | undefined>) }
+      : {};
+
+  resultPayload.provider_task_id = runway.providerTaskId;
+  resultPayload.provider_status = runway.status;
+  resultPayload.pipeline = "premium_runway_scene";
+  resultPayload.requested_duration_seconds = duration;
+
+  const { error: updateError } = await supabase
+    .from("shopreel_media_generation_jobs")
+    .update({
+      provider: "runway",
+      status: "processing",
+      provider_job_id: runway.providerTaskId,
+      started_at: new Date().toISOString(),
+      result_payload: resultPayload,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", mediaJob.id);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  return {
+    mediaJobId: mediaJob.id,
+    providerTaskId: runway.providerTaskId,
+  };
+}
+
+===== src/features/shopreel/campaigns/lib/premiumRunwaySync.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getRunwayTask } from "@/features/shopreel/video-creation/providers/runway";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { Json } from "@/types/supabase";
+
+export async function syncPremiumRunwaySceneJob(mediaJobId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: mediaJob, error } = await supabase
+    .from("shopreel_media_generation_jobs")
+    .select("*")
+    .eq("id", mediaJobId)
+    .eq("shop_id", shopId)
+    .single();
+
+  if (error || !mediaJob) {
+    throw new Error(error?.message ?? "Media job not found");
+  }
+
+  const taskId = mediaJob.provider_job_id;
+  if (!taskId) {
+    throw new Error("Missing provider_job_id");
+  }
+
+  const task = await getRunwayTask(taskId);
+  const taskStatus = String((task as { status?: string }).status ?? "PENDING").toUpperCase();
+
+  const resultPayload =
+    mediaJob.result_payload &&
+    typeof mediaJob.result_payload === "object" &&
+    !Array.isArray(mediaJob.result_payload)
+      ? { ...(mediaJob.result_payload as Record<string, Json | undefined>) }
+      : {};
+
+  resultPayload.provider_status = taskStatus;
+  resultPayload.runway_task = task as unknown as Json;
+
+  if (taskStatus === "SUCCEEDED") {
+    const videoUrl =
+      (task as { output?: Array<{ url?: string }> }).output?.[0]?.url ?? null;
+
+    const { error: updateError } = await supabase
+      .from("shopreel_media_generation_jobs")
+      .update({
+        status: "completed",
+        preview_url: videoUrl,
+        completed_at: new Date().toISOString(),
+        result_payload: resultPayload,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", mediaJob.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    return { status: "completed", previewUrl: videoUrl };
+  }
+
+  if (taskStatus === "FAILED" || taskStatus === "CANCELLED") {
+    const { error: updateError } = await supabase
+      .from("shopreel_media_generation_jobs")
+      .update({
+        status: "failed",
+        error_text: `Runway task ${taskStatus}`,
+        result_payload: resultPayload,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", mediaJob.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    return { status: "failed", previewUrl: null };
+  }
+
+  const { error: updateError } = await supabase
+    .from("shopreel_media_generation_jobs")
+    .update({
+      status: "processing",
+      result_payload: resultPayload,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", mediaJob.id);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  return { status: "processing", previewUrl: null };
+}
+
+===== src/features/shopreel/campaigns/lib/promptSeeding.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+export async function getCampaignSeedDefaults() {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: recentLearnings, error } = await supabase
+    .from("shopreel_campaign_learnings")
+    .select("*")
+    .eq("shop_id", shopId)
+    .eq("learning_type", "winning_angle")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const winningAngles = (recentLearnings ?? []).map((row) => row.learning_key);
+
+  return {
+    winningAngles,
+    suggestedHook:
+      winningAngles.length > 0
+        ? `Recent winning angles: ${winningAngles.join(", ")}`
+        : null,
+  };
+}
+
+===== src/features/shopreel/campaigns/lib/sceneStatus.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+
+export async function refreshCampaignItemSceneStatuses(campaignItemId: string) {
+  const supabase = createAdminClient();
+
+  const { data: scenes, error } = await supabase
+    .from("shopreel_campaign_item_scenes")
+    .select(`
+      id,
+      media_job_id,
+      media_job:shopreel_media_generation_jobs (
+        id,
+        status,
+        output_asset_id
+      )
+    `)
+    .eq("campaign_item_id", campaignItemId)
+    .order("scene_order", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  for (const scene of scenes ?? []) {
+    const mediaJob = Array.isArray(scene.media_job) ? scene.media_job[0] ?? null : scene.media_job;
+    if (!mediaJob?.id) continue;
+
+    const nextStatus =
+      mediaJob.status === "completed" && mediaJob.output_asset_id
+        ? "completed"
+        : mediaJob.status;
+
+    const payload: Record<string, unknown> = {
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (mediaJob.output_asset_id) {
+      payload.output_asset_id = mediaJob.output_asset_id;
+    }
+
+    const { error: updateError } = await supabase
+      .from("shopreel_campaign_item_scenes")
+      .update(payload)
+      .eq("id", scene.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+  }
+}
+
+===== src/features/shopreel/campaigns/lib/server.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { Database, Json } from "@/types/supabase";
+
+type CampaignInsert =
+  Database["public"]["Tables"]["shopreel_campaigns"]["Insert"];
+
+type CampaignItemInsert =
+  Database["public"]["Tables"]["shopreel_campaign_items"]["Insert"];
+
+const DEFAULT_ANGLES = [
+  "Problem",
+  "Old Way",
+  "New Way",
+  "How It Works",
+  "Outcome",
+  "Call To Action",
+] as const;
+
+function buildCampaignPrompt(args: {
+  coreIdea: string;
+  angle: string;
+  audience: string | null;
+  offer: string | null;
+  campaignGoal: string | null;
+}) {
+  const parts = [
+    `Create a short cinematic vertical marketing video about ${args.coreIdea}.`,
+    `Angle: ${args.angle}.`,
+    args.audience ? `Audience: ${args.audience}.` : "",
+    args.offer ? `Offer or promise: ${args.offer}.` : "",
+    args.campaignGoal ? `Campaign goal: ${args.campaignGoal}.` : "",
+    "Make it clear, modern, emotionally engaging, and platform-ready for short-form social video.",
+  ].filter(Boolean);
+
+  return parts.join(" ");
+}
+
+export async function createCampaign(args: {
+  title: string;
+  coreIdea: string;
+  audience: string | null;
+  offer: string | null;
+  campaignGoal: string | null;
+  platformFocus: string[];
+}) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const campaignInsert: CampaignInsert = {
+    shop_id: shopId,
+    title: args.title,
+    core_idea: args.coreIdea,
+    audience: args.audience,
+    offer: args.offer,
+    campaign_goal: args.campaignGoal,
+    platform_focus: args.platformFocus,
+    status: "draft",
+    metadata: {},
+  };
+
+  const { data: campaign, error: campaignError } = await supabase
+    .from("shopreel_campaigns")
+    .insert(campaignInsert)
+    .select("*")
+    .single();
+
+  if (campaignError || !campaign?.id) {
+    throw new Error(campaignError?.message ?? "Failed to create campaign");
+  }
+
+  const itemInserts: CampaignItemInsert[] = DEFAULT_ANGLES.map((angle, index) => ({
+    campaign_id: campaign.id,
+    shop_id: shopId,
+    sort_order: index,
+    angle,
+    title: `${args.title} — ${angle}`,
+    prompt: buildCampaignPrompt({
+      coreIdea: args.coreIdea,
+      angle,
+      audience: args.audience,
+      offer: args.offer,
+      campaignGoal: args.campaignGoal,
+    }),
+    negative_prompt:
+      "Avoid blurry visuals, distorted hands, low detail, unreadable text, cluttered composition.",
+    style: "cinematic",
+    visual_mode: "photoreal",
+    aspect_ratio: "9:16",
+    duration_seconds: 8,
+    status: "draft",
+    metadata: {
+      generated_from_campaign: true,
+      campaign_angle: angle,
+    } satisfies Json,
+  }));
+
+  const { error: itemsError } = await supabase
+    .from("shopreel_campaign_items")
+    .insert(itemInserts);
+
+  if (itemsError) {
+    throw new Error(itemsError.message);
+  }
+
+  return campaign.id;
+}
+
+export async function listRecentCampaigns(limit = 24) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: campaigns, error } = await supabase
+    .from("shopreel_campaigns")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const campaignIds = (campaigns ?? []).map((campaign) => campaign.id);
+
+  if (campaignIds.length === 0) {
+    return [];
+  }
+
+  const { data: items, error: itemsError } = await supabase
+    .from("shopreel_campaign_items")
+    .select("id, campaign_id, status, final_output_asset_id")
+    .in("campaign_id", campaignIds)
+    .eq("shop_id", shopId);
+
+  if (itemsError) {
+    throw new Error(itemsError.message);
+  }
+
+  const itemIds = (items ?? []).map((item) => item.id);
+
+  let scenes: Array<{
+    id: string;
+    campaign_id: string;
+    campaign_item_id: string;
+    status: string;
+    output_asset_id: string | null;
+    media_job_id: string | null;
+  }> = [];
+
+  if (itemIds.length > 0) {
+    const { data: sceneRows, error: scenesError } = await supabase
+      .from("shopreel_campaign_item_scenes")
+      .select("id, campaign_id, campaign_item_id, status, output_asset_id, media_job_id")
+      .in("campaign_item_id", itemIds)
+      .eq("shop_id", shopId);
+
+    if (scenesError) {
+      throw new Error(scenesError.message);
+    }
+
+    scenes = sceneRows ?? [];
+  }
+
+  return (campaigns ?? []).map((campaign) => {
+    const campaignItems = (items ?? []).filter((item) => item.campaign_id === campaign.id);
+    const campaignScenes = scenes.filter((scene) => scene.campaign_id === campaign.id);
+
+    const completedVideos = campaignItems.filter((item) => !!item.final_output_asset_id).length;
+    const totalVideos = campaignItems.length;
+
+    const queuedScenes = campaignScenes.filter((scene) => scene.status === "queued").length;
+    const processingScenes = campaignScenes.filter((scene) => scene.status === "processing").length;
+    const completedScenes = campaignScenes.filter(
+      (scene) => scene.status === "completed" || !!scene.output_asset_id
+    ).length;
+    const failedScenes = campaignScenes.filter((scene) => scene.status === "failed").length;
+
+    return {
+      ...campaign,
+      summary: {
+        totalVideos,
+        completedVideos,
+        totalScenes: campaignScenes.length,
+        queuedScenes,
+        processingScenes,
+        completedScenes,
+        failedScenes,
+      },
+    };
+  });
+}
+
+export async function listCampaignItems(campaignId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data, error } = await supabase
+    .from("shopreel_campaign_items")
+    .select("*")
+    .eq("campaign_id", campaignId)
+    .eq("shop_id", shopId)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ?? [];
+}
+
+
+export async function createMediaJobForCampaignItem(itemId: string) {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: item, error: itemError } = await supabase
+    .from("shopreel_campaign_items")
+    .select("*")
+    .eq("id", itemId)
+    .eq("shop_id", shopId)
+    .single();
+
+  if (itemError || !item) {
+    throw new Error(itemError?.message ?? "Campaign item not found");
+  }
+
+  if (item.media_job_id) {
+    return item.media_job_id;
+  }
+
+  const { createMediaGenerationJob } = await import("@/features/shopreel/video-creation/lib/server");
+
+  const mediaJob = await createMediaGenerationJob({
+    title: item.title,
+    prompt: item.prompt,
+    negativePrompt: item.negative_prompt ?? "",
+    jobType: "video",
+    provider: "openai",
+    style: (item.style as any) ?? "cinematic",
+    visualMode: (item.visual_mode as any) ?? "photoreal",
+    aspectRatio: (item.aspect_ratio as any) ?? "9:16",
+    durationSeconds: Number(item.duration_seconds ?? 8),
+    inputAssetIds: [],
+  });
+
+  const { error: updateError } = await supabase
+    .from("shopreel_campaign_items")
+    .update({
+      media_job_id: mediaJob.id,
+      status: "queued",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", item.id);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  return mediaJob.id;
+
+===== src/features/shopreel/campaigns/lib/voiceover.ts =====
+import OpenAI from "openai";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function buildCampaignVoiceoverScript(input: {
+  campaignTitle: string;
+  angle: string;
+  audience?: string | null;
+  offer?: string | null;
+  goal?: string | null;
+  scenes: Array<{ title: string; prompt: string }>;
+}) {
+  const prompt = `
+Write one continuous 20-30 second marketing voiceover script.
+Keep it natural and persuasive.
+Structure:
+- hook
+- problem
+- solution
+- outcome
+- CTA
+
+Campaign title: ${input.campaignTitle}
+Angle: ${input.angle}
+Audience: ${input.audience ?? ""}
+Offer: ${input.offer ?? ""}
+Goal: ${input.goal ?? ""}
+
+Scenes:
+${input.scenes.map((s, i) => `${i + 1}. ${s.title}: ${s.prompt}`).join("\n")}
+`.trim();
+
+  const response = await openai.responses.create({
+    model: "gpt-5-mini",
+    input: prompt,
+  });
+
+  return response.output_text.trim();
+}
+
+export async function generateCampaignVoiceoverAudio(input: {
+  script: string;
+  outputDir: string;
+  fileBase: string;
+}) {
+  const audio = await openai.audio.speech.create({
+    model: "gpt-4o-mini-tts",
+    voice: "alloy",
+    input: input.script,
+  });
+
+  const bytes = Buffer.from(await audio.arrayBuffer());
+  await fs.mkdir(input.outputDir, { recursive: true });
+
+  const filePath = path.join(input.outputDir, `${input.fileBase}.mp3`);
+  await fs.writeFile(filePath, bytes);
+
+  return { filePath };
+}
+
+===== src/features/shopreel/publish =====
+
+===== src/features/shopreel/publish/publishVideo.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { publishToTikTok } from "@/features/shopreel/platforms/tiktok";
+import { publishToInstagram } from "@/features/shopreel/platforms/instagram";
+import { publishToFacebook } from "@/features/shopreel/platforms/facebook";
+import { publishToYouTube } from "@/features/shopreel/platforms/youtube";
+
+export async function publishVideo(videoId: string, platform: string) {
+  const supabase = createAdminClient();
+
+  const normalized = platform.toLowerCase();
+
+  const result =
+    normalized === "tiktok"
+      ? await publishToTikTok(videoId)
+      : normalized === "instagram"
+        ? await publishToInstagram(videoId)
+        : normalized === "facebook"
+          ? await publishToFacebook(videoId)
+          : normalized === "youtube"
+            ? await publishToYouTube(videoId)
+            : { platform: normalized, status: "unsupported", externalId: null, videoId };
+
+  await supabase.from("video_publications").insert(
+    {
+      content_piece_id: videoId,
+      platform: result.platform,
+      platform_video_id: result.externalId,
+      status: result.status,
+      published_at: result.status === "published" ? new Date().toISOString() : null,
+    } as never,
+  );
+
+  return result;
+}
+
+===== src/features/shopreel/publish/runPublishWorker.ts =====
+import { createAdminClient } from "@/lib/supabase/server";
+import { createPublicationBundle } from "@/features/shopreel/publishing/lib/createPublicationBundle";
+import { processPublishJob } from "@/features/shopreel/publishing/lib/processPublishJob";
+import type { ShopReelPlatform } from "@/features/shopreel/integrations/shared/types";
+
+type ContentPieceRow = {
+  id: string;
+  tenant_shop_id: string;
+  title: string | null;
+  caption: string | null;
+  published_at: string | null;
+};
+
+type ConnectedPlatformRow = {
+  platform: string | null;
+};
+
+type PublicationRow = {
+  id: string;
+  content_piece_id: string | null;
+  platform: string | null;
+  status: string | null;
+};
+
+type PublishJobRow = {
+  id: string;
+  publication_id: string;
+};
+
+type AutoPublishPlatform = "facebook" | "instagram" | "tiktok" | "youtube";
+
+const AUTO_PUBLISH_PLATFORMS: AutoPublishPlatform[] = [
+  "facebook",
+  "instagram",
+  "tiktok",
+  "youtube",
+];
+
+function isAutoPublishPlatform(value: string | null): value is AutoPublishPlatform {
+  return (
+    value === "facebook" ||
+    value === "instagram" ||
+    value === "tiktok" ||
+    value === "youtube"
+  );
+}
+
+async function getConnectedPlatforms(shopId: string): Promise<AutoPublishPlatform[]> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("content_platform_accounts")
+    .select("platform")
+    .eq("tenant_shop_id", shopId)
+    .eq("connection_active", true);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as ConnectedPlatformRow[];
+  const unique = new Set<AutoPublishPlatform>();
+
+  for (const row of rows) {
+    if (
+      isAutoPublishPlatform(row.platform) &&
+      AUTO_PUBLISH_PLATFORMS.includes(row.platform)
+    ) {
+      unique.add(row.platform);
+    }
+  }
+
+  return Array.from(unique);
+}
+
+export async function runPublishWorker(contentPieceId?: string | null) {
+  const supabase = createAdminClient();
+
+  let query = supabase
+    .from("content_pieces")
+    .select("id, tenant_shop_id, title, caption, published_at")
+    .eq("status", "ready")
+    .is("published_at", null)
+    .limit(25);
+
+  if (contentPieceId) {
+    query = query.eq("id", contentPieceId);
+  }
+
+  const { data: ready, error: readyError } = await query;
+
+  if (readyError) {
+    throw new Error(readyError.message);
+  }
+
+  const items = (ready ?? []) as ContentPieceRow[];
+
+  let attempted = 0;
+  let published = 0;
+  let failed = 0;
+  const dueJobIds: string[] = [];
+
+  for (const item of items) {
+    attempted += 1;
+
+    const targets = await getConnectedPlatforms(item.tenant_shop_id);
+
+    if (targets.length === 0) {
+      await supabase
+        .from("content_calendar_items")
+        .update({
+          status: "failed_publish",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("content_piece_id", item.id);
+
+      failed += 1;
+      continue;
+    }
+
+    const { data: existingPublications, error: existingPublicationsError } = await supabase
+      .from("content_publications")
+      .select("id, content_piece_id, platform, status")
+      .eq("tenant_shop_id", item.tenant_shop_id)
+      .eq("content_piece_id", item.id);
+
+    if (existingPublicationsError) {
+      throw new Error(existingPublicationsError.message);
+    }
+
+    const publications = (existingPublications ?? []) as PublicationRow[];
+
+    for (const platform of targets) {
+      const existing = publications.find(
+        (row) =>
+          row.content_piece_id === item.id &&
+          row.platform === platform &&
+          row.status !== "failed",
+      );
+
+      if (existing) {
+        const { data: existingJob, error: existingJobError } = await supabase
+          .from("shopreel_publish_jobs")
+          .select("id, publication_id")
+          .eq("publication_id", existing.id)
+          .in("status", ["queued", "processing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingJobError) {
+          throw new Error(existingJobError.message);
+        }
+
+        const job = (existingJob ?? null) as PublishJobRow | null;
+        if (job?.id) {
+          dueJobIds.push(job.id);
+        }
+
+        continue;
+      }
+
+      const bundle = await createPublicationBundle({
+        shopId: item.tenant_shop_id,
+        contentPieceId: item.id,
+        platform,
+        publishMode: "autopilot",
+        scheduledFor: new Date().toISOString(),
+        title: item.title,
+        caption: item.caption,
+        enqueueNow: true,
+      });
+
+      if (bundle.publishJob?.id) {
+        dueJobIds.push(bundle.publishJob.id);
+      }
+    }
+  }
+
+  const { data: queuedJobs, error: queuedJobsError } = await supabase
+    .from("shopreel_publish_jobs")
+    .select("id, publication_id")
+    .eq("status", "queued")
+    .lte("run_after", new Date().toISOString())
+    .order("created_at", { ascending: true })
+    .limit(25);
+
+  if (queuedJobsError) {
+    throw new Error(queuedJobsError.message);
+  }
+
+  for (const job of ((queuedJobs ?? []) as PublishJobRow[])) {
+    if (!dueJobIds.includes(job.id)) {
+      dueJobIds.push(job.id);
+    }
+  }
+
+  for (const jobId of dueJobIds) {
+    try {
+      const result = await processPublishJob(jobId);
+
+      const publicationId =
+        result && typeof result === "object" && "publicationId" in result
+          ? String((result as { publicationId: string }).publicationId)
+          : null;
+
+      if (!publicationId) continue;
+
+      const { data: publicationRow, error: publicationRowError } = await supabase
+        .from("content_publications")
+        .select("content_piece_id, status")
+        .eq("id", publicationId)
+        .maybeSingle();
+
+      if (publicationRowError) {
+        throw new Error(publicationRowError.message);
+      }
+
+      const publication = publicationRow as { content_piece_id: string | null; status: string | null } | null;
+
+      if (!publication?.content_piece_id) continue;
+
+      if (publication.status === "published") {
+        await supabase
+          .from("content_pieces")
+          .update({
+            status: "published",
+            published_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", publication.content_piece_id);
+
+        await supabase
+          .from("content_calendar_items")
+          .update({
+            status: "published",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("content_piece_id", publication.content_piece_id);
+
+        published += 1;
+      }
+    } catch {
+      failed += 1;
+    }
+  }
+
+  return {
+    published,
+    attempted,
+    failed,
+    processedJobs: dueJobIds.length,
+  };
+}

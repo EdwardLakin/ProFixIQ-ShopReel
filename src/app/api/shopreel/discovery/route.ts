@@ -8,6 +8,10 @@ export async function POST() {
   try {
     const shopId = await getCurrentShopId();
 
+    if (!shopId || typeof shopId !== "string" || shopId.trim().length === 0) {
+      throw new Error("[discovery] getCurrentShopId returned an empty value");
+    }
+
     const discovered = await discoverStorySources(shopId);
 
     const saved = [];

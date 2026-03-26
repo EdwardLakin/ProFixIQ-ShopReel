@@ -1,0 +1,161 @@
+src/app/api/shopreel/discovery/route.ts-11-    if (!shopId || typeof shopId !== "string" || shopId.trim().length === 0) {
+src/app/api/shopreel/discovery/route.ts-12-      throw new Error("[discovery] getCurrentShopId returned an empty value");
+src/app/api/shopreel/discovery/route.ts-13-    }
+src/app/api/shopreel/discovery/route.ts-14-
+src/app/api/shopreel/discovery/route.ts-15-    const discovered = await discoverStorySources(shopId);
+src/app/api/shopreel/discovery/route.ts-16-
+src/app/api/shopreel/discovery/route.ts-17-    const saved = [];
+src/app/api/shopreel/discovery/route.ts-18-    for (const source of discovered) {
+src/app/api/shopreel/discovery/route.ts:19:      const result = await saveStorySource(source);
+src/app/api/shopreel/discovery/route.ts-20-      saved.push(result);
+src/app/api/shopreel/discovery/route.ts-21-    }
+src/app/api/shopreel/discovery/route.ts-22-
+src/app/api/shopreel/discovery/route.ts-23-    const opportunities = await createOpportunities();
+src/app/api/shopreel/discovery/route.ts-24-
+src/app/api/shopreel/discovery/route.ts-25-    return NextResponse.json({
+src/app/api/shopreel/discovery/route.ts-26-      ok: true,
+src/app/api/shopreel/discovery/route.ts-27-      discoveredCount: discovered.length,
+--
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-130-        blogLengthMode,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-131-      },
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-132-      assets: [],
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-133-      refs: [],
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-134-      createdAt: now,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-135-      updatedAt: now,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-136-    };
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-137-
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:138:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-139-
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-140-    const draft = buildCreatorResearchDraft({
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-141-      shopId,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-142-      sourceId: savedSource.id,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-143-      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-144-      audience: creatorRequest.audience ?? null,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-145-      platformFocus: creatorRequest.platform_focus ?? "multi",
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts-146-      tone: creatorRequest.tone ?? "confident",
+--
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-150-        blogLengthMode,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-151-      },
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-152-      assets: [],
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-153-      refs: [],
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-154-      createdAt: now,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-155-      updatedAt: now,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-156-    };
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-157-
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:158:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-159-
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-160-    const draft = buildCreatorResearchDraft({
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-161-      shopId,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-162-      sourceId: savedSource.id,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-163-      topic,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-164-      audience: creatorRequest.audience ?? null,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-165-      platformFocus: creatorRequest.platform_focus ?? "multi",
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts-166-      tone: creatorRequest.tone ?? "confident",
+--
+src/app/api/shopreel/create/from-angle/route.ts-96-              id: body.creatorRequestId,
+src/app/api/shopreel/create/from-angle/route.ts-97-            },
+src/app/api/shopreel/create/from-angle/route.ts-98-          ]
+src/app/api/shopreel/create/from-angle/route.ts-99-        : [],
+src/app/api/shopreel/create/from-angle/route.ts-100-      createdAt: now,
+src/app/api/shopreel/create/from-angle/route.ts-101-      updatedAt: now,
+src/app/api/shopreel/create/from-angle/route.ts-102-    };
+src/app/api/shopreel/create/from-angle/route.ts-103-
+src/app/api/shopreel/create/from-angle/route.ts:104:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/create/from-angle/route.ts-105-
+src/app/api/shopreel/create/from-angle/route.ts-106-    await legacy
+src/app/api/shopreel/create/from-angle/route.ts-107-      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/from-angle/route.ts-108-      .upsert(
+src/app/api/shopreel/create/from-angle/route.ts-109-        {
+src/app/api/shopreel/create/from-angle/route.ts-110-          shop_id: shopId,
+src/app/api/shopreel/create/from-angle/route.ts-111-          story_source_id: savedSource.id,
+src/app/api/shopreel/create/from-angle/route.ts-112-          score: 92,
+--
+src/app/api/shopreel/create/from-output/route.ts-106-        outputType: body.outputType,
+src/app/api/shopreel/create/from-output/route.ts-107-      },
+src/app/api/shopreel/create/from-output/route.ts-108-      assets: [],
+src/app/api/shopreel/create/from-output/route.ts-109-      refs: [],
+src/app/api/shopreel/create/from-output/route.ts-110-      createdAt: now,
+src/app/api/shopreel/create/from-output/route.ts-111-      updatedAt: now,
+src/app/api/shopreel/create/from-output/route.ts-112-    };
+src/app/api/shopreel/create/from-output/route.ts-113-
+src/app/api/shopreel/create/from-output/route.ts:114:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/create/from-output/route.ts-115-
+src/app/api/shopreel/create/from-output/route.ts-116-    await legacy
+src/app/api/shopreel/create/from-output/route.ts-117-      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/from-output/route.ts-118-      .upsert(
+src/app/api/shopreel/create/from-output/route.ts-119-        {
+src/app/api/shopreel/create/from-output/route.ts-120-          shop_id: shopId,
+src/app/api/shopreel/create/from-output/route.ts-121-          story_source_id: savedSource.id,
+src/app/api/shopreel/create/from-output/route.ts-122-          score: 92,
+--
+src/app/api/shopreel/create/research-script/route.ts-126-        sourceUrl: body.sourceUrl ?? null,
+src/app/api/shopreel/create/research-script/route.ts-127-      },
+src/app/api/shopreel/create/research-script/route.ts-128-      assets: [],
+src/app/api/shopreel/create/research-script/route.ts-129-      refs: [],
+src/app/api/shopreel/create/research-script/route.ts-130-      createdAt: now,
+src/app/api/shopreel/create/research-script/route.ts-131-      updatedAt: now,
+src/app/api/shopreel/create/research-script/route.ts-132-    };
+src/app/api/shopreel/create/research-script/route.ts-133-
+src/app/api/shopreel/create/research-script/route.ts:134:    const savedSource = await saveStorySource(source);
+src/app/api/shopreel/create/research-script/route.ts-135-
+src/app/api/shopreel/create/research-script/route.ts-136-    const { data: creatorRequest } = await legacy
+src/app/api/shopreel/create/research-script/route.ts-137-      .from("shopreel_creator_requests")
+src/app/api/shopreel/create/research-script/route.ts-138-      .insert({
+src/app/api/shopreel/create/research-script/route.ts-139-        shop_id: shopId,
+src/app/api/shopreel/create/research-script/route.ts-140-        mode,
+src/app/api/shopreel/create/research-script/route.ts-141-        status: mode === "angle_pack" ? "ready" : "draft",
+src/app/api/shopreel/create/research-script/route.ts-142-        title: body.topic.trim(),
+--
+src/app/api/integrations/profixiq/events/route.ts-125-      );
+src/app/api/integrations/profixiq/events/route.ts-126-    }
+src/app/api/integrations/profixiq/events/route.ts-127-
+src/app/api/integrations/profixiq/events/route.ts-128-    const source = mapEventToStorySource({
+src/app/api/integrations/profixiq/events/route.ts-129-      tenantShopId,
+src/app/api/integrations/profixiq/events/route.ts-130-      payload,
+src/app/api/integrations/profixiq/events/route.ts-131-    });
+src/app/api/integrations/profixiq/events/route.ts-132-
+src/app/api/integrations/profixiq/events/route.ts:133:    const saved = await saveStorySource(source);
+src/app/api/integrations/profixiq/events/route.ts-134-
+src/app/api/integrations/profixiq/events/route.ts-135-    await upsertIngestedOpportunity({
+src/app/api/integrations/profixiq/events/route.ts-136-      tenantShopId,
+src/app/api/integrations/profixiq/events/route.ts-137-      storySourceId: saved.id,
+src/app/api/integrations/profixiq/events/route.ts-138-      eventType: payload.eventType,
+src/app/api/integrations/profixiq/events/route.ts-139-      mediaCount: payload.storyData.media?.length ?? 0,
+src/app/api/integrations/profixiq/events/route.ts-140-      metadata: {
+src/app/api/integrations/profixiq/events/route.ts-141-        source_event_id: payload.eventId,
+--
+src/features/shopreel/story-sources/server/saveStorySource.ts-1-import { createAdminClient } from "@/lib/supabase/server";
+src/features/shopreel/story-sources/server/saveStorySource.ts-2-import { buildStorySourceKey } from "../buildStorySourceKey";
+src/features/shopreel/story-sources/server/saveStorySource.ts-3-import type { StorySource } from "../types";
+src/features/shopreel/story-sources/server/saveStorySource.ts-4-
+src/features/shopreel/story-sources/server/saveStorySource.ts-5-function toJson(value: unknown) {
+src/features/shopreel/story-sources/server/saveStorySource.ts-6-  return JSON.parse(JSON.stringify(value));
+src/features/shopreel/story-sources/server/saveStorySource.ts-7-}
+src/features/shopreel/story-sources/server/saveStorySource.ts-8-
+src/features/shopreel/story-sources/server/saveStorySource.ts:9:export async function saveStorySource(source: StorySource) {
+src/features/shopreel/story-sources/server/saveStorySource.ts-10-  if (!source.shopId || typeof source.shopId !== "string" || source.shopId.trim().length === 0) {
+src/features/shopreel/story-sources/server/saveStorySource.ts-11-    throw new Error(
+src/features/shopreel/story-sources/server/saveStorySource.ts-12-      `[saveStorySource] Missing shopId for story source title="${source.title}" kind="${source.kind}"`
+src/features/shopreel/story-sources/server/saveStorySource.ts-13-    );
+src/features/shopreel/story-sources/server/saveStorySource.ts-14-  }
+src/features/shopreel/story-sources/server/saveStorySource.ts-15-
+src/features/shopreel/story-sources/server/saveStorySource.ts-16-  const supabase = createAdminClient();
+src/features/shopreel/story-sources/server/saveStorySource.ts-17-  const sourceKey = buildStorySourceKey(source);
+--
+src/features/shopreel/story-builder/generateStoryPipeline.ts-7-export async function generateStoryPipeline(input: {
+src/features/shopreel/story-builder/generateStoryPipeline.ts-8-  shopId: string;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-9-  source: StorySource;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-10-  templateId?: string | null;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-11-  sourceSystem?: string | null;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-12-  createRenderJobNow?: boolean;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-13-  createdBy?: string | null;
+src/features/shopreel/story-builder/generateStoryPipeline.ts-14-}) {
+src/features/shopreel/story-builder/generateStoryPipeline.ts:15:  const savedSource = await saveStorySource(input.source);
+src/features/shopreel/story-builder/generateStoryPipeline.ts-16-
+src/features/shopreel/story-builder/generateStoryPipeline.ts-17-  const draft = buildStoryDraftFromSource(input.source);
+src/features/shopreel/story-builder/generateStoryPipeline.ts-18-
+src/features/shopreel/story-builder/generateStoryPipeline.ts-19-  const contentPiece = await createContentPieceFromStoryDraft({
+src/features/shopreel/story-builder/generateStoryPipeline.ts-20-    shopId: input.shopId,
+src/features/shopreel/story-builder/generateStoryPipeline.ts-21-    draft,
+src/features/shopreel/story-builder/generateStoryPipeline.ts-22-    templateId: input.templateId ?? null,
+src/features/shopreel/story-builder/generateStoryPipeline.ts-23-    sourceSystem: input.sourceSystem ?? "shopreel",
