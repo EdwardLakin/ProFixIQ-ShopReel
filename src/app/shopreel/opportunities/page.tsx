@@ -1,5 +1,4 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
@@ -52,7 +51,6 @@ export default async function ShopReelOpportunitiesPage(props: {
       title="Opportunities"
       subtitle="Discover, score, generate, and move strong story candidates into campaigns and publishing."
     >
-      <ShopReelNav />
       <ShopReelOpportunitiesClient opportunities={normalized} activeTab={status} />
     </GlassShell>
   );
