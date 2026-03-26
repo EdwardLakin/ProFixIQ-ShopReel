@@ -24,7 +24,7 @@ export function buildStorySourceKey(
     "shopId" | "kind" | "origin" | "title" | "occurredAt" | "projectId" | "assets"
   >,
 ): string {
-  const assetBits = source.assets
+  const assetBits = (source.assets ?? [])
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map(assetFingerprint)
