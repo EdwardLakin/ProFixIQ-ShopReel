@@ -14,6 +14,11 @@ import {
   computeGenerationPublishReadiness,
   type PublishReadinessBlockReason,
 } from "@/features/shopreel/operations/lib/publishReadiness";
+import {
+  computePublishFailureDiagnostics,
+  getPublishFailureNextAction,
+  type PublishFailureReason,
+} from "@/features/shopreel/operations/lib/publishFailureDiagnostics";
 
 export type BoardBlockReason = PublishReadinessBlockReason | "publish_job_failed" | "unsupported_state";
 
@@ -59,6 +64,8 @@ export type OperationPublication = {
   metadata: Record<string, unknown> | null;
   error_text: string | null;
   platform_post_url: string | null;
+  platform_account_id?: string | null;
+  updated_at?: string | null;
 };
 
 export type OperationPublishJob = {
@@ -66,6 +73,10 @@ export type OperationPublishJob = {
   publication_id: string;
   status: PublishJobStatus | string;
   error_message: string | null;
+  attempt_count?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  completed_at?: string | null;
 };
 
 export type PublishReadinessContext = {
@@ -179,6 +190,13 @@ export function splitLifecycleBoardBuckets(input: {
     .sort((a, b) => parseIso(b.published_at ?? b.created_at) - parseIso(a.published_at ?? a.created_at))
     .slice(0, 30);
 
+  const generationByContentPieceId = new Map<string, OperationGeneration>();
+  for (const generation of generations) {
+    if (generation.content_piece_id && !generationByContentPieceId.has(generation.content_piece_id)) {
+      generationByContentPieceId.set(generation.content_piece_id, generation);
+    }
+  }
+
   const publishFailures = publications
     .map((publication) => {
       const status = publicationStatus(String(publication.status));
@@ -189,11 +207,47 @@ export function splitLifecycleBoardBuckets(input: {
         return null;
       }
 
-      const reason = publishJob?.error_message ?? publication.error_text ?? "Publish failed";
+      const contentPiece = publication.content_piece_id
+        ? contentPiecesById.get(publication.content_piece_id) ?? null
+        : null;
+      const generation = publication.content_piece_id
+        ? generationByContentPieceId.get(publication.content_piece_id) ?? null
+        : null;
+      const diagnostics = computePublishFailureDiagnostics({
+        publication,
+        publishJob,
+        contentPiece,
+        hasConnectedPlatformAccount: readiness.hasConnectedPlatformAccount,
+      });
+      const nextAction = getPublishFailureNextAction({
+        reason: diagnostics.reason,
+        generationId: generation?.id ?? null,
+        contentPieceId: publication.content_piece_id,
+        retryable: diagnostics.retryable,
+      });
 
-      return { publication, reason };
+      return { publication, publishJob, generation, diagnostics, nextAction };
     })
-    .filter((value): value is { publication: OperationPublication; reason: string } => !!value);
+    .filter(
+      (
+        value,
+      ): value is {
+        publication: OperationPublication;
+        publishJob: OperationPublishJob | null;
+        generation: OperationGeneration | null;
+        diagnostics: {
+          reason: PublishFailureReason;
+          reasonLabel: string;
+          retryable: boolean;
+          retryabilityLabel: string;
+          summary: string;
+          lastAttemptedAt: string | null;
+          currentPublicationStatus: string;
+          currentPublishJobStatus: string | null;
+        };
+        nextAction: { label: string; href: string };
+      } => !!value,
+    );
 
   return {
     needsReview,

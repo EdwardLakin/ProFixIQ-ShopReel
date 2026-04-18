@@ -85,14 +85,14 @@ export default async function ShopReelPublishCenterPage() {
     legacy
       .from("content_publications")
       .select(
-        "id, content_piece_id, status, scheduled_for, published_at, created_at, platform, metadata, error_text, platform_post_url",
+        "id, content_piece_id, status, scheduled_for, published_at, created_at, updated_at, platform, metadata, error_text, platform_post_url, platform_account_id",
       )
       .or(`tenant_shop_id.eq.${shopId},source_shop_id.eq.${shopId}`)
       .order("created_at", { ascending: false })
       .limit(200),
     legacy
       .from("shopreel_publish_jobs")
-      .select("id, publication_id, status, error_message")
+      .select("id, publication_id, status, error_message, attempt_count, created_at, updated_at, completed_at")
       .eq("shop_id", shopId)
       .order("created_at", { ascending: false })
       .limit(200),
@@ -164,6 +164,8 @@ export default async function ShopReelPublishCenterPage() {
       metadata: asRecord(row.metadata),
       error_text: typeof row.error_text === "string" ? row.error_text : null,
       platform_post_url: typeof row.platform_post_url === "string" ? row.platform_post_url : null,
+      platform_account_id: typeof row.platform_account_id === "string" ? row.platform_account_id : null,
+      updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
     }),
   );
 
@@ -173,6 +175,10 @@ export default async function ShopReelPublishCenterPage() {
       publication_id: typeof row.publication_id === "string" ? row.publication_id : "",
       status: typeof row.status === "string" ? row.status : "queued",
       error_message: typeof row.error_message === "string" ? row.error_message : null,
+      attempt_count: typeof row.attempt_count === "number" ? row.attempt_count : null,
+      created_at: typeof row.created_at === "string" ? row.created_at : null,
+      updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
+      completed_at: typeof row.completed_at === "string" ? row.completed_at : null,
     }),
   );
 
@@ -608,7 +614,7 @@ export default async function ShopReelPublishCenterPage() {
             </div>
           ) : (
             <div className="grid gap-3">
-              {buckets.publishFailures.map(({ publication, reason }) => (
+              {buckets.publishFailures.map(({ publication, publishJob, generation, diagnostics, nextAction }) => (
                 <div
                   key={publication.id}
                   className={cx(
@@ -623,16 +629,48 @@ export default async function ShopReelPublishCenterPage() {
                         {publicationTitle(publication)}
                       </div>
                       <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
-                        {publication.platform ?? "platform"} • {reason}
+                        {publication.platform ?? "platform"} • {diagnostics.summary}
+                      </div>
+                      <div className={cx("mt-1 text-xs", glassTheme.text.muted)}>
+                        Publication {diagnostics.currentPublicationStatus}
+                        {diagnostics.currentPublishJobStatus
+                          ? ` • Job ${diagnostics.currentPublishJobStatus}`
+                          : ""}
+                        {diagnostics.lastAttemptedAt
+                          ? ` • Last attempt ${timeAgoLabel(diagnostics.lastAttemptedAt)}`
+                          : ""}
+                      </div>
+                      <div className={cx("mt-1 text-xs", glassTheme.text.secondary)}>
+                        Reason: {diagnostics.reasonLabel} • {diagnostics.retryabilityLabel}
                       </div>
                     </div>
-                    <GlassBadge tone="muted">publish failed</GlassBadge>
+                    <GlassBadge tone={diagnostics.retryable ? "default" : "muted"}>
+                      {diagnostics.retryable ? "failed · retryable" : "failed · blocked"}
+                    </GlassBadge>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <EnqueuePublicationButton publicationId={publication.id} />
+                    {diagnostics.retryable ? <EnqueuePublicationButton publicationId={publication.id} /> : null}
+                    <Link href={nextAction.href}>
+                      <GlassButton variant="secondary">{nextAction.label}</GlassButton>
+                    </Link>
+                    {generation ? (
+                      <Link href={`/shopreel/generations/${generation.id}`}>
+                        <GlassButton variant="ghost">Open generation</GlassButton>
+                      </Link>
+                    ) : null}
+                    {publication.content_piece_id ? (
+                      <Link href={`/shopreel/content/${publication.content_piece_id}`}>
+                        <GlassButton variant="ghost">Open content</GlassButton>
+                      </Link>
+                    ) : null}
+                    {publishJob ? (
+                      <Link href="/shopreel/publish-queue">
+                        <GlassButton variant="ghost">Inspect publish job</GlassButton>
+                      </Link>
+                    ) : null}
                     <Link href="/shopreel/publish-queue">
-                      <GlassButton variant="ghost">Inspect failure</GlassButton>
+                      <GlassButton variant="ghost">Open queue</GlassButton>
                     </Link>
                   </div>
                 </div>
