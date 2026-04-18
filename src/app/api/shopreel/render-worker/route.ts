@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processRenderJobs } from "@/features/shopreel/worker/processRenderJobs";
+import {
+  requireUserActionTenantContext,
+  toEndpointErrorResponse,
+} from "@/features/shopreel/server/endpointPolicy";
 
 type Body = {
   contentPieceId?: string;
@@ -21,6 +25,7 @@ async function safeReadJson(req: NextRequest): Promise<Body> {
 
 export async function POST(req: NextRequest) {
   try {
+    await requireUserActionTenantContext();
     const body = await safeReadJson(req);
 
     const result = await processRenderJobs(
@@ -34,12 +39,6 @@ export async function POST(req: NextRequest) {
       ...result,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Failed to run render worker",
-      },
-      { status: 500 },
-    );
+    return toEndpointErrorResponse(error, "Failed to run render worker");
   }
 }

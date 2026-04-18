@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { createPublication } from "@/features/shopreel/publishing/lib/createPublication";
 import { enqueuePublishJob } from "@/features/shopreel/publishing/lib/enqueuePublishJob";
 import type { PublishPlatform, PublishMode } from "@/features/shopreel/publishing/types";
+import {
+  STORY_GENERATION_READY_STATUS,
+} from "@/features/shopreel/lib/contracts/lifecycle";
+import {
+  requireUserActionTenantContext,
+} from "@/features/shopreel/server/endpointPolicy";
 
 type Body = {
   platform?: PublishPlatform;
@@ -24,7 +29,7 @@ export async function POST(
     const { id } = await ctx.params;
     const body = (await req.json().catch(() => ({}))) as Body;
 
-    const shopId = await getCurrentShopId();
+    const { shopId } = await requireUserActionTenantContext();
     const supabase = createAdminClient();
     const legacy = supabase as any;
 
@@ -49,7 +54,7 @@ export async function POST(
       );
     }
 
-    if (generation.status !== "ready") {
+    if (generation.status !== STORY_GENERATION_READY_STATUS) {
       return NextResponse.json(
         { ok: false, error: "Story generation must be ready before publishing" },
         { status: 400 },

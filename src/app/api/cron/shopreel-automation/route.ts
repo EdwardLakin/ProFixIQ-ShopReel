@@ -15,14 +15,35 @@ function getBaseUrl() {
 export async function GET() {
   try {
     const secret = process.env.SHOPREEL_AUTOMATION_SECRET;
+    const shopId = process.env.SHOPREEL_AUTOMATION_SHOP_ID;
+
+    if (!secret) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Missing SHOPREEL_AUTOMATION_SECRET",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!shopId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Missing SHOPREEL_AUTOMATION_SHOP_ID",
+        },
+        { status: 500 }
+      );
+    }
 
     const res = await fetch(`${getBaseUrl()}/api/shopreel/automation/run`, {
       method: "POST",
-      headers: secret
-        ? {
-            Authorization: `Bearer ${secret}`,
-          }
-        : {},
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ shopId }),
       cache: "no-store",
     });
 

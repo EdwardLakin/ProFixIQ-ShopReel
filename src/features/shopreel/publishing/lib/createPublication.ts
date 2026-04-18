@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { CreatePublicationInput } from "../types";
+import { QUEUED_PUBLICATION_STATUS } from "@/features/shopreel/lib/contracts/lifecycle";
 
 export async function createPublication(input: CreatePublicationInput) {
   if (!input.contentPieceId) {
@@ -26,7 +27,7 @@ export async function createPublication(input: CreatePublicationInput) {
       content_piece_id: input.contentPieceId,
       platform_account_id: input.platformAccountId ?? null,
       platform: input.platform,
-      status: "queued",
+      status: QUEUED_PUBLICATION_STATUS,
       scheduled_for: input.scheduledFor ?? null,
       published_at: null,
       platform_post_id: null,

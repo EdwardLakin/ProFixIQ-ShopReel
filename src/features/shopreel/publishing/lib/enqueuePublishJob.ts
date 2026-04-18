@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import type { EnqueuePublishJobInput } from "../types";
+import { QUEUED_PUBLISH_JOB_STATUS } from "@/features/shopreel/lib/contracts/lifecycle";
 
 export async function enqueuePublishJob(input: EnqueuePublishJobInput) {
   const supabase = createAdminClient();
@@ -9,7 +10,7 @@ export async function enqueuePublishJob(input: EnqueuePublishJobInput) {
     .insert({
       shop_id: input.shopId,
       publication_id: input.publicationId,
-      status: "queued",
+      status: QUEUED_PUBLISH_JOB_STATUS,
       run_after: input.runAfter ?? new Date().toISOString(),
     })
     .select("*")

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  requireUserActionTenantContext,
+  toEndpointErrorResponse,
+} from "@/features/shopreel/server/endpointPolicy";
 
 export async function POST(
   req: Request,
@@ -12,7 +15,7 @@ export async function POST(
       storyDraft: unknown;
     };
 
-    const shopId = await getCurrentShopId();
+    const { shopId } = await requireUserActionTenantContext();
     const supabase = createAdminClient();
     const legacy = supabase as any;
 
@@ -36,12 +39,6 @@ export async function POST(
       generationId: data.id,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Failed to save story draft",
-      },
-      { status: 500 }
-    );
+    return toEndpointErrorResponse(error, "Failed to save story draft");
   }
 }

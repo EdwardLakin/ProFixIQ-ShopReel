@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { createRenderJob } from "@/features/shopreel/render/createRenderJob";
 import type { StoryDraft } from "@/features/shopreel/story-builder/types";
+import { requireUserActionTenantContext } from "@/features/shopreel/server/endpointPolicy";
+import { STORY_GENERATION_QUEUED_STATUS } from "@/features/shopreel/lib/contracts/lifecycle";
 
 function objectRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -15,7 +16,7 @@ export async function POST(
 ) {
   try {
     const { id } = await ctx.params;
-    const shopId = await getCurrentShopId();
+    const { shopId } = await requireUserActionTenantContext();
     const supabase = createAdminClient();
     const legacy = supabase as any;
 
@@ -65,7 +66,7 @@ export async function POST(
       .from("shopreel_story_generations")
       .update({
         render_job_id: renderJob.id,
-        status: "queued",
+        status: STORY_GENERATION_QUEUED_STATUS,
         generation_metadata: {
           ...objectRecord(generation.generation_metadata ?? {}),
           rerender_requested_at: new Date().toISOString(),

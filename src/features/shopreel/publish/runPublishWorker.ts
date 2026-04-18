@@ -73,12 +73,17 @@ async function getConnectedPlatforms(shopId: string): Promise<AutoPublishPlatfor
   return Array.from(unique);
 }
 
-export async function runPublishWorker(contentPieceId?: string | null) {
+export async function runPublishWorker(args: {
+  shopId: string;
+  contentPieceId?: string | null;
+}) {
   const supabase = createAdminClient();
+  const contentPieceId = args.contentPieceId ?? null;
 
   let query = supabase
     .from("content_pieces")
     .select("id, tenant_shop_id, title, caption, published_at")
+    .eq("tenant_shop_id", args.shopId)
     .eq("status", "ready")
     .is("published_at", null)
     .limit(25);
@@ -180,6 +185,7 @@ export async function runPublishWorker(contentPieceId?: string | null) {
   const { data: queuedJobs, error: queuedJobsError } = await supabase
     .from("shopreel_publish_jobs")
     .select("id, publication_id")
+    .eq("shop_id", args.shopId)
     .eq("status", "queued")
     .lte("run_after", new Date().toISOString())
     .order("created_at", { ascending: true })
