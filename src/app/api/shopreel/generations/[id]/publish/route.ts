@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { computeGenerationPublishReadiness } from "@/features/shopreel/operations/lib/publishReadiness";
 import {
   ACTIVE_PUBLISH_JOB_STATUSES,
   ACTIVE_PUBLICATION_STATUSES,
   QUEUED_PUBLISH_JOB_STATUS,
   QUEUED_PUBLICATION_STATUS,
-  STORY_GENERATION_READY_STATUS,
 } from "@/features/shopreel/lib/contracts/lifecycle";
 import {
   requireUserActionTenantContext,
@@ -66,9 +66,37 @@ export async function POST(
       );
     }
 
-    if (generation.status !== STORY_GENERATION_READY_STATUS) {
+    const now = new Date().toISOString();
+
+    const [{ data: contentPiece }, { data: renderJob }, { data: generationPublications }, { data: connectedAccounts }] = await Promise.all([
+      generation.content_piece_id
+        ? legacy.from("content_pieces").select("id, render_url").eq("id", generation.content_piece_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      generation.render_job_id
+        ? legacy.from("reel_render_jobs").select("status, error_message").eq("id", generation.render_job_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      generation.content_piece_id
+        ? legacy.from("content_publications").select("status, scheduled_for").eq("content_piece_id", generation.content_piece_id)
+        : Promise.resolve({ data: [] }),
+      legacy
+        .from("content_platform_accounts")
+        .select("id")
+        .eq("tenant_shop_id", shopId)
+        .eq("connection_active", true)
+        .limit(1),
+    ]);
+
+    const readiness = computeGenerationPublishReadiness({
+      generation,
+      renderJob: renderJob ?? null,
+      contentPiece: contentPiece ?? null,
+      publications: (generationPublications ?? []) as Array<{ status: string; scheduled_for: string | null }>,
+      hasConnectedPlatformAccount: (connectedAccounts?.length ?? 0) > 0,
+    });
+
+    if (readiness.state !== "ready_to_publish") {
       return NextResponse.json(
-        { ok: false, error: "Generation must be ready before publishing" },
+        { ok: false, error: `Generation is not publish-ready: ${readiness.label}` },
         { status: 400 }
       );
     }
@@ -80,7 +108,6 @@ export async function POST(
       );
     }
 
-    const now = new Date().toISOString();
     const storyDraft = objectRecord(generation.story_draft);
     const metadata = objectRecord(generation.generation_metadata);
 

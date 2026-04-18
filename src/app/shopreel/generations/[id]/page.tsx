@@ -11,6 +11,8 @@ import type { StoryDraft, StoryScene } from "@/features/shopreel/story-builder/t
 import GenerationDeleteButton from "@/features/shopreel/generations/components/GenerationDeleteButton";
 import GenerationTimelineEditor from "@/features/shopreel/generations/components/GenerationTimelineEditor";
 import PublishPlatformButtons from "@/features/shopreel/publishing/components/PublishPlatformButtons";
+import ReviewApprovalActions from "@/features/shopreel/operations/components/ReviewApprovalActions";
+import { computeGenerationPublishReadiness } from "@/features/shopreel/operations/lib/publishReadiness";
 
 type BlogSection = {
   key: string;
@@ -104,7 +106,34 @@ export default async function ShopReelGenerationDetailPage(
   const publicationId =
     typeof metadata.publication_id === "string" ? metadata.publication_id : null;
   const editorPath = getEditorPath(outputType, generation.id);
-  const canPublish = generation.status === "ready";
+
+  const [{ data: contentPiece }, { data: renderJob }, { data: generationPublications }, { data: connectedAccounts }] = await Promise.all([
+    generation.content_piece_id
+      ? legacy.from("content_pieces").select("id, render_url").eq("id", generation.content_piece_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    generation.render_job_id
+      ? legacy.from("reel_render_jobs").select("status, error_message").eq("id", generation.render_job_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    generation.content_piece_id
+      ? legacy.from("content_publications").select("status, scheduled_for").eq("content_piece_id", generation.content_piece_id)
+      : Promise.resolve({ data: [] }),
+    legacy
+      .from("content_platform_accounts")
+      .select("id")
+      .eq("tenant_shop_id", shopId)
+      .eq("connection_active", true)
+      .limit(1),
+  ]);
+
+  const readiness = computeGenerationPublishReadiness({
+    generation,
+    renderJob: renderJob ?? null,
+    contentPiece: contentPiece ?? null,
+    publications: (generationPublications ?? []) as Array<{ status: string; scheduled_for: string | null }>,
+    hasConnectedPlatformAccount: (connectedAccounts?.length ?? 0) > 0,
+  });
+
+  const canPublish = readiness.state === "ready_to_publish";
 
   return (
     <GlassShell
@@ -162,6 +191,14 @@ export default async function ShopReelGenerationDetailPage(
             </div>
             <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
               Queue this reviewed generation to one or more destinations.
+            </div>
+            {!canPublish ? (
+              <div className={cx("mt-2 text-xs", glassTheme.text.copperSoft)}>
+                Publish blocked: {readiness.label}
+              </div>
+            ) : null}
+            <div className="mt-4">
+              <ReviewApprovalActions generationId={generation.id} compact />
             </div>
             <div className="mt-4">
               <PublishPlatformButtons generationId={generation.id} canPublish={canPublish} />
