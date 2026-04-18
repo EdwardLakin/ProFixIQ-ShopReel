@@ -7,11 +7,16 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import PublishPlatformButtons from "@/features/shopreel/publishing/components/PublishPlatformButtons";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
-
-type PlatformStatus = "queued" | "publishing" | "published" | "failed" | "none";
-type PlatformKey = "instagram" | "facebook" | "tiktok" | "youtube";
-
-const PLATFORM_KEYS: PlatformKey[] = ["instagram", "facebook", "tiktok", "youtube"];
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  splitLifecycleBoardBuckets,
+  type OperationGeneration,
+  type OperationPublishJob,
+  type OperationPublication,
+  type OperationRenderJob,
+} from "@/features/shopreel/operations/lib/lifecycleBoard";
+import RetryRenderButton from "@/features/shopreel/operations/components/RetryRenderButton";
+import EnqueuePublicationButton from "@/features/shopreel/operations/components/EnqueuePublicationButton";
 
 function timeAgoLabel(value: string | null) {
   if (!value) return "Unknown";
@@ -30,102 +35,151 @@ function timeAgoLabel(value: string | null) {
   return new Date(value).toLocaleDateString();
 }
 
-function publicationTone(
-  status: string | null | undefined
-): "default" | "copper" | "muted" {
-  if (status === "published") return "copper";
-  if (status === "failed") return "muted";
-  return "default";
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
 }
 
-function platformTone(status: PlatformStatus): "default" | "copper" | "muted" {
-  if (status === "published") return "copper";
-  if (status === "failed") return "muted";
-  return "default";
+function generationTitle(generation: OperationGeneration) {
+  const draft = asRecord(generation.story_draft);
+  const title = draft && typeof draft.title === "string" ? draft.title : null;
+  if (title && title.trim().length > 0) {
+    return title;
+  }
+  return "Untitled generation";
 }
 
-function formatPlatformLabel(platform: string, status: PlatformStatus) {
-  return status === "none" ? platform : `${platform} · ${status}`;
+function publicationTitle(publication: OperationPublication) {
+  const metadata = asRecord(publication.metadata);
+  const title = metadata && typeof metadata.title === "string" ? metadata.title : null;
+  if (title && title.trim().length > 0) {
+    return title;
+  }
+
+  return publication.platform ?? "Publication";
 }
 
-export default async function ShopReelPublishCenterPage(props: {
-  searchParams?: Promise<{ campaign?: string }>;
-}) {
+export default async function ShopReelPublishCenterPage() {
+  const shopId = await getCurrentShopId();
   const supabase = createAdminClient();
   const legacy = supabase as any;
 
   const [
-    { data: readyGenerations },
-    { data: scheduledPublications },
-    { data: recentPublications },
-    { data: publishQueue },
+    { data: generationData },
+    { data: publicationData },
+    { data: publishJobData },
+    { data: accountsData },
   ] = await Promise.all([
     legacy
       .from("shopreel_story_generations")
-      .select("id, status, story_draft, generation_metadata, content_piece_id, updated_at, render_job_id")
-      .eq("status", "ready")
+      .select("id, status, story_draft, generation_metadata, content_piece_id, updated_at, created_at, render_job_id")
+      .eq("shop_id", shopId)
       .order("updated_at", { ascending: false })
-      .limit(24),
+      .limit(150),
     legacy
       .from("content_publications")
-      .select("*")
-      .not("scheduled_for", "is", null)
-      .order("scheduled_for", { ascending: true })
-      .limit(24),
-    legacy
-      .from("content_publications")
-      .select("*")
+      .select(
+        "id, content_piece_id, status, scheduled_for, published_at, created_at, platform, metadata, error_text, platform_post_url",
+      )
+      .or(`tenant_shop_id.eq.${shopId},source_shop_id.eq.${shopId}`)
       .order("created_at", { ascending: false })
-      .limit(100),
+      .limit(200),
     legacy
       .from("shopreel_publish_jobs")
-      .select("*")
+      .select("id, publication_id, status, error_message")
+      .eq("shop_id", shopId)
       .order("created_at", { ascending: false })
-      .limit(100),
+      .limit(200),
+    legacy
+      .from("content_platform_accounts")
+      .select("id")
+      .eq("tenant_shop_id", shopId)
+      .eq("connection_active", true),
   ]);
 
-  const queueByPublicationId = new Map<string, any>();
-  for (const job of publishQueue ?? []) {
-    if (job.publication_id) {
-      queueByPublicationId.set(job.publication_id, job);
-    }
-  }
-
-  const publicationsByContentPieceId = new Map<string, any[]>();
-  for (const publication of recentPublications ?? []) {
-    if (!publication.content_piece_id) continue;
-    const existing = publicationsByContentPieceId.get(publication.content_piece_id) ?? [];
-    existing.push(publication);
-    publicationsByContentPieceId.set(publication.content_piece_id, existing);
-  }
-
-  const inProgressPublications = (recentPublications ?? []).filter(
-    (item: any) => item.status === "queued" || item.status === "publishing"
+  const generations = ((generationData ?? []) as Array<Record<string, unknown>>).map(
+    (row): OperationGeneration => ({
+      id: typeof row.id === "string" ? row.id : "",
+      status: typeof row.status === "string" ? row.status : "draft",
+      updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
+      created_at: typeof row.created_at === "string" ? row.created_at : null,
+      render_job_id: typeof row.render_job_id === "string" ? row.render_job_id : null,
+      content_piece_id: typeof row.content_piece_id === "string" ? row.content_piece_id : null,
+      story_draft: asRecord(row.story_draft),
+      generation_metadata: asRecord(row.generation_metadata),
+    }),
   );
 
-    const searchParams = (await props.searchParams) ?? {};
-  const campaignId = typeof searchParams.campaign === "string" ? searchParams.campaign : null;
+  const renderJobIds = generations
+    .map((generation) => generation.render_job_id)
+    .filter((value): value is string => !!value);
 
-return (
+  let renderJobs: OperationRenderJob[] = [];
+  if (renderJobIds.length > 0) {
+    const { data: renderJobData } = await legacy
+      .from("reel_render_jobs")
+      .select("id, status, error_message")
+      .in("id", Array.from(new Set(renderJobIds)));
+
+    renderJobs = ((renderJobData ?? []) as Array<Record<string, unknown>>).map((row) => ({
+      id: typeof row.id === "string" ? row.id : "",
+      status: typeof row.status === "string" ? row.status : "queued",
+      error_message: typeof row.error_message === "string" ? row.error_message : null,
+    }));
+  }
+
+  const publications: OperationPublication[] = ((publicationData ?? []) as Array<Record<string, unknown>>).map(
+    (row) => ({
+      id: typeof row.id === "string" ? row.id : "",
+      content_piece_id: typeof row.content_piece_id === "string" ? row.content_piece_id : null,
+      status: typeof row.status === "string" ? row.status : "draft",
+      scheduled_for: typeof row.scheduled_for === "string" ? row.scheduled_for : null,
+      published_at: typeof row.published_at === "string" ? row.published_at : null,
+      created_at: typeof row.created_at === "string" ? row.created_at : null,
+      platform: typeof row.platform === "string" ? row.platform : null,
+      metadata: asRecord(row.metadata),
+      error_text: typeof row.error_text === "string" ? row.error_text : null,
+      platform_post_url: typeof row.platform_post_url === "string" ? row.platform_post_url : null,
+    }),
+  );
+
+  const publishJobs: OperationPublishJob[] = ((publishJobData ?? []) as Array<Record<string, unknown>>).map(
+    (row) => ({
+      id: typeof row.id === "string" ? row.id : "",
+      publication_id: typeof row.publication_id === "string" ? row.publication_id : "",
+      status: typeof row.status === "string" ? row.status : "queued",
+      error_message: typeof row.error_message === "string" ? row.error_message : null,
+    }),
+  );
+
+  const buckets = splitLifecycleBoardBuckets({
+    generations,
+    renderJobs,
+    publications,
+    publishJobs,
+    readiness: {
+      hasConnectedPlatformAccount: (accountsData?.length ?? 0) > 0,
+    },
+  });
+
+  return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Publish campaign videos"
-      subtitle="One place for ready content, scheduled publishing, active queue jobs, and publishing history."
+      title="Review + Publish Operations"
+      subtitle="Canonical daily board for review queues, blocked renders, publish readiness, scheduling, and recent publishing output."
       actions={
         <>
-        {campaignId ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-            Opened from campaign <span className="font-medium text-white">{campaignId}</span>. You can publish items from this campaign here.
-          </div>
-        ) : null}
           <Link href="/shopreel/generations">
             <GlassButton variant="ghost">Open generations</GlassButton>
           </Link>
           <Link href="/shopreel/publish-queue">
             <GlassButton variant="secondary">Open queue</GlassButton>
           </Link>
-          <Link href="/shopreel/published">
-            <GlassButton variant="primary">History</GlassButton>
+          <Link href="/shopreel/calendar">
+            <GlassButton variant="primary">Open calendar</GlassButton>
           </Link>
         </>
       }
@@ -134,144 +188,52 @@ return (
 
       <section className="grid gap-5 xl:grid-cols-2">
         <GlassCard
-          label="Ready"
-          title="Ready to publish"
-          description={`${(readyGenerations ?? []).length} ready generation(s) available for platform publishing.`}
+          label="Needs Review"
+          title="Review-ready backlog"
+          description="Rendered items that are not yet review-approved for publish."
           strong
         >
-          {(readyGenerations ?? []).length === 0 ? (
+          {buckets.needsReview.length === 0 ? (
             <div
               className={cx(
                 "rounded-2xl border p-4 text-sm",
                 glassTheme.border.softer,
                 glassTheme.glass.panelSoft,
-                glassTheme.text.secondary
+                glassTheme.text.secondary,
               )}
             >
-              No ready generations yet.
+              No review backlog. New render-complete items will appear here until they are marked ready.
             </div>
           ) : (
             <div className="grid gap-3">
-              {(readyGenerations ?? []).map((item: any) => {
-                const draft =
-                  item.story_draft && typeof item.story_draft === "object"
-                    ? item.story_draft
-                    : {};
-                const title =
-                  typeof draft.title === "string" && draft.title.trim().length > 0
-                    ? draft.title
-                    : "Untitled generation";
-
-                const publicationsForItem = item.content_piece_id
-                  ? publicationsByContentPieceId.get(item.content_piece_id) ?? []
-                  : [];
-
-                const latestByPlatform = new Map<PlatformKey, any>();
-                for (const publication of publicationsForItem) {
-                  const platform = publication.platform as PlatformKey | null;
-                  if (!platform || !PLATFORM_KEYS.includes(platform)) continue;
-                  if (!latestByPlatform.has(platform)) {
-                    latestByPlatform.set(platform, publication);
-                  }
-                }
-
-                return (
-                  <div
-                    key={item.id}
-                    className={cx(
-                      "rounded-2xl border p-4",
-                      glassTheme.border.copper,
-                      glassTheme.glass.panelSoft
-                    )}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                          {title}
-                        </div>
-                        <div className={cx("text-sm", glassTheme.text.secondary)}>
-                          Ready for review or publish • {timeAgoLabel(item.updated_at ?? null)}
-                        </div>
-                      </div>
-
-                      <GlassBadge tone="copper">ready</GlassBadge>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Link href={`/shopreel/generations/${item.id}`}>
-                        <GlassButton variant="ghost">Review</GlassButton>
-                      </Link>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {PLATFORM_KEYS.map((platform) => {
-                        const latest = latestByPlatform.get(platform) ?? null;
-                        const status: PlatformStatus = latest?.status ?? "none";
-
-                        return (
-                          <GlassBadge key={platform} tone={platformTone(status)}>
-                            {formatPlatformLabel(platform, status)}
-                          </GlassBadge>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-4">
-                      <PublishPlatformButtons
-                        generationId={item.id}
-                        canPublish={item.status === "ready"}
-                        compact
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </GlassCard>
-
-        <GlassCard
-          label="Scheduled"
-          title="Scheduled publishing"
-          description={`${(scheduledPublications ?? []).length} scheduled publication(s).`}
-          strong
-        >
-          {(scheduledPublications ?? []).length === 0 ? (
-            <div
-              className={cx(
-                "rounded-2xl border p-4 text-sm",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft,
-                glassTheme.text.secondary
-              )}
-            >
-              Nothing scheduled yet.
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {(scheduledPublications ?? []).map((item: any) => (
+              {buckets.needsReview.map((generation) => (
                 <div
-                  key={item.id}
+                  key={generation.id}
                   className={cx(
                     "rounded-2xl border p-4",
                     glassTheme.border.softer,
-                    glassTheme.glass.panelSoft
+                    glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
+                    <div className="space-y-1">
                       <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                        {(item.metadata as any)?.title ?? item.platform ?? "Scheduled publication"}
+                        {generationTitle(generation)}
                       </div>
-                      <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
-                        {item.platform ?? "platform"} •{" "}
-                        {item.scheduled_for
-                          ? new Date(item.scheduled_for).toLocaleString()
-                          : "No scheduled time"}
+                      <div className={cx("text-sm", glassTheme.text.secondary)}>
+                        Not review-approved • updated {timeAgoLabel(generation.updated_at ?? generation.created_at)}
                       </div>
                     </div>
+                    <GlassBadge tone="default">{generation.status}</GlassBadge>
+                  </div>
 
-                    <GlassBadge tone="default">{item.status ?? "scheduled"}</GlassBadge>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link href={`/shopreel/generations/${generation.id}`}>
+                      <GlassButton variant="ghost">Open draft/review</GlassButton>
+                    </Link>
+                    <Link href={`/shopreel/editor/video/${generation.id}`}>
+                      <GlassButton variant="secondary">Open editor</GlassButton>
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -280,117 +242,280 @@ return (
         </GlassCard>
 
         <GlassCard
-          label="In Progress"
-          title="Publishing now"
-          description={`${inProgressPublications.length} publication(s) currently queued or publishing.`}
+          label="Blocked"
+          title="Render failed / render blocked"
+          description="Items that cannot advance until render issues are fixed."
           strong
         >
-          {inProgressPublications.length === 0 ? (
+          {buckets.renderBlocked.length === 0 ? (
             <div
               className={cx(
                 "rounded-2xl border p-4 text-sm",
                 glassTheme.border.softer,
                 glassTheme.glass.panelSoft,
-                glassTheme.text.secondary
+                glassTheme.text.secondary,
               )}
             >
-              No publication activity in progress.
+              No render-blocked items.
             </div>
           ) : (
             <div className="grid gap-3">
-              {inProgressPublications.map((item: any) => {
-                const queueJob = queueByPublicationId.get(item.id);
-
-                return (
-                  <div
-                    key={item.id}
-                    className={cx(
-                      "rounded-2xl border p-4",
-                      glassTheme.border.copper,
-                      glassTheme.glass.panelSoft
-                    )}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                          {(item.metadata as any)?.title ?? item.platform ?? "Publication"}
-                        </div>
-                        <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
-                          {item.platform ?? "platform"} • queued{" "}
-                          {timeAgoLabel(item.created_at ?? null)}
-                        </div>
-                        {queueJob ? (
-                          <div className={cx("mt-2 text-xs", glassTheme.text.muted)}>
-                            Queue job: {queueJob.status ?? "queued"}
-                          </div>
-                        ) : (
-                          <div className={cx("mt-2 text-xs", glassTheme.text.muted)}>
-                            No publish job attached yet — open Publish Queue to repair it.
-                          </div>
-                        )}
-                      </div>
-
-                      <GlassBadge tone="default">{item.status ?? "queued"}</GlassBadge>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </GlassCard>
-
-        <GlassCard
-          label="History"
-          title="Published and failed"
-          description={`${(recentPublications ?? []).length} recent publication record(s).`}
-          strong
-        >
-          {(recentPublications ?? []).length === 0 ? (
-            <div
-              className={cx(
-                "rounded-2xl border p-4 text-sm",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft,
-                glassTheme.text.secondary
-              )}
-            >
-              No history yet.
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {(recentPublications ?? []).map((item: any) => (
+              {buckets.renderBlocked.map(({ generation, reason }) => (
                 <div
-                  key={item.id}
+                  key={generation.id}
                   className={cx(
                     "rounded-2xl border p-4",
-                    glassTheme.border.softer,
-                    glassTheme.glass.panelSoft
+                    glassTheme.border.copper,
+                    glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                        {(item.metadata as any)?.title ?? item.platform ?? "Publication"}
+                        {generationTitle(generation)}
                       </div>
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
-                        {item.platform ?? "platform"} •{" "}
-                        {timeAgoLabel(item.published_at ?? item.created_at ?? null)}
+                        {reason.label} • updated {timeAgoLabel(generation.updated_at ?? generation.created_at)}
                       </div>
-                      {item.platform_post_url ? (
-                        <a
-                          href={item.platform_post_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={cx("text-sm underline", glassTheme.text.copperSoft)}
-                        >
-                          Open live post
-                        </a>
-                      ) : null}
                     </div>
+                    <GlassBadge tone="muted">{reason.reason.replaceAll("_", " ")}</GlassBadge>
+                  </div>
 
-                    <GlassBadge tone={publicationTone(item.status)}>
-                      {item.status ?? "unknown"}
-                    </GlassBadge>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <RetryRenderButton generationId={generation.id} />
+                    <Link href={`/shopreel/generations/${generation.id}`}>
+                      <GlassButton variant="ghost">Inspect failure</GlassButton>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+
+        <GlassCard
+          label="Ready"
+          title="Ready to publish"
+          description="Review-approved generations with render output and no scheduled/published record yet."
+          strong
+        >
+          {buckets.readyToPublish.length === 0 ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.secondary,
+              )}
+            >
+              No publish-ready generations right now.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {buckets.readyToPublish.map((generation) => (
+                <div
+                  key={generation.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.copper,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                        {generationTitle(generation)}
+                      </div>
+                      <div className={cx("text-sm", glassTheme.text.secondary)}>
+                        Ready now • updated {timeAgoLabel(generation.updated_at ?? generation.created_at)}
+                      </div>
+                    </div>
+                    <GlassBadge tone="copper">ready</GlassBadge>
+                  </div>
+
+                  {buckets.readyBlockedReason ? (
+                    <div className={cx("mt-3 text-xs", glassTheme.text.copperSoft)}>
+                      Blocked: {buckets.readyBlockedReason.label}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link href={`/shopreel/generations/${generation.id}`}>
+                      <GlassButton variant="ghost">Open review</GlassButton>
+                    </Link>
+                  </div>
+
+                  <div className="mt-4">
+                    <PublishPlatformButtons
+                      generationId={generation.id}
+                      canPublish={!buckets.readyBlockedReason}
+                      compact
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+
+        <GlassCard
+          label="Scheduled"
+          title="Scheduled content"
+          description={`${buckets.scheduled.length} scheduled publications with queue visibility.`}
+          strong
+        >
+          {buckets.scheduled.length === 0 ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.secondary,
+              )}
+            >
+              Nothing scheduled yet. Open Calendar to set publish times.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {buckets.scheduled.map((publication) => (
+                <div
+                  key={publication.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                        {publicationTitle(publication)}
+                      </div>
+                      <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
+                        {publication.platform ?? "platform"} • {new Date(publication.scheduled_for ?? "").toLocaleString()}
+                      </div>
+                    </div>
+                    <GlassBadge tone="default">{publication.status}</GlassBadge>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {publication.content_piece_id ? (
+                      <Link href={`/shopreel/content/${publication.content_piece_id}`}>
+                        <GlassButton variant="ghost">Open scheduled item</GlassButton>
+                      </Link>
+                    ) : null}
+                    <Link href="/shopreel/calendar">
+                      <GlassButton variant="secondary">Open calendar</GlassButton>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+
+        <GlassCard
+          label="Recently Published"
+          title="Recent publication output"
+          description="Most recent successfully published records."
+          strong
+        >
+          {buckets.recentlyPublished.length === 0 ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.secondary,
+              )}
+            >
+              No published output yet.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {buckets.recentlyPublished.map((publication) => (
+                <div
+                  key={publication.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                        {publicationTitle(publication)}
+                      </div>
+                      <div className={cx("text-sm", glassTheme.text.secondary)}>
+                        {publication.platform ?? "platform"} • {timeAgoLabel(publication.published_at ?? publication.created_at)}
+                      </div>
+                    </div>
+                    <GlassBadge tone="copper">published</GlassBadge>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {publication.platform_post_url ? (
+                      <a href={publication.platform_post_url} target="_blank" rel="noreferrer">
+                        <GlassButton variant="ghost">View published output</GlassButton>
+                      </a>
+                    ) : null}
+                    {publication.content_piece_id ? (
+                      <Link href={`/shopreel/content/${publication.content_piece_id}`}>
+                        <GlassButton variant="secondary">Open content</GlassButton>
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+
+        <GlassCard
+          label="Failures"
+          title="Publish failures"
+          description={`Failed publications: ${buckets.publishFailures.length}. Queue: ${buckets.queueSummary.queuedPublications} queued publication(s), ${buckets.queueSummary.queuedJobs} queued job(s), ${buckets.queueSummary.processingJobs} processing job(s).`}
+          strong
+        >
+          {buckets.publishFailures.length === 0 ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.secondary,
+              )}
+            >
+              No publish failures in the current window.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {buckets.publishFailures.map(({ publication, reason }) => (
+                <div
+                  key={publication.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.copper,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                        {publicationTitle(publication)}
+                      </div>
+                      <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
+                        {publication.platform ?? "platform"} • {reason}
+                      </div>
+                    </div>
+                    <GlassBadge tone="muted">publish failed</GlassBadge>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <EnqueuePublicationButton publicationId={publication.id} />
+                    <Link href="/shopreel/publish-queue">
+                      <GlassButton variant="ghost">Inspect failure</GlassButton>
+                    </Link>
                   </div>
                 </div>
               ))}

@@ -50,3 +50,18 @@ export const QUEUED_PUBLICATION_STATUS: PublicationStatus = "queued";
 export const PUBLISHING_PUBLICATION_STATUS: PublicationStatus = "publishing";
 export const PUBLISHED_PUBLICATION_STATUS: PublicationStatus = "published";
 export const FAILED_PUBLICATION_STATUS: PublicationStatus = "failed";
+
+
+export const RENDER_JOB_STATUSES = [
+  "queued",
+  "processing",
+  "completed",
+  "failed",
+  "cancelled",
+] as const;
+
+export type RenderJobStatus = (typeof RENDER_JOB_STATUSES)[number];
+
+export const FAILED_RENDER_JOB_STATUS: RenderJobStatus = "failed";
+export const COMPLETED_RENDER_JOB_STATUS: RenderJobStatus = "completed";
+
