@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  isOpportunityStatus,
+  normalizeOpportunityStatus,
+} from "@/features/shopreel/opportunities/lib/status";
 
 export async function PATCH(
   req: Request,
@@ -9,10 +13,14 @@ export async function PATCH(
   try {
     const { id } = await ctx.params;
     const body = await req.json().catch(() => ({}));
-    const nextStatus =
-      typeof body.status === "string" && body.status.trim()
-        ? body.status.trim()
-        : "dismissed";
+    if (typeof body.status === "string" && !isOpportunityStatus(body.status.trim())) {
+      return NextResponse.json(
+        { ok: false, error: `Invalid status "${body.status}" for opportunity.` },
+        { status: 400 }
+      );
+    }
+
+    const nextStatus = normalizeOpportunityStatus(body.status, "dismissed");
 
     const supabase = createAdminClient();
     const shopId = await getCurrentShopId();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
 
 type OpportunityItem = {
   id: string;
@@ -216,7 +217,7 @@ export async function GET(req: Request) {
               : storySource?.kind ?? "story_source"),
           score:
             typeof row.score === "number" ? row.score : Number(row.score ?? 0),
-          status: typeof row.status === "string" ? row.status : "ready",
+          status: normalizeOpportunityStatus(row.status, "ready"),
           source:
             typeof storySource?.origin === "string"
               ? storySource.origin
