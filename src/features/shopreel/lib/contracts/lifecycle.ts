@@ -13,6 +13,18 @@ export const STORY_GENERATION_QUEUED_STATUS: StoryGenerationStatus = "queued";
 export const STORY_GENERATION_READY_STATUS: StoryGenerationStatus = "ready";
 export const STORY_GENERATION_FAILED_STATUS: StoryGenerationStatus = "failed";
 
+export const REVIEW_APPROVAL_STATES = [
+  "needs_review",
+  "approved",
+  "needs_changes",
+] as const;
+
+export type ReviewApprovalState = (typeof REVIEW_APPROVAL_STATES)[number];
+
+export const REVIEW_APPROVAL_NEEDS_REVIEW_STATE: ReviewApprovalState = "needs_review";
+export const REVIEW_APPROVAL_APPROVED_STATE: ReviewApprovalState = "approved";
+export const REVIEW_APPROVAL_NEEDS_CHANGES_STATE: ReviewApprovalState = "needs_changes";
+
 export const PUBLISH_JOB_STATUSES = [
   "queued",
   "processing",

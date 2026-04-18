@@ -14,9 +14,11 @@ import {
   type OperationPublishJob,
   type OperationPublication,
   type OperationRenderJob,
+  type OperationContentPiece,
 } from "@/features/shopreel/operations/lib/lifecycleBoard";
 import RetryRenderButton from "@/features/shopreel/operations/components/RetryRenderButton";
 import EnqueuePublicationButton from "@/features/shopreel/operations/components/EnqueuePublicationButton";
+import ReviewApprovalActions from "@/features/shopreel/operations/components/ReviewApprovalActions";
 
 function timeAgoLabel(value: string | null) {
   if (!value) return "Unknown";
@@ -71,11 +73,12 @@ export default async function ShopReelPublishCenterPage() {
     { data: generationData },
     { data: publicationData },
     { data: publishJobData },
+    { data: contentPieceData },
     { data: accountsData },
   ] = await Promise.all([
     legacy
       .from("shopreel_story_generations")
-      .select("id, status, story_draft, generation_metadata, content_piece_id, updated_at, created_at, render_job_id")
+      .select("id, status, review_approval_state, reviewed_by, reviewed_at, review_note, story_draft, generation_metadata, content_piece_id, updated_at, created_at, render_job_id")
       .eq("shop_id", shopId)
       .order("updated_at", { ascending: false })
       .limit(150),
@@ -94,6 +97,12 @@ export default async function ShopReelPublishCenterPage() {
       .order("created_at", { ascending: false })
       .limit(200),
     legacy
+      .from("content_pieces")
+      .select("id, render_url")
+      .eq("tenant_shop_id", shopId)
+      .order("created_at", { ascending: false })
+      .limit(300),
+    legacy
       .from("content_platform_accounts")
       .select("id")
       .eq("tenant_shop_id", shopId)
@@ -104,6 +113,11 @@ export default async function ShopReelPublishCenterPage() {
     (row): OperationGeneration => ({
       id: typeof row.id === "string" ? row.id : "",
       status: typeof row.status === "string" ? row.status : "draft",
+      review_approval_state:
+        typeof row.review_approval_state === "string" ? row.review_approval_state : null,
+      reviewed_by: typeof row.reviewed_by === "string" ? row.reviewed_by : null,
+      reviewed_at: typeof row.reviewed_at === "string" ? row.reviewed_at : null,
+      review_note: typeof row.review_note === "string" ? row.review_note : null,
       updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
       created_at: typeof row.created_at === "string" ? row.created_at : null,
       render_job_id: typeof row.render_job_id === "string" ? row.render_job_id : null,
@@ -131,6 +145,13 @@ export default async function ShopReelPublishCenterPage() {
     }));
   }
 
+
+  const contentPieces: OperationContentPiece[] = ((contentPieceData ?? []) as Array<Record<string, unknown>>).map(
+    (row) => ({
+      id: typeof row.id === "string" ? row.id : "",
+      render_url: typeof row.render_url === "string" ? row.render_url : null,
+    }),
+  );
   const publications: OperationPublication[] = ((publicationData ?? []) as Array<Record<string, unknown>>).map(
     (row) => ({
       id: typeof row.id === "string" ? row.id : "",
@@ -158,6 +179,7 @@ export default async function ShopReelPublishCenterPage() {
   const buckets = splitLifecycleBoardBuckets({
     generations,
     renderJobs,
+    contentPieces,
     publications,
     publishJobs,
     readiness: {
@@ -202,7 +224,7 @@ export default async function ShopReelPublishCenterPage() {
                 glassTheme.text.secondary,
               )}
             >
-              No review backlog. New render-complete items will appear here until they are marked ready.
+              No review backlog. Render-complete items appear here until explicitly approved.
             </div>
           ) : (
             <div className="grid gap-3">
@@ -221,7 +243,7 @@ export default async function ShopReelPublishCenterPage() {
                         {generationTitle(generation)}
                       </div>
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
-                        Not review-approved • updated {timeAgoLabel(generation.updated_at ?? generation.created_at)}
+                        Needs explicit approval • updated {timeAgoLabel(generation.updated_at ?? generation.created_at)}
                       </div>
                     </div>
                     <GlassBadge tone="default">{generation.status}</GlassBadge>
@@ -235,6 +257,10 @@ export default async function ShopReelPublishCenterPage() {
                       <GlassButton variant="secondary">Open editor</GlassButton>
                     </Link>
                   </div>
+
+                  <div className="mt-3">
+                    <ReviewApprovalActions generationId={generation.id} compact />
+                  </div>
                 </div>
               ))}
             </div>
@@ -243,11 +269,11 @@ export default async function ShopReelPublishCenterPage() {
 
         <GlassCard
           label="Blocked"
-          title="Render failed / render blocked"
-          description="Items that cannot advance until render issues are fixed."
+          title="Approved but render blocked"
+          description="Approved items that cannot advance until render issues are resolved."
           strong
         >
-          {buckets.renderBlocked.length === 0 ? (
+          {buckets.approvedRenderBlocked.length === 0 ? (
             <div
               className={cx(
                 "rounded-2xl border p-4 text-sm",
@@ -260,7 +286,7 @@ export default async function ShopReelPublishCenterPage() {
             </div>
           ) : (
             <div className="grid gap-3">
-              {buckets.renderBlocked.map(({ generation, reason }) => (
+              {buckets.approvedRenderBlocked.map(({ generation, reason }) => (
                 <div
                   key={generation.id}
                   className={cx(
@@ -333,12 +359,6 @@ export default async function ShopReelPublishCenterPage() {
                     <GlassBadge tone="copper">ready</GlassBadge>
                   </div>
 
-                  {buckets.readyBlockedReason ? (
-                    <div className={cx("mt-3 text-xs", glassTheme.text.copperSoft)}>
-                      Blocked: {buckets.readyBlockedReason.label}
-                    </div>
-                  ) : null}
-
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Link href={`/shopreel/generations/${generation.id}`}>
                       <GlassButton variant="ghost">Open review</GlassButton>
@@ -348,9 +368,107 @@ export default async function ShopReelPublishCenterPage() {
                   <div className="mt-4">
                     <PublishPlatformButtons
                       generationId={generation.id}
-                      canPublish={!buckets.readyBlockedReason}
+                      canPublish
                       compact
                     />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+
+
+        <GlassCard
+          label="Rejected"
+          title="Needs changes"
+          description="Items explicitly sent back during review."
+          strong
+        >
+          {buckets.rejected.length === 0 ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.secondary,
+              )}
+            >
+              No rejected items.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {buckets.rejected.map((generation) => (
+                <div
+                  key={generation.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.copper,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {generationTitle(generation)}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      Needs changes • updated {timeAgoLabel(generation.updated_at ?? generation.created_at)}
+                    </div>
+                    {generation.review_note ? (
+                      <div className={cx("text-xs", glassTheme.text.copperSoft)}>
+                        Note: {generation.review_note}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="mt-3">
+                    <ReviewApprovalActions generationId={generation.id} compact />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+
+        <GlassCard
+          label="Publish Blocked"
+          title="Approved but publish blocked"
+          description="Approved items blocked by account/config or current publish state."
+          strong
+        >
+          {buckets.publishBlocked.length === 0 ? (
+            <div
+              className={cx(
+                "rounded-2xl border p-4 text-sm",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+                glassTheme.text.secondary,
+              )}
+            >
+              No publish-blocked approved items.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {buckets.publishBlocked.map(({ generation, reason }) => (
+                <div
+                  key={generation.id}
+                  className={cx(
+                    "rounded-2xl border p-4",
+                    glassTheme.border.copper,
+                    glassTheme.glass.panelSoft,
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      {generationTitle(generation)}
+                    </div>
+                    <div className={cx("text-sm", glassTheme.text.secondary)}>
+                      Blocked: {reason.label}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link href={`/shopreel/generations/${generation.id}`}>
+                      <GlassButton variant="ghost">Open review</GlassButton>
+                    </Link>
                   </div>
                 </div>
               ))}
