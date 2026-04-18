@@ -2,6 +2,7 @@ import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { getOpportunityStatusesForTab } from "@/features/shopreel/opportunities/lib/status";
 
 export default async function ShopReelOpportunitiesPage(props: {
   searchParams?: Promise<{ status?: string }>;
@@ -12,12 +13,7 @@ export default async function ShopReelOpportunitiesPage(props: {
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
 
-  const allowedStatuses =
-    status === "dismissed"
-      ? ["dismissed"]
-      : status === "generated"
-        ? ["generated"]
-        : ["ready", "new"];
+  const allowedStatuses = getOpportunityStatusesForTab(status);
 
   const { data: opportunities, error } = await supabase
     .from("shopreel_content_opportunities")

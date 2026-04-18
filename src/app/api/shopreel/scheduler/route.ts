@@ -24,14 +24,24 @@ async function safeReadJson(req: NextRequest): Promise<Body> {
 export async function POST(req: NextRequest) {
   try {
     const body = await safeReadJson(req);
+    const resolvedShopId = await getCurrentShopId();
 
-    const shopId =
-      typeof body.shopId === "string" && body.shopId.length > 0
-        ? body.shopId
-        : await getCurrentShopId();
+    if (
+      typeof body.shopId === "string" &&
+      body.shopId.length > 0 &&
+      body.shopId !== resolvedShopId
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "shopId override is not allowed for this endpoint.",
+        },
+        { status: 403 },
+      );
+    }
 
     const result = await queueScheduledContent({
-      shopId,
+      shopId: resolvedShopId,
       contentPieceId:
         typeof body.contentPieceId === "string" && body.contentPieceId.length > 0
           ? body.contentPieceId

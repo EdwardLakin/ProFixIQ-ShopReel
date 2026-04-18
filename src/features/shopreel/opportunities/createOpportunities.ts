@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { scoreStorySource } from "./scoreStorySource";
 import type { Json } from "@/types/supabase";
+import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
 
 function buildReason(score: number): string {
   if (score >= 90) return "Very strong story potential";
@@ -64,7 +65,7 @@ export async function createOpportunities() {
               source_title: source.title,
             },
           },
-          status: current.status || "ready",
+          status: normalizeOpportunityStatus(current.status, "ready"),
           updated_at: new Date().toISOString(),
         })
         .eq("id", current.id)
@@ -93,7 +94,7 @@ export async function createOpportunities() {
             source_title: source.title,
           },
         },
-        status: "ready",
+        status: normalizeOpportunityStatus("ready"),
       })
       .select("*")
       .single();

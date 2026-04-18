@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
 
 type DB = Database;
 
@@ -19,7 +20,7 @@ export async function upsertOpportunity(
         story_source_id: storySourceId,
         score,
         metadata,
-        status: "pending"
+        status: normalizeOpportunityStatus("pending"),
       },
       {
         onConflict: "shop_id,story_source_id"
