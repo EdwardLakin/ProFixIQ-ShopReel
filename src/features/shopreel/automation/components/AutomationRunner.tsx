@@ -16,7 +16,7 @@ export default function AutomationRunner() {
       setError(null);
       setResult(null);
 
-      const res = await fetch("/api/shopreel/automation/run", {
+      const res = await fetch("/api/shopreel/automation", {
         method: "POST",
       });
 

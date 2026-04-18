@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  ACTIVE_PUBLISH_JOB_STATUSES,
+} from "@/features/shopreel/lib/contracts/lifecycle";
+import {
+  requireUserActionTenantContext,
+  toEndpointErrorResponse,
+} from "@/features/shopreel/server/endpointPolicy";
 
 export async function POST(
   _req: Request,
@@ -8,7 +14,7 @@ export async function POST(
 ) {
   try {
     const { id } = await ctx.params;
-    const shopId = await getCurrentShopId();
+    const { shopId } = await requireUserActionTenantContext();
     const supabase = createAdminClient();
     const legacy = supabase as any;
 
@@ -30,14 +36,31 @@ export async function POST(
       );
     }
 
+    if (!ACTIVE_PUBLISH_JOB_STATUSES.includes(job.status)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Publish job is not actionable from status ${job.status}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const workerSecret = process.env.SHOPREEL_WORKER_SECRET;
+
     const workerRes = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/shopreel/worker/publish`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(workerSecret
+            ? {
+                "x-shopreel-worker-secret": workerSecret,
+              }
+            : {}),
         },
-        body: JSON.stringify({ jobId: id }),
+        body: JSON.stringify({ jobId: id, shopId }),
       }
     );
 
@@ -62,12 +85,6 @@ export async function POST(
       worker: workerJson,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Failed to run publish job",
-      },
-      { status: 500 }
-    );
+    return toEndpointErrorResponse(error, "Failed to run publish job");
   }
 }

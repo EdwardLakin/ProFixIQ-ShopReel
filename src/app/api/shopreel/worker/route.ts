@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { processRenderJobs } from "@/features/shopreel/worker/processRenderJobs";
 
 export async function POST() {
-  const result = await processRenderJobs();
-
   return NextResponse.json({
-    ok: true,
-    result,
+    ok: false,
+    error: "Deprecated endpoint. Use /api/shopreel/render-worker.",
+    canonicalEndpoint: "/api/shopreel/render-worker",
+  }, {
+    status: 410,
   });
 }

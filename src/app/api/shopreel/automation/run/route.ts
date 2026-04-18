@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { syncAllProcessingVideoJobs } from "@/features/shopreel/video-creation/lib/automation";
 import { runCampaignAutomationCycle } from "@/features/shopreel/campaigns/lib/automation";
 import {
@@ -8,37 +7,41 @@ import {
   failAutomationRun,
   startAutomationRun,
 } from "@/features/shopreel/automation/lib/server";
+import {
+  requireInternalWorkerRequest,
+  ShopReelEndpointError,
+  toEndpointErrorResponse,
+} from "@/features/shopreel/server/endpointPolicy";
+
+type AutomationRunRequestBody = {
+  shopId?: string;
+};
 
 export async function POST(req: Request) {
   let runId: string | null = null;
 
   try {
-    const expectedSecret = process.env.SHOPREEL_AUTOMATION_SECRET;
+    requireInternalWorkerRequest(req, {
+      envSecretName: "SHOPREEL_AUTOMATION_SECRET",
+      errorMessage: "Unauthorized automation request",
+    });
 
-    if (expectedSecret) {
-      const authHeader = req.headers.get("authorization");
-      const bearer = authHeader?.startsWith("Bearer ")
-        ? authHeader.slice("Bearer ".length)
-        : null;
+    const body = (await req.json().catch(() => ({}))) as AutomationRunRequestBody;
+    const shopId = typeof body.shopId === "string" ? body.shopId.trim() : "";
 
-      if (bearer !== expectedSecret) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "Unauthorized automation request",
-          },
-          { status: 401 }
-        );
-      }
+    if (!shopId) {
+      throw new ShopReelEndpointError(
+        "shopId is required for internal automation runs",
+        400,
+      );
     }
 
     const run = await startAutomationRun({
-      runType: expectedSecret ? "scheduled" : "manual",
+      runType: "scheduled",
     });
     runId = run.id;
 
     const supabase = createAdminClient();
-    const shopId = await getCurrentShopId();
 
     const [{ count: queuedJobsCount }, { count: processingJobsCount }] = await Promise.all([
       supabase
@@ -100,12 +103,6 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Failed to run ShopReel automation",
-      },
-      { status: 500 }
-    );
+    return toEndpointErrorResponse(error, "Failed to run ShopReel automation");
   }
 }

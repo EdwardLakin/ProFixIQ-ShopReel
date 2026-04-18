@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  ACTIVE_PUBLISH_JOB_STATUSES,
+  ACTIVE_PUBLICATION_STATUSES,
+  QUEUED_PUBLISH_JOB_STATUS,
+  QUEUED_PUBLICATION_STATUS,
+  STORY_GENERATION_READY_STATUS,
+} from "@/features/shopreel/lib/contracts/lifecycle";
+import {
+  requireUserActionTenantContext,
+  toEndpointErrorResponse,
+} from "@/features/shopreel/server/endpointPolicy";
 
 type PublishPlatform = "instagram" | "facebook" | "tiktok" | "youtube";
 
@@ -34,7 +44,7 @@ export async function POST(
       );
     }
 
-    const shopId = await getCurrentShopId();
+    const { shopId } = await requireUserActionTenantContext();
     const supabase = createAdminClient();
     const legacy = supabase as any;
 
@@ -56,7 +66,7 @@ export async function POST(
       );
     }
 
-    if (generation.status !== "ready") {
+    if (generation.status !== STORY_GENERATION_READY_STATUS) {
       return NextResponse.json(
         { ok: false, error: "Generation must be ready before publishing" },
         { status: 400 }
@@ -84,7 +94,7 @@ export async function POST(
       .select("*")
       .eq("content_piece_id", generation.content_piece_id)
       .eq("platform", platform)
-      .in("status", ["queued", "publishing", "failed"])
+      .in("status", ACTIVE_PUBLICATION_STATUSES)
       .order("created_at", { ascending: false })
       .limit(1);
 
@@ -99,7 +109,7 @@ export async function POST(
         .from("shopreel_publish_jobs")
         .select("*")
         .eq("publication_id", existingPublication.id)
-        .in("status", ["queued", "processing"])
+        .in("status", ACTIVE_PUBLISH_JOB_STATUSES)
         .order("created_at", { ascending: false })
         .limit(1);
 
@@ -124,7 +134,7 @@ export async function POST(
         .insert({
           shop_id: shopId,
           publication_id: existingPublication.id,
-          status: "queued",
+          status: QUEUED_PUBLISH_JOB_STATUS,
           attempt_count: 0,
           error_message: null,
           run_after: now,
@@ -141,7 +151,7 @@ export async function POST(
       await legacy
         .from("content_publications")
         .update({
-          status: "queued",
+          status: QUEUED_PUBLICATION_STATUS,
           error_text: null,
           updated_at: now,
         })
@@ -161,7 +171,7 @@ export async function POST(
       .insert({
         content_piece_id: generation.content_piece_id,
         platform,
-        status: "queued",
+        status: QUEUED_PUBLICATION_STATUS,
         scheduled_for: null,
         published_at: null,
         platform_post_url: null,
@@ -192,7 +202,7 @@ export async function POST(
       .insert({
         shop_id: shopId,
         publication_id: publication.id,
-        status: "queued",
+        status: QUEUED_PUBLISH_JOB_STATUS,
         attempt_count: 0,
         error_message: null,
         run_after: now,
@@ -214,12 +224,6 @@ export async function POST(
       repairedJob: false,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Failed to queue publish job",
-      },
-      { status: 500 }
-    );
+    return toEndpointErrorResponse(error, "Failed to queue publish job");
   }
 }

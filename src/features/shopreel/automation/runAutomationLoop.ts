@@ -33,7 +33,7 @@ export async function runAutomationLoop(shopId: string) {
   const preQueueRanking = await buildPrePublishRanking(shopId);
   const queued = await queueScheduledContent({ shopId });
   const rendered = await processRenderJobs();
-  const published = await runPublishWorker();
+  const published = await runPublishWorker({ shopId });
   const analytics = await runAnalyticsFeedbackLoop(shopId);
 
   return {

@@ -2,10 +2,19 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/supabase";
 import { getPlatformIntegration } from "@/features/shopreel/integrations/shared/platformRegistry";
 import { getPublicationPayload } from "./getPublicationPayload";
+import {
+  COMPLETED_PUBLISH_JOB_STATUS,
+  FAILED_PUBLISH_JOB_STATUS,
+  PROCESSING_PUBLISH_JOB_STATUS,
+  PUBLISHED_PUBLICATION_STATUS,
+  PUBLISHING_PUBLICATION_STATUS,
+  FAILED_PUBLICATION_STATUS,
+} from "@/features/shopreel/lib/contracts/lifecycle";
 
 type PublishJobRow = {
   id: string;
   publication_id: string;
+  shop_id: string;
   attempt_count: number | null;
 };
 
@@ -40,7 +49,10 @@ function jsonObject(value: Json | null | undefined): Record<string, Json> {
   return {};
 }
 
-export async function processPublishJob(jobId: string) {
+export async function processPublishJob(
+  jobId: string,
+  options?: { shopId?: string },
+) {
   const supabase = createAdminClient();
 
   const { data: jobData, error: jobError } = await supabase
@@ -55,10 +67,14 @@ export async function processPublishJob(jobId: string) {
     throw new Error(jobError?.message ?? "Publish job not found");
   }
 
+  if (options?.shopId && job.shop_id !== options.shopId) {
+    throw new Error("Publish job does not belong to requested shop");
+  }
+
   await supabase
     .from("shopreel_publish_jobs")
     .update({
-      status: "processing",
+      status: PROCESSING_PUBLISH_JOB_STATUS,
       attempt_count: (job.attempt_count ?? 0) + 1,
       locked_at: new Date().toISOString(),
       locked_by: "worker:publish",
@@ -74,9 +90,13 @@ export async function processPublishJob(jobId: string) {
     throw new Error("Video has no render_url");
   }
 
-  const shopId = publication.tenant_shop_id ?? publication.source_shop_id;
+  const shopId = publication.tenant_shop_id;
   if (!shopId) {
-    throw new Error("Publication has no shop id");
+    throw new Error("Publication has no tenant shop id");
+  }
+
+  if (job.shop_id !== shopId) {
+    throw new Error("Publish job tenant scope does not match publication tenant scope");
   }
 
   try {
@@ -98,9 +118,14 @@ export async function processPublishJob(jobId: string) {
     await supabase
       .from("content_publications")
       .update({
-        status: result.status === "published" ? "published" : "publishing",
+        status:
+          result.status === PUBLISHED_PUBLICATION_STATUS
+            ? PUBLISHED_PUBLICATION_STATUS
+            : PUBLISHING_PUBLICATION_STATUS,
         published_at:
-          result.status === "published" ? new Date().toISOString() : null,
+          result.status === PUBLISHED_PUBLICATION_STATUS
+            ? new Date().toISOString()
+            : null,
         platform_post_id: result.remotePostId,
         platform_post_url: result.remotePostUrl ?? null,
         error_text: null,
@@ -134,7 +159,7 @@ export async function processPublishJob(jobId: string) {
     await supabase
       .from("shopreel_publish_jobs")
       .update({
-        status: "completed",
+        status: COMPLETED_PUBLISH_JOB_STATUS,
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -153,7 +178,7 @@ export async function processPublishJob(jobId: string) {
     await supabase
       .from("content_publications")
       .update({
-        status: "failed",
+        status: FAILED_PUBLICATION_STATUS,
         error_text: message,
         updated_at: new Date().toISOString(),
       })
@@ -162,7 +187,7 @@ export async function processPublishJob(jobId: string) {
     await supabase
       .from("shopreel_publish_jobs")
       .update({
-        status: "failed",
+        status: FAILED_PUBLISH_JOB_STATUS,
         completed_at: new Date().toISOString(),
         error_message: message,
         updated_at: new Date().toISOString(),
