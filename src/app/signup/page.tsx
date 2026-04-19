@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 function SignupPageInner() {
   const searchParams = useSearchParams();
   const next = useMemo(
-    () => searchParams.get("next") ?? "/shopreel/settings",
+    () => searchParams.get("next") ?? "/shopreel",
     [searchParams],
   );
 
