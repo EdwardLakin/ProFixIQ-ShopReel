@@ -6,6 +6,7 @@ import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 type SidebarItem = {
   label: string;
+  compactLabel: string;
   href: string;
 };
 
@@ -17,33 +18,37 @@ type SidebarGroup = {
 const SIDEBAR_GROUPS: SidebarGroup[] = [
   {
     label: "Home",
-    items: [{ label: "Home", href: "/shopreel" }],
+    items: [{ label: "Home", compactLabel: "HM", href: "/shopreel" }],
   },
   {
     label: "Create",
-    items: [{ label: "Create", href: "/shopreel/create" }],
+    items: [
+      { label: "Create", compactLabel: "CR", href: "/shopreel/create" },
+      { label: "Manual Upload", compactLabel: "UP", href: "/shopreel/upload" },
+      { label: "Video Editor", compactLabel: "ED", href: "/shopreel/editor" },
+    ],
   },
   {
     label: "Pipeline",
     items: [
-      { label: "Opportunities", href: "/shopreel/opportunities" },
-      { label: "Review", href: "/shopreel/generations" },
-      { label: "Video Processing", href: "/shopreel/render-queue" },
+      { label: "Opportunities", compactLabel: "OP", href: "/shopreel/opportunities" },
+      { label: "Review", compactLabel: "RV", href: "/shopreel/generations" },
+      { label: "Video Processing", compactLabel: "VP", href: "/shopreel/render-queue" },
     ],
   },
   {
-    label: "Publish",
+    label: "Publishing",
     items: [
-      { label: "Operations Board", href: "/shopreel/publish-center" },
-      { label: "Publish Queue", href: "/shopreel/publish-queue" },
-      { label: "Calendar", href: "/shopreel/calendar" },
-      { label: "Publishing History", href: "/shopreel/published" },
-      { label: "Analytics", href: "/shopreel/analytics" },
+      { label: "Operations Board", compactLabel: "OB", href: "/shopreel/publish-center" },
+      { label: "Publish Queue", compactLabel: "PQ", href: "/shopreel/publish-queue" },
+      { label: "Calendar", compactLabel: "CA", href: "/shopreel/calendar" },
+      { label: "Publishing History", compactLabel: "PH", href: "/shopreel/published" },
+      { label: "Analytics", compactLabel: "AN", href: "/shopreel/analytics" },
     ],
   },
   {
     label: "Workspace",
-    items: [{ label: "Settings", href: "/shopreel/settings" }],
+    items: [{ label: "Settings", compactLabel: "ST", href: "/shopreel/settings" }],
   },
 ];
 
@@ -58,66 +63,157 @@ function isActive(pathname: string, href: string): boolean {
   return current === href || current.startsWith(`${href}/`);
 }
 
-export default function ShopReelSidebar() {
+type ShopReelSidebarProps = {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
+};
+
+export default function ShopReelSidebar(props: ShopReelSidebarProps) {
+  const { collapsed, onToggleCollapse, mobileOpen, onCloseMobile } = props;
   const pathname = usePathname() ?? "";
 
   return (
-    <aside
-      className={cx(
-        "fixed inset-y-0 left-0 z-40 hidden w-72 border-r lg:block",
-        glassTheme.border.softer,
-        glassTheme.glass.panelSoft,
-      )}
-      aria-label="ShopReel navigation"
-    >
-      <div className="flex h-full flex-col px-5 py-6">
-        <div className="mb-6">
-          <div className={cx("text-xs uppercase tracking-[0.24em]", glassTheme.text.copper)}>
+    <>
+      <button
+        type="button"
+        className={cx(
+          "fixed inset-0 z-40 bg-black/45 transition lg:hidden",
+          mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={onCloseMobile}
+        aria-hidden={!mobileOpen}
+        tabIndex={mobileOpen ? 0 : -1}
+      />
+
+      <aside
+        className={cx(
+          "fixed inset-y-0 left-0 z-50 border-r transition-all duration-300",
+          collapsed ? "w-24" : "w-72",
+          glassTheme.border.softer,
+          glassTheme.glass.panelSoft,
+          "hidden lg:block",
+          "lg:bg-[linear-gradient(180deg,rgba(9,11,19,0.92),rgba(9,11,19,0.78))]",
+          "bg-[linear-gradient(180deg,rgba(9,11,19,0.96),rgba(9,11,19,0.9))]",
+        )}
+        aria-label="ShopReel navigation"
+      >
+        <SidebarBody
+          collapsed={collapsed}
+          pathname={pathname}
+          onToggleCollapse={onToggleCollapse}
+        />
+      </aside>
+
+      <aside
+        className={cx(
+          "fixed inset-y-0 left-0 z-50 w-72 border-r transition-transform duration-300 lg:hidden",
+          glassTheme.border.softer,
+          glassTheme.glass.panelStrong,
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+        aria-label="ShopReel mobile navigation"
+      >
+        <SidebarBody
+          collapsed={false}
+          pathname={pathname}
+          onToggleCollapse={onCloseMobile}
+          closeAfterNavigate
+        />
+      </aside>
+    </>
+  );
+}
+
+function SidebarBody(props: {
+  collapsed: boolean;
+  pathname: string;
+  onToggleCollapse: () => void;
+  closeAfterNavigate?: boolean;
+}) {
+  const { collapsed, pathname, onToggleCollapse, closeAfterNavigate = false } = props;
+
+  return (
+    <div className="flex h-full flex-col px-3 py-4">
+      <div className={cx("mb-4 flex items-center", collapsed ? "justify-center" : "justify-between")}>
+        <div className={cx("min-w-0", collapsed && "sr-only")}>
+          <div className={cx("text-[10px] uppercase tracking-[0.2em]", glassTheme.text.copper)}>
             ShopReel
           </div>
-          <div className={cx("mt-2 text-lg font-semibold", glassTheme.text.primary)}>
+          <div className={cx("mt-1 text-base font-semibold", glassTheme.text.primary)}>
             Operations
           </div>
         </div>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className={cx(
+            "inline-flex h-9 w-9 items-center justify-center rounded-xl border text-xs font-semibold transition",
+            glassTheme.border.softer,
+            glassTheme.glass.panelSoft,
+            glassTheme.text.secondary,
+            "hover:text-white hover:bg-white/[0.08]",
+          )}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? ">>" : "<<"}
+        </button>
+      </div>
 
-        <nav className="grid gap-4">
-          {SIDEBAR_GROUPS.map((group) => (
-            <div key={group.label}>
-              <div className={cx("mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+      <nav className="grid gap-3 overflow-y-auto pb-2">
+        {SIDEBAR_GROUPS.map((group) => (
+          <div key={group.label}>
+            {!collapsed ? (
+              <div className={cx("mb-1 px-2 text-[10px] uppercase tracking-[0.16em]", glassTheme.text.muted)}>
                 {group.label}
               </div>
-              <div className="grid gap-2">
-                {group.items.map((item) => {
-                  const active = isActive(pathname, item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
+            ) : null}
+            <div className="grid gap-1">
+              {group.items.map((item) => {
+                const active = isActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeAfterNavigate ? onToggleCollapse : undefined}
+                    className={cx(
+                      "group rounded-xl px-2 py-2 text-sm font-medium no-underline transition",
+                      collapsed ? "flex h-10 items-center justify-center" : "flex items-center gap-2",
+                      active
+                        ? cx(
+                            "border border-white/20",
+                            "bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]",
+                            glassTheme.text.primary,
+                          )
+                        : cx(
+                            "border border-transparent",
+                            glassTheme.text.secondary,
+                            "hover:bg-white/[0.07] hover:text-white",
+                          ),
+                    )}
+                    aria-current={active ? "page" : undefined}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <span
                       className={cx(
-                        "rounded-xl border px-3 py-2 text-sm font-medium no-underline transition",
+                        "inline-flex h-6 min-w-6 items-center justify-center rounded-md border px-1 text-[10px] font-semibold tracking-wide",
                         active
-                          ? cx(
-                              glassTheme.border.copper,
-                              glassTheme.glass.panelStrong,
-                              glassTheme.text.primary,
-                            )
-                          : cx(
-                              glassTheme.border.softer,
-                              glassTheme.glass.panelSoft,
-                              glassTheme.text.secondary,
-                              "hover:bg-white/[0.06] hover:text-white",
-                            ),
+                          ? "border-white/30 bg-white/[0.18] text-white"
+                          : "border-white/12 text-white/70 group-hover:text-white",
                       )}
                     >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
+                      {item.compactLabel}
+                    </span>
+                    {!collapsed ? <span>{item.label}</span> : null}
+                  </Link>
+                );
+              })}
             </div>
-          ))}
-        </nav>
-      </div>
-    </aside>
+          </div>
+        ))}
+      </nav>
+    </div>
   );
 }
