@@ -9,18 +9,42 @@ type SidebarItem = {
   href: string;
 };
 
-const SIDEBAR_ITEMS: SidebarItem[] = [
-  { label: "Home", href: "/shopreel" },
-  { label: "Create", href: "/shopreel/create" },
-  { label: "Opportunities", href: "/shopreel/opportunities" },
-  { label: "Review", href: "/shopreel/generations" },
-  { label: "Video Processing", href: "/shopreel/render-queue" },
-  { label: "Operations Board", href: "/shopreel/publish-center" },
-  { label: "Publish Queue", href: "/shopreel/publish-queue" },
-  { label: "Calendar", href: "/shopreel/calendar" },
-  { label: "Publishing History", href: "/shopreel/published" },
-  { label: "Analytics", href: "/shopreel/analytics" },
-  { label: "Settings", href: "/shopreel/settings" },
+type SidebarGroup = {
+  label: string;
+  items: SidebarItem[];
+};
+
+const SIDEBAR_GROUPS: SidebarGroup[] = [
+  {
+    label: "Home",
+    items: [{ label: "Home", href: "/shopreel" }],
+  },
+  {
+    label: "Create",
+    items: [{ label: "Create", href: "/shopreel/create" }],
+  },
+  {
+    label: "Pipeline",
+    items: [
+      { label: "Opportunities", href: "/shopreel/opportunities" },
+      { label: "Review", href: "/shopreel/generations" },
+      { label: "Video Processing", href: "/shopreel/render-queue" },
+    ],
+  },
+  {
+    label: "Publish",
+    items: [
+      { label: "Operations Board", href: "/shopreel/publish-center" },
+      { label: "Publish Queue", href: "/shopreel/publish-queue" },
+      { label: "Calendar", href: "/shopreel/calendar" },
+      { label: "Publishing History", href: "/shopreel/published" },
+      { label: "Analytics", href: "/shopreel/analytics" },
+    ],
+  },
+  {
+    label: "Workspace",
+    items: [{ label: "Settings", href: "/shopreel/settings" }],
+  },
 ];
 
 function normalizePathname(pathname: string): string {
@@ -56,33 +80,42 @@ export default function ShopReelSidebar() {
           </div>
         </div>
 
-        <nav className="grid gap-2">
-          {SIDEBAR_ITEMS.map((item) => {
-            const active = isActive(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cx(
-                  "rounded-xl border px-3 py-2 text-sm font-medium no-underline transition",
-                  active
-                    ? cx(
-                        glassTheme.border.copper,
-                        glassTheme.glass.panelStrong,
-                        glassTheme.text.primary,
-                      )
-                    : cx(
-                        glassTheme.border.softer,
-                        glassTheme.glass.panelSoft,
-                        glassTheme.text.secondary,
-                        "hover:bg-white/[0.06] hover:text-white",
-                      ),
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="grid gap-4">
+          {SIDEBAR_GROUPS.map((group) => (
+            <div key={group.label}>
+              <div className={cx("mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.18em]", glassTheme.text.muted)}>
+                {group.label}
+              </div>
+              <div className="grid gap-2">
+                {group.items.map((item) => {
+                  const active = isActive(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cx(
+                        "rounded-xl border px-3 py-2 text-sm font-medium no-underline transition",
+                        active
+                          ? cx(
+                              glassTheme.border.copper,
+                              glassTheme.glass.panelStrong,
+                              glassTheme.text.primary,
+                            )
+                          : cx(
+                              glassTheme.border.softer,
+                              glassTheme.glass.panelSoft,
+                              glassTheme.text.secondary,
+                              "hover:bg-white/[0.06] hover:text-white",
+                            ),
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
       </div>
     </aside>
