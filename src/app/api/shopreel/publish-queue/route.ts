@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { withCanonicalApiHeaders } from "@/features/shopreel/server/apiOwnership";
 
 type ShopUserLite = {
   shop_id: string;
@@ -40,14 +41,14 @@ export async function GET() {
       .limit(100);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return withCanonicalApiHeaders(NextResponse.json({ error: error.message }, { status: 500 }));
     }
 
-    return NextResponse.json({ ok: true, items: data ?? [] });
+    return withCanonicalApiHeaders(NextResponse.json({ ok: true, items: data ?? [] }));
   } catch (error) {
-    return NextResponse.json(
+    return withCanonicalApiHeaders(NextResponse.json(
       { error: error instanceof Error ? error.message : "Unexpected error" },
       { status: 500 },
-    );
+    ));
   }
 }

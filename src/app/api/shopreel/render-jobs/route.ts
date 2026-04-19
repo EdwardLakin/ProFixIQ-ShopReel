@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { withCanonicalApiHeaders } from "@/features/shopreel/server/apiOwnership";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -16,14 +17,14 @@ export async function GET(req: NextRequest) {
     .limit(50);
 
   if (error) {
-    return NextResponse.json(
+    return withCanonicalApiHeaders(NextResponse.json(
       { error: error.message },
       { status: 500 },
-    );
+    ));
   }
 
-  return NextResponse.json({
+  return withCanonicalApiHeaders(NextResponse.json({
     ok: true,
     jobs: data ?? [],
-  });
+  }));
 }

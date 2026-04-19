@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { withDeprecatedApiHeaders } from "@/features/shopreel/server/apiOwnership";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -51,10 +52,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({
+  return withDeprecatedApiHeaders(NextResponse.json({
     ok: true,
     job: data,
-  });
+  }), "/api/shopreel/render-jobs/[id]");
 }
 
 export async function GET(_: NextRequest, { params }: Params) {
@@ -71,10 +72,10 @@ export async function GET(_: NextRequest, { params }: Params) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({
+  return withDeprecatedApiHeaders(NextResponse.json({
     ok: true,
     job: data,
-  });
+  }), "/api/shopreel/render-jobs/[id]");
 }
 
 export async function DELETE(_: NextRequest, { params }: Params) {
@@ -103,14 +104,14 @@ export async function DELETE(_: NextRequest, { params }: Params) {
       throw new Error(error.message);
     }
 
-    return NextResponse.json({ ok: true, deletedId: id });
+    return withDeprecatedApiHeaders(NextResponse.json({ ok: true, deletedId: id }), "/api/shopreel/render-jobs/[id]");
   } catch (error) {
-    return NextResponse.json(
+    return withDeprecatedApiHeaders(NextResponse.json(
       {
         ok: false,
         error: error instanceof Error ? error.message : "Failed to delete render job",
       },
       { status: 500 }
-    );
+    ), "/api/shopreel/render-jobs/[id]");
   }
 }

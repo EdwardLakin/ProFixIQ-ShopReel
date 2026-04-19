@@ -221,7 +221,7 @@ export function getPublishFailureNextAction(input: {
   switch (input.reason) {
     case "no_connected_account":
     case "auth_expired":
-      return { label: "Open connected accounts", href: "/shopreel/account" };
+      return { label: "Open publishing settings", href: "/shopreel/settings" };
     case "missing_content_artifact":
     case "render_not_ready":
       if (input.generationId) {

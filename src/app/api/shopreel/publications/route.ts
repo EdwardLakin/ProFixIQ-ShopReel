@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { createPublication } from "@/features/shopreel/publishing/lib/createPublication";
 import { enqueuePublishJob } from "@/features/shopreel/publishing/lib/enqueuePublishJob";
+import { withCanonicalApiHeaders } from "@/features/shopreel/server/apiOwnership";
 
 type ShopUserLite = {
   shop_id: string;
@@ -47,24 +48,24 @@ export async function GET() {
       .limit(100);
 
     if (error) {
-      return NextResponse.json(
+      return withCanonicalApiHeaders(NextResponse.json(
         { ok: false, error: error.message },
         { status: 500 },
-      );
+      ));
     }
 
-    return NextResponse.json({
+    return withCanonicalApiHeaders(NextResponse.json({
       ok: true,
       items: data ?? [],
-    });
+    }));
   } catch (error) {
-    return NextResponse.json(
+    return withCanonicalApiHeaders(NextResponse.json(
       {
         ok: false,
         error: error instanceof Error ? error.message : "Unexpected error",
       },
       { status: 500 },
-    );
+    ));
   }
 }
 
@@ -94,10 +95,10 @@ export async function POST(req: NextRequest) {
     };
 
     if (!body.contentEventId || !body.platform) {
-      return NextResponse.json(
+      return withCanonicalApiHeaders(NextResponse.json(
         { ok: false, error: "contentEventId and platform are required" },
         { status: 400 },
-      );
+      ));
     }
 
     const publication = await createPublication({
@@ -125,18 +126,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return withCanonicalApiHeaders(NextResponse.json({
       ok: true,
       publication,
       job,
-    });
+    }));
   } catch (error) {
-    return NextResponse.json(
+    return withCanonicalApiHeaders(NextResponse.json(
       {
         ok: false,
         error: error instanceof Error ? error.message : "Unexpected error",
       },
       { status: 500 },
-    );
+    ));
   }
 }

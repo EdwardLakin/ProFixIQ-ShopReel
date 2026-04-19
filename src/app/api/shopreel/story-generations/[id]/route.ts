@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { withDeprecatedApiHeaders } from "@/features/shopreel/server/apiOwnership";
 
 export async function DELETE(
   _req: Request,
@@ -24,10 +25,10 @@ export async function DELETE(
     }
 
     if (!generation) {
-      return NextResponse.json(
+      return withDeprecatedApiHeaders(NextResponse.json(
         { ok: false, error: "Story generation not found" },
         { status: 404 }
-      );
+      ), "/api/shopreel/generations/[id]/review");
     }
 
     const metadata =
@@ -107,17 +108,17 @@ export async function DELETE(
       throw new Error(error.message);
     }
 
-    return NextResponse.json({
+    return withDeprecatedApiHeaders(NextResponse.json({
       ok: true,
       deletedId: id,
-    });
+    }), "/api/shopreel/generations/[id]/review", "Generation mutations should move to /generations/*.");
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to delete story generation";
 
-    return NextResponse.json(
+    return withDeprecatedApiHeaders(NextResponse.json(
       { ok: false, error: message },
       { status: 500 }
-    );
+    ), "/api/shopreel/generations/[id]/review");
   }
 }
