@@ -8,6 +8,7 @@ type SidebarItem = {
   label: string;
   compactLabel: string;
   href: string;
+  status?: "experimental" | "deprecated" | "contextual";
 };
 
 type SidebarGroup = {
@@ -25,7 +26,8 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { label: "Create", compactLabel: "CR", href: "/shopreel/create" },
       { label: "Manual Upload", compactLabel: "UP", href: "/shopreel/upload" },
-      { label: "Video Editor", compactLabel: "ED", href: "/shopreel/editor" },
+      { label: "Content Library", compactLabel: "LB", href: "/shopreel/content" },
+      { label: "Editor Hub", compactLabel: "ED", href: "/shopreel/editor", status: "contextual" },
     ],
   },
   {
@@ -42,8 +44,16 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { label: "Operations Board", compactLabel: "OB", href: "/shopreel/publish-center" },
       { label: "Publish Queue", compactLabel: "PQ", href: "/shopreel/publish-queue" },
       { label: "Calendar", compactLabel: "CA", href: "/shopreel/calendar" },
-      { label: "Publishing History", compactLabel: "PH", href: "/shopreel/published" },
-      { label: "Analytics", compactLabel: "AN", href: "/shopreel/analytics" },
+      { label: "Publishing History", compactLabel: "PH", href: "/shopreel/published", status: "contextual" },
+      { label: "Analytics", compactLabel: "AN", href: "/shopreel/analytics", status: "contextual" },
+    ],
+  },
+  {
+    label: "Experimental",
+    items: [
+      { label: "Campaigns", compactLabel: "CP", href: "/shopreel/campaigns", status: "experimental" },
+      { label: "Video Creation Studio", compactLabel: "VS", href: "/shopreel/video-creation", status: "experimental" },
+      { label: "AI Requests", compactLabel: "AI", href: "/shopreel/creator-requests", status: "experimental" },
     ],
   },
   {
@@ -207,6 +217,11 @@ function SidebarBody(props: {
                       {item.compactLabel}
                     </span>
                     {!collapsed ? <span>{item.label}</span> : null}
+                    {!collapsed && item.status ? (
+                      <span className={cx("ml-auto text-[10px] uppercase tracking-wide", glassTheme.text.muted)}>
+                        {item.status}
+                      </span>
+                    ) : null}
                   </Link>
                 );
               })}

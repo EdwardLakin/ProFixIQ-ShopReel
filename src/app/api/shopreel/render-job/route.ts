@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildAutoEditPlan } from "@/features/shopreel/editing/buildAutoEditPlan";
 import { selectMediaForReel } from "@/features/shopreel/media/selectMediaForReel";
 import { createRenderJob } from "@/features/shopreel/render/createRenderJob";
+import { withDeprecatedApiHeaders } from "@/features/shopreel/server/apiOwnership";
 
 type RenderJobBody = {
   shopId?: string;
@@ -100,10 +101,10 @@ export async function POST(req: NextRequest) {
     renderPayload: plan.renderPayload,
   });
 
-  return NextResponse.json({
+  return withDeprecatedApiHeaders(NextResponse.json({
     ok: true,
     job,
     plan,
     mediaCount: visualUrls.length,
-  });
+  }), "/api/shopreel/render-jobs", "Use /render-jobs as the canonical render API family.");
 }

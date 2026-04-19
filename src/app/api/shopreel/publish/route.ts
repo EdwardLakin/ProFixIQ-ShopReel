@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getPlatformIntegration } from "@/features/shopreel/integrations/shared/platformRegistry";
+import { withDeprecatedApiHeaders } from "@/features/shopreel/server/apiOwnership";
 import type {
   PublishInput,
   ShopReelPlatform,
@@ -74,20 +75,20 @@ export async function POST(req: NextRequest) {
     if (body.platform) {
       const integration = getPlatformIntegration(body.platform);
       const result = await integration.publishVideo(body);
-      return NextResponse.json(result);
+      return withDeprecatedApiHeaders(NextResponse.json(result), "/api/shopreel/publications", "Use publications + publish-queue for canonical publish lifecycle.");
     }
 
     // Automatic publish to all connected supported platforms.
     const targets = await getConnectedPlatforms(body.shopId);
 
     if (targets.length === 0) {
-      return NextResponse.json(
+      return withDeprecatedApiHeaders(NextResponse.json(
         {
           ok: false,
           error: "No connected publish platforms found for this shop.",
         },
         { status: 400 },
-      );
+      ), "/api/shopreel/publications");
     }
 
     const settled = await Promise.allSettled(
@@ -119,17 +120,17 @@ export async function POST(req: NextRequest) {
 
     const anySuccess = results.some((item) => item.ok);
 
-    return NextResponse.json({
+    return withDeprecatedApiHeaders(NextResponse.json({
       ok: anySuccess,
       results,
-    });
+    }), "/api/shopreel/publications");
   } catch (error) {
-    return NextResponse.json(
+    return withDeprecatedApiHeaders(NextResponse.json(
       {
         ok: false,
         error: error instanceof Error ? error.message : "Unexpected publish error",
       },
       { status: 500 },
-    );
+    ), "/api/shopreel/publications");
   }
 }
