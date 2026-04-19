@@ -22,6 +22,22 @@ type AttentionItem = {
   href: string;
   tone: "default" | "copper" | "muted";
   actionLabel: string;
+  priority: "urgent" | "high";
+};
+
+type StorySourceRow = {
+  id: string;
+  title: string | null;
+  kind: string | null;
+  created_at: string | null;
+};
+
+type RecommendedAction = {
+  key: string;
+  title: string;
+  summary: string;
+  href: string;
+  actionLabel: string;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -102,7 +118,7 @@ export default async function ShopReelPage() {
       .select("id, title, kind, created_at")
       .eq("shop_id", shopId)
       .order("created_at", { ascending: false })
-      .limit(6),
+      .limit(8),
   ]);
 
   const generations = ((generationData ?? []) as Array<Record<string, unknown>>).map(
@@ -189,9 +205,14 @@ export default async function ShopReelPage() {
     },
   });
 
-  const sourceIds = (sourceData ?? [])
-    .map((row: any) => (typeof row.id === "string" ? row.id : null))
-    .filter((value: string | null): value is string => !!value);
+  const storySources: StorySourceRow[] = ((sourceData ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    id: typeof row.id === "string" ? row.id : "",
+    title: typeof row.title === "string" ? row.title : null,
+    kind: typeof row.kind === "string" ? row.kind : null,
+    created_at: typeof row.created_at === "string" ? row.created_at : null,
+  }));
+
+  const sourceIds = storySources.map((source) => source.id).filter((value) => value.length > 0);
 
   const { data: opportunityData } = sourceIds.length
     ? await legacy
@@ -214,13 +235,14 @@ export default async function ShopReelPage() {
   }
 
   const attentionItems: AttentionItem[] = [
-    ...buckets.needsReview.slice(0, 3).map((generation) => ({
-      key: `review-${generation.id}`,
-      title: generationTitle(generation),
-      summary: "Needs review approval",
-      href: `/shopreel/generations/${generation.id}`,
-      tone: "default" as const,
-      actionLabel: "Review",
+    ...buckets.publishFailures.slice(0, 3).map((failure) => ({
+      key: `publish-${failure.publication.id}`,
+      title: failure.generation ? generationTitle(failure.generation) : "Publish failure",
+      summary: failure.diagnostics.summary,
+      href: failure.nextAction.href,
+      tone: "muted" as const,
+      actionLabel: failure.nextAction.label,
+      priority: "urgent" as const,
     })),
     ...buckets.approvedRenderBlocked.slice(0, 3).map(({ generation, reason }) => ({
       key: `render-${generation.id}`,
@@ -229,225 +251,277 @@ export default async function ShopReelPage() {
       href: `/shopreel/generations/${generation.id}`,
       tone: "copper" as const,
       actionLabel: "Fix render",
+      priority: "urgent" as const,
     })),
-    ...buckets.publishFailures.slice(0, 3).map((failure) => ({
-      key: `publish-${failure.publication.id}`,
-      title: failure.generation ? generationTitle(failure.generation) : "Publish failure",
-      summary: failure.diagnostics.summary,
-      href: failure.nextAction.href,
-      tone: "muted" as const,
-      actionLabel: failure.nextAction.label,
+    ...buckets.needsReview.slice(0, 4).map((generation) => ({
+      key: `review-${generation.id}`,
+      title: generationTitle(generation),
+      summary: "Needs review approval",
+      href: `/shopreel/generations/${generation.id}`,
+      tone: "default" as const,
+      actionLabel: "Review now",
+      priority: "high" as const,
     })),
   ].slice(0, 8);
+
+  const recommendedActions: RecommendedAction[] = [];
+  if ((accountsData?.length ?? 0) === 0) {
+    recommendedActions.push({
+      key: "connect-account",
+      title: "Connect at least one platform",
+      summary: "Publishing remains blocked until a channel is connected.",
+      href: "/shopreel/settings",
+      actionLabel: "Open settings",
+    });
+  }
+  if (generations.length === 0) {
+    recommendedActions.push({
+      key: "create-first",
+      title: "Create your next generation",
+      summary: "No generation exists yet for review or publishing.",
+      href: "/shopreel/create",
+      actionLabel: "Create content",
+    });
+  }
+  if (storySources.length === 0) {
+    recommendedActions.push({
+      key: "source-input",
+      title: "Add fresh source material",
+      summary: "Bring in a new source to seed more high-quality opportunities.",
+      href: "/shopreel/create",
+      actionLabel: "Add source",
+    });
+  }
+
+  const topCta = buckets.publishFailures[0]
+    ? { href: buckets.publishFailures[0].nextAction.href, label: "Resolve failure" }
+    : buckets.needsReview[0]
+      ? { href: `/shopreel/generations/${buckets.needsReview[0].id}`, label: "Start review" }
+      : buckets.readyToPublish[0]
+        ? { href: `/shopreel/generations/${buckets.readyToPublish[0].id}`, label: "Publish ready item" }
+        : { href: "/shopreel/create", label: "Create new content" };
+
+  const kpis = [
+    {
+      label: "Needs Review",
+      value: buckets.needsReview.length,
+      detail:
+        buckets.needsReview.length > 0
+          ? `${Math.min(buckets.needsReview.length, 5)} waiting for approval now`
+          : "Nothing waiting. Keep pipeline fed.",
+      href: buckets.needsReview[0] ? `/shopreel/generations/${buckets.needsReview[0].id}` : "/shopreel/create",
+      actionLabel: buckets.needsReview.length > 0 ? "Open review queue" : "Create next draft",
+    },
+    {
+      label: "Ready to Publish",
+      value: buckets.readyToPublish.length,
+      detail:
+        buckets.readyToPublish.length > 0
+          ? "Approved and unblocked items that can publish now"
+          : "No publish-ready items yet",
+      href: buckets.readyToPublish[0]
+        ? `/shopreel/generations/${buckets.readyToPublish[0].id}`
+        : "/shopreel/generations",
+      actionLabel: buckets.readyToPublish.length > 0 ? "Open ready item" : "Review pending work",
+    },
+    {
+      label: "Publish Failures",
+      value: buckets.publishFailures.length,
+      detail:
+        buckets.publishFailures.length > 0
+          ? "Failed attempts need retry or configuration fixes"
+          : "No active failures",
+      href: buckets.publishFailures[0]?.nextAction.href ?? "/shopreel/publish-queue",
+      actionLabel: buckets.publishFailures.length > 0 ? "Diagnose failures" : "Open publish queue",
+    },
+    {
+      label: "Render Blocked",
+      value: buckets.approvedRenderBlocked.length,
+      detail:
+        buckets.approvedRenderBlocked.length > 0
+          ? "Approved items missing render prerequisites"
+          : "Render pipeline is clear",
+      href: buckets.approvedRenderBlocked[0]
+        ? `/shopreel/generations/${buckets.approvedRenderBlocked[0].generation.id}`
+        : "/shopreel/render-queue",
+      actionLabel: buckets.approvedRenderBlocked.length > 0 ? "Fix blockers" : "Open processing",
+    },
+  ];
 
   return (
     <GlassShell
       eyebrow="ShopReel"
       title="Operational Dashboard"
-      subtitle="What needs review, what is blocked, what failed, and what is publish-ready right now."
+      subtitle="Priority-first command view for review, rendering, and publishing execution."
       actions={
-        <>
-          <Link href="/shopreel/create">
-            <GlassButton variant="ghost">Create</GlassButton>
-          </Link>
-          <Link href="/shopreel/generations">
-            <GlassButton variant="secondary">Review Queue</GlassButton>
-          </Link>
-          <Link href="/shopreel/publish-center">
-            <GlassButton variant="primary">Open Operations Board</GlassButton>
-          </Link>
-        </>
+        <Link href={topCta.href}>
+          <GlassButton variant="primary">{topCta.label}</GlassButton>
+        </Link>
       }
     >
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-        {[
-          {
-            label: "Needs Review",
-            value: buckets.needsReview.length,
-            href: buckets.needsReview[0] ? `/shopreel/generations/${buckets.needsReview[0].id}` : "/shopreel/generations",
-          },
-          {
-            label: "Render Blocked",
-            value: buckets.approvedRenderBlocked.length,
-            href: buckets.approvedRenderBlocked[0]
-              ? `/shopreel/generations/${buckets.approvedRenderBlocked[0].generation.id}`
-              : "/shopreel/render-queue",
-          },
-          {
-            label: "Ready to Publish",
-            value: buckets.readyToPublish.length,
-            href: buckets.readyToPublish[0]
-              ? `/shopreel/generations/${buckets.readyToPublish[0].id}`
-              : "/shopreel/publish-center",
-          },
-          {
-            label: "Publish Failures",
-            value: buckets.publishFailures.length,
-            href: buckets.publishFailures[0]?.nextAction.href ?? "/shopreel/publish-queue",
-          },
-          {
-            label: "Scheduled",
-            value: buckets.scheduled.length,
-            href: "/shopreel/calendar",
-          },
-          {
-            label: "Recently Published",
-            value: buckets.recentlyPublished.length,
-            href: "/shopreel/published",
-          },
-        ].map((stat) => (
-          <Link key={stat.label} href={stat.href} className="block">
-            <GlassCard label="KPI" title={String(stat.value)} description={stat.label} strong />
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((kpi) => (
+          <Link key={kpi.label} href={kpi.href} className="block">
+            <GlassCard label="Live status" title={String(kpi.value)} description={kpi.label} strong>
+              <div className={cx("mt-2 text-xs", glassTheme.text.secondary)}>{kpi.detail}</div>
+              <div className={cx("mt-2 text-xs font-medium", glassTheme.text.copper)}>{kpi.actionLabel} →</div>
+            </GlassCard>
           </Link>
         ))}
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.25fr_1fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <GlassCard
-          label="Needs Attention"
-          title="Priority queue"
-          description="Highest-priority items requiring operator action right now."
+          label="Action Center"
+          title="What should happen next"
+          description="Urgent issues first, then highest-leverage work."
           strong
         >
-          {attentionItems.length === 0 ? (
-            <div
-              className={cx(
-                "rounded-2xl border p-4 text-sm",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft,
-                glassTheme.text.secondary,
-              )}
-            >
-              No urgent items. Continue from ready actions or create new content.
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {attentionItems.map((item) => (
+          <div className="grid gap-2">
+            {attentionItems.length > 0 ? (
+              attentionItems.map((item) => (
                 <div
                   key={item.key}
-                  className={cx("rounded-2xl border p-4", glassTheme.border.softer, glassTheme.glass.panelSoft)}
+                  className={cx(
+                    "grid gap-2 rounded-xl border px-3 py-2 md:grid-cols-[auto_1fr_auto] md:items-center",
+                    glassTheme.border.softer,
+                    glassTheme.glass.panelSoft,
+                  )}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>{item.title}</div>
-                      <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>{item.summary}</div>
-                    </div>
-                    <GlassBadge tone={item.tone}>{item.summary.split(":")[0]}</GlassBadge>
+                  <GlassBadge tone={item.tone}>{item.priority === "urgent" ? "Urgent" : "High"}</GlassBadge>
+                  <div className="min-w-0">
+                    <div className={cx("truncate text-sm font-medium", glassTheme.text.primary)}>{item.title}</div>
+                    <div className={cx("truncate text-xs", glassTheme.text.secondary)}>{item.summary}</div>
                   </div>
-                  <div className="mt-3">
-                    <Link href={item.href}>
-                      <GlassButton variant="secondary">{item.actionLabel}</GlassButton>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </GlassCard>
-
-        <GlassCard
-          label="Ready"
-          title="Next Actions"
-          description="Items that can be acted on immediately."
-          strong
-        >
-          <div className="grid gap-3">
-            {buckets.readyToPublish.slice(0, 4).map((generation) => (
-              <div
-                key={generation.id}
-                className={cx("rounded-2xl border p-4", glassTheme.border.copper, glassTheme.glass.panelSoft)}
-              >
-                <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                  {generationTitle(generation)}
-                </div>
-                <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
-                  Approved and publish-ready • updated {timeAgoLabel(generation.updated_at ?? generation.created_at)}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link href={`/shopreel/generations/${generation.id}`}>
-                    <GlassButton variant="primary">Open publish panel</GlassButton>
-                  </Link>
-                  <Link href={`/shopreel/editor/video/${generation.id}`}>
-                    <GlassButton variant="ghost">Open editor</GlassButton>
+                  <Link href={item.href}>
+                    <GlassButton variant="secondary">{item.actionLabel}</GlassButton>
                   </Link>
                 </div>
-              </div>
-            ))}
-
-            {buckets.publishFailures
-              .filter((failure) => failure.diagnostics.retryable)
-              .slice(0, 2)
-              .map((failure) => (
-                <div
-                  key={failure.publication.id}
-                  className={cx("rounded-2xl border p-4", glassTheme.border.softer, glassTheme.glass.panelSoft)}
-                >
-                  <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                    Retry publish: {failure.generation ? generationTitle(failure.generation) : failure.publication.id}
-                  </div>
-                  <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>{failure.diagnostics.summary}</div>
-                  <div className="mt-3">
-                    <Link href={failure.nextAction.href}>
-                      <GlassButton variant="secondary">{failure.nextAction.label}</GlassButton>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </GlassCard>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <GlassCard
-          label="Curated Sources"
-          title="Recent source activity"
-          description="Highest-value recent inputs with direct next actions."
-          strong
-        >
-          <div className="grid gap-3">
-            {(sourceData ?? []).length === 0 ? (
-              <div
-                className={cx(
-                  "rounded-2xl border p-4 text-sm",
-                  glassTheme.border.softer,
-                  glassTheme.glass.panelSoft,
-                  glassTheme.text.secondary,
-                )}
-              >
-                No recent sources. Add new inputs from Create.
-              </div>
+              ))
             ) : (
-              (sourceData ?? []).map((source: any) => {
-                const opportunityId =
-                  typeof source.id === "string" ? opportunityBySourceId.get(source.id) ?? null : null;
-                const href = opportunityId
-                  ? `/shopreel/opportunities/${opportunityId}`
-                  : "/shopreel/create";
-
-                return (
+              <div className="grid gap-2">
+                {recommendedActions.slice(0, 3).map((item) => (
                   <div
-                    key={source.id}
+                    key={item.key}
                     className={cx(
-                      "grid gap-3 rounded-2xl border p-4 md:grid-cols-[1fr_auto]",
+                      "grid gap-2 rounded-xl border px-3 py-2 md:grid-cols-[1fr_auto] md:items-center",
                       glassTheme.border.softer,
                       glassTheme.glass.panelSoft,
                     )}
                   >
                     <div>
-                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      <div className={cx("text-sm font-medium", glassTheme.text.primary)}>{item.title}</div>
+                      <div className={cx("text-xs", glassTheme.text.secondary)}>{item.summary}</div>
+                    </div>
+                    <Link href={item.href}>
+                      <GlassButton variant="secondary">{item.actionLabel}</GlassButton>
+                    </Link>
+                  </div>
+                ))}
+                {recommendedActions.length === 0 ? (
+                  <div
+                    className={cx(
+                      "rounded-xl border px-3 py-2 text-xs",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft,
+                      glassTheme.text.secondary,
+                    )}
+                  >
+                    No urgent or recommended actions detected. Continue publishing from ready items.
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </GlassCard>
+
+        <GlassCard
+          label="Ready Now"
+          title="Immediate actions"
+          description="Direct actions that can be completed right now."
+          strong
+        >
+          <div className="grid gap-2">
+            {buckets.readyToPublish.slice(0, 4).map((generation) => (
+              <div
+                key={generation.id}
+                className={cx("rounded-xl border px-3 py-2", glassTheme.border.copper, glassTheme.glass.panelSoft)}
+              >
+                <div className={cx("truncate text-sm font-medium", glassTheme.text.primary)}>
+                  {generationTitle(generation)}
+                </div>
+                <div className={cx("text-xs", glassTheme.text.secondary)}>
+                  Publish-ready • updated {timeAgoLabel(generation.updated_at ?? generation.created_at)}
+                </div>
+                <div className="mt-2">
+                  <Link href={`/shopreel/generations/${generation.id}`}>
+                    <GlassButton variant="primary">Open publish panel</GlassButton>
+                  </Link>
+                </div>
+              </div>
+            ))}
+
+            {buckets.readyToPublish.length === 0 ? (
+              <div
+                className={cx(
+                  "rounded-xl border px-3 py-2 text-xs",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.secondary,
+                )}
+              >
+                Nothing publish-ready. Clear review or render blockers in the Action Center.
+              </div>
+            ) : null}
+          </div>
+        </GlassCard>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+        <GlassCard
+          label="Best New Inputs"
+          title="Recent source activity"
+          description="Fresh source material with one-click next action."
+          strong
+        >
+          <div className="grid gap-2">
+            {storySources.length === 0 ? (
+              <div
+                className={cx(
+                  "rounded-xl border px-3 py-2 text-xs",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                  glassTheme.text.secondary,
+                )}
+              >
+                No recent source inputs. Add new material from Create.
+              </div>
+            ) : (
+              storySources.map((source) => {
+                const opportunityId = opportunityBySourceId.get(source.id) ?? null;
+                const href = opportunityId ? `/shopreel/opportunities/${opportunityId}` : "/shopreel/create";
+
+                return (
+                  <div
+                    key={source.id}
+                    className={cx(
+                      "grid gap-2 rounded-xl border px-3 py-2 md:grid-cols-[auto_1fr_auto] md:items-center",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft,
+                    )}
+                  >
+                    <GlassBadge tone="default">{(source.kind ?? "source").replaceAll("_", " ")}</GlassBadge>
+                    <div className="min-w-0">
+                      <div className={cx("truncate text-sm font-medium", glassTheme.text.primary)}>
                         {source.title ?? "Untitled source"}
                       </div>
-                      <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
-                        {(source.kind ?? "source").replaceAll("_", " ")} • added {timeAgoLabel(source.created_at ?? null)}
+                      <div className={cx("text-xs", glassTheme.text.secondary)}>
+                        Added {timeAgoLabel(source.created_at)}
                       </div>
                     </div>
-                    <div className="md:self-center md:justify-self-end">
-                      <Link href={href}>
-                        <GlassButton variant="ghost">
-                          {opportunityId ? "Open opportunity" : "Create from source"}
-                        </GlassButton>
-                      </Link>
-                    </div>
+                    <Link href={href}>
+                      <GlassButton variant="ghost">{opportunityId ? "Open opportunity" : "Create"}</GlassButton>
+                    </Link>
                   </div>
                 );
               })
@@ -456,23 +530,40 @@ export default async function ShopReelPage() {
         </GlassCard>
 
         <GlassCard
-          label="System"
-          title="Secondary panels"
-          description="Lower-priority navigation and system surfaces."
+          label="Publish Snapshot"
+          title="Throughput status"
+          description="Short-term publish health from live lifecycle data."
+          strong
         >
-          <div className="grid gap-3">
+          <div className="grid gap-2">
             {[
-              ["Operations Board", "/shopreel/publish-center", "Deep lifecycle board and approvals"],
-              ["Publish Queue", "/shopreel/publish-queue", "Queue diagnostics and publish retries"],
-              ["Settings", "/shopreel/settings", "Connections and workspace defaults"],
-            ].map(([label, href, description]) => (
+              {
+                label: "Scheduled",
+                value: buckets.scheduled.length,
+                href: "/shopreel/calendar",
+              },
+              {
+                label: "Recently Published",
+                value: buckets.recentlyPublished.length,
+                href: "/shopreel/published",
+              },
+              {
+                label: "Retryable Failures",
+                value: buckets.publishFailures.filter((item) => item.diagnostics.retryable).length,
+                href: "/shopreel/publish-queue",
+              },
+            ].map((item) => (
               <Link
-                key={label}
-                href={href}
-                className={cx("rounded-2xl border p-4 no-underline", glassTheme.border.softer, glassTheme.glass.panelSoft)}
+                key={item.label}
+                href={item.href}
+                className={cx(
+                  "flex items-center justify-between rounded-xl border px-3 py-2 no-underline",
+                  glassTheme.border.softer,
+                  glassTheme.glass.panelSoft,
+                )}
               >
-                <div className={cx("text-base font-medium", glassTheme.text.primary)}>{label}</div>
-                <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>{description}</div>
+                <span className={cx("text-sm", glassTheme.text.secondary)}>{item.label}</span>
+                <span className={cx("text-base font-semibold", glassTheme.text.primary)}>{item.value}</span>
               </Link>
             ))}
           </div>
