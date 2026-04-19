@@ -1,7 +1,9 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import Link from "next/link";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
@@ -79,8 +81,13 @@ export default async function ShopReelAccountPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Workspace"
-      subtitle="Current shop context, active memberships, and connected publishing accounts."
+      title="Workspace details"
+      subtitle="Contextual account diagnostics for the current user and shop. Core configuration stays in Settings."
+      actions={
+        <Link href="/shopreel/settings">
+          <GlassButton variant="secondary">Back to settings</GlassButton>
+        </Link>
+      }
     >
       <ShopReelNav />
 

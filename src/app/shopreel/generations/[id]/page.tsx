@@ -12,6 +12,7 @@ import GenerationDeleteButton from "@/features/shopreel/generations/components/G
 import GenerationTimelineEditor from "@/features/shopreel/generations/components/GenerationTimelineEditor";
 import PublishPlatformButtons from "@/features/shopreel/publishing/components/PublishPlatformButtons";
 import ReviewApprovalActions from "@/features/shopreel/operations/components/ReviewApprovalActions";
+import RetryRenderButton from "@/features/shopreel/operations/components/RetryRenderButton";
 import { computeGenerationPublishReadiness } from "@/features/shopreel/operations/lib/publishReadiness";
 
 type BlogSection = {
@@ -149,15 +150,13 @@ export default async function ShopReelGenerationDetailPage(
           <Link href={editorPath}>
             <GlassButton variant="secondary">Open editor</GlassButton>
           </Link>
-          <GenerationDeleteButton generationId={generation.id} />
-          <Link href="/shopreel/publish-center">
-            <GlassButton variant="ghost">Publish Center</GlassButton>
+          <Link href="/shopreel/generations">
+            <GlassButton variant="ghost">Review queue</GlassButton>
           </Link>
-          {generation.status === "ready" ? (
-            <Link href={`/shopreel/publish-center`}>
-              <GlassButton variant="ghost">Publish Center</GlassButton>
-            </Link>
-          ) : null}
+          <Link href="/shopreel/publish-queue">
+            <GlassButton variant="ghost">Publish queue</GlassButton>
+          </Link>
+          <GenerationDeleteButton generationId={generation.id} />
         </>
       }
     >
@@ -200,6 +199,11 @@ export default async function ShopReelGenerationDetailPage(
             <div className="mt-4">
               <ReviewApprovalActions generationId={generation.id} compact />
             </div>
+            {!canPublish && generation.status === "ready" ? (
+              <div className="mt-4">
+                <RetryRenderButton generationId={generation.id} />
+              </div>
+            ) : null}
             <div className="mt-4">
               <PublishPlatformButtons generationId={generation.id} canPublish={canPublish} />
             </div>

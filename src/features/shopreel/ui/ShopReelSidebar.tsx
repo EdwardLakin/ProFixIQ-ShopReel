@@ -25,21 +25,20 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Create",
     items: [
       { label: "Create", compactLabel: "CR", href: "/shopreel/create" },
-      { label: "Manual Upload", compactLabel: "UP", href: "/shopreel/upload" },
-      { label: "Content Library", compactLabel: "LB", href: "/shopreel/content" },
-      { label: "Editor Hub", compactLabel: "ED", href: "/shopreel/editor", status: "contextual" },
+      { label: "Manual Upload", compactLabel: "UP", href: "/shopreel/upload", status: "contextual" },
     ],
   },
   {
     label: "Pipeline",
     items: [
       { label: "Opportunities", compactLabel: "OP", href: "/shopreel/opportunities" },
-      { label: "Review", compactLabel: "RV", href: "/shopreel/generations" },
+      { label: "Review / Generations", compactLabel: "RV", href: "/shopreel/generations" },
       { label: "Video Processing", compactLabel: "VP", href: "/shopreel/render-queue" },
+      { label: "Content Library", compactLabel: "LB", href: "/shopreel/content" },
     ],
   },
   {
-    label: "Publishing",
+    label: "Publish",
     items: [
       { label: "Operations Board", compactLabel: "OB", href: "/shopreel/publish-center" },
       { label: "Publish Queue", compactLabel: "PQ", href: "/shopreel/publish-queue" },
@@ -49,16 +48,17 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     ],
   },
   {
-    label: "Experimental",
+    label: "Workspace",
+    items: [{ label: "Settings", compactLabel: "ST", href: "/shopreel/settings" }],
+  },
+  {
+    label: "Advanced / Experimental",
     items: [
       { label: "Campaigns", compactLabel: "CP", href: "/shopreel/campaigns", status: "experimental" },
       { label: "Video Creation Studio", compactLabel: "VS", href: "/shopreel/video-creation", status: "experimental" },
       { label: "AI Requests", compactLabel: "AI", href: "/shopreel/creator-requests", status: "experimental" },
+      { label: "Editor Hub", compactLabel: "ED", href: "/shopreel/editor", status: "contextual" },
     ],
-  },
-  {
-    label: "Workspace",
-    items: [{ label: "Settings", compactLabel: "ST", href: "/shopreel/settings" }],
   },
 ];
 
