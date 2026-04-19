@@ -28,6 +28,18 @@ function readLinkedCampaignId(metadata: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function readLinkedGenerationId(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).linked_generation_id;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function readLinkedContentPieceId(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).linked_content_piece_id;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 export default function ShopReelOpportunitiesClient({
   opportunities,
   activeTab,
@@ -183,6 +195,8 @@ export default function ShopReelOpportunitiesClient({
       ) : (
         opportunities.map((opportunity) => {
           const linkedCampaignId = readLinkedCampaignId(opportunity.metadata);
+          const linkedGenerationId = readLinkedGenerationId(opportunity.metadata);
+          const linkedContentPieceId = readLinkedContentPieceId(opportunity.metadata);
 
           return (
             <div
@@ -217,6 +231,14 @@ export default function ShopReelOpportunitiesClient({
                       Open linked campaign
                     </Link>
                   ) : null}
+                  {linkedGenerationId ? (
+                    <Link
+                      href={`/shopreel/generations/${linkedGenerationId}`}
+                      className="text-sm text-cyan-300 underline"
+                    >
+                      Open linked generation
+                    </Link>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -247,6 +269,21 @@ export default function ShopReelOpportunitiesClient({
                   ) : linkedCampaignId ? (
                     <Link href={`/shopreel/campaigns/${linkedCampaignId}`}>
                       <GlassButton variant="ghost">Open Campaign</GlassButton>
+                    </Link>
+                  ) : null}
+                  {linkedGenerationId ? (
+                    <Link href={`/shopreel/generations/${linkedGenerationId}`}>
+                      <GlassButton variant="ghost">Open Generation</GlassButton>
+                    </Link>
+                  ) : null}
+                  {linkedGenerationId ? (
+                    <Link href={`/shopreel/editor/video/${linkedGenerationId}`}>
+                      <GlassButton variant="ghost">Open Editor</GlassButton>
+                    </Link>
+                  ) : null}
+                  {linkedContentPieceId ? (
+                    <Link href={`/shopreel/content/${linkedContentPieceId}`}>
+                      <GlassButton variant="ghost">Open Content</GlassButton>
                     </Link>
                   ) : null}
                 </div>

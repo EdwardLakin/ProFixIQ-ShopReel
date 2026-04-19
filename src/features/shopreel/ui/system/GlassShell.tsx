@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { glassTheme, cx } from "./glassTheme";
 
@@ -32,35 +31,20 @@ export default function GlassShell(props: {
         <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8", className)}>
           <header className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <Link
-                  href="/shopreel"
+              <form action="/auth/sign-out" method="post" className="ml-1">
+                <button
+                  type="submit"
                   className={cx(
-                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition no-underline",
+                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition",
                     glassTheme.border.softer,
                     glassTheme.glass.panelSoft,
-                    glassTheme.text.primary,
-                    "hover:bg-white/[0.06]",
+                    glassTheme.text.secondary,
+                    "hover:text-white hover:bg-white/[0.06]",
                   )}
                 >
-                  Dashboard
-                </Link>
-
-                <form action="/auth/sign-out" method="post" className="ml-1">
-                  <button
-                    type="submit"
-                    className={cx(
-                      "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition",
-                      glassTheme.border.softer,
-                      glassTheme.glass.panelSoft,
-                      glassTheme.text.secondary,
-                      "hover:text-white hover:bg-white/[0.06]",
-                    )}
-                  >
-                    Sign out
-                  </button>
-                </form>
-              </div>
+                  Sign out
+                </button>
+              </form>
 
               {actions ? (
                 <div className="flex flex-wrap items-center gap-3">{actions}</div>
