@@ -450,7 +450,7 @@ export default async function ShopReelGenerationDetailPage(
                 </div>
 
                 <div className="flex items-start justify-end">
-                  <Link href={`/shopreel/editor/video/${generation.id}?scene=${scene.id}`}>
+                  <Link href={`${editorPath}?scene=${encodeURIComponent(scene.id)}`}>
                     <GlassButton variant="ghost">Edit scene</GlassButton>
                   </Link>
                 </div>

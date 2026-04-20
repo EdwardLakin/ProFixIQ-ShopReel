@@ -39,6 +39,13 @@ type RecommendedAction = {
   href: string;
   actionLabel: string;
 };
+type ThroughputSignal = {
+  label: string;
+  value: number;
+  detail: string;
+  href: string;
+  tone: "default" | "copper" | "muted";
+};
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -292,6 +299,22 @@ export default async function ShopReelPage() {
       actionLabel: "Add source",
     });
   }
+  if (generations.length > 0) {
+    recommendedActions.push({
+      key: "open-editor",
+      title: "Continue active editor work",
+      summary: "Open the canonical editor surface for the latest generation.",
+      href: `/shopreel/editor/video/${generations[0].id}`,
+      actionLabel: "Open editor",
+    });
+  }
+  recommendedActions.push({
+    key: "manual-upload",
+    title: "Inject source material manually",
+    summary: "Manual upload is a first-class source path when automation is sparse.",
+    href: "/shopreel/upload",
+    actionLabel: "Manual upload",
+  });
 
   const topCta = buckets.publishFailures[0]
     ? { href: buckets.publishFailures[0].nextAction.href, label: "Resolve failure" }
@@ -348,24 +371,96 @@ export default async function ShopReelPage() {
     },
   ];
 
+  const prioritizedSources = [...storySources].sort((a, b) => {
+    const aHasOpportunity = opportunityBySourceId.has(a.id);
+    const bHasOpportunity = opportunityBySourceId.has(b.id);
+    if (aHasOpportunity !== bHasOpportunity) return aHasOpportunity ? -1 : 1;
+    const aTime = new Date(a.created_at ?? 0).getTime();
+    const bTime = new Date(b.created_at ?? 0).getTime();
+    return bTime - aTime;
+  });
+
+  const throughputSignals: ThroughputSignal[] = [
+    {
+      label: "Approval backlog",
+      value: buckets.needsReview.length,
+      detail:
+        buckets.needsReview.length > 0 ? "Waiting for reviewer action now" : "No approvals waiting",
+      href: "/shopreel/generations",
+      tone: buckets.needsReview.length > 0 ? "copper" : "default",
+    },
+    {
+      label: "Render blockers",
+      value: buckets.approvedRenderBlocked.length,
+      detail:
+        buckets.approvedRenderBlocked.length > 0
+          ? "Approved items blocked before publish"
+          : "Render pipeline clear",
+      href: "/shopreel/render-queue",
+      tone: buckets.approvedRenderBlocked.length > 0 ? "muted" : "default",
+    },
+    {
+      label: "Retryable publish failures",
+      value: buckets.publishFailures.filter((item) => item.diagnostics.retryable).length,
+      detail: "Requires retry or destination fixes",
+      href: "/shopreel/publish-queue",
+      tone: "muted",
+    },
+    {
+      label: "Scheduled output",
+      value: buckets.scheduled.length,
+      detail: "Items queued on the calendar",
+      href: "/shopreel/calendar",
+      tone: "default",
+    },
+  ];
+
   return (
     <GlassShell
       eyebrow="ShopReel"
       title="Operational Dashboard"
       subtitle="Priority-first command view for review, rendering, and publishing execution."
       actions={
-        <Link href={topCta.href}>
-          <GlassButton variant="primary">{topCta.label}</GlassButton>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={topCta.href}>
+            <GlassButton variant="primary">{topCta.label}</GlassButton>
+          </Link>
+          <Link href="/shopreel/editor">
+            <GlassButton variant="secondary">Open editor</GlassButton>
+          </Link>
+          <Link href="/shopreel/upload">
+            <GlassButton variant="ghost">Manual upload</GlassButton>
+          </Link>
+        </div>
       }
     >
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
-          <Link key={kpi.label} href={kpi.href} className="block">
-            <GlassCard label="Live status" title={String(kpi.value)} description={kpi.label} strong>
-              <div className={cx("mt-2 text-xs", glassTheme.text.secondary)}>{kpi.detail}</div>
-              <div className={cx("mt-2 text-xs font-medium", glassTheme.text.copper)}>{kpi.actionLabel} →</div>
-            </GlassCard>
+          <Link
+            key={kpi.label}
+            href={kpi.href}
+            className={cx(
+              "block rounded-2xl border px-4 py-3 no-underline transition",
+              glassTheme.border.softer,
+              glassTheme.glass.panelSoft,
+              "hover:border-white/20 hover:bg-white/[0.06]",
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className={cx("text-[11px] uppercase tracking-[0.16em]", glassTheme.text.muted)}>
+                  {kpi.label}
+                </div>
+                <div className={cx("mt-1 text-2xl font-semibold leading-none", glassTheme.text.primary)}>
+                  {kpi.value}
+                </div>
+              </div>
+              <div className={cx("text-[11px] font-medium uppercase tracking-wide", glassTheme.text.copper)}>
+                {kpi.value === 0 ? "Watch" : "Act"}
+              </div>
+            </div>
+            <div className={cx("mt-2 text-xs leading-5", glassTheme.text.secondary)}>{kpi.detail}</div>
+            <div className={cx("mt-1 text-xs font-medium", glassTheme.text.copper)}>{kpi.actionLabel} →</div>
           </Link>
         ))}
       </section>
@@ -438,7 +533,7 @@ export default async function ShopReelPage() {
         <GlassCard
           label="Ready Now"
           title="Immediate actions"
-          description="Direct actions that can be completed right now."
+          description="Highest-value actions when no urgent blockers are active."
           strong
         >
           <div className="grid gap-2">
@@ -462,15 +557,25 @@ export default async function ShopReelPage() {
             ))}
 
             {buckets.readyToPublish.length === 0 ? (
-              <div
-                className={cx(
-                  "rounded-xl border px-3 py-2 text-xs",
-                  glassTheme.border.softer,
-                  glassTheme.glass.panelSoft,
-                  glassTheme.text.secondary,
-                )}
-              >
-                Nothing publish-ready. Clear review or render blockers in the Action Center.
+              <div className="grid gap-2">
+                {recommendedActions.slice(0, 2).map((item) => (
+                  <div
+                    key={item.key}
+                    className={cx(
+                      "grid gap-2 rounded-xl border px-3 py-2 md:grid-cols-[1fr_auto] md:items-center",
+                      glassTheme.border.softer,
+                      glassTheme.glass.panelSoft,
+                    )}
+                  >
+                    <div>
+                      <div className={cx("text-sm font-medium", glassTheme.text.primary)}>{item.title}</div>
+                      <div className={cx("text-xs", glassTheme.text.secondary)}>{item.summary}</div>
+                    </div>
+                    <Link href={item.href}>
+                      <GlassButton variant="secondary">{item.actionLabel}</GlassButton>
+                    </Link>
+                  </div>
+                ))}
               </div>
             ) : null}
           </div>
@@ -497,9 +602,10 @@ export default async function ShopReelPage() {
                 No recent source inputs. Add new material from Create.
               </div>
             ) : (
-              storySources.map((source) => {
+              prioritizedSources.map((source) => {
                 const opportunityId = opportunityBySourceId.get(source.id) ?? null;
                 const href = opportunityId ? `/shopreel/opportunities/${opportunityId}` : "/shopreel/create";
+                const actionLabel = opportunityId ? "Open opportunity" : "Create opportunity";
 
                 return (
                   <div
@@ -516,11 +622,12 @@ export default async function ShopReelPage() {
                         {source.title ?? "Untitled source"}
                       </div>
                       <div className={cx("text-xs", glassTheme.text.secondary)}>
-                        Added {timeAgoLabel(source.created_at)}
+                        {opportunityId ? "Opportunity ready" : "Needs opportunity"} • Added{" "}
+                        {timeAgoLabel(source.created_at)}
                       </div>
                     </div>
                     <Link href={href}>
-                      <GlassButton variant="ghost">{opportunityId ? "Open opportunity" : "Create"}</GlassButton>
+                      <GlassButton variant="ghost">{actionLabel}</GlassButton>
                     </Link>
                   </div>
                 );
@@ -530,42 +637,55 @@ export default async function ShopReelPage() {
         </GlassCard>
 
         <GlassCard
-          label="Publish Snapshot"
-          title="Throughput status"
-          description="Short-term publish health from live lifecycle data."
+          label="Execution health"
+          title="Throughput and operator controls"
+          description="Live queue pressure plus immediate surface links."
           strong
         >
           <div className="grid gap-2">
-            {[
-              {
-                label: "Scheduled",
-                value: buckets.scheduled.length,
-                href: "/shopreel/calendar",
-              },
-              {
-                label: "Recently Published",
-                value: buckets.recentlyPublished.length,
-                href: "/shopreel/published",
-              },
-              {
-                label: "Retryable Failures",
-                value: buckets.publishFailures.filter((item) => item.diagnostics.retryable).length,
-                href: "/shopreel/publish-queue",
-              },
-            ].map((item) => (
+            {throughputSignals.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
                 className={cx(
-                  "flex items-center justify-between rounded-xl border px-3 py-2 no-underline",
+                  "grid gap-1 rounded-xl border px-3 py-2 no-underline",
                   glassTheme.border.softer,
                   glassTheme.glass.panelSoft,
                 )}
               >
-                <span className={cx("text-sm", glassTheme.text.secondary)}>{item.label}</span>
-                <span className={cx("text-base font-semibold", glassTheme.text.primary)}>{item.value}</span>
+                <div className="flex items-center justify-between">
+                  <span className={cx("text-sm", glassTheme.text.secondary)}>{item.label}</span>
+                  <span className={cx("text-base font-semibold", glassTheme.text.primary)}>{item.value}</span>
+                </div>
+                <div
+                  className={cx(
+                    "text-xs",
+                    item.tone === "copper"
+                      ? glassTheme.text.copper
+                      : item.tone === "muted"
+                        ? glassTheme.text.copperSoft
+                        : glassTheme.text.secondary,
+                  )}
+                >
+                  {item.detail}
+                </div>
               </Link>
             ))}
+
+            <div
+              className={cx(
+                "grid gap-2 rounded-xl border px-3 py-3 md:grid-cols-2",
+                glassTheme.border.softer,
+                glassTheme.glass.panelSoft,
+              )}
+            >
+              <Link href="/shopreel/editor">
+                <GlassButton variant="secondary">Open editor hub</GlassButton>
+              </Link>
+              <Link href="/shopreel/upload">
+                <GlassButton variant="ghost">Manual upload</GlassButton>
+              </Link>
+            </div>
           </div>
         </GlassCard>
       </section>

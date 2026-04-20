@@ -25,7 +25,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Create",
     items: [
       { label: "Create", compactLabel: "CR", href: "/shopreel/create" },
-      { label: "Manual Upload", compactLabel: "UP", href: "/shopreel/upload", status: "contextual" },
+      { label: "Manual Upload", compactLabel: "UP", href: "/shopreel/upload" },
     ],
   },
   {
@@ -33,6 +33,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { label: "Opportunities", compactLabel: "OP", href: "/shopreel/opportunities" },
       { label: "Review / Generations", compactLabel: "RV", href: "/shopreel/generations" },
+      { label: "Video Editor", compactLabel: "ED", href: "/shopreel/editor" },
       { label: "Video Processing", compactLabel: "VP", href: "/shopreel/render-queue" },
       { label: "Content Library", compactLabel: "LB", href: "/shopreel/content" },
     ],
@@ -57,7 +58,6 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { label: "Campaigns", compactLabel: "CP", href: "/shopreel/campaigns", status: "experimental" },
       { label: "Video Creation Studio", compactLabel: "VS", href: "/shopreel/video-creation", status: "experimental" },
       { label: "AI Requests", compactLabel: "AI", href: "/shopreel/creator-requests", status: "experimental" },
-      { label: "Editor Hub", compactLabel: "ED", href: "/shopreel/editor", status: "contextual" },
     ],
   },
 ];
@@ -146,29 +146,30 @@ function SidebarBody(props: {
 
   return (
     <div className="flex h-full flex-col px-3 py-4">
-      <div className={cx("mb-4 flex items-center", collapsed ? "justify-center" : "justify-between")}>
+      <div
+        className={cx(
+          "mb-4 flex items-center rounded-xl border px-2 py-2",
+          glassTheme.border.softer,
+          "bg-white/[0.02]",
+          collapsed ? "justify-center" : "justify-between",
+        )}
+      >
         <div className={cx("min-w-0", collapsed && "sr-only")}>
-          <div className={cx("text-[10px] uppercase tracking-[0.2em]", glassTheme.text.copper)}>
-            ShopReel
-          </div>
-          <div className={cx("mt-1 text-base font-semibold", glassTheme.text.primary)}>
-            Operations
-          </div>
+          <div className={cx("text-[10px] uppercase tracking-[0.2em]", glassTheme.text.copper)}>ShopReel</div>
+          <div className={cx("mt-1 text-sm font-semibold", glassTheme.text.primary)}>Operations</div>
         </div>
         <button
           type="button"
           onClick={onToggleCollapse}
           className={cx(
-            "inline-flex h-9 w-9 items-center justify-center rounded-xl border text-xs font-semibold transition",
-            glassTheme.border.softer,
-            glassTheme.glass.panelSoft,
+            "inline-flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-semibold transition",
             glassTheme.text.secondary,
-            "hover:text-white hover:bg-white/[0.08]",
+            "hover:bg-white/[0.08] hover:text-white",
           )}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? ">>" : "<<"}
+          {collapsed ? "→" : "←"}
         </button>
       </div>
 
@@ -189,18 +190,18 @@ function SidebarBody(props: {
                     href={item.href}
                     onClick={closeAfterNavigate ? onToggleCollapse : undefined}
                     className={cx(
-                      "group rounded-xl px-2 py-2 text-sm font-medium no-underline transition",
+                      "group rounded-lg px-2 py-1.5 text-sm font-medium no-underline transition",
                       collapsed ? "flex h-10 items-center justify-center" : "flex items-center gap-2",
                       active
                         ? cx(
-                            "border border-white/20",
-                            "bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]",
+                            "border border-white/14",
+                            "bg-white/[0.1] shadow-[inset_2px_0_0_rgba(255,255,255,0.85)]",
                             glassTheme.text.primary,
                           )
                         : cx(
                             "border border-transparent",
                             glassTheme.text.secondary,
-                            "hover:bg-white/[0.07] hover:text-white",
+                            "hover:bg-white/[0.04] hover:text-white",
                           ),
                     )}
                     aria-current={active ? "page" : undefined}
@@ -208,10 +209,10 @@ function SidebarBody(props: {
                   >
                     <span
                       className={cx(
-                        "inline-flex h-6 min-w-6 items-center justify-center rounded-md border px-1 text-[10px] font-semibold tracking-wide",
+                        "inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-semibold tracking-wide",
                         active
-                          ? "border-white/30 bg-white/[0.18] text-white"
-                          : "border-white/12 text-white/70 group-hover:text-white",
+                          ? "bg-white/[0.16] text-white"
+                          : "text-white/55 group-hover:text-white/80",
                       )}
                     >
                       {item.compactLabel}

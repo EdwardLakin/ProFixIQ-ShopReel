@@ -262,7 +262,7 @@ export async function POST(req: Request) {
       sourceId,
       contentPieceId,
       generationId,
-      editorUrl: `/shopreel/editor/video/${generationId}`,
+      editorUrl: getEditorPath("video", generationId),
       reviewUrl: `/shopreel/generations/${generationId}`,
     });
   } catch (error) {
