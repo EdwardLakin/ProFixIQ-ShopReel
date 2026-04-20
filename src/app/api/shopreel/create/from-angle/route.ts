@@ -211,7 +211,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       generationId: generation.id,
-      editorUrl: `/shopreel/editor/video/${generation.id}`,
+      editorUrl: getEditorPath("post", generation.id),
     });
   } catch (error) {
     const message =

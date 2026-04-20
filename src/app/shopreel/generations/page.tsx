@@ -71,9 +71,16 @@ export default async function ShopReelGenerationsPage() {
           <div className="grid gap-3">
             {generations.map((generation: any) => {
               const draft = asStoryDraft(generation.story_draft);
+              const metadata =
+                generation.generation_metadata &&
+                typeof generation.generation_metadata === "object" &&
+                !Array.isArray(generation.generation_metadata)
+                  ? (generation.generation_metadata as Record<string, unknown>)
+                  : {};
               const title = draft?.title ?? "Untitled generation";
               const sourceKind = draft?.sourceKind ?? "story";
               const canPublish = generation.status === "ready";
+              const outputType = typeof metadata.output_type === "string" ? metadata.output_type : "video";
 
               return (
                 <div
@@ -109,7 +116,7 @@ export default async function ShopReelGenerationsPage() {
                     <Link href={`/shopreel/generations/${generation.id}`}>
                       <GlassButton variant="ghost">Review</GlassButton>
                     </Link>
-                    <Link href={`/shopreel/editor/video/${generation.id}`}>
+                    <Link href={getEditorPath(outputType, generation.id)}>
                       <GlassButton variant="secondary">Edit</GlassButton>
                     </Link>
                     {canPublish ? (
