@@ -22,23 +22,34 @@ function getSupabasePublishableKey(): string {
   return value;
 }
 
+function getSafeRedirectPath(next: string | null, fallback: string): string {
+  if (!next || !next.startsWith("/")) {
+    return fallback;
+  }
+
+  return next;
+}
+
 export async function GET(req: NextRequest) {
   const requestUrl = new URL(req.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? "/shopreel/settings";
+  const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
   const origin = requestUrl.origin;
 
-  if (!code) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent("Missing auth code.")}`,
-    );
-  }
+  const next = getSafeRedirectPath(
+    requestUrl.searchParams.get("next"),
+    "/shopreel/settings",
+  );
 
   let redirectPath = next;
 
   if (type === "signup" || next === "/signup") {
     redirectPath = "/onboarding";
+  }
+
+  if (type === "recovery") {
+    redirectPath = "/reset-password";
   }
 
   let response = NextResponse.redirect(`${origin}${redirectPath}`);
@@ -66,13 +77,36 @@ export async function GET(req: NextRequest) {
     },
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-  if (error) {
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(error.message)}`,
-    );
+    if (error) {
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent(error.message)}`,
+      );
+    }
+
+    return response;
   }
 
-  return response;
+  if (tokenHash && (type === "recovery" || type === "signup" || type === "email")) {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    });
+
+    if (error) {
+      const fallbackPath =
+        type === "recovery"
+          ? "/forgot-password"
+          : `/login?error=${encodeURIComponent(error.message)}`;
+      return NextResponse.redirect(`${origin}${fallbackPath}`);
+    }
+
+    return response;
+  }
+
+  return NextResponse.redirect(
+    `${origin}/login?error=${encodeURIComponent("Missing auth code.")}`,
+  );
 }
