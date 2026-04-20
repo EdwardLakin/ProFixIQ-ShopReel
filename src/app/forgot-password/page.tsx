@@ -1,49 +1,51 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-function LoginPageInner() {
-  const router = useRouter();
+function ForgotPasswordPageInner() {
   const searchParams = useSearchParams();
-
   const next = useMemo(
     () => searchParams.get("next") ?? "/shopreel",
     [searchParams],
   );
 
-  const error = searchParams.get("error");
-  const oauthError = searchParams.get("oauth_error");
-
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setStatus(null);
+    setError(null);
 
     try {
       const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/reset-password")}&type=recovery`;
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email,
-        password,
-      });
+        {
+          redirectTo,
+        },
+      );
 
-      if (signInError) {
-        throw signInError;
+      if (resetError) {
+        throw resetError;
       }
 
-      router.push(next);
-      router.refresh();
-    } catch (submitError) {
       setStatus(
-        submitError instanceof Error ? submitError.message : "Unable to sign in.",
+        "If an account exists for that email, we've sent password reset instructions.",
+      );
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to process password reset request right now.",
       );
     } finally {
       setBusy(false);
@@ -57,29 +59,23 @@ function LoginPageInner() {
         <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
           <div className="mb-6">
             <div className="mb-2 text-sm uppercase tracking-[0.25em] text-cyan-300/80">
-              Welcome back
+              Recover access
             </div>
-            <h1 className="text-2xl font-semibold">Sign in to ShopReel</h1>
+            <h1 className="text-2xl font-semibold">Forgot your password?</h1>
             <p className="mt-2 text-sm text-white/70">
-              Use your email and password to get back into your content workflow.
+              Enter your email and we&apos;ll send a secure password reset link.
             </p>
           </div>
 
+          {status ? (
+            <div className="mb-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
+              {status}
+            </div>
+          ) : null}
+
           {error ? (
             <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {decodeURIComponent(error)}
-            </div>
-          ) : null}
-
-          {oauthError ? (
-            <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-              {decodeURIComponent(oauthError)}
-            </div>
-          ) : null}
-
-          {status ? (
-            <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
-              {status}
+              {error}
             </div>
           ) : null}
 
@@ -97,43 +93,22 @@ function LoginPageInner() {
               />
             </label>
 
-            <label className="block">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="block text-sm text-white/80">Password</span>
-                <Link
-                  href={`/forgot-password?next=${encodeURIComponent(next)}`}
-                  className="text-xs text-white/80 underline hover:text-white"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 outline-none ring-0"
-                placeholder="Enter your password"
-              />
-            </label>
-
             <button
               type="submit"
               disabled={busy}
               className="w-full rounded-2xl bg-white px-4 py-3 font-medium text-black disabled:opacity-60"
             >
-              {busy ? "Signing in..." : "Sign in"}
+              {busy ? "Sending reset link..." : "Send reset link"}
             </button>
           </form>
 
           <p className="mt-6 text-sm text-white/70">
-            Need an account?{" "}
+            Remembered your password?{" "}
             <Link
               className="text-white underline"
-              href={`/signup?next=${encodeURIComponent(next)}`}
+              href={`/login?next=${encodeURIComponent(next)}`}
             >
-              Sign up
+              Sign in
             </Link>
           </p>
         </div>
@@ -142,20 +117,20 @@ function LoginPageInner() {
   );
 }
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <Suspense
       fallback={
         <main className="min-h-screen bg-[#050816] text-white">
           <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
             <div className="w-full rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-              <div className="text-sm text-white/70">Loading login...</div>
+              <div className="text-sm text-white/70">Loading reset page...</div>
             </div>
           </div>
         </main>
       }
     >
-      <LoginPageInner />
+      <ForgotPasswordPageInner />
     </Suspense>
   );
 }
