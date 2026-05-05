@@ -29,7 +29,9 @@ export default function ShopReelAppShell(props: { children: ReactNode }) {
   }, [collapsed]);
 
   return (
-    <div className={cx("min-h-screen", glassTheme.bg.base)}>
+    <div className={cx("min-h-screen bg-[#04081a]", glassTheme.bg.base)}>
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_25%_0%,rgba(105,80,255,0.2),transparent_36%),radial-gradient(circle_at_85%_10%,rgba(70,201,255,0.16),transparent_35%),linear-gradient(to_bottom,rgba(255,255,255,0.03),transparent_16%)]" />
+
       <ShopReelSidebar
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed((current) => !current)}
@@ -37,37 +39,19 @@ export default function ShopReelAppShell(props: { children: ReactNode }) {
         onCloseMobile={() => setMobileOpen(false)}
       />
 
-      <div
-        className={cx(
-          "border-b px-4 py-3 lg:hidden",
-          glassTheme.border.softer,
-          glassTheme.glass.panelSoft,
-        )}
-      >
+      <div className={cx("sticky top-0 z-30 border-b px-4 py-3 backdrop-blur-xl lg:hidden", glassTheme.border.softer, "bg-slate-950/65")}>
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          className={cx(
-            "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm",
-            glassTheme.border.softer,
-            glassTheme.glass.panelSoft,
-            glassTheme.text.primary,
-          )}
+          className={cx("inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm", glassTheme.border.softer, "bg-white/[0.04]", glassTheme.text.primary)}
           aria-label="Open navigation"
         >
           <span aria-hidden>☰</span>
-          <span>Navigation</span>
+          <span>Open studio nav</span>
         </button>
       </div>
 
-      <main
-        className={cx(
-          "transition-[padding] duration-300",
-          collapsed ? "lg:pl-24" : "lg:pl-72",
-        )}
-      >
-        {props.children}
-      </main>
+      <main className={cx("relative transition-[padding] duration-300", collapsed ? "lg:pl-24" : "lg:pl-80")}>{props.children}</main>
     </div>
   );
 }
