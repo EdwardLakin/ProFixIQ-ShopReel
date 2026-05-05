@@ -11,7 +11,7 @@ Classification legend: `canonical`, `canonical-supporting`, `advanced`, `legacy-
 | `/shopreel/review/[id]` | `src/app/shopreel/review/[id]/page.tsx` | canonical | Canonical review permalink (bridge redirect). | Replace bridge with native review UX in Phase 2. | Redirect dependency on generations detail. |
 | `/shopreel/render-jobs` | `src/app/shopreel/render-jobs/page.tsx` | canonical | Canonical render jobs path with deterministic queue/processing/ready/failed states. | Completed in Phase 3. | No redirect; render-jobs is canonical. |
 | `/shopreel/exports` | `src/app/shopreel/exports/page.tsx` | canonical | Manual export-first center. | Expand in Phase 4. | Initial shell only. |
-| `/shopreel/library` | `src/app/shopreel/library/page.tsx` | canonical | Canonical library path (bridge redirect). | Replace bridge in Phase 5. | Redirect dependency on content page. |
+| `/shopreel/library` | `src/app/shopreel/library/page.tsx` | canonical | Canonical history/index for drafts, render lifecycle, and export packages. | Completed in Phase 5. | Shop-scoped, searchable/filterable, action-routed to review/render-jobs/exports. |
 | `/shopreel/settings` | `src/app/shopreel/settings/page.tsx` | canonical | Workspace settings. | Keep; extend gradually. | - |
 | `/shopreel/upload` | `src/app/shopreel/upload/page.tsx` | canonical-supporting | Manual upload helper flow. | Keep supporting in P1/P4. | Could merge into create UX. |
 | `/shopreel/generations` | `src/app/shopreel/generations/page.tsx` | canonical-supporting | Review queue/list. | Fold into review workspace P2. | Legacy naming. |
@@ -60,3 +60,10 @@ The inventory was derived from filesystem route discovery under `src/app/shopree
 - `/shopreel/exports` moved from shell to canonical manual export center.
 - New canonical endpoint: `/api/shopreel/render-jobs/[id]/export-package` for idempotent create/open export package flow.
 - New canonical endpoint: `/api/shopreel/export-packages/[id]/mark-exported` for manual export state progression.
+
+
+## Phase 5 update (May 5, 2026)
+
+- `/shopreel/library` is now canonical and no longer a redirect bridge.
+- Canonical history items are composed from generations/content/render/export tables with lifecycle precedence favoring export package states over render and draft states.
+- `/shopreel/content` and `/shopreel/content/[id]` remain legacy-kept for backward compatibility.

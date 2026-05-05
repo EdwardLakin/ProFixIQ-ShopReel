@@ -92,3 +92,13 @@ Phase 0 keeps existing handlers intact and introduces direction only:
 - Manual export center `/shopreel/exports` now lists shop-scoped export packages with real MP4/thumbnail links, caption + hashtag copy, and platform checklists.
 - Mark-exported endpoint: `POST /api/shopreel/export-packages/[id]/mark-exported`.
 - Manual posted URL persistence is deferred to Phase 4.1 pending additional table + safety review.
+
+
+## Phase 5 library canonicalization (May 5, 2026)
+
+- `/shopreel/library` is now a real shop-scoped canonical history/index page (no redirect bridge).
+- Data sources used: `shopreel_story_generations`, `content_pieces`, `reel_render_jobs`, `shopreel_export_packages`.
+- Lifecycle mapping normalizes: draft, reviewed, render_queued, rendering, render_ready, render_failed, export_ready, exported, posted, failed, archived, unknown.
+- Search/filter supports lifecycle bucket, platform, and text match across title/prompt/caption/hashtags using a bounded recent dataset.
+- Known limitation: current Phase 5 library scope is generation-centric; records without generation linkage may appear only in canonical render-jobs/exports pages.
+- Phase 6 remains optional for OAuth/direct social publishing and analytics sync hardening.
