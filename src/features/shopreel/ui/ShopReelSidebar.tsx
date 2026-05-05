@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SHOPREEL_MVP_FLAGS } from "@/features/shopreel/config/featureFlags";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
 type SidebarItem = {
@@ -18,49 +19,39 @@ type SidebarGroup = {
 
 const SIDEBAR_GROUPS: SidebarGroup[] = [
   {
-    label: "Home",
-    items: [{ label: "Home", compactLabel: "HM", href: "/shopreel" }],
-  },
-  {
-    label: "Create",
+    label: "Canonical MVP",
     items: [
+      { label: "Home", compactLabel: "HM", href: "/shopreel" },
       { label: "Create", compactLabel: "CR", href: "/shopreel/create" },
-      { label: "Manual Upload", compactLabel: "UP", href: "/shopreel/upload" },
+      { label: "Review", compactLabel: "RV", href: "/shopreel/generations" },
+      { label: "Render Jobs", compactLabel: "RJ", href: "/shopreel/render-jobs" },
+      { label: "Exports", compactLabel: "EX", href: "/shopreel/exports" },
+      { label: "Library", compactLabel: "LB", href: "/shopreel/library" },
+      { label: "Settings", compactLabel: "ST", href: "/shopreel/settings" },
     ],
   },
   {
-    label: "Pipeline",
+    label: "Advanced / Legacy",
     items: [
-      { label: "Opportunities", compactLabel: "OP", href: "/shopreel/opportunities" },
-      { label: "Review / Generations", compactLabel: "RV", href: "/shopreel/generations" },
-      { label: "Video Editor", compactLabel: "ED", href: "/shopreel/editor" },
-      { label: "Video Processing", compactLabel: "VP", href: "/shopreel/render-queue" },
-      { label: "Content Library", compactLabel: "LB", href: "/shopreel/content" },
-    ],
-  },
-  {
-    label: "Publish",
-    items: [
-      { label: "Operations Board", compactLabel: "OB", href: "/shopreel/publish-center" },
-      { label: "Publish Queue", compactLabel: "PQ", href: "/shopreel/publish-queue" },
-      { label: "Calendar", compactLabel: "CA", href: "/shopreel/calendar" },
-      { label: "Publishing History", compactLabel: "PH", href: "/shopreel/published", status: "contextual" },
-      { label: "Analytics", compactLabel: "AN", href: "/shopreel/analytics", status: "contextual" },
-    ],
-  },
-  {
-    label: "Workspace",
-    items: [{ label: "Settings", compactLabel: "ST", href: "/shopreel/settings" }],
-  },
-  {
-    label: "Advanced / Experimental",
-    items: [
+      { label: "Manual Upload", compactLabel: "UP", href: "/shopreel/upload", status: "contextual" },
+      { label: "Opportunities", compactLabel: "OP", href: "/shopreel/opportunities", status: "contextual" },
+      { label: "Video Editor", compactLabel: "ED", href: "/shopreel/editor", status: "contextual" },
+      { label: "Render Queue", compactLabel: "RQ", href: "/shopreel/render-queue", status: "contextual" },
+      { label: "Content", compactLabel: "CT", href: "/shopreel/content", status: "contextual" },
+      { label: "Publish Center", compactLabel: "PC", href: "/shopreel/publish-center", status: "contextual" },
+      { label: "Publish Queue", compactLabel: "PQ", href: "/shopreel/publish-queue", status: "contextual" },
+      { label: "Published", compactLabel: "PH", href: "/shopreel/published", status: "contextual" },
+      { label: "Calendar", compactLabel: "CA", href: "/shopreel/calendar", status: "contextual" },
       { label: "Campaigns", compactLabel: "CP", href: "/shopreel/campaigns", status: "experimental" },
       { label: "Video Creation Studio", compactLabel: "VS", href: "/shopreel/video-creation", status: "experimental" },
       { label: "AI Requests", compactLabel: "AI", href: "/shopreel/creator-requests", status: "experimental" },
     ],
   },
 ];
+
+const RESOLVED_GROUPS = SHOPREEL_MVP_FLAGS.showAdvancedRoutes
+  ? SIDEBAR_GROUPS
+  : SIDEBAR_GROUPS.filter((group) => group.label !== "Advanced / Legacy");
 
 function normalizePathname(pathname: string): string {
   if (pathname === "/shopreel/dashboard") return "/shopreel";
@@ -174,7 +165,7 @@ function SidebarBody(props: {
       </div>
 
       <nav className="grid gap-3 overflow-y-auto pb-2">
-        {SIDEBAR_GROUPS.map((group) => (
+        {RESOLVED_GROUPS.map((group) => (
           <div key={group.label}>
             {!collapsed ? (
               <div className={cx("mb-1 px-2 text-[10px] uppercase tracking-[0.16em]", glassTheme.text.muted)}>
