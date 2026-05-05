@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
