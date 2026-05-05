@@ -30,7 +30,7 @@ export type ShopReelPlatformPreset = {
 export const SHOPREEL_PLATFORM_PRESETS: ShopReelPlatformPreset[] = [
   {
     id: "instagram_reels",
-    label: "Instagram Reels",
+    label: "Instagram",
     shortLabel: "Instagram",
     aspectRatio: "9:16",
     recommendedDurationSec: { min: 10, max: 60, target: 25 },
@@ -39,12 +39,12 @@ export const SHOPREEL_PLATFORM_PRESETS: ShopReelPlatformPreset[] = [
     hashtagStyle: "broad_plus_niche",
     requiresThumbnail: false,
     ctaStyle: "comment_prompt",
-    exportFileNamePattern: "instagram-reel-{date}-{slug}",
-    uploadChecklist: ["Vertical 9:16 framing", "Clear first 2-second hook"],
+    exportFileNamePattern: "instagram-post-{date}-{slug}",
+    uploadChecklist: ["Lead with clear hook", "Keep message concise and actionable"],
   },
   {
     id: "facebook_reels",
-    label: "Facebook Reels",
+    label: "Facebook",
     shortLabel: "Facebook",
     aspectRatio: "9:16",
     recommendedDurationSec: { min: 10, max: 90, target: 30 },
@@ -53,8 +53,8 @@ export const SHOPREEL_PLATFORM_PRESETS: ShopReelPlatformPreset[] = [
     hashtagStyle: "broad_plus_niche",
     requiresThumbnail: false,
     ctaStyle: "learn_more",
-    exportFileNamePattern: "facebook-reel-{date}-{slug}",
-    uploadChecklist: ["Show clear business context", "Keep overlay text concise"],
+    exportFileNamePattern: "facebook-post-{date}-{slug}",
+    uploadChecklist: ["Add trust-building context", "Close with one clear CTA"],
   },
   {
     id: "tiktok",
@@ -89,6 +89,4 @@ export const SHOPREEL_PLATFORM_PRESETS: ShopReelPlatformPreset[] = [
 export const DEFAULT_SHOPREEL_PLATFORM_IDS: ShopReelPlatformId[] = [
   "instagram_reels",
   "facebook_reels",
-  "tiktok",
-  "youtube_shorts",
 ];
