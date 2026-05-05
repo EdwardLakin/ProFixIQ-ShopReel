@@ -1,12 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { DEFAULT_SHOPREEL_PLATFORM_IDS, SHOPREEL_PLATFORM_PRESETS, type ShopReelPlatformId } from "@/features/shopreel/platforms/presets";
 
 type UploadFileMeta = { file: File; fileType: "image" | "video" };
+
+type CreatePrefillPayload = {
+  prompt?: string;
+  audience?: string;
+  contentType?: string;
+  source?: string;
+  angleTitle?: string;
+  angleHook?: string;
+  angleCta?: string;
+  createdAt?: number;
+};
 const CONTENT_TYPES = [
   { title: "Short-form video", description: "Reels, Shorts, TikToks, launch clips, and founder moments." },
   { title: "Social post", description: "Hooks, captions, carousels, and CTA-led static content." },
@@ -32,6 +43,48 @@ export default function ShopReelCreatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const [prefillNotice, setPrefillNotice] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const storedRaw = window.localStorage.getItem("shopreel:createPrefill");
+
+    let stored: CreatePrefillPayload | null = null;
+    if (storedRaw) {
+      try {
+        stored = JSON.parse(storedRaw) as CreatePrefillPayload;
+      } catch {
+        stored = null;
+      }
+    }
+
+    const promptFromParams = params.get("prompt");
+    const audienceFromParams = params.get("audience");
+    const contentTypeFromParams = params.get("contentType");
+    const sourceFromParams = params.get("source");
+
+    const nextPrompt = promptFromParams || stored?.prompt || "";
+    const nextAudience = audienceFromParams || stored?.audience || "";
+    const nextContentType = contentTypeFromParams || stored?.contentType || "";
+
+    if (nextPrompt && !prompt.trim()) {
+      setPrompt(nextPrompt);
+    }
+
+    if (nextAudience && !audience.trim()) {
+      setAudience(nextAudience);
+    }
+
+    if (nextContentType && CONTENT_TYPES.some((item) => item.title === nextContentType)) {
+      setSelectedContentType(nextContentType);
+    }
+
+    const source = sourceFromParams || stored?.source;
+    if (nextPrompt && source === "ideas") {
+      setPrefillNotice("Loaded from Ideas Chat. Upload media, confirm platforms, and generate the draft.");
+    }
+  }, [audience, prompt]);
 
   function onSelectFiles(fileList: FileList | null) { if (!fileList?.length) return; const next: UploadFileMeta[] = []; let unsupportedCount = 0; for (const file of Array.from(fileList)) { if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) { unsupportedCount += 1; continue; } next.push({ file, fileType: detectFileType(file) }); } setFiles(next); setUploadNotice(unsupportedCount > 0 ? `${unsupportedCount} unsupported file${unsupportedCount === 1 ? "" : "s"} skipped. Use images or videos only.` : null); }
   function togglePlatform(platformId: ShopReelPlatformId) { setPlatformIds((current) => current.includes(platformId) ? current.filter((id) => id !== platformId) : [...current, platformId]); }
@@ -72,6 +125,11 @@ export default function ShopReelCreatePage() {
     <GlassShell eyebrow="Create" title="Create your next piece of content" subtitle="Guided studio flow: choose format, upload media, brief AI, select channels, then generate draft.">
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
         <section className="space-y-4">
+          {prefillNotice ? (
+            <div className="rounded-2xl border border-cyan-300/25 bg-cyan-400/[0.07] px-4 py-3 text-sm text-cyan-50">
+              {prefillNotice}
+            </div>
+          ) : null}
           <section className="rounded-[30px] border border-violet-300/25 bg-[radial-gradient(circle_at_12%_0%,rgba(122,92,255,0.34),transparent_40%),linear-gradient(140deg,rgba(8,12,29,0.95),rgba(7,11,26,0.86))] p-5">
             <div className="text-xs tracking-[0.2em] text-cyan-100/65">GUIDED STUDIO</div>
             <h2 className="mt-2 text-2xl font-semibold text-white md:text-3xl">Build from one brief to one generated draft</h2>

@@ -34,8 +34,29 @@ const STARTERS = [
   "Create a launch sequence for Instagram and Facebook",
 ];
 
-function encodeCreatePrompt(prompt: string) {
-  return `/shopreel/create?prompt=${encodeURIComponent(prompt)}`;
+function encodeCreatePrompt(prompt: string, contentType = "Social post") {
+  const params = new URLSearchParams({
+    prompt,
+    contentType,
+    source: "ideas",
+  });
+
+  return `/shopreel/create?${params.toString()}`;
+}
+
+function saveCreatePrefill(prompt: string, extras?: { angleTitle?: string; angleHook?: string; angleCta?: string }) {
+  window.localStorage.setItem(
+    "shopreel:createPrefill",
+    JSON.stringify({
+      prompt,
+      contentType: "Social post",
+      source: "ideas",
+      angleTitle: extras?.angleTitle,
+      angleHook: extras?.angleHook,
+      angleCta: extras?.angleCta,
+      createdAt: Date.now(),
+    }),
+  );
 }
 
 export default function IdeasChatClient() {
@@ -110,6 +131,11 @@ export default function IdeasChatClient() {
 
     setRecommendedPrompt(prompt);
     setIdea(`Make this stronger for Instagram and Facebook:\n\n${prompt}`);
+    saveCreatePrefill(prompt, {
+      angleTitle: angle.title,
+      angleHook: angle.hook,
+      angleCta: angle.suggestedCta,
+    });
   }
 
   return (
@@ -146,7 +172,7 @@ export default function IdeasChatClient() {
                 {busy ? "Brainstorming…" : "Brainstorm angles"}
               </GlassButton>
               {recommendedPrompt ? (
-                <Link href={encodeCreatePrompt(recommendedPrompt)}>
+                <Link href={encodeCreatePrompt(recommendedPrompt)} onClick={() => saveCreatePrefill(recommendedPrompt)}>
                   <GlassButton variant="ghost">Create from recommended prompt</GlassButton>
                 </Link>
               ) : null}
@@ -197,7 +223,7 @@ export default function IdeasChatClient() {
                     <GlassButton variant="ghost" onClick={() => useAngle(angle)}>
                       Use this angle
                     </GlassButton>
-                    <Link href={encodeCreatePrompt(`${angle.hook}\n\n${angle.angle}\n\nCTA: ${angle.suggestedCta}`)}>
+                    <Link href={encodeCreatePrompt(`${angle.hook}\n\n${angle.angle}\n\nCTA: ${angle.suggestedCta}`)} onClick={() => saveCreatePrefill(`${angle.hook}\n\n${angle.angle}\n\nCTA: ${angle.suggestedCta}`, { angleTitle: angle.title, angleHook: angle.hook, angleCta: angle.suggestedCta })}>
                       <GlassButton variant="ghost">Create</GlassButton>
                     </Link>
                   </div>
@@ -251,7 +277,7 @@ export default function IdeasChatClient() {
           </p>
           {recommendedPrompt ? (
             <div className="mt-3">
-              <Link href={encodeCreatePrompt(recommendedPrompt)}>
+              <Link href={encodeCreatePrompt(recommendedPrompt)} onClick={() => saveCreatePrefill(recommendedPrompt)}>
                 <GlassButton>Create from this</GlassButton>
               </Link>
             </div>
