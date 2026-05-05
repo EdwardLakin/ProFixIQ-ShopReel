@@ -150,7 +150,7 @@ async function generateDraftFromBrief(input: {
           {
             type: "input_text",
             text:
-              "Return JSON only. Create launch-ready social copy from the creative brief. " +
+              "Return one valid JSON object only. Do not wrap it in markdown. Do not include commentary. Create launch-ready social copy from the creative brief. " +
               "Do not repeat the original user prompt verbatim. Write original polished marketing copy. " +
               "Instagram and Facebook must be meaningfully different when both are requested. " +
               "Instagram should be hook-first, punchy, shorter, CTA-forward, and include hashtags. " +
@@ -164,50 +164,7 @@ async function generateDraftFromBrief(input: {
       },
     ],
     text: {
-      format: {
-        type: "json_schema",
-        name: "manual_copy",
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            title: { type: "string" },
-            hook: { type: "string" },
-            summary: { type: "string" },
-            cta: { type: "string" },
-            caption: { type: "string" },
-            scriptText: { type: "string" },
-            voiceoverText: { type: "string" },
-            platformOutputs: {
-              type: "object",
-              additionalProperties: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  hook: { type: "string" },
-                  body: { type: "string" },
-                  cta: { type: "string" },
-                  caption: { type: "string" },
-                  hashtags: { type: "array", items: { type: "string" } },
-                },
-                required: ["hook", "body", "cta", "caption", "hashtags"],
-              },
-            },
-            alternateHooks: { type: "array", items: { type: "string" } },
-          },
-          required: [
-            "title",
-            "hook",
-            "summary",
-            "cta",
-            "caption",
-            "scriptText",
-            "voiceoverText",
-            "platformOutputs",
-            "alternateHooks",
-          ],
-        },
-      },
+      format: { type: "json_object" },
     },
   });
 

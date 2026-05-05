@@ -359,7 +359,7 @@ export async function buildCreativeBrief(input: {
 
             text:
 
-              "Return JSON only. Build a high-quality creative brief for launch-ready social content. " +
+              "Return one valid JSON object only. Do not wrap it in markdown. Do not include commentary. Build a high-quality creative brief for launch-ready social content. " +
 
               "Do not write final captions yet. Do not repeat the prompt verbatim. " +
 
