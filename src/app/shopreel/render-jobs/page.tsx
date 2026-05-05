@@ -48,12 +48,12 @@ export default async function ShopReelRenderJobsPage() {
   const mapped = jobs.map((job) => mapRenderJob({ row: job, generationId: generationByRenderJob.get(job.id) }));
 
   return (
-    <GlassShell eyebrow="ShopReel" title="Render Jobs" subtitle="Canonical render pipeline status for this shop.">
+    <GlassShell eyebrow="ShopReel" title="Processing" subtitle="Track creation jobs as your drafts move from queue to ready.">
       <ShopReelNav />
       <GlassCard label="Pipeline" title="Queued, processing, ready, and failed jobs" strong>
         {mapped.length === 0 ? (
           <div className={cx("rounded-2xl border p-4 text-sm", glassTheme.border.softer, glassTheme.text.secondary)}>
-            No render jobs yet. Start from a review workspace.
+            No processing jobs yet. Generate a draft to start creating output.
           </div>
         ) : (
           <div className="grid gap-3">
@@ -76,7 +76,7 @@ export default async function ShopReelRenderJobsPage() {
                 ) : null}
                 <div className="flex flex-wrap gap-2">
                   {job.generationId ? (
-                    <Link href={`/shopreel/review/${job.generationId}`}><GlassButton variant="ghost">Back to review</GlassButton></Link>
+                    <Link href={`/shopreel/review/${job.generationId}`}><GlassButton variant="ghost">Open project</GlassButton></Link>
                   ) : null}
                   {job.status === "ready" && job.outputVideoPath ? (
                     <form action={`/api/shopreel/render-jobs/${job.id}/export-package`} method="post">

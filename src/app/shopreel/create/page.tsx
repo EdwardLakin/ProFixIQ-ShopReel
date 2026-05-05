@@ -125,8 +125,8 @@ export default function ShopReelCreatePage() {
     try {
       setError(null);
       setIsSubmitting(true);
-      if (!prompt.trim()) throw new Error("Prompt is required");
-      if (!files.length) throw new Error("Upload at least one photo or video");
+      if (!prompt.trim()) throw new Error("Describe what you want to create");
+      if (!files.length) throw new Error("Add at least one photo or video to continue");
       if (!platformIds.length) throw new Error("Select at least one platform");
 
       const manualAssetId = await uploadAssetAndFiles();
@@ -154,11 +154,11 @@ export default function ShopReelCreatePage() {
   }
 
   return (
-    <GlassShell eyebrow="ShopReel" title="Create" subtitle="Upload media, enter a prompt, choose platforms, and create a draft for review.">
+    <GlassShell eyebrow="ShopReel" title="Create" subtitle="Build a guided AI brief for videos, posts, captions, blogs, and campaigns.">
       <ShopReelNav />
-      <GlassCard label="Prompt-first" title="Create a draft" description="Canonical ShopReel create flow for Phase 1." strong>
-        <GlassTextarea label="Prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Create a 20-second reel showing this repair before/after with a strong hook." />
-        <GlassInput label="Audience" value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Local homeowners" />
+      <GlassCard label="AI brief" title="Create a new project" description="Manual upload → prompt → AI draft → review/edit → render/export." strong>
+        <GlassTextarea label="Prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Turn these clips into a 30-second launch reel with captions, creator-style pacing, and a strong opening hook." />
+        <GlassInput label="Audience" value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Founders and small business owners" />
 
         <div className={cx("rounded-2xl border p-4", glassTheme.border.copper, glassTheme.glass.panelSoft)}>
           <div className={cx("mb-2 text-sm font-medium", glassTheme.text.primary)}>Upload media</div>
@@ -186,7 +186,7 @@ export default function ShopReelCreatePage() {
         {error ? <div className={cx("rounded-2xl border px-4 py-3 text-sm", glassTheme.border.copper, glassTheme.glass.panelSoft, glassTheme.text.copperSoft)}>{error}</div> : null}
 
         <GlassButton variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? "Creating draft..." : "Create draft"}
+          {isSubmitting ? "Creating draft..." : "Generate draft"}
         </GlassButton>
       </GlassCard>
     </GlassShell>
