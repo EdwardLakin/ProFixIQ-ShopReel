@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  DEFAULT_SHOPREEL_PLATFORM_IDS,
+  SHOPREEL_PLATFORM_PRESETS,
+  type ShopReelPlatformId,
+} from "@/features/shopreel/platforms/presets";
 
 import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 type Body = {
@@ -10,9 +15,13 @@ type Body = {
   audience?: string;
   platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
   tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
-  platformIds?: Array<"instagram_reels" | "facebook_reels" | "tiktok" | "youtube_shorts">;
+  platformIds?: ShopReelPlatformId[];
   manualAssetId?: string | null;
 };
+
+const PLATFORM_ID_SET = new Set<ShopReelPlatformId>(
+  SHOPREEL_PLATFORM_PRESETS.map((platform) => platform.id),
+);
 
 function makeId(prefix: string) {
   return `${prefix}:${crypto.randomUUID()}`;
@@ -166,7 +175,12 @@ export async function POST(req: Request) {
 
     const shopId = await getCurrentShopId();
     const supabase = createAdminClient();
-    const legacy = supabase as any;
+    const submittedPlatformIds = body.platformIds ?? [];
+    const platformIds = submittedPlatformIds.filter((id): id is ShopReelPlatformId =>
+      PLATFORM_ID_SET.has(id),
+    );
+    const normalizedPlatformIds =
+      platformIds.length > 0 ? platformIds : DEFAULT_SHOPREEL_PLATFORM_IDS;
 
     const now = new Date().toISOString();
     const sourceId = crypto.randomUUID();
@@ -182,7 +196,7 @@ export async function POST(req: Request) {
       platformFocus: body.platformFocus ?? "multi",
     });
 
-    const { error: sourceError } = await legacy
+    const { error: sourceError } = await supabase
       .from("shopreel_story_sources")
       .insert({
         id: sourceId,
@@ -197,7 +211,7 @@ export async function POST(req: Request) {
           creatorMode: true,
           audience: audience || null,
           platformFocus: body.platformFocus ?? "multi",
-          platformIds: body.platformIds ?? null,
+          platformIds: normalizedPlatformIds,
           manualAssetId: body.manualAssetId ?? null,
         },
         created_at: now,
@@ -208,7 +222,7 @@ export async function POST(req: Request) {
       throw new Error(sourceError.message);
     }
 
-    const { error: contentPieceError } = await legacy
+    const { error: contentPieceError } = await supabase
       .from("content_pieces")
       .insert({
         id: contentPieceId,
@@ -236,7 +250,7 @@ export async function POST(req: Request) {
       throw new Error(contentPieceError.message);
     }
 
-    const { error: generationError } = await legacy
+    const { error: generationError } = await supabase
       .from("shopreel_story_generations")
       .insert({
         id: generationId,
@@ -252,7 +266,7 @@ export async function POST(req: Request) {
           source_system: "shopreel",
           audience: audience || null,
           platformFocus: body.platformFocus ?? "multi",
-          platformIds: body.platformIds ?? null,
+          platformIds: normalizedPlatformIds,
           manualAssetId: body.manualAssetId ?? null,
         },
         created_by: null,
