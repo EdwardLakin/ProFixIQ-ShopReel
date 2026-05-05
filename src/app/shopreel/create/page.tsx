@@ -82,7 +82,9 @@ export default function ShopReelCreatePage() {
 
     const source = sourceFromParams || stored?.source;
     if (nextPrompt && source === "ideas") {
-      setPrefillNotice("Loaded from Ideas Chat. Upload media, confirm platforms, and generate the draft.");
+      setPrefillNotice("Loaded from Ideas Chat. Upload media if you have it, confirm platforms, and generate the draft.");
+    } else if (nextPrompt && source === "review") {
+      setPrefillNotice("Loaded from Review. Add media if needed, confirm platforms, and turn the approved concept into a video/reel draft.");
     }
   }, [audience, prompt]);
 

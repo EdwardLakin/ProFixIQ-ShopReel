@@ -41,6 +41,52 @@ function buildPlatformCopy(output: ShopReelReviewDraft["platformOutputs"][number
 
 }
 
+function buildVideoCreatePrompt(draft: ShopReelReviewDraft): string {
+  const outputs = draft.platformOutputs
+    .map((output) => {
+      return [
+        `${output.platformLabel}:`,
+        `Hook: ${output.hook}`,
+        `Body: ${output.body}`,
+        `CTA: ${output.cta}`,
+        output.hashtags.length > 0 ? `Hashtags: ${output.hashtags.join(" ")}` : "",
+      ].filter(Boolean).join("\n");
+    })
+    .join("\n\n");
+
+  return [
+    "Create a short-form video/reel from this approved ShopReel concept.",
+    "",
+    draft.campaignAngle ? `Campaign angle: ${draft.campaignAngle}` : "",
+    draft.audience ? `Audience: ${draft.audience}` : "",
+    "",
+    "Use this platform copy as the source truth:",
+    outputs,
+    "",
+    draft.manualAssetFiles.length > 0
+      ? `Use the uploaded media references: ${draft.manualAssetFiles.join(", ")}`
+      : "No media is attached yet. Build the video concept first and prompt me to upload source media if needed.",
+    "",
+    "Make the video hook-first, clear, useful, and ready for Instagram/Facebook short-form packaging.",
+  ].filter(Boolean).join("\n");
+}
+
+function saveReviewCreatePrefill(draft: ShopReelReviewDraft) {
+  const prompt = buildVideoCreatePrompt(draft);
+
+  window.localStorage.setItem(
+    "shopreel:createPrefill",
+    JSON.stringify({
+      prompt,
+      contentType: "Short-form video",
+      source: "review",
+      createdAt: Date.now(),
+    }),
+  );
+
+  return prompt;
+}
+
 export default function ReviewWorkspaceClient({ draft }: Props) {
 
   const [conceptTitle, setConceptTitle] = useState(draft.conceptTitle ?? "");
@@ -403,6 +449,12 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
               <GlassButton onClick={() => copyText(fullPackageText, "Full package")}>Copy all</GlassButton>
 
               <GlassButton onClick={downloadPackage}>Download package (.md)</GlassButton>
+              <Link
+                href={`/shopreel/create?source=review&contentType=Short-form+video&prompt=${encodeURIComponent(buildVideoCreatePrompt(draft))}`}
+                onClick={() => saveReviewCreatePrefill(draft)}
+              >
+                <GlassButton variant="ghost">Create reel/video from this</GlassButton>
+              </Link>
 
               <GlassButton variant="ghost" onClick={() => copyText(draft.captionText ?? "", "Primary caption")}>Copy primary caption</GlassButton>
 

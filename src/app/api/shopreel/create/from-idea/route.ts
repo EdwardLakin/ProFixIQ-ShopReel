@@ -93,6 +93,100 @@ function normalizePlatformOutput(value: unknown, fallback: PlatformOutput): Plat
   };
 }
 
+function defaultHashtags(platformId: ShopReelPlatformId, brief: CreativeBrief): string[] {
+  const productToken = brief.productName
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .trim();
+
+  if (platformId === "instagram_reels") {
+    return [
+      productToken ? `#${productToken}` : "#productlaunch",
+      "#flatratetech",
+      "#automotivetech",
+      "#mechaniclife",
+      "#payday",
+      "#shoplife",
+    ];
+  }
+
+  if (platformId === "tiktok") {
+    return ["#flatratetech", "#mechaniclife", "#worktok", "#payday"];
+  }
+
+  if (platformId === "youtube_shorts") {
+    return ["#Shorts", "#mechaniclife", "#payday"];
+  }
+
+  return [];
+}
+
+function strengthenCta(platformId: ShopReelPlatformId, cta: string, brief: CreativeBrief): string {
+  const normalized = cta.trim();
+
+  if (
+    !normalized ||
+    /drive awareness|learn more about|prompt technicians|not provided/i.test(normalized)
+  ) {
+    if (platformId === "instagram_reels") {
+      return `DM “${brief.productName || "INFO"}” for early access or save this before payday.`;
+    }
+
+    if (platformId === "facebook_reels") {
+      return `Comment or message us to see how ${brief.productName || "this"} helps techs keep payday proof organized.`;
+    }
+
+    return "Save this and create your first proof trail before payday.";
+  }
+
+  return normalized;
+}
+
+function ensureDistinctPlatformTone(input: {
+  platformId: ShopReelPlatformId;
+  output: PlatformOutput;
+  brief: CreativeBrief;
+}): PlatformOutput {
+  const { platformId, output, brief } = input;
+  const cta = strengthenCta(platformId, output.cta, brief);
+  const hashtags = output.hashtags.length > 0 ? output.hashtags : defaultHashtags(platformId, brief);
+
+  if (platformId === "instagram_reels") {
+    return {
+      ...output,
+      hook: output.hook.length > 80 ? output.hook.slice(0, 77).trim() + "..." : output.hook,
+      body:
+        output.body ||
+        `${brief.primaryPainPoint} ${brief.primaryValueProp}`.trim(),
+      cta,
+      caption:
+        output.caption ||
+        [output.hook, output.body, cta, hashtags.join(" ")].filter(Boolean).join("\n\n"),
+      hashtags,
+    };
+  }
+
+  if (platformId === "facebook_reels") {
+    return {
+      ...output,
+      body:
+        output.body && output.body.length > 80
+          ? output.body
+          : `${brief.positioningSummary}\n\n${brief.primaryValueProp}\n\n${brief.emotionalPromise}`.trim(),
+      cta,
+      caption:
+        output.caption ||
+        [output.hook, output.body, cta].filter(Boolean).join("\n\n"),
+      hashtags,
+    };
+  }
+
+  return {
+    ...output,
+    cta,
+    hashtags,
+  };
+}
+
 function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platformIds: ShopReelPlatformId[]): GeneratedDraftPayload {
   const record = asRecord(value);
   const fallbackHook = brief.alternateHooks[0] ?? "Turn proof into confidence.";
@@ -113,7 +207,11 @@ function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platfor
       caption: fallbackCaption,
       hashtags: isInstagram ? ["#contentmarketing", "#productlaunch", "#smallbusiness"] : [],
     };
-    platformOutputs[platformId] = normalizePlatformOutput(platformOutputsRaw[platformId], fallback);
+    platformOutputs[platformId] = ensureDistinctPlatformTone({
+      platformId,
+      output: normalizePlatformOutput(platformOutputsRaw[platformId], fallback),
+      brief,
+    });
   }
 
   return {
