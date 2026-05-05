@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
@@ -18,6 +18,10 @@ import {
 
 type UploadFileMeta = { file: File; fileType: "image" | "video" };
 
+type CreateType = "Short-form video" | "Social post" | "Blog post" | "Campaign bundle" | "Repurpose content" | "Custom";
+
+const CREATE_TYPES: CreateType[] = ["Short-form video", "Social post", "Blog post", "Campaign bundle", "Repurpose content", "Custom"];
+
 function detectFileType(file: File): "image" | "video" {
   if (file.type.startsWith("image/")) return "image";
   if (file.type.startsWith("video/")) return "video";
@@ -26,8 +30,11 @@ function detectFileType(file: File): "image" | "video" {
 
 export default function ShopReelCreatePage() {
   const router = useRouter();
-  const [prompt, setPrompt] = useState("");
+  const searchParams = useSearchParams();
+  const template = searchParams.get("template") ?? "";
+  const [prompt, setPrompt] = useState(template);
   const [audience, setAudience] = useState("");
+  const [createType, setCreateType] = useState<CreateType>("Short-form video");
   const [files, setFiles] = useState<UploadFileMeta[]>([]);
   const [platformIds, setPlatformIds] = useState<ShopReelPlatformId[]>(DEFAULT_SHOPREEL_PLATFORM_IDS);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,7 +69,7 @@ export default function ShopReelCreatePage() {
       body: JSON.stringify({
         title: prompt.slice(0, 120) || "ShopReel create upload",
         description: prompt,
-        note: `Prompt-first create flow (${platformIds.join(",")})`,
+        note: `${createType} create flow (${platformIds.join(",")})`,
         assetType,
         contentGoal: "promotion",
         platformTargets: platformIds,
@@ -154,41 +161,83 @@ export default function ShopReelCreatePage() {
   }
 
   return (
-    <GlassShell eyebrow="ShopReel" title="Create" subtitle="Build a guided AI brief for videos, posts, captions, blogs, and campaigns.">
+    <GlassShell eyebrow="ShopReel" title="Create" subtitle="Manual upload → describe outcome → choose platforms → generate draft.">
       <ShopReelNav />
-      <GlassCard label="AI brief" title="Create a new project" description="Manual upload → prompt → AI draft → review/edit → render/export." strong>
-        <GlassTextarea label="Prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Turn these clips into a 30-second launch reel with captions, creator-style pacing, and a strong opening hook." />
-        <GlassInput label="Audience" value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Founders and small business owners" />
-
-        <div className={cx("rounded-2xl border p-4", glassTheme.border.copper, glassTheme.glass.panelSoft)}>
-          <div className={cx("mb-2 text-sm font-medium", glassTheme.text.primary)}>Upload media</div>
-          <input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className={cx("block w-full text-sm", glassTheme.text.secondary)} />
-          <div className="mt-3 flex flex-wrap gap-2">
-            <GlassBadge tone="default">{files.length} files</GlassBadge>
+      <div className="space-y-4">
+        <GlassCard label="Step 1" title="What are you creating?" description="Pick a format to shape structure and output style.">
+          <div className="grid gap-2 md:grid-cols-3">
+            {CREATE_TYPES.map((type) => {
+              const selected = createType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setCreateType(type)}
+                  className={cx(
+                    "rounded-xl border px-3 py-3 text-left text-sm transition",
+                    selected ? "border-white/25 bg-white/[0.09] text-white" : "border-white/10 bg-white/[0.02] text-white/75 hover:bg-white/[0.06]",
+                  )}
+                >
+                  {type}
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </GlassCard>
 
-        <div className="space-y-2">
-          <div className={cx("text-sm font-medium", glassTheme.text.primary)}>Target platforms</div>
+        <GlassCard label="Step 2" title="Add source material" description="Upload product clips, UGC, screenshots, or brand media.">
+          <div className={cx("rounded-2xl border p-5", glassTheme.border.copper, "bg-gradient-to-br from-white/[0.05] to-transparent")}>
+            <div className={cx("text-sm font-medium", glassTheme.text.primary)}>Upload media</div>
+            <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>Add images or videos. File handling remains unchanged from the current MVP flow.</div>
+            <input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className={cx("mt-4 block w-full text-sm", glassTheme.text.secondary)} />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <GlassBadge tone="default">{files.length} files selected</GlassBadge>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard label="Step 3" title="Describe the outcome" description="Tell the AI what to create, for whom, and with what intent.">
+          <GlassTextarea
+            label="Prompt"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe the final result: format, message, pacing, hook, CTA, and visual style. Example: Create a product launch reel with a bold opening hook, fast cuts, captions, and a clean CTA."
+          />
+          <GlassInput label="Audience" value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Creators, founders, customers, or marketing teams" />
+        </GlassCard>
+
+        <GlassCard label="Step 4" title="Choose platforms" description="Select where this content should be optimized for distribution.">
           <div className="grid gap-2 md:grid-cols-2">
             {SHOPREEL_PLATFORM_PRESETS.map((platform) => {
               const selected = platformIds.includes(platform.id);
               return (
-                <label key={platform.id} className={cx("rounded-2xl border p-3 text-sm", selected ? glassTheme.border.copper : glassTheme.border.softer, glassTheme.glass.panelSoft, glassTheme.text.primary)}>
+                <label
+                  key={platform.id}
+                  className={cx(
+                    "rounded-2xl border p-3 text-sm transition",
+                    selected ? "border-white/25 bg-white/[0.09] text-white" : "border-white/10 bg-white/[0.03] text-white/75 hover:bg-white/[0.07]",
+                  )}
+                >
                   <input type="checkbox" checked={selected} onChange={() => togglePlatform(platform.id)} className="mr-2" />
                   {platform.label}
                 </label>
               );
             })}
           </div>
+        </GlassCard>
+
+        {error ? (
+          <div className={cx("rounded-2xl border px-4 py-3 text-sm", glassTheme.border.copper, glassTheme.glass.panelSoft, glassTheme.text.copperSoft)}>
+            {error}
+          </div>
+        ) : null}
+
+        <div className="flex justify-end">
+          <GlassButton variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? "Generating draft..." : "Generate draft"}
+          </GlassButton>
         </div>
-
-        {error ? <div className={cx("rounded-2xl border px-4 py-3 text-sm", glassTheme.border.copper, glassTheme.glass.panelSoft, glassTheme.text.copperSoft)}>{error}</div> : null}
-
-        <GlassButton variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? "Creating draft..." : "Generate draft"}
-        </GlassButton>
-      </GlassCard>
+      </div>
     </GlassShell>
   );
 }
