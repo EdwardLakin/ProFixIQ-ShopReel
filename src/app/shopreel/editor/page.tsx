@@ -20,7 +20,7 @@ export default async function ShopReelEditorHubPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Editor"
-      subtitle="Open a saved generation and continue script, timeline, subtitle, and media work."
+      subtitle="Open drafts and finished assets for editing and packaging."
     >
       <ShopReelNav />
 

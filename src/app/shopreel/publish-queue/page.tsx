@@ -129,7 +129,7 @@ export default async function ShopReelPublishQueuePage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Publish Queue"
+      title="Publishing Queue"
       subtitle="Operational publish queue and failure diagnostics."
     >
       <ShopReelNav />

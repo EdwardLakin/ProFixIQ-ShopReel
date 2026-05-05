@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { requireShopId } from "@/features/shopreel/server/requireShopId";
 import LibraryIndexClient from "@/features/shopreel/library/LibraryIndexClient";
 import { buildShopReelLibraryItems } from "@/features/shopreel/library/libraryItem";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 
 const QUERY_LIMIT = 120;
 
@@ -50,11 +52,17 @@ export default async function ShopReelLibraryPage() {
 
     const items = buildShopReelLibraryItems({ generations: generations ?? [], contentPieces: contentPieces ?? [], renderJobs: renderJobs ?? [], exportPackages: exportPackages ?? [] });
 
-    return <section className="mx-auto w-full max-w-6xl px-4 py-10 text-white space-y-4">
-      <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Library</h1><p className="text-sm text-white/75">Your finished and reusable content across videos, captions, blogs, and export assets.</p></div><Link className="rounded border border-white/20 px-3 py-2" href="/shopreel/create">Create content</Link></div>
-      {items.length === 0 ? <div className="rounded border border-white/15 p-4 text-sm">Your finished content will appear here after generation or export. Start by creating from <Link className="underline" href="/shopreel/create">/shopreel/create</Link>.</div> : <LibraryIndexClient items={items} resultLimit={QUERY_LIMIT} />}
-    </section>;
+    return (
+      <GlassShell
+        eyebrow="Library"
+        title="Library"
+        subtitle="Browse finished videos, captions, posts, blog drafts, and reusable campaign assets."
+        actions={<Link href="/shopreel/create"><GlassButton variant="primary">Create content</GlassButton></Link>}
+      >
+        {items.length === 0 ? <div className="rounded-2xl border border-white/15 bg-white/[0.03] p-4 text-sm text-white/80">No library assets yet. Videos, captions, blog drafts, thumbnails, and campaign assets will appear here after your first project is processed.</div> : <LibraryIndexClient items={items} resultLimit={QUERY_LIMIT} />}
+      </GlassShell>
+    );
   } catch (_error) {
-    return <section className="mx-auto w-full max-w-5xl px-4 py-10 text-white"><h1 className="text-2xl font-semibold">Library</h1><div className="mt-4 rounded border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">Unable to load library history right now. Try again, or open <Link className="underline" href="/shopreel/render-jobs">Processing</Link> and <Link className="underline" href="/shopreel/exports">Downloads</Link>.</div></section>;
+    return <GlassShell eyebrow="Library" title="Library" subtitle="Browse finished videos, captions, posts, blog drafts, and reusable campaign assets."><div className="rounded border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">Unable to load library history right now. Try again, or open <Link className="underline" href="/shopreel/render-jobs">Processing</Link> and <Link className="underline" href="/shopreel/exports">Downloads</Link>.</div></GlassShell>;
   }
 }

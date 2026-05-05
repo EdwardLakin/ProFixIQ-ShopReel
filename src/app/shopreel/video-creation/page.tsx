@@ -12,7 +12,7 @@ export default async function ShopReelVideoCreationPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Video Creation"
+      title="Video Creation Studio"
       subtitle="Generate visuals, clips, and assembled reels with a serious AI media studio workflow."
     >
       <VideoCreationStudio

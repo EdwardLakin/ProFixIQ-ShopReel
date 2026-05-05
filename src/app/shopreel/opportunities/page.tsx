@@ -44,7 +44,7 @@ export default async function ShopReelOpportunitiesPage(props: {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Opportunities"
+      title="Ideas"
       subtitle="Discover, score, generate, and move strong story candidates into campaigns and publishing."
     >
       <ShopReelOpportunitiesClient opportunities={normalized} activeTab={status} />

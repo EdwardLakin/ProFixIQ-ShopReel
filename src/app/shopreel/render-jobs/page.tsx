@@ -53,7 +53,7 @@ export default async function ShopReelRenderJobsPage() {
       <GlassCard label="Pipeline" title="Queued, processing, ready, and failed jobs" strong>
         {mapped.length === 0 ? (
           <div className={cx("rounded-2xl border p-4 text-sm", glassTheme.border.softer, glassTheme.text.secondary)}>
-            No processing jobs yet. Generate a draft to start creating output.
+            Nothing processing right now. Create content to start your first processing job.
           </div>
         ) : (
           <div className="grid gap-3">

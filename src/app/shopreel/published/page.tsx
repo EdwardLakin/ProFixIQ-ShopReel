@@ -19,7 +19,7 @@ export default async function ShopReelPublishedPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Publishing History"
+      title="Published"
       subtitle="Recent queued, published, and failed publication attempts."
     >
       <ShopReelNav />

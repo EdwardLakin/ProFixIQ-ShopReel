@@ -10,7 +10,7 @@ export default function ShopReelSettingsPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Settings"
-      subtitle="Configure brand voice, default formats, channels, automation preferences, and workspace details."
+      subtitle="Manage brand voice, audience defaults, format preferences, channel setup, automation choices, and workspace details."
       actions={
         <Link href="/shopreel/account">
           <GlassButton variant="ghost">Workspace details</GlassButton>
