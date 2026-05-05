@@ -54,3 +54,9 @@ Classification legend: `canonical`, `canonical-supporting`, `advanced`, `legacy-
 ## Full discovery source
 
 The inventory was derived from filesystem route discovery under `src/app/shopreel/**/page.tsx` and `src/app/api/shopreel/**/route.ts`; keep this document updated each phase.
+
+## Phase 4 update (May 5, 2026)
+
+- `/shopreel/exports` moved from shell to canonical manual export center.
+- New canonical endpoint: `/api/shopreel/render-jobs/[id]/export-package` for idempotent create/open export package flow.
+- New canonical endpoint: `/api/shopreel/export-packages/[id]/mark-exported` for manual export state progression.

@@ -84,3 +84,11 @@ Phase 0 keeps existing handlers intact and introduces direction only:
 - Render status model normalized to: draft, queued, processing, ready, failed, cancelled, archived, unknown.
 - Phase 4 remains: manual export package creation/storage and package integrity workflows in `/shopreel/exports`.
 
+
+## Phase 4 manual export packages (May 5, 2026)
+
+- Added additive persistence model `shopreel_export_packages` (manual migration) to avoid overloading `content_publications` and to keep manual export independent of OAuth/direct publishing.
+- Canonical create/open endpoint: `POST /api/shopreel/render-jobs/[id]/export-package`.
+- Manual export center `/shopreel/exports` now lists shop-scoped export packages with real MP4/thumbnail links, caption + hashtag copy, and platform checklists.
+- Mark-exported endpoint: `POST /api/shopreel/export-packages/[id]/mark-exported`.
+- Manual posted URL persistence is deferred to Phase 4.1 pending additional table + safety review.
