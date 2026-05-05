@@ -7,6 +7,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     const { id } = await ctx.params;
     const { shopId } = await requireUserActionTenantContext();
     const result = await startRenderForGeneration({ generationId: id, shopId });
+
     return NextResponse.json({ ok: true, renderJobId: result.renderJobId, created: result.created, renderJobsUrl: "/shopreel/render-jobs" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to queue render";

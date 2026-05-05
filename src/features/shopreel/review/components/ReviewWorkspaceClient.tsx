@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
@@ -18,6 +19,8 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
   const [captionText, setCaptionText] = useState(draft.captionText ?? "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [startingRender, setStartingRender] = useState(false);
+  const router = useRouter();
 
   async function saveDraft() {
     setSaving(true);
@@ -43,6 +46,23 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
       setMessage("Unable to save right now. Please try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+
+
+  async function startRender() {
+    setStartingRender(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/shopreel/generations/${draft.generationId}/render`, { method: "POST" });
+      const json = (await res.json()) as { ok?: boolean; error?: string; renderJobsUrl?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error ?? "Failed to start render");
+      router.push(json.renderJobsUrl ?? "/shopreel/render-jobs");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to start render right now.");
+    } finally {
+      setStartingRender(false);
     }
   }
 
@@ -74,9 +94,10 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
       <GlassCard label="Next" title="Render step" description="After reviewing, continue to render queue/start placeholder.">
         <div className="space-y-3 text-sm text-white/80">
-          <p>Save your draft updates, then continue to render jobs to start rendering when ready.</p>
+          <p>Save your draft updates, then start a real render job when ready.</p>
           <div className="flex gap-2">
-            <Link href="/shopreel/render-jobs"><GlassButton>Go to render jobs</GlassButton></Link>
+            <GlassButton onClick={startRender} disabled={startingRender}>{startingRender ? "Starting render…" : "Start render"}</GlassButton>
+            <Link href="/shopreel/render-jobs"><GlassButton variant="ghost">Go to render jobs</GlassButton></Link>
             <Link href={`/shopreel/generations/${draft.generationId}`}><GlassButton variant="ghost">Open generation detail</GlassButton></Link>
           </div>
         </div>

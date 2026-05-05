@@ -34,7 +34,7 @@ Manual export is the MVP critical path. Direct social publishing/integrations mu
 | `/shopreel` | Canonical home/dashboard entry |
 | `/shopreel/create` | Canonical creation start |
 | `/shopreel/review/[id]` | Canonical review permalink (currently bridges to generations detail) |
-| `/shopreel/render-jobs` | Canonical render jobs list (currently bridges to legacy render queue) |
+| `/shopreel/render-jobs` | Canonical render jobs list with shop-scoped statuses, failure details, and retry actions |
 | `/shopreel/exports` | Canonical manual export center |
 | `/shopreel/library` | Canonical library/history route (currently bridges to content) |
 | `/shopreel/settings` | Canonical workspace settings |
@@ -79,3 +79,8 @@ Phase 0 keeps existing handlers intact and introduces direction only:
 - No required direct social publishing.
 - No analytics-sync dependency for successful output.
 - No platform account requirement before export/download.
+
+- Phase 3 canonical start-render endpoint: `POST /api/shopreel/generations/[id]/render` returns `{ renderJobId, renderJobsUrl }` and deduplicates active jobs.
+- Render status model normalized to: draft, queued, processing, ready, failed, cancelled, archived, unknown.
+- Phase 4 remains: manual export package creation/storage and package integrity workflows in `/shopreel/exports`.
+
