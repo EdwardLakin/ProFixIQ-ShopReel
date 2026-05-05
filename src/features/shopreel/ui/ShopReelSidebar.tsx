@@ -23,7 +23,7 @@ const PRIMARY_ITEMS: SidebarItem[] = [
 const SECONDARY_ITEMS: SidebarItem[] = [
   { label: "Processing", compactLabel: "PS", href: "/shopreel/render-jobs", icon: "◌" },
   { label: "Downloads", compactLabel: "DL", href: "/shopreel/exports", icon: "⇩" },
-  { label: "Ideas", compactLabel: "ID", href: "/shopreel/opportunities", icon: "◈" },
+  { label: "Ideas", compactLabel: "ID", href: "/shopreel/ideas", icon: "◈" },
   { label: "Editor", compactLabel: "ED", href: "/shopreel/editor", icon: "✎" },
 ];
 
