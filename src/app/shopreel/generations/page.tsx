@@ -43,7 +43,7 @@ export default async function ShopReelGenerationsPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Projects"
-      subtitle="All drafts in progress across review, editing, rendering, and publishing."
+      subtitle="Review drafts, refine content, and move work toward ready-to-export."
       actions={
         <Link href="/shopreel/opportunities">
           <GlassButton variant="primary">Explore ideas</GlassButton>

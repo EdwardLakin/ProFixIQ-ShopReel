@@ -188,7 +188,7 @@ export default async function ShopReelCalendarPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Calendar"
-      subtitle="Publishing cadence, scheduled ideas, and recommended posting windows."
+      subtitle="Plan upcoming posts, campaigns, and publishing windows."
       actions={<GenerateCalendarButton />}
     >
       <ShopReelNav />

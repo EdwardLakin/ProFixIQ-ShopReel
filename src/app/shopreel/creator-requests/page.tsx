@@ -56,7 +56,7 @@ export default async function ShopReelCreatorRequestsPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="AI Requests"
-      subtitle="Saved creator prompts, research runs, angle packs, debunks, and stitch requests."
+      subtitle="Track saved AI requests for research, concepts, angle packs, and automation support."
     >
       <ShopReelNav />
       <CreatorRequestsClient initialItems={(data ?? []) as CreatorRequestRow[]} />
