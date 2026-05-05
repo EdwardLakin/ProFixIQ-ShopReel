@@ -45,7 +45,7 @@ export default function ShopReelSidebar(props: {
   const pathname = usePathname() ?? "";
 
   const renderItems = (items: SidebarItem[], closeAfterNavigate = false) => (
-    <div className="grid gap-1">
+    <div className="grid gap-1.5">
       {items.map((item) => {
         const active = isActive(pathname, item.href);
         return (
@@ -54,15 +54,20 @@ export default function ShopReelSidebar(props: {
             href={item.href}
             onClick={closeAfterNavigate ? onCloseMobile : undefined}
             className={cx(
-              "group rounded-lg px-2 py-1.5 text-sm font-medium no-underline transition",
-              collapsed ? "flex h-10 items-center justify-center" : "flex items-center gap-2",
+              "group rounded-xl px-2.5 py-2 text-sm font-medium no-underline transition",
+              collapsed ? "flex h-10 items-center justify-center" : "flex items-center gap-2.5",
               active
-                ? cx("border border-white/14", "bg-white/[0.1]", glassTheme.text.primary)
-                : cx("border border-transparent", glassTheme.text.secondary, "hover:bg-white/[0.04] hover:text-white"),
+                ? cx("border border-white/20 bg-white/[0.12] text-white", "shadow-[0_0_0_1px_rgba(255,255,255,0.06)]")
+                : cx("border border-transparent", glassTheme.text.secondary, "hover:bg-white/[0.06] hover:text-white"),
             )}
             title={collapsed ? item.label : undefined}
           >
-            <span className={cx("inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-semibold", active ? "bg-white/[0.16] text-white" : "text-white/55")}>
+            <span
+              className={cx(
+                "inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-[10px] font-semibold",
+                active ? "bg-white/[0.2] text-white" : "bg-white/[0.05] text-white/65",
+              )}
+            >
               {item.compactLabel}
             </span>
             {!collapsed ? <span>{item.label}</span> : null}
@@ -74,16 +79,44 @@ export default function ShopReelSidebar(props: {
 
   return (
     <>
-      <button type="button" className={cx("fixed inset-0 z-40 bg-black/45 transition lg:hidden", mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0")} onClick={onCloseMobile} />
-      <aside className={cx("fixed inset-y-0 left-0 z-50 border-r transition-all duration-300 hidden lg:block", collapsed ? "w-24" : "w-72", glassTheme.border.softer, glassTheme.glass.panelSoft)}>
+      <button
+        type="button"
+        className={cx("fixed inset-0 z-40 bg-black/45 transition lg:hidden", mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0")}
+        onClick={onCloseMobile}
+      />
+      <aside
+        className={cx(
+          "fixed inset-y-0 left-0 z-50 hidden border-r bg-gradient-to-b from-slate-950/95 via-slate-950/90 to-slate-900/95 transition-all duration-300 lg:block",
+          collapsed ? "w-24" : "w-72",
+          glassTheme.border.softer,
+        )}
+      >
         <div className="flex h-full flex-col px-3 py-4">
-          <div className={cx("mb-4 flex items-center rounded-xl border px-2 py-2", glassTheme.border.softer, collapsed ? "justify-center" : "justify-between")}>
-            {!collapsed ? <div><div className={cx("text-[10px] uppercase tracking-[0.2em]", glassTheme.text.copper)}>ShopReel</div><div className={cx("text-sm font-semibold", glassTheme.text.primary)}>AI Content Engine</div></div> : null}
-            <button type="button" onClick={onToggleCollapse} className={cx("inline-flex h-7 w-7 items-center justify-center rounded-lg", glassTheme.text.secondary)}>{collapsed ? "→" : "←"}</button>
+          <div
+            className={cx(
+              "mb-4 rounded-2xl border border-white/12 bg-white/[0.03] p-3",
+              collapsed ? "flex items-center justify-center" : "space-y-3",
+            )}
+          >
+            {!collapsed ? (
+              <>
+                <div>
+                  <div className="text-[10px] tracking-[0.18em] text-white/55">SHOPREEL</div>
+                  <div className="text-sm font-semibold text-white">Premium AI Studio</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2">
+                  <div className="text-xs text-white/60">Workspace</div>
+                  <div className="text-sm text-white/90">Workspace</div>
+                </div>
+              </>
+            ) : null}
+            <button type="button" onClick={onToggleCollapse} className={cx("inline-flex h-7 w-7 items-center justify-center rounded-lg", glassTheme.text.secondary)}>
+              {collapsed ? "→" : "←"}
+            </button>
           </div>
           <nav className="space-y-4 overflow-y-auto">
             {renderItems(PRIMARY_ITEMS)}
-            {!collapsed ? <div className={cx("px-2 text-[10px] uppercase tracking-[0.16em]", glassTheme.text.muted)}>More</div> : null}
+            {!collapsed ? <div className="px-2 text-xs text-white/45">More</div> : null}
             {renderItems(MORE_ITEMS)}
           </nav>
         </div>
