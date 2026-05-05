@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       files.map((file, index) => ({
         asset_id: asset.id,
         shop_id: asset.shop_id,
-        bucket: file.bucket ?? "shopreel-manual-assets",
+        bucket: file.bucket ?? "shopreel-media",
         storage_path: file.filePath,
         public_url: file.publicUrl ?? null,
         file_name: file.fileName,
