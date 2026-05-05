@@ -1,4 +1,5 @@
 import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 
 type CalendarItem = {
   day: number;
@@ -88,7 +89,7 @@ Each item must have:
 
   try {
     const res = await openai.responses.create({
-      model: "gpt-4.1-mini",
+      model: SHOPREEL_AI_MODELS.text,
       input: prompt,
     });
 

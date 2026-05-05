@@ -1,4 +1,5 @@
 import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 import type { BlogLengthMode, BlogStyle } from "./buildCreatorOutputs";
 
 export type BlogRewriteStyle =
@@ -73,7 +74,7 @@ function rewriteInstruction(style: BlogRewriteStyle | null | undefined) {
 
 export async function generateBlogSection(input: Input): Promise<string> {
   const response = await openai.chat.completions.create({
-    model: "gpt-4.1-mini",
+    model: SHOPREEL_AI_MODELS.text,
     temperature: 0.9,
     response_format: {
       type: "json_schema",

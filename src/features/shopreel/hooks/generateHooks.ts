@@ -1,4 +1,5 @@
 import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 
 export async function generateHooks(contentType: string, vehicle?: string) {
   const prompt = `
@@ -16,7 +17,7 @@ Return JSON array.
 `;
 
   const response = await openai.responses.create({
-    model: "gpt-4.1",
+    model: SHOPREEL_AI_MODELS.text,
     input: prompt,
   });
 

@@ -1,4 +1,5 @@
 import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 
 export type CreatorMode =
   | "research_script"
@@ -207,7 +208,7 @@ export async function generateCreatorScript(
   const fallback = fallbackCreatorScript(normalized);
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4.1-mini",
+    model: SHOPREEL_AI_MODELS.text,
     temperature: 0.7,
     response_format: {
       type: "json_schema",

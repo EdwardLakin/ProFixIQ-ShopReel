@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateVideoConcept } from "@/features/ai/server/generateVideoConcept";
 import { createAdminClient } from "@/lib/supabase/server";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -482,7 +483,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     template_id: template.id,
     requested_by: userId,
     provider: "openai",
-    model: "gpt-5-mini",
+    model: SHOPREEL_AI_MODELS.text,
     prompt_version: "v2",
     user_prompt: `Generated from work order ${workOrder.custom_id ?? workOrder.id}`,
     input_payload: {
