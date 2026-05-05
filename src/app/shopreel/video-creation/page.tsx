@@ -12,8 +12,8 @@ export default async function ShopReelVideoCreationPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Video Creation Studio"
-      subtitle="Generate visuals, clips, and assembled reels with a serious AI media studio workflow."
+      title="AI Video Builder"
+      subtitle="Turn an approved idea, prompt, or uploaded media into a short-form video plan with style, voiceover, music direction, and render handoff."
     >
       <VideoCreationStudio
         recentJobs={recentJobs}

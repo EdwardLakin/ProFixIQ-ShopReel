@@ -450,7 +450,7 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
               <GlassButton onClick={downloadPackage}>Download package (.md)</GlassButton>
               <Link
-                href={`/shopreel/create?source=review&contentType=Short-form+video&prompt=${encodeURIComponent(buildVideoCreatePrompt(draft))}`}
+                href={`/shopreel/video-creation?source=review&contentType=Short-form+video&prompt=${encodeURIComponent(buildVideoCreatePrompt(draft))}`}
                 onClick={() => saveReviewCreatePrefill(draft)}
               >
                 <GlassButton variant="ghost">Create reel/video from this</GlassButton>

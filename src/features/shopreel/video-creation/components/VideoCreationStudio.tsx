@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
@@ -10,10 +10,14 @@ import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import {
   VIDEO_CREATION_ASPECT_RATIOS,
+  VIDEO_CREATION_DURATIONS,
   VIDEO_CREATION_JOB_TYPES,
   VIDEO_CREATION_PROVIDERS,
   VIDEO_CREATION_STYLES,
+  VIDEO_CREATION_STYLE_DESCRIPTIONS,
   VIDEO_CREATION_VISUAL_MODES,
+  VIDEO_MUSIC_DIRECTIONS,
+  VIDEO_VOICEOVER_MODES,
   formatLabel,
   suggestDefaultDuration,
   type VideoCreationFormInput,
@@ -22,6 +26,8 @@ import {
   type VideoCreationStyle,
   type VideoCreationVisualMode,
   type VideoCreationAspectRatio,
+  type VideoMusicDirection,
+  type VideoVoiceoverMode,
 } from "@/features/shopreel/video-creation/lib/types";
 import { VIDEO_CREATION_PRESETS } from "@/features/shopreel/video-creation/lib/presets";
 import { getMediaJobPrimaryAction } from "@/features/shopreel/video-creation/lib/editor";
@@ -75,7 +81,11 @@ export default function VideoCreationStudio({
   const [style, setStyle] = useState<VideoCreationStyle>("cinematic");
   const [visualMode, setVisualMode] = useState<VideoCreationVisualMode>("photoreal");
   const [aspectRatio, setAspectRatio] = useState<VideoCreationAspectRatio>("9:16");
-  const [durationSeconds, setDurationSeconds] = useState<number>(8);
+  const [durationSeconds, setDurationSeconds] = useState<number>(20);
+  const [voiceoverMode, setVoiceoverMode] = useState<VideoVoiceoverMode>("ai_voice");
+  const [voiceoverScript, setVoiceoverScript] = useState("");
+  const [musicDirection, setMusicDirection] = useState<VideoMusicDirection>("modern_product_demo");
+  const [customMusicDirection, setCustomMusicDirection] = useState("");
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -94,6 +104,35 @@ export default function VideoCreationStudio({
     if (jobType === "asset_assembly") return "assembly";
     return provider;
   }, [jobType, provider]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const storedRaw = window.localStorage.getItem("shopreel:createPrefill");
+
+    let stored: { prompt?: string; contentType?: string; source?: string } | null = null;
+    if (storedRaw) {
+      try {
+        stored = JSON.parse(storedRaw) as { prompt?: string; contentType?: string; source?: string };
+      } catch {
+        stored = null;
+      }
+    }
+
+    const nextPrompt = params.get("prompt") || stored?.prompt || "";
+    const source = params.get("source") || stored?.source || "";
+
+    if (nextPrompt && !prompt.trim()) {
+      setPrompt(nextPrompt);
+      setTitle("AI video from approved concept");
+      setJobType("video");
+      setStyle("realistic");
+      setVisualMode("photoreal");
+      setDurationSeconds(20);
+      setVoiceoverMode("ai_voice");
+      setMusicDirection("modern_product_demo");
+      setMessage(source === "review" ? "Loaded approved Review concept. Choose style/duration, then create the video job." : "Loaded creation prompt.");
+    }
+  }, [prompt]);
 
   const seriesGroups = useMemo<MediaJobSeriesGroup[]>(
     () => groupMediaJobsIntoSeries(recentJobs),
@@ -198,6 +237,10 @@ export default function VideoCreationStudio({
             aspectRatio,
             durationSeconds,
             inputAssetIds: selectedAssetIds,
+            voiceoverMode,
+            voiceoverScript,
+            musicDirection,
+            customMusicDirection,
             allowAiConcepts: false,
           }),
         });
@@ -225,6 +268,10 @@ export default function VideoCreationStudio({
         aspectRatio,
         durationSeconds: jobType === "image" ? null : durationSeconds,
         inputAssetIds: selectedAssetIds,
+        voiceoverMode,
+        voiceoverScript,
+        musicDirection,
+        customMusicDirection,
       };
 
       const res = await fetch("/api/shopreel/video-creation/jobs", {
@@ -480,7 +527,7 @@ export default function VideoCreationStudio({
     <div className="grid gap-5">
       <GlassCard
         label="Studio"
-        title="AI Video Creation"
+        title="Beginner video brief"
         description="Create clips, build from assets, or create an uploaded-media-first series."
         strong
       >
@@ -689,7 +736,7 @@ export default function VideoCreationStudio({
                   >
                     {VIDEO_CREATION_STYLES.map((item) => (
                       <option key={item} value={item}>
-                        {formatLabel(item)}
+                        {formatLabel(item)} — {VIDEO_CREATION_STYLE_DESCRIPTIONS[item]}
                       </option>
                     ))}
                   </select>
@@ -775,6 +822,80 @@ export default function VideoCreationStudio({
             </div>
           </div>
         </div>
+      </GlassCard>
+
+
+      <GlassCard
+        label="Audio direction"
+        title="Voiceover and music direction"
+        description="ShopReel uses this as creative direction. Use licensed/user-owned music later; for now this guides mood, tempo, and voice."
+        strong
+      >
+        <div className="grid gap-4 lg:grid-cols-3">
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">Voiceover</span>
+            <select
+              value={voiceoverMode}
+              onChange={(event) => setVoiceoverMode(event.target.value as VideoVoiceoverMode)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            >
+              {VIDEO_VOICEOVER_MODES.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">Music mood</span>
+            <select
+              value={musicDirection}
+              onChange={(event) => setMusicDirection(event.target.value as VideoMusicDirection)}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            >
+              {VIDEO_MUSIC_DIRECTIONS.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/55">Duration</span>
+            <div className="grid grid-cols-4 gap-2">
+              {VIDEO_CREATION_DURATIONS.map((seconds) => (
+                <button
+                  key={seconds}
+                  type="button"
+                  onClick={() => setDurationSeconds(seconds)}
+                  className={cx(
+                    "rounded-xl border px-3 py-2 text-sm transition",
+                    durationSeconds === seconds
+                      ? "border-cyan-300/35 bg-cyan-400/15 text-white"
+                      : "border-white/10 bg-black/25 text-white/70 hover:bg-white/[0.06]"
+                  )}
+                >
+                  {seconds}s
+                </button>
+              ))}
+            </div>
+          </label>
+        </div>
+
+        {musicDirection === "custom" ? (
+          <input
+            value={customMusicDirection}
+            onChange={(event) => setCustomMusicDirection(event.target.value)}
+            placeholder="Describe the music mood, tempo, or reference style. Do not use copyrighted track names unless you own/license them."
+            className="mt-4 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+          />
+        ) : null}
+
+        <textarea
+          value={voiceoverScript}
+          onChange={(event) => setVoiceoverScript(event.target.value)}
+          placeholder="Optional voiceover direction or draft script. Example: Calm founder voice explaining the problem, then clear CTA."
+          rows={3}
+          className="mt-4 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+        />
       </GlassCard>
 
       <GlassCard

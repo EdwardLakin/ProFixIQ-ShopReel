@@ -73,6 +73,10 @@ export async function createMediaGenerationJob(
       requested_provider: input.provider,
       requested_job_type: input.jobType,
       title: input.title,
+      voiceover_mode: input.voiceoverMode ?? "ai_voice",
+      voiceover_script: input.voiceoverScript ?? null,
+      music_direction: input.musicDirection ?? "modern_product_demo",
+      custom_music_direction: input.customMusicDirection ?? null,
     },
     result_payload: {},
   };
