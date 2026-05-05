@@ -48,7 +48,7 @@ function normalizePlatformOutput(value: unknown, fallback: PlatformOutput): Plat
     body: asString(record.body, fallback.body),
     cta: asString(record.cta, fallback.cta),
     caption: asString(record.caption, fallback.caption),
-    hashtags: asStringArray(record.hashtags),
+    hashtags: asStringArray(record.hashtags).length > 0 ? asStringArray(record.hashtags) : fallback.hashtags,
   };
 }
 
@@ -157,8 +157,7 @@ export async function POST(
         {
           role: "system",
           content:
-            "You refine ShopReel social content. Keep the same product facts and platform IDs. " +
-            "Apply the user's instruction clearly. Return JSON only. Do not invent unsupported product features.",
+            "You refine ShopReel social content. Keep the same product facts and platform IDs. Apply the user's instruction clearly. Return JSON only. Do not invent unsupported product features.",
         },
         {
           role: "user",
@@ -201,10 +200,7 @@ export async function POST(
                   required: ["hook", "body", "cta", "caption", "hashtags"],
                 },
               },
-              alternateHooks: {
-                type: "array",
-                items: { type: "string" },
-              },
+              alternateHooks: { type: "array", items: { type: "string" } },
             },
             required: [
               "title",

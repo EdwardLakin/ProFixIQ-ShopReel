@@ -7,7 +7,7 @@ import { glassTheme, cx } from "./glassTheme";
 const NAV_ITEMS = [
   { href: "/shopreel", label: "Overview" },
   { href: "/shopreel/upload", label: "Upload" },
-  { href: "/shopreel/opportunities", label: "Opportunities" },
+  { href: "/shopreel/ideas", label: "Ideas" },
   { href: "/shopreel/calendar", label: "Calendar" },
   { href: "/shopreel/render-queue", label: "Render Queue" },
   { href: "/shopreel/analytics", label: "Analytics" },
