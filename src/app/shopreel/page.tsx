@@ -2,6 +2,7 @@ import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import ShopReelTemplateCard from "@/features/shopreel/ui/ShopReelTemplateCard";
 
 const PROMPT_CHIPS = ["Product launch reel", "Founder video", "Social media campaign", "Blog post", "How-to video"];
 const IDEAS = ["Q2 launch narrative with founder-led hooks", "Before/after transformation carousel with short captions", "Repurpose one product demo into a week of channel content"];
@@ -10,7 +11,7 @@ const READINESS = ["Upload at least one source video", "Define your preferred to
 const START_TEMPLATES = [
   { title: "Short-form video", description: "Reels, TikToks, and Shorts with hook-first pacing.", icon: "▶", tone: "from-violet-500/40 to-blue-400/20" },
   { title: "Social post", description: "Visual + caption concepts tuned for conversions.", icon: "✦", tone: "from-fuchsia-500/40 to-rose-400/20" },
-  { title: "Blog post", description: "Long-form narratives from raw clips and ideas.", icon: "✎", tone: "from-emerald-500/30 to-cyan-400/20" },
+  { title: "Blog post", description: "Long-form narratives from clips, notes, or interviews.", icon: "✎", tone: "from-emerald-500/30 to-cyan-400/20" },
   { title: "Repurpose content", description: "Turn one upload into cross-channel assets.", icon: "↻", tone: "from-amber-500/35 to-orange-400/20" },
   { title: "Campaign bundle", description: "Generate a campaign set from one brief.", icon: "◈", tone: "from-sky-500/40 to-indigo-400/20" },
   { title: "Product promo", description: "Benefit-led promo sequences with clear CTA.", icon: "⚑", tone: "from-purple-500/40 to-cyan-300/20" },
@@ -98,24 +99,20 @@ export default async function ShopReelPage() {
 
           <section>
             <div className="mb-2 text-lg font-semibold text-white">Start creating</div>
-            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {START_TEMPLATES.map((template) => (
-                <Link key={template.title} href={`/shopreel/create?template=${encodeURIComponent(template.title)}`} className="group rounded-2xl border border-white/12 bg-white/[0.04] p-3.5 shadow-[0_18px_50px_rgba(7,10,24,0.35)] transition hover:-translate-y-1 hover:bg-white/[0.08]">
-                  <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-gradient-to-br ${template.tone} text-base text-white`}>{template.icon}</div>
-                  <div className="mt-2 text-sm font-semibold text-white">{template.title}</div>
-                  <div className="mt-1 text-xs leading-5 text-white/65">{template.description}</div>
-                </Link>
+                <ShopReelTemplateCard key={template.title} {...template} />
               ))}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
             <div className="text-base font-semibold text-white">Recent projects</div>
             {recent.length === 0 ? (
-              <div className="mt-3 rounded-2xl border border-white/10 bg-black/25 p-4">
-                <div className="text-lg font-semibold text-white">Your first project starts here.</div>
-                <div className="mt-1.5 text-sm text-white/70">Upload media or start with an idea and ShopReel will generate your first draft.</div>
-                <div className="mt-3"><Link href="/shopreel/create" className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-white">Create content</Link></div>
+              <div className="mt-2.5 rounded-xl border border-white/10 bg-black/25 p-3">
+                <div className="text-base font-semibold text-white">Your first project starts here.</div>
+                <div className="mt-1 text-sm text-white/70">Upload media or start with an idea and ShopReel will generate your first draft.</div>
+                <div className="mt-2.5"><Link href="/shopreel/create" className="rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 px-3.5 py-2 text-sm font-semibold text-white">Create content</Link></div>
               </div>
             ) : (
               <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
