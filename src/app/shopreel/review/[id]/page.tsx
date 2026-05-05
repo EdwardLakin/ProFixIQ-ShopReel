@@ -42,8 +42,36 @@ export default async function ShopReelReviewRoute(props: { params: Promise<{ id:
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+  let manualAssetFiles: string[] = [];
+  const manualAssetId =
+    typeof generation.generation_metadata === "object" &&
+    generation.generation_metadata &&
+    typeof (generation.generation_metadata as { manualAssetId?: unknown }).manualAssetId === "string"
+      ? (generation.generation_metadata as { manualAssetId: string }).manualAssetId
+      : null;
+  if (manualAssetId) {
+    const { data: files } = await legacy
+      .from("shopreel_manual_asset_files")
+      .select("file_name")
+      .eq("asset_id", manualAssetId)
+      .eq("shop_id", shopId)
+      .order("sort_order", { ascending: true });
+    manualAssetFiles = (files ?? [])
+      .map((row: { file_name?: string | null }) => row.file_name)
+      .filter((name: string | null | undefined): name is string => typeof name === "string" && name.trim().length > 0);
+  }
 
-  const draft = mapGenerationToReviewDraft({ generation, storySource, contentPiece });
+  const draft = mapGenerationToReviewDraft({
+    generation: {
+      ...generation,
+      generation_metadata: {
+        ...(generation.generation_metadata as Record<string, unknown> | null),
+        manualAssetFiles,
+      },
+    },
+    storySource,
+    contentPiece,
+  });
 
   return (
     <GlassShell

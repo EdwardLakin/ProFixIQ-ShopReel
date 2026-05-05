@@ -31,8 +31,9 @@ export default function ShopReelCreatePage() {
   const [selectedContentType, setSelectedContentType] = useState<string>("Short-form video");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
-  function onSelectFiles(fileList: FileList | null) { if (!fileList?.length) return; const next: UploadFileMeta[] = []; for (const file of Array.from(fileList)) { if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) continue; next.push({ file, fileType: detectFileType(file) }); } setFiles(next); }
+  function onSelectFiles(fileList: FileList | null) { if (!fileList?.length) return; const next: UploadFileMeta[] = []; let unsupportedCount = 0; for (const file of Array.from(fileList)) { if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) { unsupportedCount += 1; continue; } next.push({ file, fileType: detectFileType(file) }); } setFiles(next); setUploadNotice(unsupportedCount > 0 ? `${unsupportedCount} unsupported file${unsupportedCount === 1 ? "" : "s"} skipped. Use images or videos only.` : null); }
   function togglePlatform(platformId: ShopReelPlatformId) { setPlatformIds((current) => current.includes(platformId) ? current.filter((id) => id !== platformId) : [...current, platformId]); }
 
   async function uploadAssetAndFiles() {
@@ -97,6 +98,7 @@ export default function ShopReelCreatePage() {
             <label className="block cursor-pointer rounded-3xl border border-dashed border-violet-300/35 bg-black/25 p-5">
               <div className="text-lg font-semibold text-white">Drop media or choose files</div>
               <div className="mt-1 text-sm text-white/70">Photos and videos are used as source truth for generation quality.</div>
+              <div className="mt-1 text-xs text-cyan-100/75">Best for screenshot-led launches (PayProof, SaaS, app updates), offers, and creator-brand campaigns.</div>
               <div className="mt-4 inline-flex rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2 text-sm text-white">Choose files</div>
               <input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className="sr-only" />
             </label>
@@ -104,6 +106,7 @@ export default function ShopReelCreatePage() {
               <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5">{files.length} files selected</span>
               {files.slice(0, 4).map((item) => <span key={`${item.file.name}-${item.file.size}`} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5">{item.file.name}</span>)}
             </div>
+            {uploadNotice ? <div className="mt-2 text-xs text-amber-200">{uploadNotice}</div> : null}
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -114,6 +117,7 @@ export default function ShopReelCreatePage() {
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-3 text-sm font-semibold text-white">Step 4 · Choose platforms</div>
+            <p className="mb-3 text-xs text-white/65">For this MVP, select Instagram and Facebook to generate platform-specific post copy you can review, copy, and download.</p>
             <div className="grid gap-3 md:grid-cols-2">
               {SHOPREEL_PLATFORM_PRESETS.map((platform) => {
                 const selected = platformIds.includes(platform.id);

@@ -65,6 +65,7 @@ function buildDraft(input: {
   audience: string;
   tone: Body["tone"];
   platformFocus: NonNullable<Body["platformFocus"]>;
+  platformIds: ShopReelPlatformId[];
 }) {
   const hook = buildHook(input.idea);
   const title = buildTitle(input.idea);
@@ -121,6 +122,20 @@ function buildDraft(input: {
       durationSeconds: 3,
     },
   ];
+  const platformOutputs = Object.fromEntries(
+    input.platformIds.map((platformId) => {
+      const isInstagram = platformId === "instagram_reels";
+      const label = isInstagram ? "Instagram" : platformId === "facebook_reels" ? "Facebook" : platformId;
+      const body = isInstagram
+        ? `Turn this into a punchy ${label} post with one proof point and one clear benefit.`
+        : `Turn this into a practical ${label} post with clear context, value, and what to do next.`;
+      const cta = isInstagram ? "Save this and DM us to see it in action." : "Comment or message us to get the full breakdown.";
+      const hashtags = isInstagram
+        ? ["#creatorbusiness", "#contentstrategy", "#productlaunch", "#socialmedia"]
+        : ["#smallbusinessmarketing", "#contentmarketing", "#launchstrategy"];
+      return [platformId, { hook, body, cta, caption: `${hook}\n\n${input.idea.trim()}\n\n${cta}`, hashtags }];
+    }),
+  );
 
   return {
     id: makeId("draft"),
@@ -157,6 +172,7 @@ function buildDraft(input: {
       platformFocus: input.platformFocus,
       sourceOrigin: "creator_mode",
     },
+    platformOutputs,
   };
 }
 
@@ -194,6 +210,7 @@ export async function POST(req: Request) {
       audience,
       tone: body.tone ?? "confident",
       platformFocus: body.platformFocus ?? "multi",
+      platformIds: normalizedPlatformIds,
     });
 
     const { error: sourceError } = await supabase

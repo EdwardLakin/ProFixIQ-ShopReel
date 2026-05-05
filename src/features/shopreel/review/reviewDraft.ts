@@ -40,6 +40,16 @@ export type ShopReelReviewDraft = {
   thumbnailDirection?: string;
   notes?: string;
   manualAssetId?: string;
+  manualAssetFiles: string[];
+  platformOutputs: Array<{
+    platformId: ShopReelPlatformId;
+    platformLabel: string;
+    hook: string;
+    body: string;
+    cta: string;
+    caption: string;
+    hashtags: string[];
+  }>;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -62,6 +72,27 @@ export function mapGenerationToReviewDraft(input: {
     "";
 
   const platforms = platformIdsFrom(metadata.platformIds ?? sourceMetadata.platformIds);
+  const platformOutputsRaw = asRecord(storyDraft.platformOutputs);
+  const platformOutputs = platforms.map((platformId) => {
+    const payload = asRecord(platformOutputsRaw[platformId]);
+    const label =
+      platformId === "instagram_reels"
+        ? "Instagram"
+        : platformId === "facebook_reels"
+          ? "Facebook"
+          : platformId === "tiktok"
+            ? "TikTok"
+            : "YouTube Shorts";
+    return {
+      platformId,
+      platformLabel: label,
+      hook: typeof payload.hook === "string" ? payload.hook : "",
+      body: typeof payload.body === "string" ? payload.body : "",
+      cta: typeof payload.cta === "string" ? payload.cta : "",
+      caption: typeof payload.caption === "string" ? payload.caption : "",
+      hashtags: asStringArray(payload.hashtags),
+    };
+  });
 
   return {
     generationId: String(generation.id ?? ""),
@@ -102,6 +133,8 @@ export function mapGenerationToReviewDraft(input: {
       (typeof metadata.manualAssetId === "string" && metadata.manualAssetId) ||
       (typeof sourceMetadata.manualAssetId === "string" && sourceMetadata.manualAssetId) ||
       undefined,
+    manualAssetFiles: asStringArray(metadata.manualAssetFiles),
+    platformOutputs,
     createdAt: typeof generation.created_at === "string" ? generation.created_at : undefined,
     updatedAt: typeof generation.updated_at === "string" ? generation.updated_at : undefined,
   };
