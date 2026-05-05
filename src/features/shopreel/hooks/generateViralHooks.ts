@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -22,7 +23,7 @@ function fallbackHooks(subject: string): HookResult[] {
 export async function generateViralHooks(subject: string, contentType: string) {
   try {
     const response = await openai.responses.create({
-      model: "gpt-5-mini",
+      model: SHOPREEL_AI_MODELS.text,
       input: [
         {
           role: "system",

@@ -1,3 +1,4 @@
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 import { getOpenAIApiKey } from "@/features/shopreel/video-creation/lib/env";
 import { normalizeOpenAIVideoSeconds } from "@/features/shopreel/video-creation/lib/normalizeOpenAIVideoSeconds";
 import type { MediaProviderAdapter, MediaProviderJobInput, MediaProviderResult } from "./types";
@@ -65,7 +66,7 @@ export const openAiMediaProvider: MediaProviderAdapter = {
           Authorization: `Bearer ${getOpenAIApiKey()}`,
         },
         body: JSON.stringify({
-          model: "gpt-image-1",
+          model: SHOPREEL_AI_MODELS.image,
           prompt,
           size: mapAspectRatioToImageSize(input.aspectRatio),
         }),
@@ -102,7 +103,7 @@ export const openAiMediaProvider: MediaProviderAdapter = {
         },
         body: (() => {
           const form = new FormData();
-          form.append("model", "sora-2");
+          form.append("model", SHOPREEL_AI_MODELS.videoDraft);
           form.append("prompt", prompt);
           form.append("size", mapAspectRatioToVideoSize(input.aspectRatio));
           form.append("seconds", String(seconds));

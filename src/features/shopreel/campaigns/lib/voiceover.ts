@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -35,7 +36,7 @@ ${input.scenes.map((s, i) => `${i + 1}. ${s.title}: ${s.prompt}`).join("\n")}
 `.trim();
 
   const response = await openai.responses.create({
-    model: "gpt-5-mini",
+    model: SHOPREEL_AI_MODELS.text,
     input: prompt,
   });
 
