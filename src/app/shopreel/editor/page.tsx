@@ -1,74 +1,7 @@
 import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
-import GlassCard from "@/features/shopreel/ui/system/GlassCard";
-import GlassButton from "@/features/shopreel/ui/system/GlassButton";
-import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
+import { ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 
-export default async function ShopReelEditorHubPage() {
-  const supabase = createAdminClient();
-  const legacy = supabase as any;
-
-  const { data: generations } = await legacy
-    .from("shopreel_story_generations")
-    .select("id, status, created_at, story_draft")
-    .order("created_at", { ascending: false })
-    .limit(12);
-
-  return (
-    <GlassShell
-      eyebrow="ShopReel"
-      title="Editor"
-      subtitle="Open drafts and finished assets for editing and packaging."
-    >
-      <ShopReelNav />
-
-      <GlassCard
-        label="Editor Hub"
-        title="Recent editable generations"
-        description="Open an existing generation, or create a new one from Creator Mode or Opportunities."
-        strong
-      >
-        {(generations ?? []).length === 0 ? (
-          <div
-            className={cx(
-              "rounded-2xl border p-4 text-sm",
-              glassTheme.border.softer,
-              glassTheme.glass.panelSoft,
-              glassTheme.text.secondary,
-            )}
-          >
-            No saved generations yet.
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {(generations ?? []).map((item: any) => (
-              <div
-                key={item.id}
-                className={cx(
-                  "flex items-center justify-between gap-4 rounded-2xl border p-4",
-                  glassTheme.border.softer,
-                  glassTheme.glass.panelSoft,
-                )}
-              >
-                <div className="space-y-1">
-                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
-                    {item.story_draft?.title ?? "Untitled generation"}
-                  </div>
-                  <div className={cx("text-sm", glassTheme.text.secondary)}>
-                    {item.status} • {new Date(item.created_at).toLocaleString()}
-                  </div>
-                </div>
-
-                <Link href={`/shopreel/editor/video/${item.id}`}>
-                  <GlassButton variant="secondary">Open editor</GlassButton>
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-      </GlassCard>
-    </GlassShell>
-  );
-}
+const MODES=["Draft review","Caption editing","Thumbnail direction","Export packaging","Platform adaptation"];
+export default async function ShopReelEditorHubPage() {const supabase=createAdminClient();const legacy=supabase as unknown as {from:(table:string)=>any};const { data: generations } = await legacy.from("shopreel_story_generations").select("id, status, created_at, story_draft").order("created_at", { ascending: false }).limit(12);return <GlassShell title="Editor" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Editor" subtitle="Open drafts and finished assets for editing, packaging, and export prep." actions={[{label:"Create content",href:"/shopreel/create",primary:true},{label:"Open projects",href:"/shopreel/generations"}]}/><ShopReelSurface title="Editor modes"><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{MODES.map((m)=><div key={m} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{m}</div>)}</div></ShopReelSurface><ShopReelSurface title="Recent editable projects">{(generations??[]).length===0?<ShopReelEmptyState title="No editable projects yet" description="Create a draft first, then return here to refine and package it."/>:<div className="grid gap-2">{(generations??[]).map((item:{id:string;status:string;created_at:string;story_draft?:{title?:string}})=><div key={item.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] p-3"><div><div className="text-sm text-white">{item.story_draft?.title ?? "Untitled generation"}</div><div className="text-xs text-white/60">{item.status}</div></div><Link className="text-xs text-cyan-200" href={`/shopreel/editor/video/${item.id}`}>Open editor</Link></div>)}</div>}</ShopReelSurface></div></GlassShell>}

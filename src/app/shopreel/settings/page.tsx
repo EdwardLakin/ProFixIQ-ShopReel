@@ -1,24 +1,15 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import { Suspense } from "react";
-import Link from "next/link";
 import ShopReelSettingsClient from "@/features/shopreel/ui/ShopReelSettingsClient";
-import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+import { ShopReelActionRail, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 
 export default function ShopReelSettingsPage() {
   return (
-    <GlassShell
-      eyebrow="ShopReel"
-      title="Settings"
-      subtitle="Manage brand voice, audience defaults, format preferences, channel setup, automation choices, and workspace details."
-      actions={
-        <Link href="/shopreel/account">
-          <GlassButton variant="ghost">Workspace details</GlassButton>
-        </Link>
-      }
-    >
-      <ShopReelNav />
-      <Suspense fallback={null}><ShopReelSettingsClient /></Suspense>
+    <GlassShell title="Settings" hidePageIntro>
+      <div className="space-y-4">
+        <ShopReelPageHero title="Settings" subtitle="Manage brand voice, audience defaults, format preferences, channels, automation, and workspace details." actions={[{label:"Workspace details",href:"/shopreel/account",primary:true}]} />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><ShopReelSurface title="Brand and workspace configuration"><Suspense fallback={null}><ShopReelSettingsClient /></Suspense></ShopReelSurface><ShopReelActionRail title="Setup checklist" items={["Brand voice defined","Default aspect ratio selected","Channels connected","Automation reviewed"]}/></div>
+      </div>
     </GlassShell>
   );
 }

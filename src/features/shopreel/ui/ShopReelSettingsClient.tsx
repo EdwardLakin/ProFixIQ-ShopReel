@@ -19,7 +19,7 @@ type SettingsState = {
   autoApproveDrafts: boolean;
   autoQueueRenders: boolean;
   autoPublish: boolean;
-  includeAdvisorCta: boolean;
+  includeBrandCta: boolean;
   defaultHookTemplate: string;
   complianceNote: string;
 };
@@ -65,9 +65,9 @@ const initialState: SettingsState = {
   autoApproveDrafts: false,
   autoQueueRenders: true,
   autoPublish: false,
-  includeAdvisorCta: true,
+  includeBrandCta: true,
   defaultHookTemplate: "Show the real issue fast, then explain the fix simply.",
-  complianceNote: "Avoid overstating urgency. Keep copy factual and customer-friendly.",
+  complianceNote: "Avoid overstating urgency. Keep copy factual and audience-friendly.",
 };
 
 const PLATFORM_ORDER: ShopReelPlatform[] = [
@@ -352,10 +352,10 @@ export default function ShopReelSettingsClient() {
             />
 
             <GlassToggle
-              label="Include advisor CTA"
-              description="Append a light shop CTA where appropriate."
-              checked={state.includeAdvisorCta}
-              onCheckedChange={(checked) => setField("includeAdvisorCta", checked)}
+              label="Include brand CTA"
+              description="Append a light brand CTA where appropriate."
+              checked={state.includeBrandCta}
+              onCheckedChange={(checked) => setField("includeBrandCta", checked)}
             />
           </div>
         </GlassCard>
