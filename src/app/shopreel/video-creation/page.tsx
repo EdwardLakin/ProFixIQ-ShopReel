@@ -1,9 +1,12 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import VideoBriefWizard from "@/features/shopreel/video-creation/components/VideoBriefWizard";
 import { listRecentMediaGenerationJobs } from "@/features/shopreel/video-creation/lib/server";
+import type { Database } from "@/types/supabase";
+
+type RecentMediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
 
 export default async function ShopReelVideoCreationPage() {
-  let recentJobs = [];
+  let recentJobs: RecentMediaJob[] = [];
   try {
     recentJobs = await listRecentMediaGenerationJobs(24);
   } catch {
