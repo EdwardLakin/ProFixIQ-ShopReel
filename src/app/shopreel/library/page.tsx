@@ -51,10 +51,10 @@ export default async function ShopReelLibraryPage() {
     const items = buildShopReelLibraryItems({ generations: generations ?? [], contentPieces: contentPieces ?? [], renderJobs: renderJobs ?? [], exportPackages: exportPackages ?? [] });
 
     return <section className="mx-auto w-full max-w-6xl px-4 py-10 text-white space-y-4">
-      <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Content Library</h1><p className="text-sm text-white/75">Track drafts, renders, exports, and manually posted content.</p></div><Link className="rounded border border-white/20 px-3 py-2" href="/shopreel/create">Create new draft</Link></div>
-      {items.length === 0 ? <div className="rounded border border-white/15 p-4 text-sm">No ShopReel history yet. Start by creating a draft from <Link className="underline" href="/shopreel/create">/shopreel/create</Link>.</div> : <LibraryIndexClient items={items} resultLimit={QUERY_LIMIT} />}
+      <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Library</h1><p className="text-sm text-white/75">Your finished and reusable content across videos, captions, blogs, and export assets.</p></div><Link className="rounded border border-white/20 px-3 py-2" href="/shopreel/create">Create content</Link></div>
+      {items.length === 0 ? <div className="rounded border border-white/15 p-4 text-sm">Your finished content will appear here after generation or export. Start by creating from <Link className="underline" href="/shopreel/create">/shopreel/create</Link>.</div> : <LibraryIndexClient items={items} resultLimit={QUERY_LIMIT} />}
     </section>;
   } catch (_error) {
-    return <section className="mx-auto w-full max-w-5xl px-4 py-10 text-white"><h1 className="text-2xl font-semibold">Content Library</h1><div className="mt-4 rounded border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">Unable to load library history right now. Try again, or open <Link className="underline" href="/shopreel/render-jobs">Render Jobs</Link> and <Link className="underline" href="/shopreel/exports">Exports</Link>.</div></section>;
+    return <section className="mx-auto w-full max-w-5xl px-4 py-10 text-white"><h1 className="text-2xl font-semibold">Library</h1><div className="mt-4 rounded border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">Unable to load library history right now. Try again, or open <Link className="underline" href="/shopreel/render-jobs">Processing</Link> and <Link className="underline" href="/shopreel/exports">Downloads</Link>.</div></section>;
   }
 }

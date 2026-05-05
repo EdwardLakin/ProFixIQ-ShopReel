@@ -42,20 +42,20 @@ export default async function ShopReelGenerationsPage() {
   return (
     <GlassShell
       eyebrow="ShopReel"
-      title="Generations"
-      subtitle="Generated stories, review surfaces, editor access, and publish-ready content."
+      title="Projects"
+      subtitle="All drafts in progress across review, editing, rendering, and publishing."
       actions={
         <Link href="/shopreel/opportunities">
-          <GlassButton variant="primary">Open opportunities</GlassButton>
+          <GlassButton variant="primary">Explore ideas</GlassButton>
         </Link>
       }
     >
       <ShopReelNav />
 
       <GlassCard
-        label="Generated Stories"
-        title="Story generations"
-        description="Review, edit, render again, and publish from this list."
+        label="Projects"
+        title="Drafts and generated content"
+        description="Review, edit, process, and publish from one project list."
         strong
       >
         {generations.length === 0 ? (
@@ -67,11 +67,11 @@ export default async function ShopReelGenerationsPage() {
               glassTheme.text.secondary,
             )}
           >
-            No story generations yet.
+            No projects yet. Create your first content draft from media, notes, or an idea.
           </div>
         ) : (
           <div className="grid gap-3">
-            {generations.map((generation: any) => {
+            {generations.map((generation) => {
               const draft = asStoryDraft(generation.story_draft);
               const metadata =
                 generation.generation_metadata &&
@@ -79,7 +79,7 @@ export default async function ShopReelGenerationsPage() {
                 !Array.isArray(generation.generation_metadata)
                   ? (generation.generation_metadata as Record<string, unknown>)
                   : {};
-              const title = draft?.title ?? "Untitled generation";
+              const title = draft?.title ?? "Untitled project";
               const sourceKind = draft?.sourceKind ?? "story";
               const canPublish = generation.status === "ready";
               const outputType = typeof metadata.output_type === "string" ? metadata.output_type : "video";
