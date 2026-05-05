@@ -6,9 +6,12 @@ import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
 type Body = {
   idea?: string;
+  prompt?: string;
   audience?: string;
   platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
   tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
+  platformIds?: Array<"instagram_reels" | "facebook_reels" | "tiktok" | "youtube_shorts">;
+  manualAssetId?: string | null;
 };
 
 function makeId(prefix: string) {
@@ -151,12 +154,12 @@ function buildDraft(input: {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as Body;
-    const idea = body.idea?.trim() ?? "";
+    const idea = (body.prompt ?? body.idea ?? "").trim();
     const audience = body.audience?.trim() ?? "";
 
     if (!idea) {
       return NextResponse.json(
-        { ok: false, error: "idea is required" },
+        { ok: false, error: "prompt is required" },
         { status: 400 },
       );
     }
@@ -194,6 +197,8 @@ export async function POST(req: Request) {
           creatorMode: true,
           audience: audience || null,
           platformFocus: body.platformFocus ?? "multi",
+          platformIds: body.platformIds ?? null,
+          manualAssetId: body.manualAssetId ?? null,
         },
         created_at: now,
         updated_at: now,
@@ -247,6 +252,8 @@ export async function POST(req: Request) {
           source_system: "shopreel",
           audience: audience || null,
           platformFocus: body.platformFocus ?? "multi",
+          platformIds: body.platformIds ?? null,
+          manualAssetId: body.manualAssetId ?? null,
         },
         created_by: null,
         created_at: now,
@@ -263,7 +270,7 @@ export async function POST(req: Request) {
       contentPieceId,
       generationId,
       editorUrl: getEditorPath("video", generationId),
-      reviewUrl: `/shopreel/generations/${generationId}`,
+      reviewUrl: `/shopreel/review/${generationId}`,
     });
   } catch (error) {
     const message =
