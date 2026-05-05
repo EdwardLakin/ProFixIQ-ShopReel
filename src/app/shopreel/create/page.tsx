@@ -69,15 +69,15 @@ export default function ShopReelCreatePage() {
 
   return (
     <GlassShell eyebrow="Create" title="Create your next piece of content" subtitle="Guided studio flow: choose format, upload media, brief AI, select channels, then generate draft.">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-5">
-          <section className="rounded-[30px] border border-violet-300/25 bg-[radial-gradient(circle_at_12%_0%,rgba(122,92,255,0.34),transparent_40%),linear-gradient(140deg,rgba(8,12,29,0.95),rgba(7,11,26,0.86))] p-6">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="space-y-4">
+          <section className="rounded-[30px] border border-violet-300/25 bg-[radial-gradient(circle_at_12%_0%,rgba(122,92,255,0.34),transparent_40%),linear-gradient(140deg,rgba(8,12,29,0.95),rgba(7,11,26,0.86))] p-5">
             <div className="text-xs tracking-[0.2em] text-cyan-100/65">GUIDED STUDIO</div>
-            <h2 className="mt-2 text-3xl font-semibold text-white">Build from one brief to one generated draft</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-white md:text-3xl">Build from one brief to one generated draft</h2>
             <p className="mt-2 text-sm text-white/75">Upload source media, describe the outcome, set audience and channels, then hand off to review.</p>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-3 text-sm font-semibold text-white">Step 1 · Choose format</div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {CONTENT_TYPES.map((type) => {
@@ -92,9 +92,9 @@ export default function ShopReelCreatePage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-3 text-sm font-semibold text-white">Step 2 · Upload media</div>
-            <label className="block cursor-pointer rounded-3xl border border-dashed border-violet-300/35 bg-black/25 p-7">
+            <label className="block cursor-pointer rounded-3xl border border-dashed border-violet-300/35 bg-black/25 p-5">
               <div className="text-lg font-semibold text-white">Drop media or choose files</div>
               <div className="mt-1 text-sm text-white/70">Photos and videos are used as source truth for generation quality.</div>
               <div className="mt-4 inline-flex rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2 text-sm text-white">Choose files</div>
@@ -106,13 +106,13 @@ export default function ShopReelCreatePage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-3 text-sm font-semibold text-white">Step 3 · Describe outcome</div>
-            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Create a 30-second product launch reel for Instagram with upbeat music, captions, and a strong opening hook." className="min-h-40 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-white outline-none placeholder:text-white/45 focus:border-violet-300/40" />
+            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Create a 30-second product launch reel for Instagram with upbeat music, captions, and a strong opening hook." className="min-h-32 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-white outline-none placeholder:text-white/45 focus:border-violet-300/40" />
             <input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Audience: founders, creators, local shoppers, B2B marketers..." className="mt-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-cyan-300/40" />
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-3 text-sm font-semibold text-white">Step 4 · Choose platforms</div>
             <div className="grid gap-3 md:grid-cols-2">
               {SHOPREEL_PLATFORM_PRESETS.map((platform) => {
@@ -130,7 +130,7 @@ export default function ShopReelCreatePage() {
           </section>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="space-y-3">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="text-sm font-semibold text-white">Brief summary</div>
             <div className="mt-3 space-y-2 text-sm text-white/75">
