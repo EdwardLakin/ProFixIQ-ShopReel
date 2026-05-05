@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { Database, Json } from "@/types/supabase";
 import {
@@ -23,6 +23,30 @@ type MediaGenerationJobRow =
 type ContentAssetInsert =
   Database["public"]["Tables"]["content_assets"]["Insert"];
 
+async function getShopReelVideoScope(): Promise<{ shopId: string; userId: string | null; standalone: boolean }> {
+  const authSupabase = await createClient();
+  const {
+    data: { user },
+  } = await authSupabase.auth.getUser();
+
+  let shopId: string | null = null;
+  try {
+    shopId = await getCurrentShopId();
+  } catch {
+    shopId = null;
+  }
+
+  if (shopId) {
+    return { shopId, userId: user?.id ?? null, standalone: false };
+  }
+
+  if (!user?.id) {
+    throw new Error("Please sign in to create videos.");
+  }
+
+  return { shopId: user.id, userId: user.id, standalone: true };
+}
+
 function normalizeJobDurationSeconds(
   provider: string,
   jobType: string,
@@ -39,7 +63,8 @@ export async function createMediaGenerationJob(
   input: VideoCreationFormInput
 ): Promise<MediaGenerationJobRow> {
   const supabase = createAdminClient();
-  const shopId = await getCurrentShopId();
+  const scope = await getShopReelVideoScope();
+  const shopId = scope.shopId;
 
   const normalizedDurationSeconds = normalizeJobDurationSeconds(
     input.provider,
@@ -323,7 +348,7 @@ export async function processMediaGenerationJob(
 
 export async function listRecentMediaGenerationJobs(limit = 24) {
   const supabase = createAdminClient();
-  const shopId = await getCurrentShopId();
+  const { shopId } = await getShopReelVideoScope();
 
   const { data, error } = await supabase
     .from("shopreel_media_generation_jobs")

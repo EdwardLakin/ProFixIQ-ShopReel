@@ -1,24 +1,22 @@
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import VideoCreationStudio from "@/features/shopreel/video-creation/components/VideoCreationStudio";
+import VideoBriefWizard from "@/features/shopreel/video-creation/components/VideoBriefWizard";
 import { listRecentMediaGenerationJobs } from "@/features/shopreel/video-creation/lib/server";
-import { listSelectableContentAssets } from "@/features/shopreel/video-creation/lib/assets";
 
 export default async function ShopReelVideoCreationPage() {
-  const [recentJobs, selectableAssets] = await Promise.all([
-    listRecentMediaGenerationJobs(24),
-    listSelectableContentAssets(50),
-  ]);
+  let recentJobs = [];
+  try {
+    recentJobs = await listRecentMediaGenerationJobs(24);
+  } catch {
+    recentJobs = [];
+  }
 
   return (
     <GlassShell
       eyebrow="ShopReel"
       title="AI Video Builder"
-      subtitle="Turn an approved idea, prompt, or uploaded media into a short-form video plan with style, voiceover, music direction, and render handoff."
+      subtitle="Create a 10–30 second video/reel from a prompt, approved concept, or uploaded media direction without starting in a complex editor."
     >
-      <VideoCreationStudio
-        recentJobs={recentJobs}
-        selectableAssets={selectableAssets}
-      />
+      <VideoBriefWizard recentJobs={recentJobs} />
     </GlassShell>
   );
 }
