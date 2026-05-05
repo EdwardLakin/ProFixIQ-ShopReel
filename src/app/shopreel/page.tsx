@@ -1,28 +1,28 @@
 import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import GlassCard from "@/features/shopreel/ui/system/GlassCard";
-import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
 const PROMPT_CHIPS = ["Product launch reel", "Founder video", "Social media campaign", "Blog post", "How-to video"];
-const IDEAS = ["Q2 product launch campaign content ideas", "Behind-the-scenes creator series for Instagram", "Email newsletter: welcome sequence for new subscribers"];
+const IDEAS = ["Q2 launch narrative with founder-led hooks", "Before/after transformation carousel with short captions", "Repurpose one product demo into a week of channel content"];
+const READINESS = ["Upload at least one source video", "Define your preferred tone in prompt", "Connect channels before publishing"];
 
 const START_TEMPLATES = [
-  { title: "Short-form video", description: "Reels, TikToks, and Shorts designed to stop the scroll.", icon: "▶", tone: "from-violet-500/30 to-blue-400/15" },
-  { title: "Social post", description: "Polished captions, hooks, and CTA-first visuals.", icon: "✦", tone: "from-fuchsia-500/30 to-rose-400/15" },
-  { title: "Blog post", description: "SEO-ready articles from notes, clips, or interviews.", icon: "✎", tone: "from-emerald-500/25 to-cyan-400/10" },
-  { title: "Repurpose content", description: "Turn one asset into a full distribution pack.", icon: "↻", tone: "from-amber-500/25 to-orange-400/10" },
-  { title: "Campaign bundle", description: "Build cross-channel assets with one brief.", icon: "◈", tone: "from-sky-500/30 to-indigo-400/15" },
-  { title: "Influencer content", description: "Creator-native concepts with brand-safe voice.", icon: "⚑", tone: "from-purple-500/30 to-cyan-300/15" },
+  { title: "Short-form video", description: "Reels, TikToks, and Shorts with hook-first pacing.", icon: "▶", tone: "from-violet-500/40 to-blue-400/20" },
+  { title: "Social post", description: "Visual + caption concepts tuned for conversions.", icon: "✦", tone: "from-fuchsia-500/40 to-rose-400/20" },
+  { title: "Blog post", description: "Long-form narratives from raw clips and ideas.", icon: "✎", tone: "from-emerald-500/30 to-cyan-400/20" },
+  { title: "Repurpose content", description: "Turn one upload into cross-channel assets.", icon: "↻", tone: "from-amber-500/35 to-orange-400/20" },
+  { title: "Campaign bundle", description: "Generate a campaign set from one brief.", icon: "◈", tone: "from-sky-500/40 to-indigo-400/20" },
+  { title: "Product promo", description: "Benefit-led promo sequences with clear CTA.", icon: "⚑", tone: "from-purple-500/40 to-cyan-300/20" },
+  { title: "Influencer content", description: "Creator-native scripts and cut directions.", icon: "☼", tone: "from-pink-500/35 to-violet-400/20" },
 ];
 
 const PIPELINE_STEPS: Array<{ label: string; key: "drafts" | "review" | "processing" | "ready" | "published"; hint: string }> = [
-  { label: "Drafts", key: "drafts", hint: "Idea to first output" },
-  { label: "In review", key: "review", hint: "Awaiting final edits" },
-  { label: "Processing", key: "processing", hint: "Rendering in queue" },
-  { label: "Ready", key: "ready", hint: "Prepared for export" },
-  { label: "Published", key: "published", hint: "Connected channels" },
+  { label: "Drafts", key: "drafts", hint: "Ideas forming" },
+  { label: "In Review", key: "review", hint: "Awaiting edits" },
+  { label: "Processing", key: "processing", hint: "Rendering now" },
+  { label: "Ready", key: "ready", hint: "Prepared output" },
+  { label: "Published", key: "published", hint: "Live channels" },
 ];
 
 export default async function ShopReelPage() {
@@ -41,87 +41,115 @@ export default async function ShopReelPage() {
   const pipelineValues = { drafts, review, processing: rendering, ready, published: 0 };
 
   return (
-    <GlassShell eyebrow="Welcome back" title="Your AI content engine" subtitle="Create videos, posts, blogs, launch assets, and campaigns from one premium studio flow.">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="relative overflow-hidden rounded-[30px] border border-violet-300/25 bg-[radial-gradient(circle_at_18%_0%,rgba(133,89,255,0.35),transparent_42%),radial-gradient(circle_at_92%_0%,rgba(66,198,255,0.22),transparent_40%),linear-gradient(140deg,rgba(7,11,28,0.96),rgba(7,10,25,0.86))] p-6 shadow-[0_30px_100px_rgba(13,11,38,0.55)] md:p-8">
-          <div className="absolute -left-16 top-10 h-48 w-48 rounded-full bg-violet-500/20 blur-3xl" />
-          <div className="absolute -right-10 top-4 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
-          <div className="relative space-y-6">
-            <div>
-              <div className="text-xs uppercase tracking-[0.22em] text-cyan-100/65">Creator-grade studio</div>
-              <h2 className="mt-3 max-w-2xl text-4xl font-semibold leading-tight text-white md:text-5xl">Plan less. Create faster. Ship content that performs.</h2>
-              <p className="mt-3 max-w-3xl text-sm text-white/75 md:text-base">Upload source media, write one clear brief, and turn it into channel-ready drafts for creators, agencies, and in-house brand teams.</p>
-            </div>
-
-            <div className="rounded-3xl border border-white/15 bg-black/25 p-4 backdrop-blur-xl md:p-5">
-              <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-4 text-sm text-white/70">Describe what you want to create... Example: Create a 30-second product launch reel for Instagram with upbeat music, captions, and one clear CTA.</div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link href="/shopreel/upload"><GlassButton variant="secondary">Upload media</GlassButton></Link>
-                <Link href="/shopreel/create?template=Enhance%20my%20draft"><GlassButton variant="ghost">Enhance</GlassButton></Link>
-                <Link href="/shopreel/create"><GlassButton variant="primary">Create new content</GlassButton></Link>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {PROMPT_CHIPS.map((chip) => (
-                <Link key={chip} href={`/shopreel/create?template=${encodeURIComponent(chip)}`} className="rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs text-white/80 transition hover:bg-white/[0.1]">{chip}</Link>
-              ))}
-            </div>
+    <GlassShell
+      eyebrow="Home"
+      title="Your AI content engine"
+      subtitle="Upload media, describe the outcome, and generate videos, posts, blogs, captions, and campaigns — all in one place."
+    >
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-xl md:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/70">⌘K Search ideas, projects, and templates</div>
+          <div className="flex items-center gap-2 text-white/70">
+            <button type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm">⚡ Quick create</button>
+            <button type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm">🔔</button>
           </div>
-        </section>
-
-        <aside className="space-y-4">
-          <GlassCard title="AI content ideas" description="Prompt starters you can convert into drafts immediately.">
-            <div className="space-y-2.5">
-              {IDEAS.map((idea) => <div key={idea} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white/80">{idea}</div>)}
-            </div>
-          </GlassCard>
-        </aside>
+        </div>
       </div>
 
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-5">
-        <div className="mb-3 text-sm text-white/75">Your content pipeline</div>
-        <div className="grid gap-2 md:grid-cols-5">
-          {PIPELINE_STEPS.map((step) => (
-            <div key={step.key} className="rounded-xl border border-white/10 bg-black/25 px-3 py-3">
-              <div className="text-xs text-white/55">{step.label}</div>
-              <div className="mt-1 text-2xl font-semibold text-white">{pipelineValues[step.key]}</div>
-              <div className="mt-1 text-xs text-white/45">{step.hint}</div>
+      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="space-y-6">
+          <section className="relative overflow-hidden rounded-[34px] border border-violet-300/30 bg-[radial-gradient(circle_at_15%_0%,rgba(127,92,255,0.4),transparent_44%),radial-gradient(circle_at_92%_0%,rgba(66,198,255,0.25),transparent_40%),linear-gradient(145deg,rgba(7,10,25,0.98),rgba(5,8,20,0.88))] p-6 shadow-[0_40px_130px_rgba(12,10,35,0.55)] md:p-8">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-3xl font-semibold text-white md:text-5xl">Your AI content engine</h2>
+                <p className="mt-3 max-w-3xl text-sm text-white/75 md:text-base">Upload media, describe the outcome, and generate videos, posts, blogs, captions, and campaigns — all in one place.</p>
+              </div>
+              <div className="rounded-3xl border border-white/20 bg-black/30 p-4 backdrop-blur-2xl md:p-5">
+                <div className="rounded-2xl border border-violet-300/25 bg-slate-950/80 px-4 py-5 text-sm text-white/70">Describe what you want. Example: Create a 30-second product launch reel for Instagram with upbeat pacing, captions, social cutdowns, and one clear CTA.</div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href="/shopreel/upload" className="rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-white hover:bg-white/[0.14]">Upload media</Link>
+                  <Link href="/shopreel/create?template=Enhance%20my%20draft" className="rounded-xl border border-white/15 bg-black/35 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.08]">Enhance</Link>
+                  <Link href="/shopreel/create" className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_35px_rgba(108,85,255,0.45)]">Create new content</Link>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2.5">
+                {PROMPT_CHIPS.map((chip) => (
+                  <Link key={chip} href={`/shopreel/create?template=${encodeURIComponent(chip)}`} className="rounded-full border border-white/15 bg-gradient-to-r from-white/[0.12] to-white/[0.04] px-4 py-2 text-xs font-medium text-white/85 transition hover:-translate-y-0.5 hover:bg-white/[0.15]">
+                    {chip}
+                  </Link>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      <GlassCard title="Start creating" description="Choose a creation track and move straight into the guided studio.">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {START_TEMPLATES.map((template) => (
-            <Link key={template.title} href={`/shopreel/create?template=${encodeURIComponent(template.title)}`} className="rounded-2xl border border-white/12 bg-white/[0.03] p-4 transition hover:-translate-y-0.5 hover:bg-white/[0.08]">
-              <div className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br ${template.tone} text-lg text-white`}>{template.icon}</div>
-              <div className="mt-3 text-sm font-semibold text-white">{template.title}</div>
-              <div className="mt-1 text-sm text-white/65">{template.description}</div>
-            </Link>
-          ))}
-        </div>
-      </GlassCard>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-5">
+            <div className="mb-3 text-sm text-white/75">Pipeline status</div>
+            <div className="grid gap-2 md:grid-cols-5">
+              {PIPELINE_STEPS.map((step) => (
+                <div key={step.key} className="rounded-xl border border-white/10 bg-black/25 px-3 py-3">
+                  <div className="text-xs text-white/55">{step.label}</div>
+                  <div className="mt-1 text-2xl font-semibold text-white">{pipelineValues[step.key]}</div>
+                  <div className="mt-1 text-xs text-white/45">{step.hint}</div>
+                </div>
+              ))}
+            </div>
+          </section>
 
-      <GlassCard title="Recent projects" description="Continue what you started and move projects to ready-to-publish.">
-        {recent.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <div className="text-lg font-semibold text-white">No projects yet.</div>
-            <div className="mt-2 text-sm text-white/70">Start with a media upload and one clear brief to generate your first draft.</div>
-            <div className="mt-4"><Link href="/shopreel/create"><GlassButton variant="primary">Create content</GlassButton></Link></div>
+          <section>
+            <div className="mb-3 text-lg font-semibold text-white">Start creating</div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {START_TEMPLATES.map((template) => (
+                <Link key={template.title} href={`/shopreel/create?template=${encodeURIComponent(template.title)}`} className="group rounded-2xl border border-white/12 bg-white/[0.04] p-4 shadow-[0_18px_50px_rgba(7,10,24,0.4)] transition hover:-translate-y-1 hover:bg-white/[0.08]">
+                  <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br ${template.tone} text-lg text-white`}>{template.icon}</div>
+                  <div className="mt-3 text-sm font-semibold text-white">{template.title}</div>
+                  <div className="mt-1 text-sm text-white/65">{template.description}</div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="text-lg font-semibold text-white">Recent projects</div>
+            {recent.length === 0 ? (
+              <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-6">
+                <div className="text-xl font-semibold text-white">Your first project starts here.</div>
+                <div className="mt-2 text-sm text-white/70">Upload media or start with an idea and ShopReel will generate your first draft.</div>
+                <div className="mt-4"><Link href="/shopreel/create" className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white">Create content</Link></div>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {recent.map((item) => (
+                  <Link key={item.id} href={`/shopreel/generations/${item.id}`} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/85 hover:bg-white/[0.06]">
+                    <div className="font-medium">Project {item.id.slice(0, 8)}</div>
+                    <div className="mt-1 text-xs text-white/60">Status: {item.status}</div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        </section>
+
+        <aside className="hidden space-y-4 2xl:block">
+          <div className="rounded-2xl border border-white/10 bg-[linear-gradient(150deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-4">
+            <div className="text-xs tracking-[0.18em] text-cyan-100/75">FEATURED PREVIEW</div>
+            <div className="mt-2 text-lg font-semibold text-white">What you can create</div>
+            <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-3 text-sm text-white/75">Launch reels, platform-ready posts, product explainers, campaign packs, and blog drafts from a single brief.</div>
           </div>
-        ) : (
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {recent.map((item) => (
-              <Link key={item.id} href={`/shopreel/generations/${item.id}`} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/85 hover:bg-white/[0.06]">
-                <div className="font-medium">Project {item.id.slice(0, 8)}</div>
-                <div className="mt-1 text-xs text-white/60">Status: {item.status}</div>
-              </Link>
-            ))}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-sm font-semibold text-white">AI content ideas</div>
+            <div className="mt-3 space-y-2.5">{IDEAS.map((idea) => <div key={idea} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white/80">{idea}</div>)}</div>
           </div>
-        )}
-      </GlassCard>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-sm font-semibold text-white">Brand voice summary</div>
+            <p className="mt-2 text-sm text-white/70">Keep tone clear, confident, and customer-focused. Lead with outcomes, keep hooks concise, and anchor every output to one CTA.</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-sm font-semibold text-white">Output readiness</div>
+            <div className="mt-3 space-y-2">{READINESS.map((item) => <div key={item} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/75">{item}</div>)}</div>
+          </div>
+        </aside>
+      </div>
     </GlassShell>
   );
 }

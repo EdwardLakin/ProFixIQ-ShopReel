@@ -3,12 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
-import GlassCard from "@/features/shopreel/ui/system/GlassCard";
-import GlassButton from "@/features/shopreel/ui/system/GlassButton";
-import GlassInput from "@/features/shopreel/ui/system/GlassInput";
-import GlassTextarea from "@/features/shopreel/ui/system/GlassTextarea";
-import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { DEFAULT_SHOPREEL_PLATFORM_IDS, SHOPREEL_PLATFORM_PRESETS, type ShopReelPlatformId } from "@/features/shopreel/platforms/presets";
 
@@ -74,58 +68,86 @@ export default function ShopReelCreatePage() {
   }
 
   return (
-    <GlassShell eyebrow="Creation studio" title="Create with AI + your media" subtitle="Manual upload flow for MVP: brief once, choose channels, generate a draft, then review before render/export.">
-      <ShopReelNav />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="space-y-6">
-          <section className="rounded-[28px] border border-violet-300/20 bg-[radial-gradient(circle_at_12%_0%,rgba(122,92,255,0.3),transparent_40%),linear-gradient(140deg,rgba(8,12,29,0.95),rgba(7,11,26,0.86))] p-5 md:p-6">
-            <div className="text-xs uppercase tracking-[0.2em] text-cyan-100/60">Guided flow</div>
-            <h2 className="mt-2 text-2xl font-semibold text-white md:text-3xl">Build your next piece in one focused flow</h2>
-            <p className="mt-2 text-sm text-white/75">Manual upload → prompt/brief → platform selection → create draft → review/edit → render/export.</p>
+    <GlassShell eyebrow="Create" title="Create your next piece of content" subtitle="Guided studio flow: choose format, upload media, brief AI, select channels, then generate draft.">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="space-y-5">
+          <section className="rounded-[30px] border border-violet-300/25 bg-[radial-gradient(circle_at_12%_0%,rgba(122,92,255,0.34),transparent_40%),linear-gradient(140deg,rgba(8,12,29,0.95),rgba(7,11,26,0.86))] p-6">
+            <div className="text-xs tracking-[0.2em] text-cyan-100/65">GUIDED STUDIO</div>
+            <h2 className="mt-2 text-3xl font-semibold text-white">Build from one brief to one generated draft</h2>
+            <p className="mt-2 text-sm text-white/75">Upload source media, describe the outcome, set audience and channels, then hand off to review.</p>
           </section>
 
-          <GlassCard label="Step 1" title="Choose output type" description="Select the format first so ShopReel structures the draft appropriately." strong>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="mb-3 text-sm font-semibold text-white">Step 1 · Choose format</div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {CONTENT_TYPES.map((type) => {
                 const selected = selectedContentType === type.title;
                 return (
-                  <button key={type.title} type="button" onClick={() => setSelectedContentType(type.title)} className={cx("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", selected ? "border-violet-300/35 bg-violet-500/12" : glassTheme.border.softer, selected ? "shadow-[0_10px_35px_rgba(94,71,255,0.2)]" : glassTheme.glass.panelSoft)}>
-                    <div className={cx("text-sm font-semibold", glassTheme.text.primary)}>{type.title}</div>
-                    <p className={cx("mt-2 text-xs leading-5", glassTheme.text.secondary)}>{type.description}</p>
+                  <button key={type.title} type="button" onClick={() => setSelectedContentType(type.title)} className={cx("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", selected ? "border-violet-300/35 bg-violet-500/12 shadow-[0_10px_35px_rgba(94,71,255,0.22)]" : "border-white/10 bg-black/20", glassTheme.text.primary)}>
+                    <div className="text-sm font-semibold">{type.title}</div>
+                    <p className="mt-2 text-xs leading-5 text-white/70">{type.description}</p>
                   </button>
                 );
               })}
             </div>
-          </GlassCard>
+          </section>
 
-          <GlassCard label="Step 2" title="Add source media" description="Upload photos/videos to ground draft quality in real product or creator context." strong>
-            <div className={cx("rounded-3xl border border-dashed p-6", glassTheme.border.copper, glassTheme.glass.panelSoft)}>
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><div className={cx("text-base font-semibold", glassTheme.text.primary)}>Upload media</div><p className={cx("mt-1 text-sm", glassTheme.text.secondary)}>Add product clips, founder footage, testimonials, screenshots, or image libraries.</p></div>
-                <label className={cx("inline-flex cursor-pointer items-center justify-center rounded-2xl border px-4 py-3 text-sm font-semibold", glassTheme.border.softer, glassTheme.glass.panelSoft, glassTheme.text.primary)}>Choose files<input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className="sr-only" /></label></div>
-              <div className="mt-4 flex flex-wrap gap-2"><GlassBadge tone="default">{files.length} files selected</GlassBadge>{files.slice(0, 4).map((item) => <GlassBadge key={`${item.file.name}-${item.file.size}`} tone="default">{item.file.name}</GlassBadge>)}{files.length > 4 ? <GlassBadge tone="default">+{files.length - 4} more</GlassBadge> : null}</div>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="mb-3 text-sm font-semibold text-white">Step 2 · Upload media</div>
+            <label className="block cursor-pointer rounded-3xl border border-dashed border-violet-300/35 bg-black/25 p-7">
+              <div className="text-lg font-semibold text-white">Drop media or choose files</div>
+              <div className="mt-1 text-sm text-white/70">Photos and videos are used as source truth for generation quality.</div>
+              <div className="mt-4 inline-flex rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2 text-sm text-white">Choose files</div>
+              <input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className="sr-only" />
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/70">
+              <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5">{files.length} files selected</span>
+              {files.slice(0, 4).map((item) => <span key={`${item.file.name}-${item.file.size}`} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5">{item.file.name}</span>)}
             </div>
-          </GlassCard>
+          </section>
 
-          <GlassCard label="Step 3" title="Write the brief" description="Define outcome, angle, and audience to shape the first draft." strong>
-            <GlassTextarea label="Prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Create a 30-second product launch reel for Instagram with upbeat music, captions, and a strong opening hook." />
-            <GlassInput label="Audience" value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Creators, founders, local buyers, B2B marketers, returning customers..." />
-          </GlassCard>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="mb-3 text-sm font-semibold text-white">Step 3 · Describe outcome</div>
+            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Create a 30-second product launch reel for Instagram with upbeat music, captions, and a strong opening hook." className="min-h-40 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-white outline-none placeholder:text-white/45 focus:border-violet-300/40" />
+            <input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Audience: founders, creators, local shoppers, B2B marketers..." className="mt-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-cyan-300/40" />
+          </section>
 
-          <GlassCard label="Step 4" title="Select platforms" description="Choose where to optimize outputs. Only supported channels are active in this MVP." strong>
-            <div className="grid gap-3 md:grid-cols-2">{SHOPREEL_PLATFORM_PRESETS.map((platform) => { const selected = platformIds.includes(platform.id); return <label key={platform.id} className={cx("flex cursor-pointer items-center justify-between rounded-2xl border p-4 text-sm transition hover:-translate-y-0.5", selected ? "border-cyan-300/35 bg-cyan-400/10" : glassTheme.border.softer, selected ? "shadow-[0_10px_30px_rgba(53,170,255,0.16)]" : glassTheme.glass.panelSoft, glassTheme.text.primary)}><span>{platform.label}</span><input type="checkbox" checked={selected} onChange={() => togglePlatform(platform.id)} className="h-4 w-4" /></label>; })}</div>
-            {error ? <div className={cx("rounded-2xl border px-4 py-3 text-sm", glassTheme.border.copper, glassTheme.glass.panelSoft, glassTheme.text.copperSoft)}>{error}</div> : null}
-            <GlassButton variant="primary" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? "Generating draft..." : "Create draft"}</GlassButton>
-          </GlassCard>
-        </div>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="mb-3 text-sm font-semibold text-white">Step 4 · Choose platforms</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {SHOPREEL_PLATFORM_PRESETS.map((platform) => {
+                const selected = platformIds.includes(platform.id);
+                return (
+                  <label key={platform.id} className={cx("flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition", selected ? "border-cyan-300/35 bg-cyan-500/12 text-white" : "border-white/10 bg-black/20 text-white/85")}>
+                    <span>{platform.label}</span>
+                    <input type="checkbox" checked={selected} onChange={() => togglePlatform(platform.id)} className="h-4 w-4" />
+                  </label>
+                );
+              })}
+            </div>
+            {error ? <div className="mt-4 rounded-xl border border-rose-300/35 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
+            <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="mt-4 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_35px_rgba(99,82,255,0.4)] disabled:opacity-70">{isSubmitting ? "Generating draft..." : "Generate draft"}</button>
+          </section>
+        </section>
 
         <aside className="space-y-4">
-          <GlassCard label="Studio guide" title="MVP flow truth" description="Current implementation is manual-upload first with real draft generation and review handoff.">
-            <div className="space-y-3">{["Upload raw media", "Write prompt + audience", "Select channels", "Generate draft", "Review/edit", "Render/export"].map((step, index) => <div key={step} className={cx("flex items-center gap-3 rounded-2xl border p-3", glassTheme.border.softer, glassTheme.glass.panelSoft)}><div className={cx("flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold", glassTheme.glass.panel, glassTheme.text.primary)}>{index + 1}</div><div className={cx("text-sm", glassTheme.text.primary)}>{step}</div></div>)}</div>
-          </GlassCard>
-
-          <GlassCard label="Prompt ideas" title="Quick starters" description="Use these to speed up the first draft.">
-            <div className="space-y-2">{["Turn this product demo into a launch reel with 3 hook variants.", "Create a founder-style short with captions and bold CTA.", "Repurpose this clip into an Instagram post + blog intro.", "Make a clean promo post with benefit-first copy."].map((idea) => <button key={idea} type="button" onClick={() => setPrompt(idea)} className={cx("w-full rounded-2xl border p-3 text-left text-sm transition hover:bg-white/[0.08]", glassTheme.border.softer, glassTheme.glass.panelSoft, glassTheme.text.secondary)}>{idea}</button>)}</div>
-          </GlassCard>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-sm font-semibold text-white">Brief summary</div>
+            <div className="mt-3 space-y-2 text-sm text-white/75">
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Format: {selectedContentType}</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Files: {files.length}</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Platforms: {platformIds.length}</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Audience: {audience || "Not set"}</div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-sm font-semibold text-white">Tips for stronger output</div>
+            <div className="mt-3 space-y-2 text-sm text-white/70">
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Lead with one clear outcome and one CTA.</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Use creator-style pacing cues (hook, proof, close).</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Keep prompt specific to platform behavior.</div>
+            </div>
+          </div>
         </aside>
       </div>
     </GlassShell>
