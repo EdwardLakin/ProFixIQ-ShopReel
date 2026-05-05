@@ -54,18 +54,18 @@ export default function ShopReelSidebar(props: {
             href={item.href}
             onClick={closeAfterNavigate ? onCloseMobile : undefined}
             className={cx(
-              "group rounded-xl px-2.5 py-2 text-sm font-medium no-underline transition",
+              "group relative rounded-xl px-2.5 py-2 text-sm font-medium no-underline transition",
               collapsed ? "flex h-10 items-center justify-center" : "flex items-center gap-2.5",
               active
-                ? cx("border border-white/20 bg-white/[0.12] text-white", "shadow-[0_0_0_1px_rgba(255,255,255,0.06)]")
-                : cx("border border-transparent", glassTheme.text.secondary, "hover:bg-white/[0.06] hover:text-white"),
+                ? cx("border border-white/22 bg-[linear-gradient(120deg,rgba(129,140,248,0.3),rgba(56,189,248,0.16))] text-white", "shadow-[0_10px_28px_rgba(2,6,23,0.45)]")
+                : cx("border border-transparent", glassTheme.text.secondary, "hover:bg-white/[0.08] hover:text-white"),
             )}
             title={collapsed ? item.label : undefined}
           >
             <span
               className={cx(
                 "inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-[10px] font-semibold",
-                active ? "bg-white/[0.2] text-white" : "bg-white/[0.05] text-white/65",
+                active ? "bg-white/[0.24] text-white" : "bg-white/[0.07] text-white/65",
               )}
             >
               {item.compactLabel}
@@ -86,7 +86,7 @@ export default function ShopReelSidebar(props: {
       />
       <aside
         className={cx(
-          "fixed inset-y-0 left-0 z-50 hidden border-r bg-gradient-to-b from-slate-950/95 via-slate-950/90 to-slate-900/95 transition-all duration-300 lg:block",
+          "fixed inset-y-0 left-0 z-50 hidden border-r bg-[linear-gradient(180deg,rgba(2,6,23,0.98),rgba(2,6,23,0.92))] shadow-[22px_0_44px_rgba(2,6,23,0.42)] transition-all duration-300 lg:block",
           collapsed ? "w-24" : "w-72",
           glassTheme.border.softer,
         )}
@@ -94,7 +94,7 @@ export default function ShopReelSidebar(props: {
         <div className="flex h-full flex-col px-3 py-4">
           <div
             className={cx(
-              "mb-4 rounded-2xl border border-white/12 bg-white/[0.03] p-3",
+              "mb-4 rounded-2xl border border-white/12 bg-white/[0.04] p-3 shadow-[0_10px_24px_rgba(2,6,23,0.34)]",
               collapsed ? "flex items-center justify-center" : "space-y-3",
             )}
           >

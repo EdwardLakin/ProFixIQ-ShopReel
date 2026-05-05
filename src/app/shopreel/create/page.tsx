@@ -163,9 +163,9 @@ export default function ShopReelCreatePage() {
   return (
     <GlassShell eyebrow="ShopReel" title="Create" subtitle="Manual upload → describe outcome → choose platforms → generate draft.">
       <ShopReelNav />
-      <div className="space-y-4">
+      <div className="space-y-5">
         <GlassCard label="Step 1" title="What are you creating?" description="Pick a format to shape structure and output style.">
-          <div className="grid gap-2 md:grid-cols-3">
+          <div className="grid gap-2.5 md:grid-cols-3">
             {CREATE_TYPES.map((type) => {
               const selected = createType === type;
               return (
@@ -175,7 +175,7 @@ export default function ShopReelCreatePage() {
                   onClick={() => setCreateType(type)}
                   className={cx(
                     "rounded-xl border px-3 py-3 text-left text-sm transition",
-                    selected ? "border-white/25 bg-white/[0.09] text-white" : "border-white/10 bg-white/[0.02] text-white/75 hover:bg-white/[0.06]",
+                    selected ? "border-white/30 bg-[linear-gradient(140deg,rgba(129,140,248,0.24),rgba(14,165,233,0.1))] text-white shadow-[0_10px_24px_rgba(2,6,23,0.4)]" : "border-white/10 bg-white/[0.03] text-white/75 hover:bg-white/[0.08]",
                   )}
                 >
                   {type}
@@ -186,10 +186,10 @@ export default function ShopReelCreatePage() {
         </GlassCard>
 
         <GlassCard label="Step 2" title="Add source material" description="Upload product clips, UGC, screenshots, or brand media.">
-          <div className={cx("rounded-2xl border p-5", glassTheme.border.copper, "bg-gradient-to-br from-white/[0.05] to-transparent")}>
+          <div className={cx("rounded-3xl border p-6 shadow-[0_16px_40px_rgba(2,6,23,0.45)]", glassTheme.border.copper, "bg-gradient-to-br from-white/[0.05] to-transparent")}>
             <div className={cx("text-sm font-medium", glassTheme.text.primary)}>Upload media</div>
             <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>Add images or videos. File handling remains unchanged from the current MVP flow.</div>
-            <input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className={cx("mt-4 block w-full text-sm", glassTheme.text.secondary)} />
+            <input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className={cx("mt-5 block w-full text-sm", glassTheme.text.secondary)} />
             <div className="mt-3 flex flex-wrap gap-2">
               <GlassBadge tone="default">{files.length} files selected</GlassBadge>
             </div>
@@ -207,7 +207,7 @@ export default function ShopReelCreatePage() {
         </GlassCard>
 
         <GlassCard label="Step 4" title="Choose platforms" description="Select where this content should be optimized for distribution.">
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2.5 md:grid-cols-2">
             {SHOPREEL_PLATFORM_PRESETS.map((platform) => {
               const selected = platformIds.includes(platform.id);
               return (
@@ -215,7 +215,7 @@ export default function ShopReelCreatePage() {
                   key={platform.id}
                   className={cx(
                     "rounded-2xl border p-3 text-sm transition",
-                    selected ? "border-white/25 bg-white/[0.09] text-white" : "border-white/10 bg-white/[0.03] text-white/75 hover:bg-white/[0.07]",
+                    selected ? "border-white/30 bg-[linear-gradient(135deg,rgba(56,189,248,0.18),rgba(168,85,247,0.12))] text-white shadow-[0_12px_24px_rgba(2,6,23,0.38)]" : "border-white/10 bg-white/[0.04] text-white/75 hover:bg-white/[0.08]",
                   )}
                 >
                   <input type="checkbox" checked={selected} onChange={() => togglePlatform(platform.id)} className="mr-2" />
@@ -232,7 +232,7 @@ export default function ShopReelCreatePage() {
           </div>
         ) : null}
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-1">
           <GlassButton variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? "Generating draft..." : "Generate draft"}
           </GlassButton>
