@@ -16,7 +16,7 @@ export default function RetryRenderButton(props: { generationId: string }) {
       setPending(true);
       setError(null);
 
-      const res = await fetch(`/api/shopreel/story-generations/${generationId}/render`, {
+      const res = await fetch(`/api/shopreel/generations/${generationId}/render`, {
         method: "POST",
       });
 

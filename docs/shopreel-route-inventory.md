@@ -9,14 +9,14 @@ Classification legend: `canonical`, `canonical-supporting`, `advanced`, `legacy-
 | `/shopreel` | `src/app/shopreel/page.tsx` | canonical | Home/entry point. | Keep canonical. | - |
 | `/shopreel/create` | `src/app/shopreel/create/page.tsx` | canonical | Start content creation. | Harden in Phase 1. | - |
 | `/shopreel/review/[id]` | `src/app/shopreel/review/[id]/page.tsx` | canonical | Canonical review permalink (bridge redirect). | Replace bridge with native review UX in Phase 2. | Redirect dependency on generations detail. |
-| `/shopreel/render-jobs` | `src/app/shopreel/render-jobs/page.tsx` | canonical | Canonical render jobs path (bridge redirect). | Replace bridge in Phase 3. | Redirect dependency on render-queue. |
+| `/shopreel/render-jobs` | `src/app/shopreel/render-jobs/page.tsx` | canonical | Canonical render jobs path with deterministic queue/processing/ready/failed states. | Completed in Phase 3. | No redirect; render-jobs is canonical. |
 | `/shopreel/exports` | `src/app/shopreel/exports/page.tsx` | canonical | Manual export-first center. | Expand in Phase 4. | Initial shell only. |
 | `/shopreel/library` | `src/app/shopreel/library/page.tsx` | canonical | Canonical library path (bridge redirect). | Replace bridge in Phase 5. | Redirect dependency on content page. |
 | `/shopreel/settings` | `src/app/shopreel/settings/page.tsx` | canonical | Workspace settings. | Keep; extend gradually. | - |
 | `/shopreel/upload` | `src/app/shopreel/upload/page.tsx` | canonical-supporting | Manual upload helper flow. | Keep supporting in P1/P4. | Could merge into create UX. |
 | `/shopreel/generations` | `src/app/shopreel/generations/page.tsx` | canonical-supporting | Review queue/list. | Fold into review workspace P2. | Legacy naming. |
 | `/shopreel/generations/[id]` | `src/app/shopreel/generations/[id]/page.tsx` | canonical-supporting | Existing review detail route. | Alias/migrate behind `/review/[id]`. | Keep for backward links. |
-| `/shopreel/render-queue` | `src/app/shopreel/render-queue/page.tsx` | legacy-kept | Existing render queue UI. | Migrate to `/render-jobs` in P3. | Keep during transition. |
+| `/shopreel/render-queue` | `src/app/shopreel/render-queue/page.tsx` | legacy-kept | Existing render queue UI. | Legacy route retained for compatibility. | Keep during transition. |
 | `/shopreel/content` | `src/app/shopreel/content/page.tsx` | legacy-kept | Existing content library list. | Migrate to `/library` in P5. | Keep during transition. |
 | `/shopreel/content/[id]` | `src/app/shopreel/content/[id]/page.tsx` | advanced | Content detail/editor context. | Re-evaluate P5. | Shape may differ from MVP assets. |
 | `/shopreel/publish-center` | `src/app/shopreel/publish-center/page.tsx` | advanced | Operations publish board. | Optional P6 integrations. | Not required for MVP completion. |
@@ -42,7 +42,7 @@ Classification legend: `canonical`, `canonical-supporting`, `advanced`, `legacy-
 | `/api/shopreel/generations*` | `src/app/api/shopreel/generations/**/route.ts` | canonical-supporting | Generation list/detail/review/publish ops. | Phase 1-2 core; publish ops optional. | Naming overlaps with review route. |
 | `/api/shopreel/story-generations*` | `src/app/api/shopreel/story-generations/**/route.ts` | legacy-kept | Alternate generation model & actions. | Merge or retire by P2/P3. | Duplicate capability risk. |
 | `/api/shopreel/storyboards` `/story-sources*` `/reel-plan` | corresponding route files | canonical-supporting | Story planning inputs and derived plans. | Keep as support services. | Validate ownership boundaries. |
-| `/api/shopreel/render-job*` `/render-jobs*` `/render-worker` | corresponding route files | canonical-supporting | Render job lifecycle + workers. | Normalize in Phase 3. | Two naming families (`render-job` vs `render-jobs`). |
+| `/api/shopreel/render-job*` `/render-jobs*` `/render-worker` | corresponding route files | canonical-supporting | Render job lifecycle + workers. | Phase 3 adds canonical start-render endpoint `/api/shopreel/generations/[id]/render` and reuses existing render worker lifecycle. | Two naming families (`render-job` vs `render-jobs`). |
 | `/api/shopreel/publications*` `/publish*` `/publish-worker` `/connections` `/oauth/*` | corresponding route files | advanced | Social publishing + connectivity + queue workers. | Optional Phase 6. | Must never block manual export path. |
 | `/api/shopreel/settings` | `src/app/api/shopreel/settings/route.ts` | canonical-supporting | Shop/workspace defaults. | Keep and extend. | - |
 | `/api/shopreel/metrics` | `src/app/api/shopreel/metrics/route.ts` | advanced | Analytics and performance metrics. | Optional Phase 6. | Analytics non-goal for MVP completion. |
