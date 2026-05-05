@@ -56,24 +56,24 @@ export default async function ShopReelPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="space-y-6">
-          <section className="relative overflow-hidden rounded-[34px] border border-violet-300/30 bg-[radial-gradient(circle_at_15%_0%,rgba(127,92,255,0.4),transparent_44%),radial-gradient(circle_at_92%_0%,rgba(66,198,255,0.25),transparent_40%),linear-gradient(145deg,rgba(7,10,25,0.98),rgba(5,8,20,0.88))] p-6 shadow-[0_40px_130px_rgba(12,10,35,0.55)] md:p-8">
-            <div className="space-y-6">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="space-y-4">
+          <section className="relative overflow-hidden rounded-[30px] border border-violet-300/30 bg-[radial-gradient(circle_at_15%_0%,rgba(127,92,255,0.4),transparent_44%),radial-gradient(circle_at_92%_0%,rgba(66,198,255,0.25),transparent_40%),linear-gradient(145deg,rgba(7,10,25,0.98),rgba(5,8,20,0.88))] p-5 shadow-[0_40px_130px_rgba(12,10,35,0.55)] md:p-6">
+            <div className="space-y-4">
               <div>
-                <h2 className="text-3xl font-semibold text-white md:text-5xl">Your AI content engine</h2>
-                <p className="mt-3 max-w-3xl text-sm text-white/75 md:text-base">Upload media, describe the outcome, and generate videos, posts, blogs, captions, and campaigns — all in one place.</p>
+                <h2 className="text-3xl font-semibold text-white md:text-4xl">Your AI content engine</h2>
+                <p className="mt-2 max-w-3xl text-sm text-white/75">Upload media, describe the outcome, and generate videos, posts, blogs, captions, and campaigns — all in one place.</p>
               </div>
-              <div className="rounded-3xl border border-white/20 bg-black/30 p-4 backdrop-blur-2xl md:p-5">
-                <div className="rounded-2xl border border-violet-300/25 bg-slate-950/80 px-4 py-5 text-sm text-white/70">Describe what you want. Example: Create a 30-second product launch reel for Instagram with upbeat pacing, captions, social cutdowns, and one clear CTA.</div>
-                <div className="mt-4 flex flex-wrap gap-2">
+              <div className="rounded-3xl border border-white/20 bg-black/30 p-3.5 backdrop-blur-2xl md:p-4">
+                <div className="rounded-2xl border border-violet-300/25 bg-slate-950/80 px-4 py-4 text-sm text-white/70">Describe what you want. Example: Create a 30-second product launch reel for Instagram with upbeat pacing, captions, social cutdowns, and one clear CTA.</div>
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Link href="/shopreel/upload" className="rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-white hover:bg-white/[0.14]">Upload media</Link>
                   <Link href="/shopreel/create?template=Enhance%20my%20draft" className="rounded-xl border border-white/15 bg-black/35 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.08]">Enhance</Link>
                   <Link href="/shopreel/create" className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_35px_rgba(108,85,255,0.45)]">Create new content</Link>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 {PROMPT_CHIPS.map((chip) => (
                   <Link key={chip} href={`/shopreel/create?template=${encodeURIComponent(chip)}`} className="rounded-full border border-white/15 bg-gradient-to-r from-white/[0.12] to-white/[0.04] px-4 py-2 text-xs font-medium text-white/85 transition hover:-translate-y-0.5 hover:bg-white/[0.15]">
                     {chip}
@@ -83,39 +83,39 @@ export default async function ShopReelPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:p-5">
-            <div className="mb-3 text-sm text-white/75">Pipeline status</div>
-            <div className="grid gap-2 md:grid-cols-5">
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+            <div className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-white/60">Your content pipeline</div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               {PIPELINE_STEPS.map((step) => (
-                <div key={step.key} className="rounded-xl border border-white/10 bg-black/25 px-3 py-3">
+                <div key={step.key} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
                   <div className="text-xs text-white/55">{step.label}</div>
-                  <div className="mt-1 text-2xl font-semibold text-white">{pipelineValues[step.key]}</div>
-                  <div className="mt-1 text-xs text-white/45">{step.hint}</div>
+                  <div className="mt-0.5 text-lg font-semibold text-white">{pipelineValues[step.key]}</div>
+                  <div className="text-[11px] text-white/45">{step.hint}</div>
                 </div>
               ))}
             </div>
           </section>
 
           <section>
-            <div className="mb-3 text-lg font-semibold text-white">Start creating</div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mb-2 text-lg font-semibold text-white">Start creating</div>
+            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
               {START_TEMPLATES.map((template) => (
-                <Link key={template.title} href={`/shopreel/create?template=${encodeURIComponent(template.title)}`} className="group rounded-2xl border border-white/12 bg-white/[0.04] p-4 shadow-[0_18px_50px_rgba(7,10,24,0.4)] transition hover:-translate-y-1 hover:bg-white/[0.08]">
-                  <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br ${template.tone} text-lg text-white`}>{template.icon}</div>
-                  <div className="mt-3 text-sm font-semibold text-white">{template.title}</div>
-                  <div className="mt-1 text-sm text-white/65">{template.description}</div>
+                <Link key={template.title} href={`/shopreel/create?template=${encodeURIComponent(template.title)}`} className="group rounded-2xl border border-white/12 bg-white/[0.04] p-3.5 shadow-[0_18px_50px_rgba(7,10,24,0.35)] transition hover:-translate-y-1 hover:bg-white/[0.08]">
+                  <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-gradient-to-br ${template.tone} text-base text-white`}>{template.icon}</div>
+                  <div className="mt-2 text-sm font-semibold text-white">{template.title}</div>
+                  <div className="mt-1 text-xs leading-5 text-white/65">{template.description}</div>
                 </Link>
               ))}
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <div className="text-lg font-semibold text-white">Recent projects</div>
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-base font-semibold text-white">Recent projects</div>
             {recent.length === 0 ? (
-              <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-6">
-                <div className="text-xl font-semibold text-white">Your first project starts here.</div>
-                <div className="mt-2 text-sm text-white/70">Upload media or start with an idea and ShopReel will generate your first draft.</div>
-                <div className="mt-4"><Link href="/shopreel/create" className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white">Create content</Link></div>
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/25 p-4">
+                <div className="text-lg font-semibold text-white">Your first project starts here.</div>
+                <div className="mt-1.5 text-sm text-white/70">Upload media or start with an idea and ShopReel will generate your first draft.</div>
+                <div className="mt-3"><Link href="/shopreel/create" className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-white">Create content</Link></div>
               </div>
             ) : (
               <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
@@ -130,23 +130,27 @@ export default async function ShopReelPage() {
           </section>
         </section>
 
-        <aside className="hidden space-y-4 2xl:block">
-          <div className="rounded-2xl border border-white/10 bg-[linear-gradient(150deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-4">
+        <aside className="hidden space-y-3 xl:block">
+          <div className="rounded-2xl border border-white/10 bg-[linear-gradient(150deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-3.5">
             <div className="text-xs tracking-[0.18em] text-cyan-100/75">FEATURED PREVIEW</div>
             <div className="mt-2 text-lg font-semibold text-white">What you can create</div>
-            <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-3 text-sm text-white/75">Launch reels, platform-ready posts, product explainers, campaign packs, and blog drafts from a single brief.</div>
+            <div className="mt-2.5 rounded-xl border border-white/10 bg-black/30 p-3 text-sm text-white/75">Launch reels, platform-ready posts, product explainers, campaign packs, and blog drafts from a single brief.</div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
             <div className="text-sm font-semibold text-white">AI content ideas</div>
             <div className="mt-3 space-y-2.5">{IDEAS.map((idea) => <div key={idea} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white/80">{idea}</div>)}</div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
             <div className="text-sm font-semibold text-white">Brand voice summary</div>
             <p className="mt-2 text-sm text-white/70">Keep tone clear, confident, and customer-focused. Lead with outcomes, keep hooks concise, and anchor every output to one CTA.</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <div className="text-sm font-semibold text-white">Output readiness</div>
-            <div className="mt-3 space-y-2">{READINESS.map((item) => <div key={item} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/75">{item}</div>)}</div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-semibold text-white">Brand voice setup</div>
+              <Link href="/settings" className="text-xs font-medium text-cyan-200 hover:text-cyan-100">Settings</Link>
+            </div>
+            <div className="mt-2 text-sm text-white/70">Keep tone clear, confident, and customer-focused. Lead with outcomes, concise hooks, and one CTA per output.</div>
+            <div className="mt-2.5 space-y-2">{READINESS.map((item) => <div key={item} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs text-white/75">{item}</div>)}</div>
           </div>
         </aside>
       </div>
