@@ -51,7 +51,7 @@ export default function ShopReelAppShell(props: { children: ReactNode }) {
         </button>
       </div>
 
-      <main className={cx("relative transition-[padding] duration-300", collapsed ? "lg:pl-24" : "lg:pl-80")}>{props.children}</main>
+      <main className={cx("relative transition-[padding] duration-300", collapsed ? "lg:pl-20" : "lg:pl-60")}>{props.children}</main>
     </div>
   );
 }
