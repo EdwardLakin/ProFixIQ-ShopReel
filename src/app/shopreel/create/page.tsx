@@ -110,9 +110,9 @@ export default function ShopReelCreatePage() {
     try {
       setError(null); setIsSubmitting(true);
       if (!prompt.trim()) throw new Error("Prompt is required");
-      if (!files.length) throw new Error("Upload at least one photo or video");
+      // Media is optional for the beginner path. Screenshots/videos improve quality but are not required.
       if (!platformIds.length) throw new Error("Select at least one platform");
-      const manualAssetId = await uploadAssetAndFiles();
+      const manualAssetId = files.length > 0 ? await uploadAssetAndFiles() : null;
       const createRes = await fetch("/api/shopreel/create/from-idea", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, audience, platformIds, manualAssetId, contentType: selectedContentType }) });
       const createJson = await createRes.json();
       if (!createRes.ok || !createJson.ok) throw new Error(createJson.error ?? "Failed to create draft");
@@ -152,11 +152,11 @@ export default function ShopReelCreatePage() {
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <div className="mb-3 text-sm font-semibold text-white">Step 2 · Upload media</div>
+            <div className="mb-3 text-sm font-semibold text-white">Step 2 · Add source material optional</div>
             <label className="block cursor-pointer rounded-3xl border border-dashed border-violet-300/35 bg-black/25 p-5">
-              <div className="text-lg font-semibold text-white">Drop media or choose files</div>
-              <div className="mt-1 text-sm text-white/70">Photos and videos are used as source truth for generation quality.</div>
-              <div className="mt-1 text-xs text-cyan-100/75">Best for screenshot-led launches (PayProof, SaaS, app updates), offers, and creator-brand campaigns.</div>
+              <div className="text-lg font-semibold text-white">Optional: add media or screenshots</div>
+              <div className="mt-1 text-sm text-white/70">Upload media if you have it. Screenshots improve quality, but you can start with only an idea.</div>
+              <div className="mt-1 text-xs text-cyan-100/75">Best for screenshot-led launches, SaaS/app updates, offers, demos, and creator-brand campaigns.</div>
               <div className="mt-4 inline-flex rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2 text-sm text-white">Choose files</div>
               <input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className="sr-only" />
             </label>
@@ -169,6 +169,7 @@ export default function ShopReelCreatePage() {
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-3 text-sm font-semibold text-white">Step 3 · Describe outcome</div>
+            <p className="mb-3 text-xs text-white/65">You can generate from only a prompt, or upload screenshots/video for stronger context.</p>
             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Create a 30-second product launch reel for Instagram with upbeat music, captions, and a strong opening hook." className="min-h-32 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-white outline-none placeholder:text-white/45 focus:border-violet-300/40" />
             <input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Audience: founders, creators, local shoppers, B2B marketers..." className="mt-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-cyan-300/40" />
           </section>

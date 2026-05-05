@@ -60,6 +60,8 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
   const [startingRender, setStartingRender] = useState(false);
 
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [refineInstruction, setRefineInstruction] = useState("");
+  const [refining, setRefining] = useState(false);
 
   const router = useRouter();
 
@@ -215,6 +217,35 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
     }
 
+  }
+
+  async function refineDraft() {
+    const instruction = refineInstruction.trim();
+    if (!instruction) {
+      setMessage("Tell ShopReel what to change first.");
+      return;
+    }
+
+    setRefining(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch(`/api/shopreel/generations/${draft.generationId}/refine`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ instruction }),
+      });
+
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error ?? "Failed to refine draft");
+
+      setMessage("Draft refined. Reloading updated output…");
+      window.location.reload();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to refine right now.");
+    } finally {
+      setRefining(false);
+    }
   }
 
   async function startRender() {
@@ -401,7 +432,40 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
       </div>
 
-      <GlassCard label="Platform outputs" title="Facebook + Instagram delivery copy" strong>
+      
+      <GlassCard label="AI refinement" title="Refine this output" description="Ask ShopReel for plain-language changes without uploading again.">
+        <div className="space-y-3">
+          <textarea
+            value={refineInstruction}
+            onChange={(event) => setRefineInstruction(event.target.value)}
+            placeholder="Example: Make Instagram punchier, make Facebook less salesy, and give me a stronger CTA."
+            className="min-h-24 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-white outline-none placeholder:text-white/40 focus:border-cyan-300/40"
+          />
+          <div className="flex flex-wrap gap-2">
+            {[
+              "Make it less salesy",
+              "Make Instagram punchier",
+              "Make Facebook more professional",
+              "Give me 3 stronger hooks",
+              "Make it founder-led",
+            ].map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setRefineInstruction(item)}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/75 transition hover:bg-white/[0.08]"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <GlassButton onClick={refineDraft} disabled={refining}>
+            {refining ? "Refining…" : "Refine output"}
+          </GlassButton>
+        </div>
+      </GlassCard>
+
+<GlassCard label="Platform outputs" title="Facebook + Instagram delivery copy" strong>
 
         {!hasPlatformOutputs ? (
 
