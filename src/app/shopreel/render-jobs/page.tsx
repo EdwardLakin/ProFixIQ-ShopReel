@@ -79,7 +79,9 @@ export default async function ShopReelRenderJobsPage() {
                     <Link href={`/shopreel/review/${job.generationId}`}><GlassButton variant="ghost">Back to review</GlassButton></Link>
                   ) : null}
                   {job.status === "ready" && job.outputVideoPath ? (
-                    <Link href="/shopreel/exports"><GlassButton variant="secondary">Prepare export package</GlassButton></Link>
+                    <form action={`/api/shopreel/render-jobs/${job.id}/export-package`} method="post">
+                      <GlassButton type="submit" variant="secondary">Create/open export package</GlassButton>
+                    </form>
                   ) : null}
                   {job.status === "failed" && job.generationId ? <RetryRenderButton generationId={job.generationId} /> : null}
                 </div>

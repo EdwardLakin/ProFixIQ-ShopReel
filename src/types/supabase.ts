@@ -1901,6 +1901,63 @@ export type Database = {
           },
         ]
       }
+      shopreel_export_packages: {
+        Row: {
+          caption_text: string | null
+          checklist: Json
+          content_piece_id: string | null
+          created_at: string
+          created_by: string | null
+          exported_at: string | null
+          generation_id: string | null
+          hashtags: Json
+          id: string
+          mp4_path: string | null
+          platform_outputs: Json
+          render_job_id: string | null
+          shop_id: string
+          status: string
+          thumbnail_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption_text?: string | null
+          checklist?: Json
+          content_piece_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          exported_at?: string | null
+          generation_id?: string | null
+          hashtags?: Json
+          id?: string
+          mp4_path?: string | null
+          platform_outputs?: Json
+          render_job_id?: string | null
+          shop_id: string
+          status?: string
+          thumbnail_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption_text?: string | null
+          checklist?: Json
+          content_piece_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          exported_at?: string | null
+          generation_id?: string | null
+          hashtags?: Json
+          id?: string
+          mp4_path?: string | null
+          platform_outputs?: Json
+          render_job_id?: string | null
+          shop_id?: string
+          status?: string
+          thumbnail_path?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shopreel_story_generations: {
         Row: {
           content_piece_id: string | null
