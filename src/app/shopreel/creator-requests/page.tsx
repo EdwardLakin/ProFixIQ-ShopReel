@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import { createAdminClient } from "@/lib/supabase/server";
