@@ -20,6 +20,7 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [startingRender, setStartingRender] = useState(false);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const router = useRouter();
 
   async function saveDraft() {
@@ -71,6 +72,49 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
     return preset?.label ?? id;
   });
 
+  async function copyText(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyMessage(`${label} copied.`);
+    } catch {
+      setCopyMessage(`Unable to copy ${label.toLowerCase()}.`);
+    }
+  }
+
+  function downloadPackage() {
+    const lines = [
+      `# ShopReel Social Package`,
+      "",
+      `Generation ID: ${draft.generationId}`,
+      draft.audience ? `Audience: ${draft.audience}` : "Audience: not provided",
+      "",
+      "## Prompt",
+      draft.prompt || "Not provided.",
+      "",
+      "## Platform outputs",
+    ];
+    for (const output of draft.platformOutputs) {
+      lines.push(`### ${output.platformLabel}`);
+      lines.push(`Hook: ${output.hook || "—"}`);
+      lines.push(`Body: ${output.body || "—"}`);
+      lines.push(`CTA: ${output.cta || "—"}`);
+      lines.push("Caption:");
+      lines.push(output.caption || "—");
+      lines.push(`Hashtags: ${output.hashtags.join(" ") || "—"}`);
+      lines.push("");
+    }
+    lines.push("## Uploaded media");
+    lines.push(...(draft.manualAssetFiles.length > 0 ? draft.manualAssetFiles.map((file) => `- ${file}`) : ["- No media files attached."]));
+    lines.push("", "## Next step", "Post manually to your selected platforms using the copy above and attached media.");
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `shopreel-social-package-${draft.generationId.slice(0, 8)}.md`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
       <GlassCard label="Source" title="Draft context" strong>
@@ -92,15 +136,38 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
         </div>
       </GlassCard>
 
-      <GlassCard label="Next" title="Render step" description="After reviewing, continue to render queue/start placeholder.">
+      <GlassCard label="Export" title="Copy or download package" description="Use this package for Facebook/Instagram posting and handoff.">
         <div className="space-y-3 text-sm text-white/80">
-          <p>Save your draft updates, then start a real render job when ready.</p>
+          <p>For manual social posting, copy platform output or download a markdown package.</p>
           <div className="flex gap-2">
-            <GlassButton onClick={startRender} disabled={startingRender}>{startingRender ? "Starting render…" : "Start render"}</GlassButton>
-            <Link href="/shopreel/render-jobs"><GlassButton variant="ghost">Go to render jobs</GlassButton></Link>
+            <GlassButton onClick={downloadPackage}>Download package (.md)</GlassButton>
+            <GlassButton variant="ghost" onClick={() => copyText(draft.captionText ?? "", "Primary caption")}>Copy primary caption</GlassButton>
+          </div>
+          <div className="flex gap-2">
+            <GlassButton onClick={startRender} disabled={startingRender}>{startingRender ? "Starting render…" : "Start render (optional)"}</GlassButton>
+            <Link href="/shopreel/render-jobs"><GlassButton variant="ghost">Render jobs</GlassButton></Link>
             <Link href={`/shopreel/generations/${draft.generationId}`}><GlassButton variant="ghost">Open generation detail</GlassButton></Link>
           </div>
+          {copyMessage ? <p className="text-xs text-cyan-100">{copyMessage}</p> : null}
         </div>
+      </GlassCard>
+      <GlassCard label="Platform outputs" title="Facebook + Instagram delivery copy" strong className="xl:col-span-2">
+        <div className="grid gap-3 md:grid-cols-2">
+          {draft.platformOutputs.map((output) => (
+            <div key={output.platformId} className="rounded-2xl border border-white/15 bg-white/[0.03] p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="text-sm font-semibold text-white">{output.platformLabel}</div>
+                <GlassButton variant="ghost" onClick={() => copyText([output.hook, output.body, output.cta, output.caption, output.hashtags.join(" ")].filter(Boolean).join("\n\n"), `${output.platformLabel} copy`)}>Copy</GlassButton>
+              </div>
+              <p className="text-xs text-white/65">Hook</p><p className="mb-2 text-sm text-white/90">{output.hook || "—"}</p>
+              <p className="text-xs text-white/65">Body</p><p className="mb-2 text-sm text-white/90 whitespace-pre-wrap">{output.body || "—"}</p>
+              <p className="text-xs text-white/65">CTA</p><p className="mb-2 text-sm text-white/90">{output.cta || "—"}</p>
+              <p className="text-xs text-white/65">Caption</p><p className="mb-2 text-sm text-white/90 whitespace-pre-wrap">{output.caption || "—"}</p>
+              <p className="text-xs text-white/65">Hashtags</p><p className="text-sm text-white/90">{output.hashtags.join(" ") || "—"}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 text-xs text-white/70">Uploaded media: {draft.manualAssetFiles.length > 0 ? draft.manualAssetFiles.join(", ") : "None captured"}</div>
       </GlassCard>
 
       <GlassCard label="Edit" title="Review fields" strong className="xl:col-span-2">
