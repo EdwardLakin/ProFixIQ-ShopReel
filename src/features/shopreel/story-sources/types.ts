@@ -81,7 +81,7 @@ export type StorySourceCandidate = {
 
 export type StorySource = {
   id: string;
-  shopId: string;
+  shopId: string | null;
 
   title: string;
   description?: string | null;

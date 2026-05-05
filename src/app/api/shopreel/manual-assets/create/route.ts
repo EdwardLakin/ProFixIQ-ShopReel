@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
 
 type DB = Database;
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
+    const authSupabase = await createClient();
 
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser();
+    } = await authSupabase.auth.getUser();
 
     if (userError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Please sign in to create content." }, { status: 401 });
     }
 
     const body = (await req.json()) as {
@@ -27,51 +27,36 @@ export async function POST(req: Request) {
       tags?: string[];
     };
 
-    const {
-      title,
-      description,
-      assetType,
-      contentGoal,
-      note,
-    } = body;
+    const { title, description, assetType, contentGoal, note } = body;
 
     if (!title?.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
     if (!assetType || !["image", "video", "mixed"].includes(assetType)) {
-      return NextResponse.json(
-        { error: "Valid assetType is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Valid assetType is required" }, { status: 400 });
     }
 
-    const { data: shopData, error: shopError } = await supabase.rpc(
-      "current_tenant_shop_id",
-    );
-
-    if (shopError || !shopData) {
-      return NextResponse.json(
-        { error: "Unable to resolve current shop" },
-        { status: 400 },
-      );
+    let shopId: string | null = null;
+    const { data: shopData } = await authSupabase.rpc("current_tenant_shop_id");
+    if (shopData) {
+      shopId = String(shopData);
     }
 
-    const shopId = String(shopData);
+    const supabase = createAdminClient();
 
-    const insertRow: DB["public"]["Tables"]["shopreel_manual_assets"]["Insert"] =
-      {
-        shop_id: shopId,
-        created_by: user.id,
-        title: title.trim(),
-        description: description ?? null,
-        asset_type: assetType,
-        status: "draft",
-        content_goal: contentGoal ?? null,
-        note: note ?? null,
-        primary_file_url: null,
-        duration_seconds: null,
-      };
+    const insertRow: DB["public"]["Tables"]["shopreel_manual_assets"]["Insert"] = {
+      shop_id: shopId,
+      created_by: user.id,
+      title: title.trim(),
+      description: description ?? null,
+      asset_type: assetType,
+      status: "draft",
+      content_goal: contentGoal ?? null,
+      note: note ?? null,
+      primary_file_url: null,
+      duration_seconds: null,
+    };
 
     const { data, error } = await supabase
       .from("shopreel_manual_assets")
@@ -89,6 +74,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       assetId: data.id,
       shopId: data.shop_id,
+      standalone: !data.shop_id,
     });
   } catch (error) {
     return NextResponse.json(

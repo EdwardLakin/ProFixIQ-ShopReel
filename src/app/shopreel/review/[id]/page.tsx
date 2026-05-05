@@ -4,68 +4,104 @@ import { notFound } from "next/navigation";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import ReviewWorkspaceClient from "@/features/shopreel/review/components/ReviewWorkspaceClient";
 import { mapGenerationToReviewDraft } from "@/features/shopreel/review/reviewDraft";
 
+type JsonObject = Record<string, unknown>;
+
 export default async function ShopReelReviewRoute(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
-  const shopId = await getCurrentShopId();
-  const supabase = createAdminClient();
-  const legacy = supabase as any;
 
-  const { data: generation, error } = await legacy
+  const authSupabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await authSupabase.auth.getUser();
+
+  if (userError || !user) {
+    notFound();
+  }
+
+  let shopId: string | null = null;
+  try {
+    shopId = await getCurrentShopId();
+  } catch {
+    shopId = null;
+  }
+
+  const supabase = createAdminClient();
+
+  const { data: generation, error } = await supabase
     .from("shopreel_story_generations")
-    .select("id, shop_id, story_source_id, content_piece_id, status, story_draft, generation_metadata, created_at, updated_at")
+    .select("id, shop_id, story_source_id, content_piece_id, status, story_draft, generation_metadata, created_by, created_at, updated_at")
     .eq("id", id)
-    .eq("shop_id", shopId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
   if (!generation) notFound();
 
+  const isOwner = generation.created_by === user.id;
+  const isSameShop = Boolean(shopId && generation.shop_id === shopId);
+
+  if (!isOwner && !isSameShop) {
+    notFound();
+  }
+
   const [{ data: storySource }, { data: contentPiece }] = await Promise.all([
     generation.story_source_id
-      ? legacy
+      ? supabase
           .from("shopreel_story_sources")
           .select("id, shop_id, description, metadata")
           .eq("id", generation.story_source_id)
-          .eq("shop_id", shopId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
     generation.content_piece_id
-      ? legacy
+      ? supabase
           .from("content_pieces")
           .select("id, tenant_shop_id, title, hook, script_text, voiceover_text, caption")
           .eq("id", generation.content_piece_id)
-          .eq("tenant_shop_id", shopId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
   let manualAssetFiles: string[] = [];
-  const manualAssetId =
-    typeof generation.generation_metadata === "object" &&
-    generation.generation_metadata &&
-    typeof (generation.generation_metadata as { manualAssetId?: unknown }).manualAssetId === "string"
-      ? (generation.generation_metadata as { manualAssetId: string }).manualAssetId
+  const metadata =
+    typeof generation.generation_metadata === "object" && generation.generation_metadata
+      ? (generation.generation_metadata as JsonObject)
       : null;
+  const manualAssetId =
+    typeof metadata?.manualAssetId === "string" ? metadata.manualAssetId : null;
+
   if (manualAssetId) {
-    const { data: files } = await legacy
-      .from("shopreel_manual_asset_files")
-      .select("file_name")
-      .eq("asset_id", manualAssetId)
-      .eq("shop_id", shopId)
-      .order("sort_order", { ascending: true });
-    manualAssetFiles = (files ?? [])
-      .map((row: { file_name?: string | null }) => row.file_name)
-      .filter((name: string | null | undefined): name is string => typeof name === "string" && name.trim().length > 0);
+    const { data: asset } = await supabase
+      .from("shopreel_manual_assets")
+      .select("id, shop_id, created_by")
+      .eq("id", manualAssetId)
+      .maybeSingle();
+
+    const canReadAsset =
+      Boolean(asset?.created_by === user.id) ||
+      Boolean(shopId && asset?.shop_id === shopId);
+
+    if (asset && canReadAsset) {
+      const { data: files } = await supabase
+        .from("shopreel_manual_asset_files")
+        .select("file_name")
+        .eq("asset_id", manualAssetId)
+        .order("sort_order", { ascending: true });
+
+      manualAssetFiles = (files ?? [])
+        .map((row) => row.file_name)
+        .filter((name): name is string => typeof name === "string" && name.trim().length > 0);
+    }
   }
 
   const draft = mapGenerationToReviewDraft({
     generation: {
       ...generation,
       generation_metadata: {
-        ...(generation.generation_metadata as Record<string, unknown> | null),
+        ...(metadata ?? {}),
         manualAssetFiles,
       },
     },
@@ -77,7 +113,7 @@ export default async function ShopReelReviewRoute(props: { params: Promise<{ id:
     <GlassShell
       eyebrow="ShopReel"
       title="Review draft"
-      subtitle="Validate concept details, make light edits, and continue to render jobs."
+      subtitle="Validate platform copy, copy the output, or download a manual posting package."
     >
       {!draft.prompt ? (
         <GlassCard>

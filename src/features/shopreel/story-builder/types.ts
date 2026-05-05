@@ -68,7 +68,7 @@ export type StoryScene = {
 
 export type StoryDraft = {
   id: string
-  shopId: string
+  shopId: string | null
   sourceId: string
   sourceKind: StorySourceKind
 

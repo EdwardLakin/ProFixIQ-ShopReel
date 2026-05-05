@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import {
   DEFAULT_SHOPREEL_PLATFORM_IDS,
@@ -189,7 +189,26 @@ export async function POST(req: Request) {
       );
     }
 
-    const shopId = await getCurrentShopId();
+    const authSupabase = await createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await authSupabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { ok: false, error: "Please sign in to create content." },
+        { status: 401 },
+      );
+    }
+
+    let shopId: string | null = null;
+    try {
+      shopId = await getCurrentShopId();
+    } catch {
+      shopId = null;
+    }
+
     const supabase = createAdminClient();
     const submittedPlatformIds = body.platformIds ?? [];
     const platformIds = submittedPlatformIds.filter((id): id is ShopReelPlatformId =>
@@ -200,11 +219,11 @@ export async function POST(req: Request) {
 
     const now = new Date().toISOString();
     const sourceId = crypto.randomUUID();
-    const contentPieceId = crypto.randomUUID();
+    const contentPieceId = shopId ? crypto.randomUUID() : null;
     const generationId = crypto.randomUUID();
 
     const draft = buildDraft({
-      shopId,
+      shopId: shopId ?? user.id,
       sourceId,
       idea,
       audience,
@@ -239,32 +258,34 @@ export async function POST(req: Request) {
       throw new Error(sourceError.message);
     }
 
-    const { error: contentPieceError } = await supabase
-      .from("content_pieces")
-      .insert({
-        id: contentPieceId,
-        tenant_shop_id: shopId,
-        source_shop_id: shopId,
-        source_system: "shopreel",
-        title: draft.title,
-        hook: draft.hook,
-        caption: draft.caption,
-        cta: draft.cta,
-        script_text: draft.scriptText,
-        voiceover_text: draft.voiceoverText,
-        status: "draft",
-        content_type: "creator_story",
-        metadata: {
-          creatorMode: true,
-          source_kind: "creator_idea",
-        },
-        platform_targets: draft.targetChannels,
-        created_at: now,
-        updated_at: now,
-      });
+    if (shopId && contentPieceId) {
+      const { error: contentPieceError } = await supabase
+        .from("content_pieces")
+        .insert({
+          id: contentPieceId,
+          tenant_shop_id: shopId,
+          source_shop_id: shopId,
+          source_system: "shopreel",
+          title: draft.title,
+          hook: draft.hook,
+          caption: draft.caption,
+          cta: draft.cta,
+          script_text: draft.scriptText,
+          voiceover_text: draft.voiceoverText,
+          status: "draft",
+          content_type: "creator_story",
+          metadata: {
+            creatorMode: true,
+            source_kind: "creator_idea",
+          },
+          platform_targets: draft.targetChannels,
+          created_at: now,
+          updated_at: now,
+        });
 
-    if (contentPieceError) {
-      throw new Error(contentPieceError.message);
+      if (contentPieceError) {
+        throw new Error(contentPieceError.message);
+      }
     }
 
     const { error: generationError } = await supabase
@@ -286,7 +307,7 @@ export async function POST(req: Request) {
           platformIds: normalizedPlatformIds,
           manualAssetId: body.manualAssetId ?? null,
         },
-        created_by: null,
+        created_by: user.id,
         created_at: now,
         updated_at: now,
       });

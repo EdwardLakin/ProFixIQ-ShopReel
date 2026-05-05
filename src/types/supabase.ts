@@ -1520,7 +1520,7 @@ export type Database = {
           id: string
           mime_type: string | null
           public_url: string | null
-          shop_id: string
+          shop_id: string | null
           sort_order: number
           storage_path: string
           updated_at: string
@@ -1534,7 +1534,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           public_url?: string | null
-          shop_id: string
+          shop_id: string | null
           sort_order?: number
           storage_path: string
           updated_at?: string
@@ -1548,7 +1548,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           public_url?: string | null
-          shop_id?: string
+          shop_id?: string | null
           sort_order?: number
           storage_path?: string
           updated_at?: string
@@ -1574,7 +1574,7 @@ export type Database = {
           id: string
           note: string | null
           primary_file_url: string | null
-          shop_id: string
+          shop_id: string | null
           status: string
           title: string | null
           updated_at: string
@@ -1589,7 +1589,7 @@ export type Database = {
           id?: string
           note?: string | null
           primary_file_url?: string | null
-          shop_id: string
+          shop_id: string | null
           status?: string
           title?: string | null
           updated_at?: string
@@ -1604,7 +1604,7 @@ export type Database = {
           id?: string
           note?: string | null
           primary_file_url?: string | null
-          shop_id?: string
+          shop_id?: string | null
           status?: string
           title?: string | null
           updated_at?: string
@@ -1967,7 +1967,7 @@ export type Database = {
           id: string
           reel_plan_id: string | null
           render_job_id: string | null
-          shop_id: string
+          shop_id: string | null
           status: string
           story_draft: Json
           story_source_id: string
@@ -1981,7 +1981,7 @@ export type Database = {
           id?: string
           reel_plan_id?: string | null
           render_job_id?: string | null
-          shop_id: string
+          shop_id: string | null
           status?: string
           story_draft?: Json
           story_source_id: string
@@ -1995,7 +1995,7 @@ export type Database = {
           id?: string
           reel_plan_id?: string | null
           render_job_id?: string | null
-          shop_id?: string
+          shop_id?: string | null
           status?: string
           story_draft?: Json
           story_source_id?: string
@@ -2166,7 +2166,7 @@ export type Database = {
           origin: string
           project_id: string | null
           project_name: string | null
-          shop_id: string
+          shop_id: string | null
           source_key: string | null
           started_at: string | null
           suppressed: boolean | null
@@ -2191,7 +2191,7 @@ export type Database = {
           origin: string
           project_id?: string | null
           project_name?: string | null
-          shop_id: string
+          shop_id: string | null
           source_key?: string | null
           started_at?: string | null
           suppressed?: boolean | null
@@ -2216,7 +2216,7 @@ export type Database = {
           origin?: string
           project_id?: string | null
           project_name?: string | null
-          shop_id?: string
+          shop_id?: string | null
           source_key?: string | null
           started_at?: string | null
           suppressed?: boolean | null
