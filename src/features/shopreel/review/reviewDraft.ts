@@ -41,6 +41,9 @@ export type ShopReelReviewDraft = {
   notes?: string;
   manualAssetId?: string;
   manualAssetFiles: string[];
+  positioningSummary?: string;
+  alternateHooks: string[];
+  primaryCta?: string;
   platformOutputs: Array<{
     platformId: ShopReelPlatformId;
     platformLabel: string;
@@ -134,6 +137,25 @@ export function mapGenerationToReviewDraft(input: {
       (typeof sourceMetadata.manualAssetId === "string" && sourceMetadata.manualAssetId) ||
       undefined,
     manualAssetFiles: asStringArray(metadata.manualAssetFiles),
+    positioningSummary:
+      (typeof metadata.positioningSummary === "string" && metadata.positioningSummary) ||
+      (typeof storyDraft.metadata === "object" &&
+      storyDraft.metadata &&
+      typeof (storyDraft.metadata as Record<string, unknown>).positioningSummary === "string"
+        ? String((storyDraft.metadata as Record<string, unknown>).positioningSummary)
+        : undefined),
+    alternateHooks:
+      asStringArray(metadata.alternateHooks).length > 0
+        ? asStringArray(metadata.alternateHooks)
+        : typeof storyDraft.metadata === "object" && storyDraft.metadata
+          ? asStringArray((storyDraft.metadata as Record<string, unknown>).alternateHooks)
+          : [],
+    primaryCta:
+      typeof metadata.creativeBrief === "object" &&
+      metadata.creativeBrief &&
+      typeof (metadata.creativeBrief as Record<string, unknown>).ctaGoal === "string"
+        ? String((metadata.creativeBrief as Record<string, unknown>).ctaGoal)
+        : undefined,
     platformOutputs,
     createdAt: typeof generation.created_at === "string" ? generation.created_at : undefined,
     updatedAt: typeof generation.updated_at === "string" ? generation.updated_at : undefined,

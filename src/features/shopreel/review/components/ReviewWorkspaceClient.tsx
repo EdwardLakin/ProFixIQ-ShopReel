@@ -105,7 +105,13 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
     }
     lines.push("## Uploaded media");
     lines.push(...(draft.manualAssetFiles.length > 0 ? draft.manualAssetFiles.map((file) => `- ${file}`) : ["- No media files attached."]));
-    lines.push("", "## Next step", "Post manually to your selected platforms using the copy above and attached media.");
+    if (draft.positioningSummary) {
+      lines.push("", "## Campaign angle", draft.positioningSummary);
+    }
+    if (draft.alternateHooks.length > 0) {
+      lines.push("", "## Alternate hooks", ...draft.alternateHooks.map((hook) => `- ${hook}`));
+    }
+    lines.push("", "## Manual posting checklist", "- Pick the platform copy.", "- Attach the uploaded media.", "- Confirm CTA and hashtags.", "- Post manually to the selected channel.");
     const blob = new Blob([lines.join("\n")], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -130,6 +136,8 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
             ))}
           </div>
           {draft.audience ? <p><span className="text-white/60">Audience:</span> {draft.audience}</p> : null}
+          {draft.positioningSummary ? <p><span className="text-white/60">Campaign angle:</span> {draft.positioningSummary}</p> : null}
+          {draft.primaryCta ? <p><span className="text-white/60">Primary CTA goal:</span> {draft.primaryCta}</p> : null}
           {draft.manualAssetId ? (
             <p><span className="text-white/60">Manual asset:</span> {draft.manualAssetId}</p>
           ) : null}
@@ -167,7 +175,10 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
             </div>
           ))}
         </div>
-        <div className="mt-3 text-xs text-white/70">Uploaded media: {draft.manualAssetFiles.length > 0 ? draft.manualAssetFiles.join(", ") : "None captured"}</div>
+        <div className="mt-3 space-y-2 text-xs text-white/70">
+          {draft.alternateHooks.length > 0 ? <div>Alternate hooks: {draft.alternateHooks.slice(0, 3).join(" • ")}</div> : null}
+          <div>Uploaded media: {draft.manualAssetFiles.length > 0 ? draft.manualAssetFiles.join(", ") : "None captured"}</div>
+        </div>
       </GlassCard>
 
       <GlassCard label="Edit" title="Review fields" strong className="xl:col-span-2">

@@ -7,8 +7,16 @@ import {
   SHOPREEL_PLATFORM_PRESETS,
   type ShopReelPlatformId,
 } from "@/features/shopreel/platforms/presets";
-
 import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
+import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+import {
+  assertManualAssetAccess,
+  buildCreativeBrief,
+  extractScreenshotContext,
+  type CreativeBrief,
+} from "@/features/shopreel/manual/lib/creativeBrief";
+
 type Body = {
   idea?: string;
   prompt?: string;
@@ -19,6 +27,26 @@ type Body = {
   manualAssetId?: string | null;
 };
 
+type PlatformOutput = {
+  hook: string;
+  body: string;
+  cta: string;
+  caption: string;
+  hashtags: string[];
+};
+
+type GeneratedDraftPayload = {
+  title: string;
+  hook: string;
+  summary: string;
+  cta: string;
+  caption: string;
+  scriptText: string;
+  voiceoverText: string;
+  platformOutputs: Partial<Record<ShopReelPlatformId, PlatformOutput>>;
+  alternateHooks: string[];
+};
+
 const PLATFORM_ID_SET = new Set<ShopReelPlatformId>(
   SHOPREEL_PLATFORM_PRESETS.map((platform) => platform.id),
 );
@@ -27,52 +55,190 @@ function makeId(prefix: string) {
   return `${prefix}:${crypto.randomUUID()}`;
 }
 
-function firstSentence(text: string): string {
-  const trimmed = text.trim().replace(/\s+/g, " ");
-  if (!trimmed) return "";
-  const parts = trimmed.split(/[.!?]/).map((x) => x.trim()).filter(Boolean);
-  return parts[0] ?? trimmed;
+function similarity(a: string, b: string): number {
+  const aTokens = new Set(a.toLowerCase().split(/\W+/).filter(Boolean));
+  const bTokens = new Set(b.toLowerCase().split(/\W+/).filter(Boolean));
+  if (!aTokens.size || !bTokens.size) return 0;
+
+  let overlap = 0;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) overlap += 1;
+  }
+
+  return overlap / Math.max(aTokens.size, bTokens.size);
 }
 
-function buildHook(idea: string) {
-  const sentence = firstSentence(idea);
-  if (!sentence) return "Here’s the quick breakdown.";
-  if (sentence.length <= 90) return sentence;
-  return `${sentence.slice(0, 87).trim()}...`;
+function asString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
 }
 
-function buildTitle(idea: string) {
-  const sentence = firstSentence(idea);
-  if (!sentence) return "Creator story";
-  return sentence.length <= 64 ? sentence : `${sentence.slice(0, 61).trim()}...`;
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
 }
 
-function buildCaption(input: {
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function normalizePlatformOutput(value: unknown, fallback: PlatformOutput): PlatformOutput {
+  const record = asRecord(value);
+  return {
+    hook: asString(record.hook, fallback.hook),
+    body: asString(record.body, fallback.body),
+    cta: asString(record.cta, fallback.cta),
+    caption: asString(record.caption, fallback.caption),
+    hashtags: asStringArray(record.hashtags),
+  };
+}
+
+function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platformIds: ShopReelPlatformId[]): GeneratedDraftPayload {
+  const record = asRecord(value);
+  const fallbackHook = brief.alternateHooks[0] ?? "Turn proof into confidence.";
+  const fallbackCta = brief.ctaGoal || "Learn more.";
+  const fallbackCaption = `${brief.positioningSummary}\n\n${fallbackCta}`;
+
+  const platformOutputsRaw = asRecord(record.platformOutputs);
+  const platformOutputs: Partial<Record<ShopReelPlatformId, PlatformOutput>> = {};
+
+  for (const platformId of platformIds) {
+    const isInstagram = platformId === "instagram_reels";
+    const fallback: PlatformOutput = {
+      hook: fallbackHook,
+      body: isInstagram
+        ? `${brief.primaryValueProp} ${brief.emotionalPromise}`.trim()
+        : `${brief.positioningSummary} ${brief.primaryValueProp}`.trim(),
+      cta: fallbackCta,
+      caption: fallbackCaption,
+      hashtags: isInstagram ? ["#contentmarketing", "#productlaunch", "#smallbusiness"] : [],
+    };
+    platformOutputs[platformId] = normalizePlatformOutput(platformOutputsRaw[platformId], fallback);
+  }
+
+  return {
+    title: asString(record.title, brief.productName),
+    hook: asString(record.hook, fallbackHook),
+    summary: asString(record.summary, brief.positioningSummary),
+    cta: asString(record.cta, fallbackCta),
+    caption: asString(record.caption, fallbackCaption),
+    scriptText: asString(record.scriptText, brief.positioningSummary),
+    voiceoverText: asString(record.voiceoverText, brief.positioningSummary),
+    platformOutputs,
+    alternateHooks: asStringArray(record.alternateHooks).length > 0
+      ? asStringArray(record.alternateHooks)
+      : brief.alternateHooks,
+  };
+}
+
+async function generateDraftFromBrief(input: {
   idea: string;
   audience: string;
-}) {
-  const base = input.idea.trim();
-  const audience = input.audience.trim();
-  return audience
-    ? `${base}\n\nMade for: ${audience}`
-    : base;
-}
-
-function buildDraft(input: {
+  platformIds: ShopReelPlatformId[];
+  tone: string;
+  brief: CreativeBrief;
   shopId: string;
   sourceId: string;
-  idea: string;
-  audience: string;
-  tone: Body["tone"];
   platformFocus: NonNullable<Body["platformFocus"]>;
-  platformIds: ShopReelPlatformId[];
 }) {
-  const hook = buildHook(input.idea);
-  const title = buildTitle(input.idea);
-  const caption = buildCaption({
-    idea: input.idea,
-    audience: input.audience,
+  const response = await openai.responses.create({
+    model: SHOPREEL_AI_MODELS.text,
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text:
+              "Return JSON only. Create launch-ready social copy from the creative brief. " +
+              "Do not repeat the original user prompt verbatim. Write original polished marketing copy. " +
+              "Instagram and Facebook must be meaningfully different when both are requested. " +
+              "Instagram should be hook-first, punchy, shorter, CTA-forward, and include hashtags. " +
+              "Facebook should be more explanatory, practical, trust-building, and use fewer or no hashtags. " +
+              "Use screenshot context as factual support only. Do not invent unsupported product features.",
+          },
+          { type: "input_text", text: `Original user prompt, for context only: ${input.idea}` },
+          { type: "input_text", text: `Creative brief: ${JSON.stringify(input.brief)}` },
+          { type: "input_text", text: `Requested platform IDs: ${input.platformIds.join(", ")}` },
+        ],
+      },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: "manual_copy",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            title: { type: "string" },
+            hook: { type: "string" },
+            summary: { type: "string" },
+            cta: { type: "string" },
+            caption: { type: "string" },
+            scriptText: { type: "string" },
+            voiceoverText: { type: "string" },
+            platformOutputs: {
+              type: "object",
+              additionalProperties: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  hook: { type: "string" },
+                  body: { type: "string" },
+                  cta: { type: "string" },
+                  caption: { type: "string" },
+                  hashtags: { type: "array", items: { type: "string" } },
+                },
+                required: ["hook", "body", "cta", "caption", "hashtags"],
+              },
+            },
+            alternateHooks: { type: "array", items: { type: "string" } },
+          },
+          required: [
+            "title",
+            "hook",
+            "summary",
+            "cta",
+            "caption",
+            "scriptText",
+            "voiceoverText",
+            "platformOutputs",
+            "alternateHooks",
+          ],
+        },
+      },
+    },
   });
+
+  let parsed: GeneratedDraftPayload;
+  try {
+    parsed = normalizeGeneratedPayload(JSON.parse(response.output_text || "{}") as unknown, input.brief, input.platformIds);
+  } catch {
+    parsed = normalizeGeneratedPayload({}, input.brief, input.platformIds);
+  }
+
+  if (similarity(parsed.hook, input.idea) > 0.72 || similarity(parsed.caption, input.idea) > 0.72) {
+    parsed.hook = input.brief.alternateHooks[0] ?? "Your work deserves proof.";
+    parsed.caption = `${input.brief.positioningSummary}\n\n${input.brief.ctaGoal}`.trim();
+  }
+
+  const instagram = parsed.platformOutputs.instagram_reels;
+  const facebook = parsed.platformOutputs.facebook_reels;
+  if (
+    instagram &&
+    facebook &&
+    similarity(
+      `${instagram.hook} ${instagram.body} ${instagram.caption}`,
+      `${facebook.hook} ${facebook.body} ${facebook.caption}`,
+    ) > 0.8
+  ) {
+    parsed.platformOutputs.facebook_reels = {
+      ...facebook,
+      body: `${facebook.body}\n\nFor teams and technicians, the value is simple: clearer records, fewer payday surprises, and a practical way to talk through missing pay with evidence.`,
+      hashtags: [],
+    };
+  }
 
   const targetChannels =
     input.platformFocus === "instagram"
@@ -85,94 +251,33 @@ function buildDraft(input: {
             ? ["facebook_video"]
             : ["instagram_reel", "tiktok_video", "youtube_short", "facebook_video"];
 
-  const sceneIdeas = [
-    {
-      role: "hook",
-      title: "Hook",
-      overlayText: hook,
-      voiceoverText: hook,
-      durationSeconds: 3,
-    },
-    {
-      role: "context",
-      title: "Context",
-      overlayText: "What this is about",
-      voiceoverText: input.idea.trim(),
-      durationSeconds: 5,
-    },
-    {
-      role: "demo",
-      title: "Show or explain",
-      overlayText: "Show the product, process, or proof",
-      voiceoverText: "Show the key details, examples, or proof points here.",
-      durationSeconds: 6,
-    },
-    {
-      role: "takeaway",
-      title: "Takeaway",
-      overlayText: "What matters most",
-      voiceoverText: "Summarize the main takeaway clearly and quickly.",
-      durationSeconds: 4,
-    },
-    {
-      role: "cta",
-      title: "CTA",
-      overlayText: "Follow for more",
-      voiceoverText: "Follow for more, and check the link or caption for details.",
-      durationSeconds: 3,
-    },
-  ];
-  const platformOutputs = Object.fromEntries(
-    input.platformIds.map((platformId) => {
-      const isInstagram = platformId === "instagram_reels";
-      const label = isInstagram ? "Instagram" : platformId === "facebook_reels" ? "Facebook" : platformId;
-      const body = isInstagram
-        ? `Turn this into a punchy ${label} post with one proof point and one clear benefit.`
-        : `Turn this into a practical ${label} post with clear context, value, and what to do next.`;
-      const cta = isInstagram ? "Save this and DM us to see it in action." : "Comment or message us to get the full breakdown.";
-      const hashtags = isInstagram
-        ? ["#creatorbusiness", "#contentstrategy", "#productlaunch", "#socialmedia"]
-        : ["#smallbusinessmarketing", "#contentmarketing", "#launchstrategy"];
-      return [platformId, { hook, body, cta, caption: `${hook}\n\n${input.idea.trim()}\n\n${cta}`, hashtags }];
-    }),
-  );
-
   return {
     id: makeId("draft"),
     shopId: input.shopId,
     sourceId: input.sourceId,
     sourceKind: "creator_idea",
-    title,
-    hook,
-    caption,
-    cta: "Follow for more",
+    title: parsed.title,
+    hook: parsed.hook,
+    caption: parsed.caption,
+    cta: parsed.cta,
     hashtags: [],
-    tone: input.tone ?? "confident",
+    tone: input.tone,
     targetChannels,
     targetDurationSeconds: 21,
-    summary: input.idea.trim(),
-    voiceoverText: sceneIdeas.map((scene) => scene.voiceoverText).join(" "),
-    scriptText: sceneIdeas.map((scene) => scene.voiceoverText).join("\n"),
-    scenes: sceneIdeas.map((scene, index) => ({
-      id: makeId(`scene${index + 1}`),
-      role: scene.role,
-      title: scene.title,
-      overlayText: scene.overlayText,
-      voiceoverText: scene.voiceoverText,
-      durationSeconds: scene.durationSeconds,
-      media: [],
-      metadata: {
-        sourceAssetCount: 0,
-        creatorMode: true,
-      },
-    })),
+    summary: parsed.summary,
+    voiceoverText: parsed.voiceoverText,
+    scriptText: parsed.scriptText,
+    scenes: [],
     metadata: {
       creatorMode: true,
       audience: input.audience.trim() || null,
       platformFocus: input.platformFocus,
       sourceOrigin: "creator_mode",
+      creativeBrief: input.brief,
+      positioningSummary: input.brief.positioningSummary,
+      alternateHooks: parsed.alternateHooks,
     },
-    platformOutputs,
+    platformOutputs: parsed.platformOutputs,
   };
 }
 
@@ -183,10 +288,7 @@ export async function POST(req: Request) {
     const audience = body.audience?.trim() ?? "";
 
     if (!idea) {
-      return NextResponse.json(
-        { ok: false, error: "prompt is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ ok: false, error: "prompt is required" }, { status: 400 });
     }
 
     const authSupabase = await createClient();
@@ -217,12 +319,36 @@ export async function POST(req: Request) {
     const normalizedPlatformIds =
       platformIds.length > 0 ? platformIds : DEFAULT_SHOPREEL_PLATFORM_IDS;
 
+    if (body.manualAssetId) {
+      await assertManualAssetAccess({
+        manualAssetId: body.manualAssetId,
+        userId: user.id,
+        shopId,
+      });
+    }
+
     const now = new Date().toISOString();
     const sourceId = crypto.randomUUID();
     const contentPieceId = shopId ? crypto.randomUUID() : null;
     const generationId = crypto.randomUUID();
 
-    const draft = buildDraft({
+    const screenshotContext = body.manualAssetId
+      ? await extractScreenshotContext({
+          manualAssetId: body.manualAssetId,
+          userId: user.id,
+          shopId,
+        }).catch(() => null)
+      : null;
+
+    const creativeBrief = await buildCreativeBrief({
+      prompt: idea,
+      audience,
+      platformIds: normalizedPlatformIds,
+      tone: body.tone ?? "confident",
+      screenshotContext,
+    });
+
+    const draft = await generateDraftFromBrief({
       shopId: shopId ?? user.id,
       sourceId,
       idea,
@@ -230,6 +356,7 @@ export async function POST(req: Request) {
       tone: body.tone ?? "confident",
       platformFocus: body.platformFocus ?? "multi",
       platformIds: normalizedPlatformIds,
+      brief: creativeBrief,
     });
 
     const { error: sourceError } = await supabase
@@ -249,14 +376,14 @@ export async function POST(req: Request) {
           platformFocus: body.platformFocus ?? "multi",
           platformIds: normalizedPlatformIds,
           manualAssetId: body.manualAssetId ?? null,
+          creativeBrief,
+          screenshotContext,
         },
         created_at: now,
         updated_at: now,
       });
 
-    if (sourceError) {
-      throw new Error(sourceError.message);
-    }
+    if (sourceError) throw new Error(`Failed to create story source: ${sourceError.message}`);
 
     if (shopId && contentPieceId) {
       const { error: contentPieceError } = await supabase
@@ -283,9 +410,7 @@ export async function POST(req: Request) {
           updated_at: now,
         });
 
-      if (contentPieceError) {
-        throw new Error(contentPieceError.message);
-      }
+      if (contentPieceError) throw new Error(`Failed to create content piece: ${contentPieceError.message}`);
     }
 
     const { error: generationError } = await supabase
@@ -306,15 +431,17 @@ export async function POST(req: Request) {
           platformFocus: body.platformFocus ?? "multi",
           platformIds: normalizedPlatformIds,
           manualAssetId: body.manualAssetId ?? null,
+          creativeBrief,
+          screenshotContext,
+          positioningSummary: creativeBrief.positioningSummary,
+          alternateHooks: draft.metadata.alternateHooks,
         },
         created_by: user.id,
         created_at: now,
         updated_at: now,
       });
 
-    if (generationError) {
-      throw new Error(generationError.message);
-    }
+    if (generationError) throw new Error(`Failed to create generation: ${generationError.message}`);
 
     return NextResponse.json({
       ok: true,
@@ -325,12 +452,7 @@ export async function POST(req: Request) {
       reviewUrl: `/shopreel/review/${generationId}`,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to create from idea";
-
-    return NextResponse.json(
-      { ok: false, error: message },
-      { status: 500 },
-    );
+    const message = error instanceof Error ? error.message : "Failed to create from idea";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
