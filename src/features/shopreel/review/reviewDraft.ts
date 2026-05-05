@@ -1,163 +1,321 @@
+
 import type { ShopReelPlatformId } from "@/features/shopreel/platforms/presets";
 
 type UnknownRecord = Record<string, unknown>;
 
 function asRecord(value: unknown): UnknownRecord {
+
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
   return value as UnknownRecord;
+
 }
 
 function asStringArray(value: unknown): string[] {
+
   if (!Array.isArray(value)) return [];
+
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+
 }
 
 function platformIdsFrom(value: unknown): ShopReelPlatformId[] {
+
   const raw = asStringArray(value);
+
   return raw.filter((id): id is ShopReelPlatformId =>
+
     id === "instagram_reels" ||
+
     id === "facebook_reels" ||
+
     id === "tiktok" ||
+
     id === "youtube_shorts",
+
   );
+
+}
+
+function stringFromRecord(record: UnknownRecord, key: string): string | undefined {
+
+  const value = record[key];
+
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+
 }
 
 export type ShopReelReviewDraft = {
+
   generationId: string;
+
   sourceId?: string;
+
   contentPieceId?: string;
+
   prompt: string;
+
   audience?: string;
+
   platforms: ShopReelPlatformId[];
+
   status: string;
+
   conceptTitle?: string;
+
   hook?: string;
+
   script?: string;
+
   voiceover?: string;
+
   onScreenText?: string[];
+
   captionText?: string;
+
   hashtags?: string[];
+
   thumbnailDirection?: string;
+
   notes?: string;
+
   manualAssetId?: string;
+
   manualAssetFiles: string[];
-  positioningSummary?: string;
-  alternateHooks: string[];
+
+  campaignAngle?: string;
+
   primaryCta?: string;
+
+  alternateHooks: string[];
+
   platformOutputs: Array<{
+
     platformId: ShopReelPlatformId;
+
     platformLabel: string;
+
+    intentLabel: string;
+
     hook: string;
+
     body: string;
+
     cta: string;
+
     caption: string;
+
     hashtags: string[];
+
   }>;
+
   createdAt?: string;
+
   updatedAt?: string;
+
 };
 
 export function mapGenerationToReviewDraft(input: {
+
   generation: Record<string, unknown>;
+
   storySource?: Record<string, unknown> | null;
+
   contentPiece?: Record<string, unknown> | null;
+
 }): ShopReelReviewDraft {
+
   const generation = asRecord(input.generation);
+
   const storyDraft = asRecord(generation.story_draft);
+
+  const storyDraftMetadata = asRecord(storyDraft.metadata);
+
   const metadata = asRecord(generation.generation_metadata);
+
   const sourceMetadata = asRecord(input.storySource?.metadata ?? null);
+
   const contentPiece = asRecord(input.contentPiece ?? null);
 
+  const creativeBrief = asRecord(metadata.creativeBrief ?? sourceMetadata.creativeBrief ?? storyDraftMetadata.creativeBrief);
+
   const prompt =
-    (typeof storyDraft.sourceText === "string" && storyDraft.sourceText) ||
+
+    stringFromRecord(storyDraft, "sourceText") ||
+
     (typeof input.storySource?.description === "string" && input.storySource.description) ||
-    (typeof metadata.prompt === "string" && metadata.prompt) ||
+
+    stringFromRecord(metadata, "prompt") ||
+
     "";
 
   const platforms = platformIdsFrom(metadata.platformIds ?? sourceMetadata.platformIds);
+
   const platformOutputsRaw = asRecord(storyDraft.platformOutputs);
+
   const platformOutputs = platforms.map((platformId) => {
+
     const payload = asRecord(platformOutputsRaw[platformId]);
+
     const label =
+
       platformId === "instagram_reels"
+
         ? "Instagram"
+
         : platformId === "facebook_reels"
+
           ? "Facebook"
+
           : platformId === "tiktok"
+
             ? "TikTok"
+
             : "YouTube Shorts";
+
+    const intentLabel =
+
+      platformId === "instagram_reels"
+
+        ? "Hook-first caption"
+
+        : platformId === "facebook_reels"
+
+          ? "Trust-building post"
+
+          : platformId === "tiktok"
+
+            ? "Short-form social copy"
+
+            : "Shorts-ready copy";
+
     return {
+
       platformId,
+
       platformLabel: label,
-      hook: typeof payload.hook === "string" ? payload.hook : "",
-      body: typeof payload.body === "string" ? payload.body : "",
-      cta: typeof payload.cta === "string" ? payload.cta : "",
-      caption: typeof payload.caption === "string" ? payload.caption : "",
+
+      intentLabel,
+
+      hook: stringFromRecord(payload, "hook") ?? "",
+
+      body: stringFromRecord(payload, "body") ?? "",
+
+      cta: stringFromRecord(payload, "cta") ?? "",
+
+      caption: stringFromRecord(payload, "caption") ?? "",
+
       hashtags: asStringArray(payload.hashtags),
+
     };
+
   });
 
+  const alternateHooks =
+
+    asStringArray(metadata.alternateHooks).length > 0
+
+      ? asStringArray(metadata.alternateHooks)
+
+      : asStringArray(storyDraftMetadata.alternateHooks).length > 0
+
+        ? asStringArray(storyDraftMetadata.alternateHooks)
+
+        : asStringArray(creativeBrief.alternateHooks);
+
   return {
+
     generationId: String(generation.id ?? ""),
-    sourceId: typeof generation.story_source_id === "string" ? generation.story_source_id : undefined,
-    contentPieceId: typeof generation.content_piece_id === "string" ? generation.content_piece_id : undefined,
+
+    sourceId: stringFromRecord(generation, "story_source_id"),
+
+    contentPieceId: stringFromRecord(generation, "content_piece_id"),
+
     prompt,
+
     audience:
-      (typeof metadata.audience === "string" && metadata.audience) ||
-      (typeof sourceMetadata.audience === "string" && sourceMetadata.audience) ||
-      undefined,
+
+      stringFromRecord(metadata, "audience") ||
+
+      stringFromRecord(sourceMetadata, "audience") ||
+
+      stringFromRecord(creativeBrief, "audience"),
+
     platforms,
-    status: typeof generation.status === "string" ? generation.status : "draft",
+
+    status: stringFromRecord(generation, "status") ?? "draft",
+
     conceptTitle:
-      (typeof storyDraft.title === "string" && storyDraft.title) ||
-      (typeof contentPiece.title === "string" && contentPiece.title) ||
-      undefined,
+
+      stringFromRecord(storyDraft, "title") ||
+
+      stringFromRecord(contentPiece, "title") ||
+
+      stringFromRecord(creativeBrief, "productName"),
+
     hook:
-      (typeof storyDraft.hook === "string" && storyDraft.hook) ||
-      (typeof contentPiece.hook === "string" && contentPiece.hook) ||
-      undefined,
+
+      stringFromRecord(storyDraft, "hook") ||
+
+      stringFromRecord(contentPiece, "hook"),
+
     script:
-      (typeof storyDraft.scriptText === "string" && storyDraft.scriptText) ||
-      (typeof contentPiece.script_text === "string" && contentPiece.script_text) ||
-      undefined,
+
+      stringFromRecord(storyDraft, "scriptText") ||
+
+      stringFromRecord(contentPiece, "script_text"),
+
     voiceover:
-      (typeof storyDraft.voiceoverText === "string" && storyDraft.voiceoverText) ||
-      (typeof contentPiece.voiceover_text === "string" && contentPiece.voiceover_text) ||
-      undefined,
+
+      stringFromRecord(storyDraft, "voiceoverText") ||
+
+      stringFromRecord(contentPiece, "voiceover_text"),
+
     onScreenText: asStringArray(storyDraft.overlayText),
+
     captionText:
-      (typeof storyDraft.caption === "string" && storyDraft.caption) ||
-      (typeof contentPiece.caption === "string" && contentPiece.caption) ||
-      undefined,
+
+      stringFromRecord(storyDraft, "caption") ||
+
+      stringFromRecord(contentPiece, "caption"),
+
     hashtags: asStringArray(storyDraft.hashtags),
-    thumbnailDirection: typeof storyDraft.thumbnailDirection === "string" ? storyDraft.thumbnailDirection : undefined,
-    notes: typeof metadata.notes === "string" ? metadata.notes : undefined,
+
+    thumbnailDirection: stringFromRecord(storyDraft, "thumbnailDirection"),
+
+    notes: stringFromRecord(metadata, "notes"),
+
     manualAssetId:
-      (typeof metadata.manualAssetId === "string" && metadata.manualAssetId) ||
-      (typeof sourceMetadata.manualAssetId === "string" && sourceMetadata.manualAssetId) ||
-      undefined,
+
+      stringFromRecord(metadata, "manualAssetId") ||
+
+      stringFromRecord(sourceMetadata, "manualAssetId"),
+
     manualAssetFiles: asStringArray(metadata.manualAssetFiles),
-    positioningSummary:
-      (typeof metadata.positioningSummary === "string" && metadata.positioningSummary) ||
-      (typeof storyDraft.metadata === "object" &&
-      storyDraft.metadata &&
-      typeof (storyDraft.metadata as Record<string, unknown>).positioningSummary === "string"
-        ? String((storyDraft.metadata as Record<string, unknown>).positioningSummary)
-        : undefined),
-    alternateHooks:
-      asStringArray(metadata.alternateHooks).length > 0
-        ? asStringArray(metadata.alternateHooks)
-        : typeof storyDraft.metadata === "object" && storyDraft.metadata
-          ? asStringArray((storyDraft.metadata as Record<string, unknown>).alternateHooks)
-          : [],
+
+    campaignAngle:
+
+      stringFromRecord(metadata, "positioningSummary") ||
+
+      stringFromRecord(storyDraftMetadata, "positioningSummary") ||
+
+      stringFromRecord(creativeBrief, "positioningSummary"),
+
     primaryCta:
-      typeof metadata.creativeBrief === "object" &&
-      metadata.creativeBrief &&
-      typeof (metadata.creativeBrief as Record<string, unknown>).ctaGoal === "string"
-        ? String((metadata.creativeBrief as Record<string, unknown>).ctaGoal)
-        : undefined,
+
+      stringFromRecord(creativeBrief, "ctaGoal") ||
+
+      stringFromRecord(storyDraft, "cta"),
+
+    alternateHooks,
+
     platformOutputs,
-    createdAt: typeof generation.created_at === "string" ? generation.created_at : undefined,
-    updatedAt: typeof generation.updated_at === "string" ? generation.updated_at : undefined,
+
+    createdAt: stringFromRecord(generation, "created_at"),
+
+    updatedAt: stringFromRecord(generation, "updated_at"),
+
   };
+
 }
+
