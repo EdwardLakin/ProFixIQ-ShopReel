@@ -8,8 +8,9 @@ export default function GlassShell(props: {
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  hidePageIntro?: boolean;
 }) {
-  const { eyebrow, title, subtitle, actions, children, className } = props;
+  const { eyebrow, title, subtitle, actions, children, className, hidePageIntro = false } = props;
 
   return (
     <div
@@ -51,37 +52,39 @@ export default function GlassShell(props: {
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div className="space-y-2">
-                {eyebrow ? (
-                  <div
-                    className={cx(
-                      "text-xs font-medium uppercase tracking-[0.24em]",
-                      glassTheme.text.copper,
-                    )}
-                  >
-                    {eyebrow}
-                  </div>
-                ) : null}
-
+            {!hidePageIntro ? (
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                 <div className="space-y-2">
-                  <h1
-                    className={cx(
-                      "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
-                      glassTheme.text.primary,
-                    )}
-                  >
-                    {title}
-                  </h1>
-
-                  {subtitle ? (
-                    <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
-                      {subtitle}
-                    </p>
+                  {eyebrow ? (
+                    <div
+                      className={cx(
+                        "text-xs font-medium uppercase tracking-[0.24em]",
+                        glassTheme.text.copper,
+                      )}
+                    >
+                      {eyebrow}
+                    </div>
                   ) : null}
+
+                  <div className="space-y-2">
+                    <h1
+                      className={cx(
+                        "font-display text-3xl tracking-[0.01em] md:text-4xl font-semibold",
+                        glassTheme.text.primary,
+                      )}
+                    >
+                      {title}
+                    </h1>
+
+                    {subtitle ? (
+                      <p className={cx("max-w-3xl text-sm leading-6 md:text-base", glassTheme.text.secondary)}>
+                        {subtitle}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
           </header>
 
           {children}

@@ -42,22 +42,22 @@ export default async function ShopReelPage() {
 
   return (
     <GlassShell
-      eyebrow="Home"
-      title="Your AI content engine"
-      subtitle="Upload media, describe the outcome, and generate videos, posts, blogs, captions, and campaigns — all in one place."
+      title="Home"
+      hidePageIntro
+      className="space-y-4 md:space-y-5"
     >
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-xl md:px-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/70">⌘K Search ideas, projects, and templates</div>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 backdrop-blur-xl md:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-1.5 text-sm text-white/70">⌘K Search ideas, projects, and templates</div>
           <div className="flex items-center gap-2 text-white/70">
-            <button type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm">⚡ Quick create</button>
-            <button type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm">🔔</button>
+            <button type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm">⚡ Quick create</button>
+            <button type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm">🔔</button>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-4">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="space-y-3">
           <section className="relative overflow-hidden rounded-[30px] border border-violet-300/30 bg-[radial-gradient(circle_at_15%_0%,rgba(127,92,255,0.4),transparent_44%),radial-gradient(circle_at_92%_0%,rgba(66,198,255,0.25),transparent_40%),linear-gradient(145deg,rgba(7,10,25,0.98),rgba(5,8,20,0.88))] p-5 shadow-[0_40px_130px_rgba(12,10,35,0.55)] md:p-6">
             <div className="space-y-4">
               <div>
