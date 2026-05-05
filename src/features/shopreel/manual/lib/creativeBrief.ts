@@ -425,7 +425,17 @@ export async function buildCreativeBrief(input: {
 
             ctaGoal: { type: "string" },
 
-            platformStrategy: { type: "object", additionalProperties: { type: "string" } },
+            platformStrategy: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                instagram_reels: { type: "string" },
+                facebook_reels: { type: "string" },
+                tiktok: { type: "string" },
+                youtube_shorts: { type: "string" },
+              },
+              required: ["instagram_reels", "facebook_reels", "tiktok", "youtube_shorts"],
+            },
 
             positioningSummary: { type: "string" },
 
