@@ -70,25 +70,35 @@ export default async function ShopReelReviewRoute(props: { params: Promise<{ id:
     typeof generation.generation_metadata === "object" && generation.generation_metadata
       ? (generation.generation_metadata as JsonObject)
       : null;
-  const manualAssetId =
-    typeof metadata?.manualAssetId === "string" ? metadata.manualAssetId : null;
+  const manualAssetIds =
+    Array.isArray(metadata?.manualAssetIds)
+      ? metadata.manualAssetIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+      : typeof metadata?.manualAssetId === "string"
+        ? [metadata.manualAssetId]
+        : [];
 
-  if (manualAssetId) {
-    const { data: asset } = await supabase
-      .from("shopreel_manual_assets")
-      .select("id, shop_id, created_by")
-      .eq("id", manualAssetId)
-      .maybeSingle();
+  if (manualAssetIds.length > 0) {
+    const readableAssetIds: string[] = [];
 
-    const canReadAsset =
-      Boolean(asset?.created_by === user.id) ||
-      Boolean(shopId && asset?.shop_id === shopId);
+    for (const manualAssetId of manualAssetIds) {
+      const { data: asset } = await supabase
+        .from("shopreel_manual_assets")
+        .select("id, shop_id, created_by")
+        .eq("id", manualAssetId)
+        .maybeSingle();
 
-    if (asset && canReadAsset) {
+      const canReadAsset =
+        Boolean(asset?.created_by === user.id) ||
+        Boolean(shopId && asset?.shop_id === shopId);
+
+      if (asset && canReadAsset) readableAssetIds.push(asset.id);
+    }
+
+    if (readableAssetIds.length > 0) {
       const { data: files } = await supabase
         .from("shopreel_manual_asset_files")
         .select("file_name")
-        .eq("asset_id", manualAssetId)
+        .in("asset_id", readableAssetIds)
         .order("sort_order", { ascending: true });
 
       manualAssetFiles = (files ?? [])

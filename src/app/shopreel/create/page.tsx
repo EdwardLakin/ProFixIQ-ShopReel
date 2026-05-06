@@ -16,6 +16,8 @@ type CreatePrefillPayload = {
   angleTitle?: string;
   angleHook?: string;
   angleCta?: string;
+  manualAssetId?: string;
+  manualAssetIds?: string[];
   createdAt?: number;
 };
 const CONTENT_TYPES = [
@@ -44,6 +46,7 @@ export default function ShopReelCreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [prefillNotice, setPrefillNotice] = useState<string | null>(null);
+  const [libraryAssetIds, setLibraryAssetIds] = useState<string[]>([]);
 
 
   useEffect(() => {
@@ -67,6 +70,15 @@ export default function ShopReelCreatePage() {
     const nextPrompt = promptFromParams || stored?.prompt || "";
     const nextAudience = audienceFromParams || stored?.audience || "";
     const nextContentType = contentTypeFromParams || stored?.contentType || "";
+    const manualAssetIdsFromStorage = Array.isArray(stored?.manualAssetIds)
+      ? stored.manualAssetIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+      : typeof stored?.manualAssetId === "string"
+        ? [stored.manualAssetId]
+        : [];
+    const manualAssetIdFromParam = params.get("manualAssetId");
+    const nextLibraryAssetIds = manualAssetIdFromParam
+      ? [manualAssetIdFromParam]
+      : manualAssetIdsFromStorage;
 
     if (nextPrompt && !prompt.trim()) {
       setPrompt(nextPrompt);
@@ -81,10 +93,17 @@ export default function ShopReelCreatePage() {
     }
 
     const source = sourceFromParams || stored?.source;
+
+    if (nextLibraryAssetIds.length > 0) {
+      setLibraryAssetIds(nextLibraryAssetIds);
+    }
+
     if (nextPrompt && source === "ideas") {
       setPrefillNotice("Loaded from Ideas Chat. Upload media if you have it, confirm platforms, and generate the draft.");
     } else if (nextPrompt && source === "review") {
       setPrefillNotice("Loaded from Review. Add media if needed, confirm platforms, and turn the approved concept into a video/reel draft.");
+    } else if (nextPrompt && source === "library") {
+      setPrefillNotice(`Loaded ${nextLibraryAssetIds.length || "selected"} asset${nextLibraryAssetIds.length === 1 ? "" : "s"} from Library. Add more media if needed, confirm platforms, and generate.`);
     }
   }, [audience, prompt]);
 
@@ -115,7 +134,14 @@ export default function ShopReelCreatePage() {
       // Media is optional for the beginner path. Screenshots/videos improve quality but are not required.
       if (!platformIds.length) throw new Error("Select at least one platform");
       const manualAssetId = files.length > 0 ? await uploadAssetAndFiles() : null;
-      const createRes = await fetch("/api/shopreel/create/from-idea", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, audience, platformIds, manualAssetId, contentType: selectedContentType }) });
+      const createRes = await fetch("/api/shopreel/create/from-idea", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+          prompt,
+          audience,
+          platformIds,
+          manualAssetId: manualAssetId ?? libraryAssetIds[0] ?? null,
+          manualAssetIds: manualAssetId ? [manualAssetId, ...libraryAssetIds] : libraryAssetIds,
+          contentType: selectedContentType,
+        }) });
       const createJson = await createRes.json();
       if (!createRes.ok || !createJson.ok) throw new Error(createJson.error ?? "Failed to create draft");
       router.push(createJson.reviewUrl ?? `/shopreel/review/${createJson.generationId}`);
@@ -201,6 +227,7 @@ export default function ShopReelCreatePage() {
             <div className="mt-3 space-y-2 text-sm text-white/75">
               <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Format: {selectedContentType}</div>
               <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Files: {files.length}</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Library assets: {libraryAssetIds.length}</div>
               <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Platforms: {platformIds.length}</div>
               <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Audience: {audience || "Not set"}</div>
             </div>

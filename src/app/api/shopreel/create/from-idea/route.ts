@@ -25,6 +25,7 @@ type Body = {
   tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
   platformIds?: ShopReelPlatformId[];
   manualAssetId?: string | null;
+  manualAssetIds?: string[];
 };
 
 type PlatformOutput = {
@@ -374,9 +375,18 @@ export async function POST(req: Request) {
     const normalizedPlatformIds =
       platformIds.length > 0 ? platformIds : DEFAULT_SHOPREEL_PLATFORM_IDS;
 
-    if (body.manualAssetId) {
+    const manualAssetIds = Array.from(
+      new Set(
+        [
+          body.manualAssetId,
+          ...(Array.isArray(body.manualAssetIds) ? body.manualAssetIds : []),
+        ].filter((id): id is string => typeof id === "string" && id.trim().length > 0),
+      ),
+    );
+
+    for (const manualAssetId of manualAssetIds) {
       await assertManualAssetAccess({
-        manualAssetId: body.manualAssetId,
+        manualAssetId,
         userId: user.id,
         shopId,
       });
@@ -387,9 +397,9 @@ export async function POST(req: Request) {
     const contentPieceId = shopId ? crypto.randomUUID() : null;
     const generationId = crypto.randomUUID();
 
-    const screenshotContext = body.manualAssetId
+    const screenshotContext = manualAssetIds[0]
       ? await extractScreenshotContext({
-          manualAssetId: body.manualAssetId,
+          manualAssetId: manualAssetIds[0],
           userId: user.id,
           shopId,
         }).catch(() => null)
@@ -430,7 +440,8 @@ export async function POST(req: Request) {
           audience: audience || null,
           platformFocus: body.platformFocus ?? "multi",
           platformIds: normalizedPlatformIds,
-          manualAssetId: body.manualAssetId ?? null,
+          manualAssetId: manualAssetIds[0] ?? null,
+          manualAssetIds,
           creativeBrief,
           screenshotContext,
         },
@@ -485,7 +496,8 @@ export async function POST(req: Request) {
           audience: audience || null,
           platformFocus: body.platformFocus ?? "multi",
           platformIds: normalizedPlatformIds,
-          manualAssetId: body.manualAssetId ?? null,
+          manualAssetId: manualAssetIds[0] ?? null,
+          manualAssetIds,
           creativeBrief,
           screenshotContext,
           positioningSummary: creativeBrief.positioningSummary,
