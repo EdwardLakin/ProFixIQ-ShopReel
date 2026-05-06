@@ -142,6 +142,122 @@ function strengthenCta(platformId: ShopReelPlatformId, cta: string, brief: Creat
   return normalized;
 }
 
+
+function looksLikeStrategyNotes(value: string): boolean {
+  const text = value.toLowerCase();
+
+  return (
+    text.includes("position the content") ||
+    text.includes("the campaign should") ||
+    text.includes("why this works") ||
+    text.includes("cta:") ||
+    text.includes("angle:") ||
+    text.includes("use this platform copy") ||
+    text.includes("creative brief") ||
+    text.includes("content around") ||
+    text.includes("prompt technicians") ||
+    text.includes("encourage technicians") ||
+    text.includes("generate a") ||
+    text.includes("create a facebook") ||
+    text.includes("create an instagram")
+  );
+}
+
+function inferProductName(brief: CreativeBrief): string {
+  const product = brief.productName?.trim();
+  if (product && !/^unknown|this product$/i.test(product)) return product;
+  return "this tool";
+}
+
+function buildPlatformFallbackCopy(input: {
+  platformId: ShopReelPlatformId;
+  brief: CreativeBrief;
+}): PlatformOutput {
+  const productName = inferProductName(input.brief);
+  const pain = input.brief.primaryPainPoint || "important work gets forgotten when it is time to post, report, or get paid";
+  const value = input.brief.primaryValueProp || `${productName} helps people keep proof organized and ready when it matters`;
+  const promise = input.brief.emotionalPromise || "more confidence, less guesswork";
+  const proofPoints = input.brief.proofPoints?.filter(Boolean).slice(0, 3) ?? [];
+
+  if (input.platformId === "instagram_reels") {
+    const hook = "Your proof should be ready before the question comes up.";
+    const body = [
+      `${productName} helps turn scattered details into a clean proof trail.`,
+      proofPoints.length > 0
+        ? `Use it to ${proofPoints.join(", ").toLowerCase()}.`
+        : value,
+      `Less guessing. More ${promise.toLowerCase()}.`,
+    ].join("\n");
+
+    const cta = `Save this and check out ${productName} if you want proof ready before it matters.`;
+    const hashtags = defaultHashtags(input.platformId, input.brief);
+
+    return {
+      hook,
+      body,
+      cta,
+      caption: [hook, body, cta, hashtags.join(" ")].join("\n\n"),
+      hashtags,
+    };
+  }
+
+  if (input.platformId === "facebook_reels") {
+    const hook = "Small missing details can turn into real frustration later.";
+    const body = [
+      `${productName} is built for people who want a simple way to keep important work records organized.`,
+      `Instead of relying on memory, ${productName} helps keep the proof, notes, and context in one place so the conversation is easier when something does not line up.`,
+      `The value is simple: ${value}.`,
+    ].join("\n\n");
+
+    const cta = `Message us or follow along if you want to see how ${productName} works.`;
+
+    return {
+      hook,
+      body,
+      cta,
+      caption: [hook, body, cta].join("\n\n"),
+      hashtags: [],
+    };
+  }
+
+  return {
+    hook: value,
+    body: `${pain}\n\n${value}`,
+    cta: input.brief.ctaGoal || "Learn more.",
+    caption: `${value}\n\n${input.brief.ctaGoal || "Learn more."}`,
+    hashtags: defaultHashtags(input.platformId, input.brief),
+  };
+}
+
+function forceUsablePlatformCopy(input: {
+  platformId: ShopReelPlatformId;
+  output: PlatformOutput;
+  brief: CreativeBrief;
+  originalPrompt: string;
+}): PlatformOutput {
+  const combined = [input.output.hook, input.output.body, input.output.cta, input.output.caption].join(" ");
+  const tooSimilarToPrompt = similarity(combined, input.originalPrompt) > 0.48;
+  const strategyNotes =
+    looksLikeStrategyNotes(input.output.hook) ||
+    looksLikeStrategyNotes(input.output.body) ||
+    looksLikeStrategyNotes(input.output.cta) ||
+    looksLikeStrategyNotes(input.output.caption);
+
+  const tooGeneric =
+    input.output.hook.trim().length < 8 ||
+    input.output.body.trim().length < 30 ||
+    input.output.cta.trim().length < 8;
+
+  if (tooSimilarToPrompt || strategyNotes || tooGeneric) {
+    return buildPlatformFallbackCopy({
+      platformId: input.platformId,
+      brief: input.brief,
+    });
+  }
+
+  return input.output;
+}
+
 function ensureDistinctPlatformTone(input: {
   platformId: ShopReelPlatformId;
   output: PlatformOutput;
@@ -188,7 +304,7 @@ function ensureDistinctPlatformTone(input: {
   };
 }
 
-function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platformIds: ShopReelPlatformId[]): GeneratedDraftPayload {
+function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platformIds: ShopReelPlatformId[], originalPrompt: string): GeneratedDraftPayload {
   const record = asRecord(value);
   const fallbackHook = brief.alternateHooks[0] ?? "Turn proof into confidence.";
   const fallbackCta = brief.ctaGoal || "Learn more.";
@@ -208,10 +324,17 @@ function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platfor
       caption: fallbackCaption,
       hashtags: isInstagram ? ["#contentmarketing", "#productlaunch", "#smallbusiness"] : [],
     };
-    platformOutputs[platformId] = ensureDistinctPlatformTone({
+    const normalizedOutput = ensureDistinctPlatformTone({
       platformId,
       output: normalizePlatformOutput(platformOutputsRaw[platformId], fallback),
       brief,
+    });
+
+    platformOutputs[platformId] = forceUsablePlatformCopy({
+      platformId,
+      output: normalizedOutput,
+      brief,
+      originalPrompt,
     });
   }
 
@@ -249,8 +372,8 @@ async function generateDraftFromBrief(input: {
           {
             type: "input_text",
             text:
-              "Return one valid JSON object only. Do not wrap it in markdown. Do not include commentary. Create launch-ready social copy from the creative brief. " +
-              "Do not repeat the original user prompt verbatim. Write original polished marketing copy. " +
+              "Return one valid JSON object only. Do not wrap it in markdown. Do not include commentary. Create final, ready-to-post social media copy from the creative brief. Do not write strategy notes, explanations, campaign instructions, or analysis. " +
+              "Do not repeat or paraphrase the original user prompt as the post. Transform the idea into finished post copy. Write original polished marketing copy. " +
               "Instagram and Facebook must be meaningfully different when both are requested. " +
               "Instagram should be hook-first, punchy, shorter, CTA-forward, and include hashtags. " +
               "Facebook should be more explanatory, practical, trust-building, and use fewer or no hashtags. " +
@@ -269,9 +392,9 @@ async function generateDraftFromBrief(input: {
 
   let parsed: GeneratedDraftPayload;
   try {
-    parsed = normalizeGeneratedPayload(JSON.parse(response.output_text || "{}") as unknown, input.brief, input.platformIds);
+    parsed = normalizeGeneratedPayload(JSON.parse(response.output_text || "{}") as unknown, input.brief, input.platformIds, input.idea);
   } catch {
-    parsed = normalizeGeneratedPayload({}, input.brief, input.platformIds);
+    parsed = normalizeGeneratedPayload({}, input.brief, input.platformIds, input.idea);
   }
 
   if (similarity(parsed.hook, input.idea) > 0.72 || similarity(parsed.caption, input.idea) > 0.72) {
