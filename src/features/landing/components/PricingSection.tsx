@@ -61,7 +61,7 @@ export default function PricingSection() {
             glassTheme.text.primary,
           )}
         >
-          Every plan includes every feature
+          Fair-use tiers with clear premium gates
         </h2>
         <p
           className={cx(
@@ -69,8 +69,7 @@ export default function PricingSection() {
             glassTheme.text.secondary,
           )}
         >
-          ShopReel scales by output volume, not by locking features behind
-          higher tiers.
+          Choose the content engine tier that matches your weekly volume, workflow depth, and automation needs.
         </p>
       </div>
 
@@ -108,19 +107,18 @@ export default function PricingSection() {
                   {plan.badge ? (
                     <GlassBadge tone="copper">{plan.badge}</GlassBadge>
                   ) : null}
-                  <GlassBadge tone="default">
-                    {typeof plan.generationLimit === "number"
-                      ? `${plan.generationLimit} generations / month`
-                      : "Unlimited generations"}
-                  </GlassBadge>
+                  <GlassBadge tone="default">{plan.fairUseLabel}</GlassBadge>
                 </div>
 
                 <div className={cx("space-y-2 text-sm", glassTheme.text.primary)}>
-                  <div>All creator outputs</div>
-                  <div>Content calendar</div>
-                  <div>Automation loop</div>
-                  <div>Publishing workflow</div>
-                  <div>Performance learning</div>
+                  {plan.includedFeatures.map((feature) => (
+                    <div key={`${plan.key}-${feature}`}>• {feature}</div>
+                  ))}
+                </div>
+                <div className={cx("space-y-2 text-sm", glassTheme.text.secondary)}>
+                  {plan.gatedFeatures.map((feature) => (
+                    <div key={`${plan.key}-gate-${feature}`}>Gated: {feature}</div>
+                  ))}
                 </div>
               </div>
             </GlassCard>
