@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { getSubscription } from "@/features/billing/getSubscription";
 import { getUsageSnapshot } from "@/features/billing/getUsageSnapshot";
+import { syncSubscriptionFromStripeCustomer } from "@/features/billing/syncSubscriptionFromStripeCustomer";
 
 export async function GET() {
   try {
@@ -31,10 +32,20 @@ export async function GET() {
       });
     }
 
-    const [subscription, usage] = await Promise.all([
-      getSubscription(shopId),
-      getUsageSnapshot(shopId).catch(() => null),
-    ]);
+    let subscription = await getSubscription(shopId);
+
+    if (subscription?.stripe_customer_id) {
+      const synced = await syncSubscriptionFromStripeCustomer({
+        stripeCustomerId: subscription.stripe_customer_id,
+        shopId,
+      }).catch(() => null);
+
+      if (synced) {
+        subscription = await getSubscription(shopId);
+      }
+    }
+
+    const usage = await getUsageSnapshot(shopId).catch(() => null);
 
     const status = subscription?.status ?? "none";
     const active = status === "active" || status === "trialing";

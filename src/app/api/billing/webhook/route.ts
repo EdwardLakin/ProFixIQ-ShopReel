@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { getStripeServerClient } from "@/features/billing/stripe";
 import { upsertSubscriptionFromStripe } from "@/features/billing/upsertSubscriptionFromStripe";
+import { syncSubscriptionFromStripeCustomer } from "@/features/billing/syncSubscriptionFromStripeCustomer";
 
 function readSubscriptionPeriod(
   subscription: Stripe.Subscription,
@@ -46,6 +47,26 @@ export async function POST(req: Request) {
     );
 
     switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const stripeCustomerId =
+          typeof session.customer === "string"
+            ? session.customer
+            : session.customer?.id ?? null;
+
+        if (stripeCustomerId) {
+          await syncSubscriptionFromStripeCustomer({
+            stripeCustomerId,
+            shopId:
+              typeof session.metadata?.shop_id === "string"
+                ? session.metadata.shop_id
+                : null,
+          });
+        }
+
+        break;
+      }
+
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
