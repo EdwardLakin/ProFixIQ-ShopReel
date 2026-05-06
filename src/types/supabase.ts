@@ -2405,6 +2405,66 @@ export type Database = {
           },
         ]
       }
+      shopreel_notifications: {
+        Row: {
+          action_href: string | null
+          action_label: string | null
+          archived_at: string | null
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json
+          read_at: string | null
+          severity: string
+          shop_id: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          action_href?: string | null
+          action_label?: string | null
+          archived_at?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          severity?: string
+          shop_id?: string | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_href?: string | null
+          action_label?: string | null
+          archived_at?: string | null
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          severity?: string
+          shop_id?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       shopreel_subscriptions: {
         Row: {
           cancel_at_period_end: boolean
