@@ -108,6 +108,7 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [refineInstruction, setRefineInstruction] = useState("");
   const [refining, setRefining] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const router = useRouter();
 
@@ -705,15 +706,21 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
       </GlassCard>
 
-      <GlassCard label="Advanced edit" title="Optional draft fields" strong>
+      <GlassCard label="Advanced edit" title="Optional legacy fields" strong>
 
         <p className="mb-4 text-sm text-white/60">
 
-          These fields support video/reel workflows and older drafts. For manual social posts, use the platform cards above as the primary output.
+          These fields are optional for video/reel workflows and older drafts. For manual social posts, the platform cards above are the primary output.
 
         </p>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="mb-4">
+          <GlassButton variant="ghost" onClick={() => setShowAdvanced((value) => !value)}>
+            {showAdvanced ? "Hide advanced fields" : "Show advanced fields"}
+          </GlassButton>
+        </div>
+
+        {showAdvanced && <div className="grid gap-3 md:grid-cols-2">
 
           <label className="space-y-1 md:col-span-2">
 
@@ -755,15 +762,15 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
           </label>
 
-        </div>
+        </div>}
 
-        <div className="mt-4 flex items-center gap-3">
+        {showAdvanced && <div className="mt-4 flex items-center gap-3">
 
           <GlassButton onClick={saveDraft} disabled={saving}>{saving ? "Saving…" : "Save draft updates"}</GlassButton>
 
           {message ? <span className="text-sm text-white/70">{message}</span> : null}
 
-        </div>
+        </div>}
 
       </GlassCard>
 

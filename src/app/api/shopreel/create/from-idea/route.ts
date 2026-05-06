@@ -159,13 +159,22 @@ function strengthenCta(platformId: ShopReelPlatformId, cta: string, brief: Creat
 }
 
 
-function looksLikeStrategyNotes(value: string): boolean {
+export function looksLikeStrategyNotes(value: string): boolean {
   const text = value.toLowerCase();
 
   return (
     text.includes("position the content") ||
+    text.includes("campaign should") ||
     text.includes("the campaign should") ||
+    text.includes("this strategy") ||
+    text.includes("content should") ||
+    text.includes("focus on") ||
+    text.includes("target audience") ||
+    text.includes("creative direction") ||
+    text.includes("messaging strategy") ||
+    text.includes("the goal is to") ||
     text.includes("why this works") ||
+    text.includes("strategy:") ||
     text.includes("cta:") ||
     text.includes("angle:") ||
     text.includes("use this platform copy") ||
@@ -261,7 +270,7 @@ function inferProductName(brief: CreativeBrief): string {
   return "this tool";
 }
 
-function buildPlatformFallbackCopy(input: {
+export function buildPlatformFallbackCopy(input: {
   platformId: ShopReelPlatformId;
   brief: CreativeBrief;
 }): PlatformOutput {
@@ -321,7 +330,7 @@ function buildPlatformFallbackCopy(input: {
   };
 }
 
-function forceUsablePlatformCopy(input: {
+export function forceUsablePlatformCopy(input: {
   platformId: ShopReelPlatformId;
   output: PlatformOutput;
   brief: CreativeBrief;
@@ -396,7 +405,7 @@ function ensureDistinctPlatformTone(input: {
   };
 }
 
-function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platformIds: ShopReelPlatformId[], originalPrompt: string): GeneratedDraftPayload {
+export function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platformIds: ShopReelPlatformId[], originalPrompt: string): GeneratedDraftPayload {
   const record = asRecord(value);
   const fallbackHook = brief.alternateHooks[0] ?? "Turn proof into confidence.";
   const fallbackCta = brief.ctaGoal || "Learn more.";
@@ -430,14 +439,25 @@ function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platfor
     });
   }
 
+  const instagramOutput = platformOutputs.instagram_reels;
+  const baseCaption = instagramOutput?.caption || fallbackCaption;
+  const baseHook = instagramOutput?.hook || fallbackHook;
+  const baseScript = instagramOutput
+    ? [instagramOutput.hook, instagramOutput.body, instagramOutput.cta].filter(Boolean).join("\n\n")
+    : `${brief.primaryValueProp}\n\n${fallbackCta}`;
+
   return {
     title: asString(record.title, brief.productName),
     hook: asString(record.hook, fallbackHook),
     summary: asString(record.summary, brief.positioningSummary),
     cta: asString(record.cta, fallbackCta),
     caption: asString(record.caption, fallbackCaption),
-    scriptText: asString(record.scriptText, brief.positioningSummary),
-    voiceoverText: asString(record.voiceoverText, brief.positioningSummary),
+    scriptText: looksLikeStrategyNotes(asString(record.scriptText, ""))
+      ? baseScript
+      : asString(record.scriptText, baseScript),
+    voiceoverText: looksLikeStrategyNotes(asString(record.voiceoverText, ""))
+      ? ""
+      : asString(record.voiceoverText, ""),
     platformOutputs,
     alternateHooks: asStringArray(record.alternateHooks).length > 0
       ? asStringArray(record.alternateHooks)
@@ -494,6 +514,17 @@ async function generateDraftFromBrief(input: {
     parsed.caption = `${input.brief.positioningSummary}\n\n${input.brief.ctaGoal}`.trim();
   }
 
+  if (looksLikeStrategyNotes(parsed.scriptText) || similarity(parsed.scriptText, input.idea) > 0.6) {
+    const instagram = parsed.platformOutputs.instagram_reels;
+    parsed.scriptText = instagram
+      ? [instagram.hook, instagram.body, instagram.cta].filter(Boolean).join("\n\n")
+      : `${input.brief.primaryValueProp}\n\n${input.brief.ctaGoal}`.trim();
+  }
+
+  if (looksLikeStrategyNotes(parsed.voiceoverText) || similarity(parsed.voiceoverText, input.idea) > 0.6) {
+    parsed.voiceoverText = "";
+  }
+
   const instagram = parsed.platformOutputs.instagram_reels;
   const facebook = parsed.platformOutputs.facebook_reels;
   if (
@@ -542,6 +573,17 @@ async function generateDraftFromBrief(input: {
           hashtags: finalSocialCopy.facebook.hashtags,
         },
       });
+    }
+  }
+
+  const instagramPrimary = parsed.platformOutputs.instagram_reels;
+  if (instagramPrimary) {
+    parsed.caption = [instagramPrimary.hook, instagramPrimary.body, instagramPrimary.cta, instagramPrimary.hashtags.join(" ")]
+      .filter(Boolean)
+      .join("\n\n");
+    parsed.hook = instagramPrimary.hook;
+    if (!parsed.scriptText.trim()) {
+      parsed.scriptText = [instagramPrimary.hook, instagramPrimary.body, instagramPrimary.cta].filter(Boolean).join("\n\n");
     }
   }
 
