@@ -11,6 +11,9 @@ type Plan = {
   description: string;
   monthlyPrice: number;
   generationLimit: number | null;
+  fairUseLabel: string;
+  includedFeatures: string[];
+  gatedFeatures: string[];
   badge: string | null;
   stripeConfigured: boolean;
 };
@@ -27,15 +30,7 @@ type BillingStatus = {
     limit?: number | null;
     remaining?: number | null;
   } | null;
-  entitlement: {
-    status: string;
-    canPreview: boolean;
-    canExport: boolean;
-    canRender: boolean;
-    canPublish: boolean;
-    needsCheckout: boolean;
-    message: string;
-  };
+  entitlement: { status: string; message: string };
 };
 
 const PLAN_ORDER = ["starter", "growth", "unlimited"] as const;
@@ -54,16 +49,17 @@ export default function BillingPageClient() {
   const [error, setError] = useState<string | null>(null);
 
   const orderedPlans = useMemo(
-    () =>
-      [...plans].sort(
-        (a, b) => PLAN_ORDER.indexOf(a.key) - PLAN_ORDER.indexOf(b.key),
-      ),
+    () => [...plans].sort((a, b) => PLAN_ORDER.indexOf(a.key) - PLAN_ORDER.indexOf(b.key)),
     [plans],
+  );
+
+  const currentPlanConfig = useMemo(
+    () => orderedPlans.find((plan) => plan.key === status?.subscription?.plan),
+    [orderedPlans, status?.subscription?.plan],
   );
 
   async function loadBilling() {
     setError(null);
-
     const [plansRes, statusRes] = await Promise.all([
       fetch("/api/billing/plans", { cache: "no-store" }),
       fetch("/api/billing/status", { cache: "no-store" }),
@@ -80,140 +76,58 @@ export default function BillingPageClient() {
   }
 
   useEffect(() => {
-    void loadBilling().catch((err) => {
-      setError(err instanceof Error ? err.message : "Failed to load billing.");
-    });
+    void loadBilling().catch((err) => setError(err instanceof Error ? err.message : "Failed to load billing."));
   }, []);
 
   async function startCheckout(plan: Plan["key"]) {
-    try {
-      setError(null);
-      setLoadingPlan(plan);
-
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-
+    try { setError(null); setLoadingPlan(plan);
+      const res = await fetch("/api/billing/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ plan }) });
       const json = (await res.json()) as { ok?: boolean; url?: string; error?: string };
       if (!res.ok || !json.ok || !json.url) throw new Error(json.error ?? "Failed to start checkout");
-
       window.location.href = json.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start checkout.");
-    } finally {
-      setLoadingPlan(null);
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : "Failed to start checkout."); }
+    finally { setLoadingPlan(null); }
   }
 
   async function openPortal() {
-    try {
-      setError(null);
-      setPortalLoading(true);
-
+    try { setError(null); setPortalLoading(true);
       const res = await fetch("/api/billing/portal", { method: "POST" });
       const json = (await res.json()) as { ok?: boolean; url?: string; error?: string };
       if (!res.ok || !json.ok || !json.url) throw new Error(json.error ?? "Failed to open billing portal");
-
       window.location.href = json.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to open billing portal.");
-    } finally {
-      setPortalLoading(false);
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : "Failed to open billing portal."); }
+    finally { setPortalLoading(false); }
   }
 
-  const currentPlan = status?.subscription?.plan ?? null;
-  const subscriptionStatus = status?.subscription?.status ?? "none";
+  const usageUsed = status?.usage?.used ?? 0;
+  const usageText = currentPlanConfig?.generationLimit === null ? `${usageUsed} used · fair use` : `${usageUsed} / ${status?.usage?.limit ?? currentPlanConfig?.generationLimit ?? 0}`;
 
-  return (
-    <div className="space-y-5">
-      {error ? (
-        <div className="rounded-2xl border border-rose-300/30 bg-rose-500/10 p-4 text-sm text-rose-100">
-          {error}
-        </div>
-      ) : null}
-
-      <GlassCard label="Billing status" title="Your ShopReel access" strong>
-        <div className="grid gap-3 md:grid-cols-4">
-          <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-            <div className="text-xs uppercase tracking-[0.16em] text-white/45">Status</div>
-            <div className="mt-2 text-lg font-semibold text-white">{subscriptionStatus}</div>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-            <div className="text-xs uppercase tracking-[0.16em] text-white/45">Plan</div>
-            <div className="mt-2 text-lg font-semibold text-white">{currentPlan ?? "Preview"}</div>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-            <div className="text-xs uppercase tracking-[0.16em] text-white/45">Period ends</div>
-            <div className="mt-2 text-lg font-semibold text-white">{formatPeriod(status?.subscription?.period_end)}</div>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-            <div className="text-xs uppercase tracking-[0.16em] text-white/45">Generation usage</div>
-            <div className="mt-2 text-lg font-semibold text-white">
-              {status?.usage?.used ?? 0}
-              {typeof status?.usage?.limit === "number" ? ` / ${status.usage.limit}` : ""}
-            </div>
-          </div>
-        </div>
-
-        <p className="mt-4 text-sm text-white/70">
-          {status?.entitlement.message ?? "Load billing status to see current access."}
-        </p>
-
-        {status?.subscription ? (
-          <div className="mt-4">
-            <GlassButton variant="ghost" onClick={openPortal} disabled={portalLoading}>
-              {portalLoading ? "Opening..." : "Manage billing"}
-            </GlassButton>
-          </div>
-        ) : null}
-      </GlassCard>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        {orderedPlans.map((plan) => {
-          const active = currentPlan === plan.key;
-          const highlighted = plan.key === "growth";
-          const isLoading = loadingPlan === plan.key;
-
-          return (
-            <GlassCard
-              key={plan.key}
-              label={plan.name}
-              title={`$${plan.monthlyPrice}/mo`}
-              description={plan.description}
-              strong={highlighted}
-            >
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {plan.badge ? <GlassBadge tone="copper">{plan.badge}</GlassBadge> : null}
-                  {active ? <GlassBadge tone="default">Current plan</GlassBadge> : null}
-                  {!plan.stripeConfigured ? <GlassBadge tone="muted">Missing Stripe price</GlassBadge> : null}
-                </div>
-
-                <div className="space-y-2 text-sm text-white/78">
-                  <div>
-                    {typeof plan.generationLimit === "number"
-                      ? `${plan.generationLimit} generations / month`
-                      : "Unlimited generations"}
-                  </div>
-                  <div>Ideas, create, review, and manual package flow</div>
-                  <div>Premium exports/video/publishing access</div>
-                  <div>Performance learning as usage data grows</div>
-                </div>
-
-                <GlassButton
-                  onClick={() => void startCheckout(plan.key)}
-                  disabled={Boolean(loadingPlan) || active || !plan.stripeConfigured}
-                >
-                  {active ? "Current plan" : isLoading ? "Redirecting..." : `Start ${plan.name}`}
-                </GlassButton>
-              </div>
-            </GlassCard>
-          );
-        })}
+  return <div className="space-y-5">{/* trimmed for brevity */}
+    {error ? <div className="rounded-2xl border border-rose-300/30 bg-rose-500/10 p-4 text-sm text-rose-100">{error}</div> : null}
+    <GlassCard label="Billing status" title="Your ShopReel access" strong>
+      <div className="grid gap-3 md:grid-cols-4">
+        <div className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="text-xs uppercase tracking-[0.16em] text-white/45">Status</div><div className="mt-2 text-lg font-semibold text-white">{status?.subscription?.status ?? "none"}</div></div>
+        <div className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="text-xs uppercase tracking-[0.16em] text-white/45">Plan</div><div className="mt-2 text-lg font-semibold text-white">{status?.subscription?.plan ?? "Preview"}</div></div>
+        <div className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="text-xs uppercase tracking-[0.16em] text-white/45">Period ends</div><div className="mt-2 text-lg font-semibold text-white">{formatPeriod(status?.subscription?.period_end)}</div></div>
+        <div className="rounded-2xl border border-white/10 bg-black/25 p-3"><div className="text-xs uppercase tracking-[0.16em] text-white/45">Generation usage</div><div className="mt-2 text-lg font-semibold text-white">{usageText}</div></div>
       </div>
-    </div>
-  );
+      {currentPlanConfig ? <p className="mt-3 text-sm text-white/70">{currentPlanConfig.fairUseLabel}</p> : null}
+      <p className="mt-2 text-sm text-white/70">{status?.entitlement.message ?? "Load billing status to see current access."}</p>
+      {status?.subscription ? <div className="mt-4"><GlassButton variant="ghost" onClick={openPortal} disabled={portalLoading}>{portalLoading ? "Opening..." : "Manage billing"}</GlassButton></div> : null}
+    </GlassCard>
+
+    <div className="grid gap-4 lg:grid-cols-3">{orderedPlans.map((plan) => {
+      const active = status?.subscription?.plan === plan.key;
+      const highlighted = plan.key === "growth";
+      return <GlassCard key={plan.key} label={plan.name} title={`$${plan.monthlyPrice}/mo`} description={plan.description} strong={highlighted}>
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">{plan.badge ? <GlassBadge tone="copper">{plan.badge}</GlassBadge> : null}{active ? <GlassBadge tone="default">Current plan</GlassBadge> : null}</div>
+          <div className="text-sm text-white/78">{plan.fairUseLabel}</div>
+          <div className="space-y-1 text-sm text-white/80">{plan.includedFeatures.map((f) => <div key={`${plan.key}-${f}`}>• {f}</div>)}</div>
+          <div className="space-y-1 text-sm text-white/60">{plan.gatedFeatures.map((f) => <div key={`${plan.key}-g-${f}`}>Gated: {f}</div>)}</div>
+          <GlassButton onClick={() => void startCheckout(plan.key)} disabled={Boolean(loadingPlan) || active || !plan.stripeConfigured}>{active ? "Current plan" : loadingPlan === plan.key ? "Redirecting..." : `Start ${plan.name}`}</GlassButton>
+        </div>
+      </GlassCard>;
+    })}</div>
+  </div>;
 }

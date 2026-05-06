@@ -51,7 +51,7 @@ export async function upsertSubscriptionFromStripe(input: {
         stripe_price_id: input.stripePriceId,
         plan: plan?.key ?? "starter",
         status: input.status,
-        generation_limit: plan?.generationLimit ?? 30,
+        generation_limit: plan?.generationLimit ?? 100,
         period_start: input.periodStart ? new Date(input.periodStart * 1000).toISOString() : null,
         period_end: input.periodEnd ? new Date(input.periodEnd * 1000).toISOString() : null,
         cancel_at_period_end: input.cancelAtPeriodEnd,
