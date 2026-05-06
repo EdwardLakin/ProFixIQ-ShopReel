@@ -45,8 +45,10 @@ export default function PricingSection() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-6 py-24">
-      <div className="mx-auto max-w-3xl text-center">
+    <section id="pricing" className="relative mx-auto w-full max-w-7xl px-6 py-24">
+      <div className="pointer-events-none absolute inset-x-0 top-8 mx-auto h-72 max-w-4xl rounded-full bg-cyan-400/10 blur-3xl" />
+
+      <div className="relative mx-auto max-w-3xl text-center">
         <div
           className={cx(
             "text-sm uppercase tracking-[0.28em]",
@@ -55,21 +57,24 @@ export default function PricingSection() {
         >
           Pricing
         </div>
+
         <h2
           className={cx(
             "mt-4 text-4xl font-semibold md:text-5xl",
             glassTheme.text.primary,
           )}
         >
-          Fair-use tiers with clear premium gates
+          Plans built for every content rhythm.
         </h2>
+
         <p
           className={cx(
             "mt-4 text-base leading-7 md:text-lg",
             glassTheme.text.secondary,
           )}
         >
-          Choose the content engine tier that matches your weekly volume, workflow depth, and automation needs.
+          Every plan includes ShopReel’s core AI creation flow. Scale up when you need
+          more output, video creation, asset learning, and automation.
         </p>
       </div>
 
@@ -79,7 +84,7 @@ export default function PricingSection() {
         </div>
       ) : null}
 
-      <div className="mt-12 grid gap-5 lg:grid-cols-3">
+      <div className="relative mt-12 grid gap-5 lg:grid-cols-3">
         {PLAN_ORDER.map((planKey) => {
           const plan = BILLING_PLANS[planKey];
           const highlight = plan.key === "growth";
@@ -102,7 +107,7 @@ export default function PricingSection() {
                 </GlassButton>
               }
             >
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex flex-wrap gap-2">
                   {plan.badge ? (
                     <GlassBadge tone="copper">{plan.badge}</GlassBadge>
@@ -110,15 +115,28 @@ export default function PricingSection() {
                   <GlassBadge tone="default">{plan.fairUseLabel}</GlassBadge>
                 </div>
 
-                <div className={cx("space-y-2 text-sm", glassTheme.text.primary)}>
-                  {plan.includedFeatures.map((feature) => (
-                    <div key={`${plan.key}-${feature}`}>• {feature}</div>
-                  ))}
+                <p className="text-sm text-white/65">{plan.bestFor}</p>
+
+                <div>
+                  <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/45">
+                    Included
+                  </div>
+                  <div className={cx("space-y-2 text-sm", glassTheme.text.primary)}>
+                    {plan.includedFeatures.map((feature) => (
+                      <div key={feature}>✓ {feature}</div>
+                    ))}
+                  </div>
                 </div>
-                <div className={cx("space-y-2 text-sm", glassTheme.text.secondary)}>
-                  {plan.gatedFeatures.map((feature) => (
-                    <div key={`${plan.key}-gate-${feature}`}>Gated: {feature}</div>
-                  ))}
+
+                <div>
+                  <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/45">
+                    Scales with
+                  </div>
+                  <div className="space-y-2 text-sm text-white/65">
+                    {plan.premiumFeatures.map((feature) => (
+                      <div key={feature}>→ {feature}</div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </GlassCard>

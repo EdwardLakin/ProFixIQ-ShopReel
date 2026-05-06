@@ -3,29 +3,29 @@ import PricingSection from "@/features/landing/components/PricingSection";
 
 const featureCards = [
   {
-    title: "Turn real business activity into content",
+    title: "Start before the blank page",
     body:
-      "Transform photos, videos, jobs, inspections, team activity, customer moments, and real-world work into content opportunities automatically.",
+      "Ask ShopReel what to create, get angles and hooks, then send the best idea straight into the creation flow.",
   },
   {
-    title: "Generate campaigns, not just posts",
+    title: "Create without learning an editor",
     body:
-      "Start with one idea, one offer, or one story and let ShopReel split it into multiple angles, hooks, videos, captions, and platform-ready assets.",
+      "Upload media if you have it, or start with only a prompt. ShopReel handles platform copy, captions, structure, and review handoff.",
   },
   {
-    title: "Run the full marketing loop",
+    title: "Improve with plain language",
     body:
-      "Create, review, publish, track performance, learn what works, and feed winning angles back into future campaigns from one system.",
+      "Ask for changes like less salesy, more founder-led, shorter for Instagram, or more trust-building for Facebook.",
   },
 ];
 
 const audienceCards = [
-  "Automotive and truck repair",
-  "Home services",
-  "Beauty and wellness",
-  "Real estate and property",
-  "Medical and dental",
-  "Local retail and hospitality",
+  "Creators and influencers",
+  "Small businesses",
+  "SaaS founders",
+  "Agencies",
+  "Local service brands",
+  "Connected business workflows",
 ];
 
 const workflowSteps = [
@@ -116,7 +116,7 @@ export default function LandingPage() {
           <div>
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
-                AI content automation for modern businesses
+                AI content engine
               </div>
               <div className="text-xs uppercase tracking-[0.22em] text-white/40">
                 by ProFixIQ
@@ -124,17 +124,14 @@ export default function LandingPage() {
             </div>
 
             <h1 className="max-w-5xl text-5xl font-semibold leading-[1.02] md:text-7xl">
-              Your business is already creating the story.
+              Create content without becoming an editor.
               <span className="block bg-gradient-to-r from-[#ffffff] via-[#b6c4ff] to-[#7dd3fc] bg-clip-text text-transparent">
-                ShopReel turns it into campaigns, content, and growth.
+                Ask for ideas. Upload what you have. Approve what it makes.
               </span>
             </h1>
 
             <p className="mt-6 max-w-3xl text-lg leading-8 text-white/70 md:text-xl">
-              ShopReel is the AI content engine built to convert real work into
-              publish-ready marketing. Generate videos, posts, campaigns, and
-              platform-ready assets from everyday business activity, then track
-              what works and improve automatically over time.
+              ShopReel turns rough ideas, screenshots, product photos, clips, and daily business moments into platform-ready posts, reels, blogs, and campaigns — without making you learn a complicated editor.
             </p>
 
             <div className="mt-10 flex flex-wrap gap-4">
@@ -142,7 +139,7 @@ export default function LandingPage() {
                 href="/signup"
                 className="rounded-2xl bg-white px-6 py-3 font-medium text-black transition hover:scale-[1.02]"
               >
-                Start free
+                Start creating
               </Link>
 
               <Link
@@ -177,9 +174,9 @@ export default function LandingPage() {
               <div className="rounded-[1.5rem] border border-white/10 bg-[#0b1022]/90 p-5">
                 <div className="mb-4 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm text-white/50">Autonomous content engine</div>
+                    <div className="text-sm text-white/50">AI creative operator</div>
                     <div className="text-xl font-semibold text-white">
-                      One workflow. Multiple outputs. Better every cycle.
+                      Ask. Create. Review. Post.
                     </div>
                   </div>
                   <div className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-medium text-emerald-300">
@@ -239,13 +236,10 @@ export default function LandingPage() {
               Built for modern operators
             </div>
             <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">
-              More than a social media tool.
+              Not another editing suite.
             </h2>
             <p className="mt-4 text-white/70">
-              ShopReel is built for businesses that already create value every
-              day and want a system that can turn that activity into consistent,
-              scalable marketing. It is a campaign generator, content engine,
-              and learning loop in one workflow.
+              Most tools start with a blank editor. ShopReel starts with a conversation. Tell it what you want, upload what you have, and let AI handle hooks, captions, platform fit, and the messy middle.
             </p>
           </div>
 

@@ -14,96 +14,157 @@ export type BillingCapability =
   | "automation_loop"
   | "performance_learning";
 
-export type BillingPlanConfig = {
+export type PlanConfig = {
   key: BillingPlan;
   name: string;
   monthlyPrice: number;
-  description: string;
-  fairUseLabel: string;
+  generationLimit: number | null;
   softMonthlyLimit: number | null;
   hardMonthlyLimit: number | null;
-  generationLimit: number | null;
-  includedFeatures: string[];
-  gatedFeatures: string[];
-  capabilities: BillingCapability[];
+  fairUseLabel: string;
+  description: string;
+  bestFor: string;
   badge?: string;
   stripeEnvKey: string;
+  defaultStripePriceId: string;
+  includedFeatures: string[];
+  premiumFeatures: string[];
+  capabilities: BillingCapability[];
 };
 
-export const BILLING_PLANS: Record<BillingPlan, BillingPlanConfig> = {
+function cleanStripePriceId(value: string | undefined, fallback: string): string {
+  const raw = (value ?? fallback).trim();
+  return raw.split(/[=\s]/)[0]?.trim() || fallback;
+}
+
+export const BILLING_PLANS: Record<BillingPlan, PlanConfig> = {
   starter: {
     key: "starter",
     name: "Starter",
     monthlyPrice: 49,
-    description:
-      "Best for solo creators and small businesses getting consistent with content.",
-    fairUseLabel: "Up to 100 AI generations/month",
+    generationLimit: 100,
     softMonthlyLimit: 100,
     hardMonthlyLimit: 100,
-    generationLimit: 100,
-    includedFeatures: ["Ideas Chat", "Manual Create", "Review + refine", "Copy/download social packages", "Basic Library"],
-    gatedFeatures: ["100 generations/month", "limited video creation", "basic asset analysis"],
-    capabilities: ["ideas_chat", "manual_create", "review_refine", "social_package_download", "asset_library"],
+    fairUseLabel: "Up to 100 AI generations/month",
+    description: "For solo creators and small businesses getting consistent with content.",
+    bestFor: "Best for getting started.",
     stripeEnvKey: "STRIPE_PRICE_STARTER",
+    defaultStripePriceId: "price_1TBmKlITYwJQigUIwOS6WV1m",
+    includedFeatures: [
+      "Ideas Chat",
+      "Manual Create",
+      "Review + Refine",
+      "Copy/download packages",
+      "Basic Library",
+    ],
+    premiumFeatures: [
+      "100 generations/month",
+      "Starter video access",
+      "Basic asset analysis",
+    ],
+    capabilities: [
+      "ideas_chat",
+      "manual_create",
+      "review_refine",
+      "social_package_download",
+      "asset_library",
+    ],
   },
   growth: {
     key: "growth",
     name: "Growth",
     monthlyPrice: 149,
-    description:
-      "Best for businesses creating content weekly across multiple channels.",
-    fairUseLabel: "Up to 500 AI generations/month",
+    generationLimit: 500,
     softMonthlyLimit: 500,
     hardMonthlyLimit: 500,
-    generationLimit: 500,
+    fairUseLabel: "Up to 500 AI generations/month",
+    description: "For businesses creating content every week across multiple channels.",
+    bestFor: "Best for consistent content production.",
+    badge: "Most popular",
+    stripeEnvKey: "STRIPE_PRICE_GROWTH",
+    defaultStripePriceId: "price_1TBmLPITYwJQigUIoJ40Bn3L",
     includedFeatures: [
       "Everything in Starter",
       "AI Video Builder",
       "Asset analysis",
       "Campaign planning",
-      "More output volume",
-      "Performance learning as data grows",
+      "Performance learning",
     ],
-    gatedFeatures: ["500 generations/month", "higher video usage", "advanced library analysis"],
-    capabilities: ["ideas_chat", "manual_create", "review_refine", "social_package_download", "asset_library", "asset_ai_analysis", "ai_video_builder", "campaign_planning", "calendar_planning", "publishing", "performance_learning"],
-    badge: "Most popular",
-    stripeEnvKey: "STRIPE_PRICE_GROWTH",
+    premiumFeatures: [
+      "500 generations/month",
+      "Higher video usage",
+      "Advanced library analysis",
+    ],
+    capabilities: [
+      "ideas_chat",
+      "manual_create",
+      "review_refine",
+      "social_package_download",
+      "asset_library",
+      "asset_ai_analysis",
+      "ai_video_builder",
+      "campaign_planning",
+      "performance_learning",
+    ],
   },
   unlimited: {
     key: "unlimited",
     name: "Unlimited",
     monthlyPrice: 399,
-    description: "Best for teams and always-on content operations.",
-    fairUseLabel:
-      "Unlimited standard generations with fair-use safeguards for abnormal automation, spam, or abuse.",
+    generationLimit: null,
     softMonthlyLimit: null,
     hardMonthlyLimit: null,
-    generationLimit: null,
+    fairUseLabel: "Unlimited standard creation",
+    description: "For teams and always-on content operations.",
+    bestFor: "Best for teams running content at scale.",
+    stripeEnvKey: "STRIPE_PRICE_UNLIMITED",
+    defaultStripePriceId: "price_1TBmM6ITYwJQigUILa9mEFQM",
     includedFeatures: [
       "Everything in Growth",
-      "highest standard generation volume",
-      "advanced automation workflows",
-      "recurring content loops",
-      "priority creation workflows",
-      "team-scale content engine",
+      "Advanced automation workflows",
+      "Recurring content loops",
+      "Priority creation workflows",
+      "Team-scale content engine",
     ],
-    gatedFeatures: ["Unlimited fair use", "abuse safeguards for abnormal automation/spam", "priority policy controls"],
-    capabilities: ["ideas_chat", "manual_create", "review_refine", "social_package_download", "asset_library", "asset_ai_analysis", "ai_video_builder", "campaign_planning", "calendar_planning", "publishing", "automation_loop", "performance_learning"],
-    stripeEnvKey: "STRIPE_PRICE_UNLIMITED",
+    premiumFeatures: [
+      "Unlimited standard generation",
+      "Fair-use safeguards for unusually high-volume automation",
+      "Priority workflow access",
+    ],
+    capabilities: [
+      "ideas_chat",
+      "manual_create",
+      "review_refine",
+      "social_package_download",
+      "asset_library",
+      "asset_ai_analysis",
+      "ai_video_builder",
+      "campaign_planning",
+      "calendar_planning",
+      "publishing",
+      "automation_loop",
+      "performance_learning",
+    ],
   },
 };
 
-export function getPlanConfig(plan: BillingPlan): BillingPlanConfig {
+export function getPlanConfig(plan: BillingPlan): PlanConfig {
   return BILLING_PLANS[plan];
+}
+
+export function getStripePriceIdForPlan(plan: BillingPlan): string {
+  const config = BILLING_PLANS[plan];
+  return cleanStripePriceId(process.env[config.stripeEnvKey], config.defaultStripePriceId);
 }
 
 export function getPlanByPriceId(
   priceId: string | null | undefined,
-): BillingPlanConfig | null {
+): PlanConfig | null {
   if (!priceId) return null;
+  const cleaned = cleanStripePriceId(priceId, priceId);
 
   for (const plan of Object.values(BILLING_PLANS)) {
-    if (process.env[plan.stripeEnvKey] === priceId) {
+    if (getStripePriceIdForPlan(plan.key) === cleaned || plan.defaultStripePriceId === cleaned) {
       return plan;
     }
   }
