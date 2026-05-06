@@ -48,6 +48,22 @@ type GeneratedDraftPayload = {
   alternateHooks: string[];
 };
 
+type FinalSocialCopyPayload = {
+  instagram: {
+    hook: string;
+    caption: string;
+    cta: string;
+    hashtags: string[];
+  };
+  facebook: {
+    hook: string;
+    body: string;
+    cta: string;
+    hashtags: string[];
+  };
+  alternateHooks: string[];
+};
+
 const PLATFORM_ID_SET = new Set<ShopReelPlatformId>(
   SHOPREEL_PLATFORM_PRESETS.map((platform) => platform.id),
 );
@@ -159,8 +175,84 @@ function looksLikeStrategyNotes(value: string): boolean {
     text.includes("encourage technicians") ||
     text.includes("generate a") ||
     text.includes("create a facebook") ||
-    text.includes("create an instagram")
+    text.includes("create an instagram") ||
+    text.includes("the launch content") ||
+    text.includes("the focus is") ||
+    text.includes("should be positioned") ||
+    text.includes("reduce tension") ||
+    text.includes("not frame shops") ||
+    text.includes("use examples like") ||
+    text.includes("encourage viewers")
   );
+}
+
+function normalizeFinalSocialCopyPayload(value: unknown, brief: CreativeBrief): FinalSocialCopyPayload {
+  const record = asRecord(value);
+  const instagram = asRecord(record.instagram);
+  const facebook = asRecord(record.facebook);
+  return {
+    instagram: {
+      hook: asString(instagram.hook, "Stop losing proof you already earned."),
+      caption: asString(instagram.caption, brief.primaryValueProp),
+      cta: asString(instagram.cta, brief.ctaGoal),
+      hashtags: asStringArray(instagram.hashtags),
+    },
+    facebook: {
+      hook: asString(facebook.hook, "When records are scattered, payday gets harder."),
+      body: asString(facebook.body, brief.positioningSummary),
+      cta: asString(facebook.cta, brief.ctaGoal),
+      hashtags: asStringArray(facebook.hashtags),
+    },
+    alternateHooks: asStringArray(record.alternateHooks),
+  };
+}
+
+async function generateFinalSocialCopy(brief: CreativeBrief, idea: string): Promise<FinalSocialCopyPayload | null> {
+  const response = await openai.responses.create({
+    model: SHOPREEL_AI_MODELS.text,
+    input: [
+      {
+        role: "system",
+        content: [
+          {
+            type: "input_text",
+            text:
+              "You are writing the final post copy the user will paste into Instagram/Facebook. " +
+              "Do not include strategy, reasoning, labels, campaign notes, or meta commentary. " +
+              "Do not output tokens like CTA:, Hook:, caption:, why this works, campaign should, or position the content. " +
+              "Output only final copy fields.",
+          },
+        ],
+      },
+      {
+        role: "user",
+        content: [
+          { type: "input_text", text: `Brief: ${JSON.stringify(brief)}` },
+          { type: "input_text", text: `Idea context: ${idea}` },
+          {
+            type: "input_text",
+            text:
+              "Return one valid JSON object only with shape: {instagram:{hook,caption,cta,hashtags},facebook:{hook,body,cta,hashtags},alternateHooks:string[]}",
+          },
+        ],
+      },
+    ],
+    text: { format: { type: "json_object" } },
+  });
+
+  try {
+    const parsed = normalizeFinalSocialCopyPayload(JSON.parse(response.output_text || "{}"), brief);
+    const combined = [
+      parsed.instagram.hook,
+      parsed.instagram.caption,
+      parsed.facebook.hook,
+      parsed.facebook.body,
+    ].join(" ");
+    if (looksLikeStrategyNotes(combined) || similarity(combined, idea) > 0.6) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 function inferProductName(brief: CreativeBrief): string {
@@ -417,6 +509,40 @@ async function generateDraftFromBrief(input: {
       body: `${facebook.body}\n\nFor teams and technicians, the value is simple: clearer records, fewer payday surprises, and a practical way to talk through missing pay with evidence.`,
       hashtags: [],
     };
+  }
+
+  const finalSocialCopy = await generateFinalSocialCopy(input.brief, input.idea);
+  if (finalSocialCopy) {
+    parsed.alternateHooks = finalSocialCopy.alternateHooks.length > 0 ? finalSocialCopy.alternateHooks : parsed.alternateHooks;
+    if (input.platformIds.includes("instagram_reels")) {
+      parsed.platformOutputs.instagram_reels = forceUsablePlatformCopy({
+        platformId: "instagram_reels",
+        brief: input.brief,
+        originalPrompt: input.idea,
+        output: {
+          hook: finalSocialCopy.instagram.hook,
+          body: finalSocialCopy.instagram.caption,
+          cta: finalSocialCopy.instagram.cta,
+          caption: [finalSocialCopy.instagram.hook, finalSocialCopy.instagram.caption, finalSocialCopy.instagram.cta].join("\n\n"),
+          hashtags: finalSocialCopy.instagram.hashtags,
+        },
+      });
+    }
+
+    if (input.platformIds.includes("facebook_reels")) {
+      parsed.platformOutputs.facebook_reels = forceUsablePlatformCopy({
+        platformId: "facebook_reels",
+        brief: input.brief,
+        originalPrompt: input.idea,
+        output: {
+          hook: finalSocialCopy.facebook.hook,
+          body: finalSocialCopy.facebook.body,
+          cta: finalSocialCopy.facebook.cta,
+          caption: [finalSocialCopy.facebook.hook, finalSocialCopy.facebook.body, finalSocialCopy.facebook.cta].join("\n\n"),
+          hashtags: finalSocialCopy.facebook.hashtags,
+        },
+      });
+    }
   }
 
   const targetChannels =
