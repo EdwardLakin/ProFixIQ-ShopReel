@@ -38,10 +38,16 @@ export default function OnboardingPage() {
 
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
-              href="/shopreel/settings"
+              href="/shopreel/billing"
               className="rounded-2xl bg-white px-6 py-3 font-medium text-black"
             >
-              Go to settings
+              Start trial / choose plan
+            </Link>
+            <Link
+              href="/shopreel/settings"
+              className="rounded-2xl border border-white/15 bg-white/5 px-6 py-3 font-medium text-white"
+            >
+              Set brand voice
             </Link>
             <Link
               href="/shopreel"

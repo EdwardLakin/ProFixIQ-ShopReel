@@ -25,6 +25,7 @@ const SECONDARY_ITEMS: SidebarItem[] = [
   { label: "Downloads", compactLabel: "DL", href: "/shopreel/exports", icon: "⇩" },
   { label: "Ideas", compactLabel: "ID", href: "/shopreel/ideas", icon: "◈" },
   { label: "Editor", compactLabel: "ED", href: "/shopreel/editor", icon: "✎" },
+  { label: "Billing", compactLabel: "BL", href: "/shopreel/billing", icon: "◍" },
 ];
 
 function normalizePathname(pathname: string): string {
