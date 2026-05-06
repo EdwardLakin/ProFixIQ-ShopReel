@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       content_analytics_events: {
@@ -1510,6 +1485,92 @@ export type Database = {
           },
         ]
       }
+      shopreel_export_packages: {
+        Row: {
+          caption_text: string | null
+          checklist: Json
+          content_piece_id: string | null
+          created_at: string
+          created_by: string | null
+          exported_at: string | null
+          generation_id: string | null
+          hashtags: Json
+          id: string
+          mp4_path: string | null
+          platform_outputs: Json
+          render_job_id: string | null
+          shop_id: string
+          status: string
+          thumbnail_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption_text?: string | null
+          checklist?: Json
+          content_piece_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          exported_at?: string | null
+          generation_id?: string | null
+          hashtags?: Json
+          id?: string
+          mp4_path?: string | null
+          platform_outputs?: Json
+          render_job_id?: string | null
+          shop_id: string
+          status?: string
+          thumbnail_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption_text?: string | null
+          checklist?: Json
+          content_piece_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          exported_at?: string | null
+          generation_id?: string | null
+          hashtags?: Json
+          id?: string
+          mp4_path?: string | null
+          platform_outputs?: Json
+          render_job_id?: string | null
+          shop_id?: string
+          status?: string
+          thumbnail_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_export_packages_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_export_packages_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_export_packages_generation_id_fkey"
+            columns: ["generation_id"]
+            isOneToOne: false
+            referencedRelation: "shopreel_story_generations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopreel_export_packages_render_job_id_fkey"
+            columns: ["render_job_id"]
+            isOneToOne: false
+            referencedRelation: "reel_render_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shopreel_manual_asset_files: {
         Row: {
           asset_id: string
@@ -1534,7 +1595,7 @@ export type Database = {
           id?: string
           mime_type?: string | null
           public_url?: string | null
-          shop_id: string | null
+          shop_id?: string | null
           sort_order?: number
           storage_path: string
           updated_at?: string
@@ -1565,6 +1626,11 @@ export type Database = {
       }
       shopreel_manual_assets: {
         Row: {
+          ai_analysis: Json
+          ai_summary: string | null
+          ai_tags: string[]
+          ai_use_cases: string[]
+          analyzed_at: string | null
           asset_type: string
           content_goal: string | null
           created_at: string
@@ -1580,6 +1646,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_analysis?: Json
+          ai_summary?: string | null
+          ai_tags?: string[]
+          ai_use_cases?: string[]
+          analyzed_at?: string | null
           asset_type?: string
           content_goal?: string | null
           created_at?: string
@@ -1589,12 +1660,17 @@ export type Database = {
           id?: string
           note?: string | null
           primary_file_url?: string | null
-          shop_id: string | null
+          shop_id?: string | null
           status?: string
           title?: string | null
           updated_at?: string
         }
         Update: {
+          ai_analysis?: Json
+          ai_summary?: string | null
+          ai_tags?: string[]
+          ai_use_cases?: string[]
+          analyzed_at?: string | null
           asset_type?: string
           content_goal?: string | null
           created_at?: string
@@ -1901,63 +1977,6 @@ export type Database = {
           },
         ]
       }
-      shopreel_export_packages: {
-        Row: {
-          caption_text: string | null
-          checklist: Json
-          content_piece_id: string | null
-          created_at: string
-          created_by: string | null
-          exported_at: string | null
-          generation_id: string | null
-          hashtags: Json
-          id: string
-          mp4_path: string | null
-          platform_outputs: Json
-          render_job_id: string | null
-          shop_id: string
-          status: string
-          thumbnail_path: string | null
-          updated_at: string
-        }
-        Insert: {
-          caption_text?: string | null
-          checklist?: Json
-          content_piece_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          exported_at?: string | null
-          generation_id?: string | null
-          hashtags?: Json
-          id?: string
-          mp4_path?: string | null
-          platform_outputs?: Json
-          render_job_id?: string | null
-          shop_id: string
-          status?: string
-          thumbnail_path?: string | null
-          updated_at?: string
-        }
-        Update: {
-          caption_text?: string | null
-          checklist?: Json
-          content_piece_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          exported_at?: string | null
-          generation_id?: string | null
-          hashtags?: Json
-          id?: string
-          mp4_path?: string | null
-          platform_outputs?: Json
-          render_job_id?: string | null
-          shop_id?: string
-          status?: string
-          thumbnail_path?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       shopreel_story_generations: {
         Row: {
           content_piece_id: string | null
@@ -1967,6 +1986,10 @@ export type Database = {
           id: string
           reel_plan_id: string | null
           render_job_id: string | null
+          review_approval_state: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           shop_id: string | null
           status: string
           story_draft: Json
@@ -1981,7 +2004,11 @@ export type Database = {
           id?: string
           reel_plan_id?: string | null
           render_job_id?: string | null
-          shop_id: string | null
+          review_approval_state?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id?: string | null
           status?: string
           story_draft?: Json
           story_source_id: string
@@ -1995,6 +2022,10 @@ export type Database = {
           id?: string
           reel_plan_id?: string | null
           render_job_id?: string | null
+          review_approval_state?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           shop_id?: string | null
           status?: string
           story_draft?: Json
@@ -2191,7 +2222,7 @@ export type Database = {
           origin: string
           project_id?: string | null
           project_name?: string | null
-          shop_id: string | null
+          shop_id?: string | null
           source_key?: string | null
           started_at?: string | null
           suppressed?: boolean | null
@@ -2911,9 +2942,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       content_asset_type: [

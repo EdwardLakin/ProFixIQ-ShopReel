@@ -28,6 +28,10 @@ type ManualAsset = {
   duration_seconds: number | null;
   created_at: string;
   updated_at: string;
+  ai_summary?: string | null;
+  ai_tags?: string[] | null;
+  ai_use_cases?: string[] | null;
+  analyzed_at?: string | null;
   files?: ManualAssetFile[];
 };
 
@@ -75,6 +79,7 @@ export default function ManualAssetLibraryClient() {
   const [query, setQuery] = useState("");
   const [assetType, setAssetType] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function loadAssets() {
@@ -133,6 +138,28 @@ export default function ManualAssetLibraryClient() {
     setSelectedIds((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     );
+  }
+
+  async function analyzeAsset(assetId: string) {
+    try {
+      setAnalyzingId(assetId);
+      setError(null);
+
+      const res = await fetch(`/api/shopreel/library/manual-assets/${assetId}/analyze`, {
+        method: "POST",
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? "Failed to analyze asset.");
+      }
+
+      await loadAssets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to analyze asset.");
+    } finally {
+      setAnalyzingId(null);
+    }
   }
 
   function saveMultiAssetPrefill() {
@@ -266,6 +293,31 @@ export default function ManualAssetLibraryClient() {
                   </p>
                 ) : null}
 
+                {asset.ai_summary ? (
+                  <div className="mt-3 rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.06] p-3">
+                    <div className="mb-1 text-xs uppercase tracking-[0.16em] text-cyan-100/60">
+                      AI read
+                    </div>
+                    <p className="text-sm leading-6 text-white/75">{asset.ai_summary}</p>
+                    {asset.ai_tags && asset.ai_tags.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {asset.ai_tags.slice(0, 8).map((tag) => (
+                          <span key={tag} className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[11px] text-white/70">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {asset.ai_use_cases && asset.ai_use_cases.length > 0 ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-white/60">
+                        {asset.ai_use_cases.slice(0, 3).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
                   <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
                     Files
@@ -294,6 +346,13 @@ export default function ManualAssetLibraryClient() {
                   >
                     <GlassButton variant="ghost">Create from this</GlassButton>
                   </Link>
+                  <GlassButton
+                    variant="ghost"
+                    onClick={() => void analyzeAsset(asset.id)}
+                    disabled={analyzingId === asset.id}
+                  >
+                    {analyzingId === asset.id ? "Analyzing..." : asset.ai_summary ? "Re-analyze" : "Analyze"}
+                  </GlassButton>
                   {firstFile ? (
                     <GlassBadge tone="muted">{firstFile.mime_type ?? "media"}</GlassBadge>
                   ) : null}

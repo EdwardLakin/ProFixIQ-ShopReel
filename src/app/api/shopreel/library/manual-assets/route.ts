@@ -16,6 +16,10 @@ type ManualAssetRow = {
   duration_seconds: number | null;
   created_at: string;
   updated_at: string;
+  ai_summary?: string | null;
+  ai_tags?: string[] | null;
+  ai_use_cases?: string[] | null;
+  analyzed_at?: string | null;
   files?: Array<{
     id: string;
     file_name: string | null;
@@ -92,7 +96,7 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
-      assets: (data ?? []) as ManualAssetRow[],
+      assets: (data ?? []) as unknown as ManualAssetRow[],
     });
   } catch (error) {
     return NextResponse.json(
