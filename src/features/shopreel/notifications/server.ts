@@ -1,5 +1,5 @@
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { requireUserActionTenantContext } from "@/features/shopreel/server/endpointPolicy";
+import { getShopReelNotificationScope } from "@/features/shopreel/notifications/scope";
 
 type NotificationSeverity = "info" | "success" | "warning" | "error";
 type NotificationStatus = "unread" | "read" | "archived";
@@ -59,16 +59,16 @@ export async function emitShopReelNotificationForShop(input: Omit<EmitShopReelNo
 
 export async function listNotificationsForCurrentUser(limit = 20) {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const userId = authData.user?.id;
-  if (!userId) return { items: [], unreadCount: 0 };
+  const { userId, shopId } = await getShopReelNotificationScope();
 
-  const tenant = await requireUserActionTenantContext();
+  const scopeFilter = shopId
+    ? `user_id.eq.${userId},and(shop_id.eq.${shopId},user_id.is.null)`
+    : `user_id.eq.${userId}`;
 
   const { data, error } = await supabase
     .from("shopreel_notifications")
     .select("*")
-    .or(`user_id.eq.${userId},and(shop_id.eq.${tenant.shopId},user_id.is.null)`)
+    .or(scopeFilter)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -79,19 +79,18 @@ export async function listNotificationsForCurrentUser(limit = 20) {
 
 export async function markNotificationRead(notificationId: string) {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const userId = authData.user?.id;
-  if (!userId) {
-    throw new Error("Authentication required");
-  }
+  const { userId, shopId } = await getShopReelNotificationScope();
 
-  const { data, error } = await supabase
+  const baseQuery = supabase
     .from("shopreel_notifications")
     .update({ status: "read" satisfies NotificationStatus, read_at: new Date().toISOString() })
-    .eq("id", notificationId)
-    .eq("user_id", userId)
-    .select("*")
-    .single();
+    .eq("id", notificationId);
+
+  const scopedQuery = shopId
+    ? baseQuery.or(`user_id.eq.${userId},and(shop_id.eq.${shopId},user_id.is.null)`)
+    : baseQuery.eq("user_id", userId);
+
+  const { data, error } = await scopedQuery.select("*").single();
 
   if (error) throw error;
   return data;
@@ -99,17 +98,18 @@ export async function markNotificationRead(notificationId: string) {
 
 export async function markAllNotificationsRead() {
   const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const userId = authData.user?.id;
-  if (!userId) {
-    throw new Error("Authentication required");
-  }
+  const { userId, shopId } = await getShopReelNotificationScope();
 
-  const { error } = await supabase
+  const baseQuery = supabase
     .from("shopreel_notifications")
     .update({ status: "read" satisfies NotificationStatus, read_at: new Date().toISOString() })
-    .eq("user_id", userId)
     .eq("status", "unread");
+
+  const scopedQuery = shopId
+    ? baseQuery.or(`user_id.eq.${userId},and(shop_id.eq.${shopId},user_id.is.null)`)
+    : baseQuery.eq("user_id", userId);
+
+  const { error } = await scopedQuery;
 
   if (error) throw error;
   return { ok: true };
