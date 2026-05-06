@@ -1,0 +1,2520 @@
+SHOPREEL IDEA / BRAINSTORMING / AI CONVERSATION AUDIT
+Generated: Tue May  5 19:53:04 UTC 2026
+
+============================================================
+1) ROUTES THAT MAY ALREADY SUPPORT IDEAS / AI CONVERSATION
+============================================================
+src/app/api/shopreel/campaigns/[id]/automation-cycle/route.ts
+src/app/api/shopreel/campaigns/[id]/create-all-jobs/route.ts
+src/app/api/shopreel/campaigns/[id]/delete/route.ts
+src/app/api/shopreel/campaigns/[id]/generate/route.ts
+src/app/api/shopreel/campaigns/[id]/learn/route.ts
+src/app/api/shopreel/campaigns/[id]/rollup/route.ts
+src/app/api/shopreel/campaigns/[id]/run-all-jobs/route.ts
+src/app/api/shopreel/campaigns/[id]/sync-processing/route.ts
+src/app/api/shopreel/campaigns/automation-run/route.ts
+src/app/api/shopreel/campaigns/items/[id]/assemble/route.ts
+src/app/api/shopreel/campaigns/items/[id]/create-job/route.ts
+src/app/api/shopreel/campaigns/items/[id]/create-scene-jobs/route.ts
+src/app/api/shopreel/campaigns/items/[id]/creative-profile/route.ts
+src/app/api/shopreel/campaigns/items/[id]/delete/route.ts
+src/app/api/shopreel/campaigns/items/[id]/reset/route.ts
+src/app/api/shopreel/campaigns/items/[id]/run-job/route.ts
+src/app/api/shopreel/campaigns/items/[id]/run-scene-jobs/route.ts
+src/app/api/shopreel/campaigns/items/[id]/sync-scene-jobs/route.ts
+src/app/api/shopreel/campaigns/route.ts
+src/app/api/shopreel/create/from-angle/route.ts
+src/app/api/shopreel/create/from-idea/route.ts
+src/app/api/shopreel/create/from-output/route.ts
+src/app/api/shopreel/create/research-script/route.ts
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts
+src/app/api/shopreel/creator-requests/[id]/route.ts
+src/app/api/shopreel/discovery/route.ts
+src/app/api/shopreel/manual-assets/[id]/generate/route.ts
+src/app/api/shopreel/manual-assets/complete/route.ts
+src/app/api/shopreel/manual-assets/create/route.ts
+src/app/api/shopreel/manual-assets/sign/route.ts
+src/app/api/shopreel/manual/generate/route.ts
+src/app/api/shopreel/media-jobs/[id]/thumbnail/route.ts
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts
+src/app/api/shopreel/opportunities/[id]/generate/route.ts
+src/app/api/shopreel/opportunities/[id]/route.ts
+src/app/api/shopreel/opportunities/auto-campaigns/route.ts
+src/app/api/shopreel/opportunities/generate/route.ts
+src/app/api/shopreel/opportunities/route.ts
+src/app/api/shopreel/video-creation/enhance-prompt/route.ts
+src/app/api/shopreel/video-creation/jobs/[id]/thumbnail/route.ts
+src/app/shopreel/campaigns/[id]/page.tsx
+src/app/shopreel/campaigns/[id]/production/page.tsx
+src/app/shopreel/campaigns/[id]/review/page.tsx
+src/app/shopreel/campaigns/items/[id]/page.tsx
+src/app/shopreel/campaigns/new/page.tsx
+src/app/shopreel/campaigns/page.tsx
+src/app/shopreel/create/page.tsx
+src/app/shopreel/creator-requests/page.tsx
+src/app/shopreel/editor/email/[id]/page.tsx
+src/app/shopreel/opportunities/[id]/page.tsx
+src/app/shopreel/opportunities/page.tsx
+
+============================================================
+2) FEATURES THAT MAY ALREADY SUPPORT IDEAS / ANGLES / REQUESTS
+============================================================
+src/features/shopreel/ai/modelConfig.ts
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx
+src/features/shopreel/campaigns/components/CampaignFlowShell.tsx
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx
+src/features/shopreel/campaigns/components/CampaignPageHeader.tsx
+src/features/shopreel/campaigns/lib/automation.ts
+src/features/shopreel/campaigns/lib/defaultCampaignAngles.ts
+src/features/shopreel/campaigns/lib/getCampaignNextAction.ts
+src/features/shopreel/campaigns/lib/getCampaignProgressSummary.ts
+src/features/shopreel/campaigns/lib/multiscene.ts
+src/features/shopreel/campaigns/lib/premiumAssembly.ts
+src/features/shopreel/campaigns/lib/premiumRunway.ts
+src/features/shopreel/campaigns/lib/premiumRunwaySync.ts
+src/features/shopreel/campaigns/lib/promptSeeding.ts
+src/features/shopreel/campaigns/lib/sceneStatus.ts
+src/features/shopreel/campaigns/lib/server.ts
+src/features/shopreel/campaigns/lib/voiceover.ts
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx
+src/features/shopreel/creator/buildCreatorOutputs.ts
+src/features/shopreel/creator/buildCreatorResearchDraft.ts
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx
+src/features/shopreel/creator/generateBlogSection.ts
+src/features/shopreel/creator/generateCreatorContentOutputs.ts
+src/features/shopreel/creator/generateCreatorScript.ts
+src/features/shopreel/discovery/discoverContent.ts
+src/features/shopreel/discovery/discoverStorySources.ts
+src/features/shopreel/discovery/generateOpportunities.ts
+src/features/shopreel/hooks/generateHooks.ts
+src/features/shopreel/hooks/generateViralHooks.ts
+src/features/shopreel/integrations/email/connect.ts
+src/features/shopreel/integrations/profixiq/upsertIngestedOpportunity.ts
+src/features/shopreel/manual/components/ManualUploadClient.tsx
+src/features/shopreel/manual/lib/buildStoragePath.ts
+src/features/shopreel/manual/lib/createOpportunityFromManualAsset.ts
+src/features/shopreel/manual/lib/creativeBrief.ts
+src/features/shopreel/manual/lib/detectFileType.ts
+src/features/shopreel/manual/lib/uploadLimits.ts
+src/features/shopreel/manual/types/manualAssets.ts
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts
+src/features/shopreel/opportunities/autoCreateCampaigns.ts
+src/features/shopreel/opportunities/createOpportunities.ts
+src/features/shopreel/opportunities/lib/isSourceSuppressed.ts
+src/features/shopreel/opportunities/lib/status.ts
+src/features/shopreel/opportunities/lib/suppressStorySource.ts
+src/features/shopreel/opportunities/lib/upsertOpportunity.ts
+src/features/shopreel/opportunities/scoreStorySource.ts
+src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts
+src/features/shopreel/opportunities/scoring/scoreStorySource.ts
+src/features/shopreel/opportunities/scoring/updateOpportunityScore.ts
+src/features/shopreel/optimization/mutatePromptStrategy.ts
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts
+src/features/shopreel/story-sources/fromOpportunity.ts
+src/features/shopreel/video-creation/components/SeriesDetailClient.tsx
+src/features/shopreel/video-creation/lib/normalizeOpenAIVideoSeconds.ts
+src/features/shopreel/video-creation/lib/openaiVideo.ts
+src/features/shopreel/video-creation/lib/promptBuilder.ts
+src/features/shopreel/video-creation/providers/openai.ts
+src/features/shopreel/worker/processPremiumCampaignJobs.ts
+
+============================================================
+3) SEARCH: idea/opportunity/angle/request/conversation terms
+============================================================
+src/app/shopreel/opportunities/[id]/page.tsx:62:  const { data: opportunity, error: opportunityError } = await legacy
+src/app/shopreel/opportunities/[id]/page.tsx:63:    .from("shopreel_content_opportunities")
+src/app/shopreel/opportunities/[id]/page.tsx:69:  if (opportunityError || !opportunity) notFound();
+src/app/shopreel/opportunities/[id]/page.tsx:71:  const typedOpportunity = opportunity as OpportunityRow;
+src/app/shopreel/opportunities/[id]/page.tsx:84:  const opportunityMetadata = objectRecord(typedOpportunity.metadata);
+src/app/shopreel/opportunities/[id]/page.tsx:86:    typeof opportunityMetadata.last_generation_id === "string"
+src/app/shopreel/opportunities/[id]/page.tsx:87:      ? opportunityMetadata.last_generation_id
+src/app/shopreel/opportunities/[id]/page.tsx:88:      : typeof opportunityMetadata.generation_id === "string"
+src/app/shopreel/opportunities/[id]/page.tsx:89:        ? opportunityMetadata.generation_id
+src/app/shopreel/opportunities/[id]/page.tsx:160:      title={typedSource.title ?? "Untitled opportunity"}
+src/app/shopreel/opportunities/[id]/page.tsx:161:      subtitle="Review the opportunity, linked source, and latest generated output."
+src/app/shopreel/opportunities/[id]/page.tsx:183:          description="Review the ranked opportunity, source, and current state."
+src/app/shopreel/opportunities/page.tsx:5:import { getOpportunityStatusesForTab } from "@/features/shopreel/opportunities/lib/status";
+src/app/shopreel/opportunities/page.tsx:16:  const { data: opportunities, error } = await supabase.from("shopreel_content_opportunities").select(`*,story_source:shopreel_story_sources (id,title,description,kind,origin)`).eq("shop_id", shopId).in("status", allowedStatuses).order("score", { ascending: false }).order("created_at", { ascending: false });
+src/app/shopreel/opportunities/page.tsx:18:  const normalized = (opportunities ?? []).map((row) => ({...row,story_source: Array.isArray(row.story_source) ? row.story_source[0] ?? null : row.story_source,}));
+src/app/shopreel/opportunities/page.tsx:19:  return <GlassShell title="Ideas" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Ideas" subtitle="Capture prompts, campaign angles, and content opportunities." actions={[{label:"Create from idea",href:"/shopreel/create",primary:true},{label:"Discover ideas",href:"/shopreel/opportunities?status=active"}]}/><ShopReelSurface title="Prompt starters"><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{STARTERS.map((s)=><div key={s} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{s}</div>)}</div></ShopReelSurface><ShopReelSurface title="Idea board"><ShopReelOpportunitiesClient opportunities={normalized} activeTab={status} /></ShopReelSurface></div></GlassShell>;
+src/app/shopreel/campaigns/[id]/page.tsx:94:          description="The core idea driving the whole content batch."
+src/app/shopreel/campaigns/[id]/page.tsx:99:              {campaign.core_idea}
+src/app/shopreel/campaigns/[id]/review/page.tsx:43:        subtitle="Inspect the brief, angles, and campaign direction before moving into production."
+src/app/shopreel/campaigns/[id]/review/page.tsx:62:              {campaign.core_idea}
+src/app/shopreel/campaigns/[id]/review/page.tsx:124:          description="These are the angle-based items this campaign will produce."
+src/app/shopreel/campaigns/[id]/review/page.tsx:143:                    <GlassBadge tone="muted">{item.angle}</GlassBadge>
+src/app/shopreel/analytics/page.tsx:217:          description="Winning angle and totals from recent campaign analytics."
+src/app/shopreel/analytics/page.tsx:227:                Winning angle: {winningCampaign.winning_angle ?? "No winner yet"}
+src/app/shopreel/creator-requests/page.tsx:10:  angle: string;
+src/app/shopreel/creator-requests/page.tsx:31:    angles?: Angle[];
+src/app/shopreel/creator-requests/page.tsx:36:      angleTitle: string;
+src/app/shopreel/creator-requests/page.tsx:59:      subtitle="Track saved AI requests for research, concepts, angle packs, and automation support."
+src/app/shopreel/page.tsx:52:          <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-1.5 text-sm text-white/70">⌘K Search ideas, projects, and templates</div>
+src/app/shopreel/page.tsx:114:                <div className="mt-1 text-sm text-white/70">Upload media or start with an idea and ShopReel will generate your first draft.</div>
+src/app/shopreel/page.tsx:137:            <div className="text-sm font-semibold text-white">AI content ideas</div>
+src/app/shopreel/page.tsx:138:            <div className="mt-3 space-y-2.5">{IDEAS.map((idea) => <div key={idea} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white/80">{idea}</div>)}</div>
+src/app/shopreel/content/page.tsx:58:        typeof draft.sourceKind === "string" ? draft.sourceKind : "creator_idea",
+src/app/shopreel/generations/page.tsx:16:  return <GlassShell title="Projects" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Projects" subtitle="Review drafts, refine content, and move work toward ready-to-export." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Explore ideas", href: "/shopreel/opportunities" }]} />
+src/app/shopreel/generations/page.tsx:17:  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="Project workflow"><div className="grid gap-2 sm:grid-cols-5">{STEPS.map((step)=><div key={step} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center text-xs text-white/75">{step}</div>)}</div></ShopReelSurface><ShopReelSurface title="Project list">{generations.length===0?<ShopReelEmptyState title="No projects yet" description="Create your first draft from media, notes, or an idea." ctaLabel="Create content" ctaHref="/shopreel/create"/>:<div className="grid gap-2">{generations.map((g)=><div key={g.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3"><div className="text-sm font-medium text-white">{(g.story_draft as {title?:string}|null)?.title ?? "Untitled project"}</div><div className="mt-1 text-xs text-white/60">{g.status}</div><div className="mt-2 flex gap-2"><Link href={`/shopreel/generations/${g.id}`} className="text-xs text-cyan-200">Review</Link><Link href={getEditorPath((g.generation_metadata as {output_type?:string}|null)?.output_type ?? "video", g.id)} className="text-xs text-cyan-200">Edit</Link></div></div>)}</div>}</ShopReelSurface></div><ShopReelActionRail title="Project workflow" items={["Create draft","Review","Process","Download","Publish"]} /></div></div></GlassShell>;
+src/app/shopreel/editor/vlog/[id]/page.tsx:83:              <GlassBadge tone="default">{bRoll.length} b-roll ideas</GlassBadge>
+src/app/shopreel/create/page.tsx.bak.20260505042607:32:    description: "Turn ideas or media into long-form written content.",
+src/app/shopreel/create/page.tsx.bak.20260505042607:174:      const createRes = await fetch("/api/shopreel/create/from-idea", {
+src/app/shopreel/create/page.tsx.bak.20260505042607:261:                    Add clips, product shots, behind-the-scenes footage, screenshots, or raw ideas.
+src/app/shopreel/create/page.tsx.bak.20260505042607:408:            label="Prompt ideas"
+src/app/shopreel/create/page.tsx.bak.20260505042607:418:              ].map((idea) => (
+src/app/shopreel/create/page.tsx.bak.20260505042607:420:                  key={idea}
+src/app/shopreel/create/page.tsx.bak.20260505042607:422:                  onClick={() => setPrompt(idea)}
+src/app/shopreel/create/page.tsx.bak.20260505042607:430:                  {idea}
+src/app/shopreel/create/page.tsx:63:      const createRes = await fetch("/api/shopreel/create/from-idea", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, audience, platformIds, manualAssetId, contentType: selectedContentType }) });
+src/app/api/shopreel/discovery/route.ts:3:import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+src/app/api/shopreel/discovery/route.ts:23:    const opportunities = await createOpportunities();
+src/app/api/shopreel/discovery/route.ts:30:      opportunityCount: Array.isArray(opportunities) ? opportunities.length : 0,
+src/app/api/shopreel/discovery/route.ts:31:      opportunities,
+src/app/api/shopreel/opportunities/generate/route.ts:2:import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+src/app/api/shopreel/opportunities/generate/route.ts:10:      opportunitiesCreated: Array.isArray(result) ? result.length : 0,
+src/app/api/shopreel/opportunities/generate/route.ts:11:      opportunities: result,
+src/app/api/shopreel/opportunities/generate/route.ts:17:        error: error instanceof Error ? error.message : "Failed to generate opportunities",
+src/app/api/shopreel/opportunities/route.ts:4:import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
+src/app/api/shopreel/opportunities/route.ts:8:  kind: "story_opportunity" | "creator_request";
+src/app/api/shopreel/opportunities/route.ts:51:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/route.ts:205:          kind: isCreator ? "creator_request" : "story_opportunity",
+src/app/api/shopreel/opportunities/route.ts:254:      error instanceof Error ? error.message : "Failed to load opportunities";
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:16:    const { data: opportunity, error: opportunityError } = await supabase
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:17:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:26:    if (opportunityError || !opportunity) {
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:27:      throw new Error(opportunityError?.message ?? "Opportunity not found");
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:30:    const storySource = Array.isArray(opportunity.story_source)
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:31:      ? opportunity.story_source[0] ?? null
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:32:      : opportunity.story_source;
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:44:      opportunity.metadata && typeof opportunity.metadata === "object" && !Array.isArray(opportunity.metadata)
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:45:        ? { ...(opportunity.metadata as Record<string, Json | undefined>) }
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:52:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:58:      .eq("id", opportunity.id);
+src/app/api/shopreel/opportunities/[id]/generate/route.ts:73:        error: error instanceof Error ? error.message : "Failed to generate from opportunity",
+src/app/api/shopreel/opportunities/[id]/route.ts:7:} from "@/features/shopreel/opportunities/lib/status";
+src/app/api/shopreel/opportunities/[id]/route.ts:18:        { ok: false, error: `Invalid status "${body.status}" for opportunity.` },
+src/app/api/shopreel/opportunities/[id]/route.ts:29:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/[id]/route.ts:40:      throw new Error(error?.message ?? "Failed to update opportunity");
+src/app/api/shopreel/opportunities/[id]/route.ts:45:      opportunity: data,
+src/app/api/shopreel/opportunities/[id]/route.ts:54:            : "Failed to update opportunity",
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:15:    const { data: opportunity, error: opportunityError } = await supabase
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:16:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:25:    if (opportunityError || !opportunity) {
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:26:      throw new Error(opportunityError?.message ?? "Opportunity not found");
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:29:    const storySource = Array.isArray(opportunity.story_source)
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:30:      ? opportunity.story_source[0] ?? null
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:31:      : opportunity.story_source;
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:42:        core_idea: storySource.description ?? storySource.title,
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:45:        campaign_goal: "Turn detected opportunity into campaign",
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:49:          source_opportunity_id: opportunity.id,
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:61:      opportunity.metadata && typeof opportunity.metadata === "object" && !Array.isArray(opportunity.metadata)
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:62:        ? { ...(opportunity.metadata as Record<string, Json | undefined>) }
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:68:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:74:      .eq("id", opportunity.id);
+src/app/api/shopreel/opportunities/[id]/create-campaign/route.ts:88:        error: error instanceof Error ? error.message : "Failed to create campaign from opportunity",
+src/app/api/shopreel/opportunities/auto-campaigns/route.ts:2:import { autoCreateCampaignsFromTopOpportunities } from "@/features/shopreel/opportunities/autoCreateCampaigns";
+src/app/api/shopreel/opportunities/auto-campaigns/route.ts:28:            : "Failed to auto-create campaigns from opportunities",
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:10:      angle: "Problem",
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:16:      angle: "Old Way",
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:22:      angle: "New Way",
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:28:      angle: "Outcome",
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:66:      const angles = buildAngles(campaign.core_idea, campaign.title);
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:71:          angles.map((angle) => ({
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:74:            angle: angle.angle,
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:75:            title: angle.title,
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:76:            prompt: angle.prompt,
+src/app/api/shopreel/campaigns/[id]/generate/route.ts:77:            sort_order: angle.sort_order,
+src/app/api/shopreel/campaigns/automation-run/route.ts:35:        winningAngle: analytics.winning_angle,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:103:      kind: "creator_idea",
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:127:        anglePack: ai.angles,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:195:        angle_pack: ai.angles,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:211:          angles: ai.angles,
+src/app/api/shopreel/creator-requests/[id]/generate/route.ts:227:      error instanceof Error ? error.message : "Failed to generate from creator request";
+src/app/api/shopreel/creator-requests/[id]/route.ts:31:      error instanceof Error ? error.message : "Failed to delete creator request";
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:38:    const angleIndex = Number(index);
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:40:    if (!Number.isInteger(angleIndex) || angleIndex < 0) {
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:42:        { ok: false, error: "Invalid angle index" },
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:71:    const angles = Array.isArray(resultPayload.angles) ? resultPayload.angles : [];
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:72:    const rawAngle = angles[angleIndex];
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:81:    const angle = rawAngle as {
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:83:      angle?: string;
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:96:    const topic = `${topicBase} — ${angle.title ?? `Angle ${angleIndex + 1}`}`;
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:112:      id: `creator-angle:${Date.now()}`,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:116:      kind: "creator_idea",
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:130:        "derived_angle",
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:135:        hook: angle.hook ?? ai.hook,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:139:        cta: angle.suggestedCta ?? ai.cta,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:145:        derivedFromAngleIndex: angleIndex,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:146:        derivedFromAngleTitle: angle.title ?? null,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:147:        derivedFromAngleDescription: angle.angle ?? null,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:169:      hook: angle.hook ?? ai.hook,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:173:      ctaLine: angle.suggestedCta ?? ai.cta,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:188:      hook: angle.hook ?? ai.hook,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:192:      cta: angle.suggestedCta ?? ai.cta,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:193:      angleTitle: angle.title ?? null,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:194:      angleDescription: angle.angle ?? null,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:214:        derived_from_angle_index: angleIndex,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:215:        derived_from_angle_title: angle.title ?? null,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:216:        derived_from_angle_description: angle.angle ?? null,
+src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts:233:      error instanceof Error ? error.message : "Failed to create from angle";
+src/app/api/shopreel/create/from-angle/route.ts:12:  angle: string;
+src/app/api/shopreel/create/from-angle/route.ts:27:  angle: Angle;
+src/app/api/shopreel/create/from-angle/route.ts:49:    if (!body.angle || !body.angle.title || !body.angle.hook) {
+src/app/api/shopreel/create/from-angle/route.ts:58:    const title = `${body.topic.trim()} — ${body.angle.title}`;
+src/app/api/shopreel/create/from-angle/route.ts:61:      id: `creator-angle:${Date.now()}`,
+src/app/api/shopreel/create/from-angle/route.ts:64:      description: body.angle.angle,
+src/app/api/shopreel/create/from-angle/route.ts:65:      kind: "creator_idea",
+src/app/api/shopreel/create/from-angle/route.ts:76:      tags: ["creator_mode", "angle_post"],
+src/app/api/shopreel/create/from-angle/route.ts:77:      notes: bullets.length > 0 ? bullets : [body.angle.angle, body.angle.whyItWorks],
+src/app/api/shopreel/create/from-angle/route.ts:79:        hook: body.angle.hook,
+src/app/api/shopreel/create/from-angle/route.ts:80:        contentType: "creator_angle_post",
+src/app/api/shopreel/create/from-angle/route.ts:82:        selected_angle_title: body.angle.title,
+src/app/api/shopreel/create/from-angle/route.ts:86:        creatorModeType: "angle_post",
+src/app/api/shopreel/create/from-angle/route.ts:88:        selectedAngle: body.angle,
+src/app/api/shopreel/create/from-angle/route.ts:107:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/from-angle/route.ts:118:            creator_mode: "angle_post",
+src/app/api/shopreel/create/from-angle/route.ts:120:            selected_angle: body.angle,
+src/app/api/shopreel/create/from-angle/route.ts:136:      researchSummary: body.researchSummary ?? body.angle.angle,
+src/app/api/shopreel/create/from-angle/route.ts:138:      hook: body.angle.hook,
+src/app/api/shopreel/create/from-angle/route.ts:139:      contextLine: body.angle.angle,
+src/app/api/shopreel/create/from-angle/route.ts:140:      explanationLine: body.angle.whyItWorks,
+src/app/api/shopreel/create/from-angle/route.ts:143:        `This angle works because it focuses the viewer on ${body.expandedTopic ?? body.topic}.`,
+src/app/api/shopreel/create/from-angle/route.ts:144:      ctaLine: body.angle.suggestedCta || "Follow for more updates.",
+src/app/api/shopreel/create/from-angle/route.ts:163:        creator_mode_type: "angle_post",
+src/app/api/shopreel/create/from-angle/route.ts:165:        selected_angle: body.angle,
+src/app/api/shopreel/create/from-angle/route.ts:167:        research_summary: body.researchSummary ?? body.angle.angle,
+src/app/api/shopreel/create/from-angle/route.ts:202:                angleTitle: body.angle.title,
+src/app/api/shopreel/create/from-angle/route.ts:218:      error instanceof Error ? error.message : "Failed to create from angle";
+src/app/api/shopreel/create/from-output/route.ts:14:  angle: string;
+src/app/api/shopreel/create/from-output/route.ts:30:  angle: Angle;
+src/app/api/shopreel/create/from-output/route.ts:67:    if (!body.angle || !body.angle.title || !body.angle.hook) {
+src/app/api/shopreel/create/from-output/route.ts:73:    const title = `${body.topic.trim()} — ${body.angle.title}`;
+src/app/api/shopreel/create/from-output/route.ts:79:      description: body.angle.angle,
+src/app/api/shopreel/create/from-output/route.ts:80:      kind: "creator_idea",
+src/app/api/shopreel/create/from-output/route.ts:92:      notes: bullets.length > 0 ? bullets : [body.angle.angle, body.angle.whyItWorks],
+src/app/api/shopreel/create/from-output/route.ts:94:        hook: body.angle.hook,
+src/app/api/shopreel/create/from-output/route.ts:97:        selected_angle_title: body.angle.title,
+src/app/api/shopreel/create/from-output/route.ts:104:        selectedAngle: body.angle,
+src/app/api/shopreel/create/from-output/route.ts:117:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/from-output/route.ts:124:          reason: `${body.outputType} output ready from creator angle`,
+src/app/api/shopreel/create/from-output/route.ts:130:            selected_angle: body.angle,
+src/app/api/shopreel/create/from-output/route.ts:147:      researchSummary: body.researchSummary ?? body.angle.angle,
+src/app/api/shopreel/create/from-output/route.ts:149:      hook: body.angle.hook,
+src/app/api/shopreel/create/from-output/route.ts:150:      contextLine: body.angle.angle,
+src/app/api/shopreel/create/from-output/route.ts:151:      explanationLine: body.angle.whyItWorks,
+src/app/api/shopreel/create/from-output/route.ts:154:        `This angle matters because it helps viewers understand ${body.expandedTopic ?? body.topic}.`,
+src/app/api/shopreel/create/from-output/route.ts:155:      ctaLine: body.angle.suggestedCta || "Follow for more updates.",
+src/app/api/shopreel/create/from-output/route.ts:195:        selected_angle: body.angle,
+src/app/api/shopreel/create/from-output/route.ts:197:        research_summary: body.researchSummary ?? body.angle.angle,
+src/app/api/shopreel/create/from-output/route.ts:233:                angleTitle: body.angle.title,
+src/app/api/shopreel/create/research-script/route.ts:21:  mode?: "research_script" | "angle_pack" | "debunk" | "stitch";
+src/app/api/shopreel/create/research-script/route.ts:39:    case "angle_pack":
+src/app/api/shopreel/create/research-script/route.ts:50:      return "Creator debunk opportunity ready for fast response content";
+src/app/api/shopreel/create/research-script/route.ts:52:      return "Creator stitch opportunity ready for response content";
+src/app/api/shopreel/create/research-script/route.ts:53:    case "angle_pack":
+src/app/api/shopreel/create/research-script/route.ts:54:      return "Creator angle pack ready for multiple follow-up posts";
+src/app/api/shopreel/create/research-script/route.ts:57:      return "Creator research opportunity ready for script generation";
+src/app/api/shopreel/create/research-script/route.ts:96:      kind: "creator_idea",
+src/app/api/shopreel/create/research-script/route.ts:124:        anglePack: ai.angles,
+src/app/api/shopreel/create/research-script/route.ts:141:        status: mode === "angle_pack" ? "ready" : "draft",
+src/app/api/shopreel/create/research-script/route.ts:165:          angles: ai.angles,
+src/app/api/shopreel/create/research-script/route.ts:181:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/research-script/route.ts:192:            source_kind: "creator_idea",
+src/app/api/shopreel/create/research-script/route.ts:200:            angle_pack: ai.angles,
+src/app/api/shopreel/create/research-script/route.ts:208:    if (mode === "angle_pack") {
+src/app/api/shopreel/create/research-script/route.ts:217:        angles: ai.angles,
+src/app/api/shopreel/create/research-script/route.ts:283:        angle_pack: ai.angles,
+src/app/api/shopreel/create/research-script/route.ts:297:      .from("shopreel_content_opportunities")
+src/app/api/shopreel/create/research-script/route.ts:303:          source_kind: "creator_idea",
+src/app/api/shopreel/create/research-script/route.ts:311:          angle_pack: ai.angles,
+src/app/api/shopreel/create/research-script/route.ts:327:      angles: ai.angles,
+src/app/api/shopreel/create/from-idea/route.ts:21:  idea?: string;
+src/app/api/shopreel/create/from-idea/route.ts:135:  idea: string;
+src/app/api/shopreel/create/from-idea/route.ts:160:          { type: "input_text", text: `Original user prompt, for context only: ${input.idea}` },
+src/app/api/shopreel/create/from-idea/route.ts:221:  if (similarity(parsed.hook, input.idea) > 0.72 || similarity(parsed.caption, input.idea) > 0.72) {
+src/app/api/shopreel/create/from-idea/route.ts:258:    sourceKind: "creator_idea",
+src/app/api/shopreel/create/from-idea/route.ts:287:    const idea = (body.prompt ?? body.idea ?? "").trim();
+src/app/api/shopreel/create/from-idea/route.ts:290:    if (!idea) {
+src/app/api/shopreel/create/from-idea/route.ts:344:      prompt: idea,
+src/app/api/shopreel/create/from-idea/route.ts:354:      idea,
+src/app/api/shopreel/create/from-idea/route.ts:368:        description: idea,
+src/app/api/shopreel/create/from-idea/route.ts:369:        kind: "creator_idea",
+src/app/api/shopreel/create/from-idea/route.ts:372:        tags: ["creator", "idea"],
+src/app/api/shopreel/create/from-idea/route.ts:406:            source_kind: "creator_idea",
+src/app/api/shopreel/create/from-idea/route.ts:455:    const message = error instanceof Error ? error.message : "Failed to create from idea";
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:563:                    Build Series is now designed for uploaded media first. It creates four coordinated clips from one idea using the same visual direction.
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:576:                    placeholder="Launch idea, offer, or story title"
+src/features/shopreel/video-creation/lib/types.ts:60:    description: "Create a coordinated 4-clip sequence from one idea with shared visual direction.",
+src/features/shopreel/server/scheduler.ts:56:function rankOpportunity(opportunity: ContentOpportunity): number {
+src/features/shopreel/server/scheduler.ts:57:  switch (opportunity.contentType) {
+src/features/shopreel/server/scheduler.ts:91:    ranked.map(async (opportunity, index) => {
+src/features/shopreel/server/scheduler.ts:92:      const hookOptions = await generateHooks(opportunity.contentType);
+src/features/shopreel/server/scheduler.ts:96:        title: opportunity.title,
+src/features/shopreel/server/scheduler.ts:97:        contentType: opportunity.contentType,
+src/features/shopreel/server/scheduler.ts:98:        hook: opportunity.hook,
+src/features/shopreel/server/scheduler.ts:99:        cta: defaultCta(opportunity.contentType),
+src/features/shopreel/server/scheduler.ts:100:        sourceType: opportunity.sourceType,
+src/features/shopreel/server/scheduler.ts:101:        sourceId: opportunity.sourceId,
+src/features/shopreel/server/scheduler.ts:102:        workOrderId: opportunity.workOrderId,
+src/features/shopreel/server/scheduler.ts:103:        visualUrls: opportunity.visualUrls,
+src/features/shopreel/server/scheduler.ts:104:        reason: opportunity.reason,
+src/features/shopreel/discovery/discoverContent.ts:256:  const opportunities = await discoverContent(shopId);
+src/features/shopreel/discovery/discoverContent.ts:257:  return opportunities
+src/features/shopreel/discovery/discoverContent.ts:258:    .filter((opportunity) => opportunity.sourceType !== "existing_content_piece")
+src/features/shopreel/discovery/discoverContent.ts:259:    .map((opportunity) => storySourceFromOpportunity(shopId, opportunity));
+src/features/shopreel/discovery/generateOpportunities.ts:20:      .from("shopreel_content_opportunities")
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:44:  opportunities,
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:47:  opportunities: Opportunity[];
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:75:      const res = await fetch("/api/shopreel/opportunities/auto-campaigns", {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:96:      const res = await fetch(`/api/shopreel/opportunities/${id}`, {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:103:        throw new Error(json.error ?? "Failed to dismiss opportunity");
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:107:      setError(err instanceof Error ? err.message : "Failed to dismiss opportunity");
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:117:      const res = await fetch(`/api/shopreel/opportunities/${id}/generate`, {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:122:        throw new Error(json.error ?? "Failed to generate opportunity");
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:126:      setError(err instanceof Error ? err.message : "Failed to generate opportunity");
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:136:      const res = await fetch(`/api/shopreel/opportunities/${id}/create-campaign`, {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:159:          <Link href="/shopreel/opportunities?status=active">
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:162:          <Link href="/shopreel/opportunities?status=generated">
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:165:          <Link href="/shopreel/opportunities?status=dismissed">
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:191:      {opportunities.length === 0 ? (
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:193:          No opportunities in this tab yet.
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:196:        opportunities.map((opportunity) => {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:197:          const linkedCampaignId = readLinkedCampaignId(opportunity.metadata);
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:198:          const linkedGenerationId = readLinkedGenerationId(opportunity.metadata);
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:199:          const linkedContentPieceId = readLinkedContentPieceId(opportunity.metadata);
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:203:              key={opportunity.id}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:209:                    {opportunity.story_source?.title ?? "Untitled opportunity"}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:212:                    <GlassBadge tone="default">{opportunity.status}</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:213:                    <GlassBadge tone="copper">Score {Math.round(Number(opportunity.score ?? 0))}</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:214:                    {opportunity.story_source?.kind ? (
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:215:                      <GlassBadge tone="muted">{opportunity.story_source.kind}</GlassBadge>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:218:                  {opportunity.reason ? (
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:219:                    <div className="text-sm text-white/70">{opportunity.reason}</div>
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:221:                  {opportunity.story_source?.description ? (
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:223:                      {opportunity.story_source.description}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:249:                        onClick={() => void generateOpportunity(opportunity.id)}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:250:                        disabled={busy === opportunity.id}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:252:                        {busy === opportunity.id ? "Working..." : "Generate"}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:256:                        onClick={() => void createCampaign(opportunity.id)}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:257:                        disabled={busy === opportunity.id}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:259:                        {busy === opportunity.id ? "Working..." : "Create Campaign"}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:263:                        onClick={() => void dismissOpportunity(opportunity.id)}
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:264:                        disabled={busy === opportunity.id}
+src/features/shopreel/opportunities/lib/upsertOpportunity.ts:3:import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
+src/features/shopreel/opportunities/lib/upsertOpportunity.ts:16:    .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/createOpportunities.ts:5:import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
+src/features/shopreel/opportunities/createOpportunities.ts:9:  if (score >= 75) return "High-value marketing opportunity";
+src/features/shopreel/opportunities/createOpportunities.ts:10:  if (score >= 60) return "Promising content opportunity";
+src/features/shopreel/opportunities/createOpportunities.ts:11:  return "Detected story opportunity";
+src/features/shopreel/opportunities/createOpportunities.ts:33:      .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/createOpportunities.ts:56:        .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/createOpportunities.ts:84:      .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts:17:  const { data: opportunities, error } = await legacy
+src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts:18:    .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts:30:  for (const opportunity of opportunities ?? []) {
+src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts:31:    if (!opportunity.story_source_id) {
+src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts:39:      opportunity.story_source_id
+src/features/shopreel/opportunities/scoring/updateOpportunityScore.ts:20:    .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:19:  const { data: opportunities, error } = await supabase
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:20:    .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:38:  for (const opportunity of opportunities ?? []) {
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:39:    const storySource = Array.isArray(opportunity.story_source)
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:40:      ? opportunity.story_source[0] ?? null
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:41:      : opportunity.story_source;
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:44:      skippedOpportunityIds.push(opportunity.id);
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:49:      opportunity.metadata && typeof opportunity.metadata === "object" && !Array.isArray(opportunity.metadata)
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:50:        ? { ...(opportunity.metadata as Record<string, Json | undefined>) }
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:54:      skippedOpportunityIds.push(opportunity.id);
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:63:        core_idea: storySource.description ?? storySource.title,
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:66:        campaign_goal: "Auto-created from high scoring opportunity",
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:70:          source_opportunity_id: opportunity.id,
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:79:      skippedOpportunityIds.push(opportunity.id);
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:87:      .from("shopreel_content_opportunities")
+src/features/shopreel/opportunities/autoCreateCampaigns.ts:93:      .eq("id", opportunity.id);
+src/features/shopreel/lib/productSurfaceMap.ts:17:  { capability: "opportunities", route: "/shopreel/opportunities", classification: "canonical" },
+src/features/shopreel/lib/productSurfaceMap.ts:30:  { capability: "ai_requests", route: "/shopreel/creator-requests", classification: "experimental" },
+src/features/shopreel/lib/uiLabels.ts:39:    case "creator requests":
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx:41:  angle: string;
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx:358:          <GlassBadge tone="muted">{item.angle}</GlassBadge>
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx:186:        title="Start with the campaign idea"
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx:192:            {seedDefaults.winningAngles.map((angle) => (
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx:193:              <GlassBadge key={angle} tone="copper">
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx:194:                Learned winner: {angle}
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx:14:  core_idea: string;
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx:26:  angle: string;
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx:170:                <div className="text-white/60 text-sm">{item.angle}</div>
+src/features/shopreel/campaigns/lib/premiumAssembly.ts:31:  angle: string;
+src/features/shopreel/campaigns/lib/premiumAssembly.ts:92:    angle: input.angle,
+src/features/shopreel/campaigns/lib/promptSeeding.ts:12:    .eq("learning_type", "winning_angle")
+src/features/shopreel/campaigns/lib/promptSeeding.ts:26:        ? `Recent winning angles: ${winningAngles.join(", ")}`
+src/features/shopreel/campaigns/lib/voiceover.ts:12:  angle: string;
+src/features/shopreel/campaigns/lib/voiceover.ts:29:Angle: ${input.angle}
+src/features/shopreel/campaigns/lib/multiscene.ts:74:  angle: string;
+src/features/shopreel/campaigns/lib/multiscene.ts:146:    angle: item.angle,
+src/features/shopreel/campaigns/lib/server.ts:22:  angle: string;
+src/features/shopreel/campaigns/lib/server.ts:29:    `Angle: ${args.angle}.`,
+src/features/shopreel/campaigns/lib/server.ts:53:    core_idea: args.coreIdea,
+src/features/shopreel/campaigns/lib/server.ts:72:  const itemInserts: CampaignItemInsert[] = DEFAULT_ANGLES.map((angle, index) => ({
+src/features/shopreel/campaigns/lib/server.ts:76:    angle,
+src/features/shopreel/campaigns/lib/server.ts:77:    title: `${args.title} — ${angle}`,
+src/features/shopreel/campaigns/lib/server.ts:80:      angle,
+src/features/shopreel/campaigns/lib/server.ts:94:      campaign_angle: angle,
+src/features/shopreel/campaigns/lib/server.ts:515:  const angleScores = normalizedItems.map((item) => {
+src/features/shopreel/campaigns/lib/server.ts:526:      angle: item.angle,
+src/features/shopreel/campaigns/lib/server.ts:532:  angleScores.sort((a, b) => b.score - a.score);
+src/features/shopreel/campaigns/lib/server.ts:533:  const winningAngle = angleScores[0]?.score ? angleScores[0].angle : null;
+src/features/shopreel/campaigns/lib/server.ts:546:    winning_angle: winningAngle,
+src/features/shopreel/campaigns/lib/server.ts:548:      angle_scores: angleScores,
+src/features/shopreel/campaigns/lib/server.ts:572:  if (analytics.winning_angle) {
+src/features/shopreel/campaigns/lib/server.ts:577:      learning_type: "winning_angle",
+src/features/shopreel/campaigns/lib/server.ts:578:      learning_key: analytics.winning_angle,
+src/features/shopreel/campaigns/lib/server.ts:600:    winningAngle: analytics.winning_angle,
+src/features/shopreel/story-sources/types.ts:16:  | "creator_idea";
+src/features/shopreel/story-sources/constants.ts:18:  "creator_idea",
+src/features/shopreel/story-sources/constants.ts:131:  creator_idea: [
+src/features/shopreel/story-sources/fromOpportunity.ts:4:function mapKind(opportunity: ContentOpportunity): StorySourceKind {
+src/features/shopreel/story-sources/fromOpportunity.ts:5:  switch (opportunity.contentType) {
+src/features/shopreel/story-sources/fromOpportunity.ts:26:  opportunity: ContentOpportunity,
+src/features/shopreel/story-sources/fromOpportunity.ts:29:    id: `opportunity:${opportunity.sourceId}`,
+src/features/shopreel/story-sources/fromOpportunity.ts:31:    title: opportunity.title,
+src/features/shopreel/story-sources/fromOpportunity.ts:32:    description: opportunity.reason,
+src/features/shopreel/story-sources/fromOpportunity.ts:33:    kind: mapKind(opportunity),
+src/features/shopreel/story-sources/fromOpportunity.ts:41:      opportunity.contentType,
+src/features/shopreel/story-sources/fromOpportunity.ts:42:      opportunity.sourceType,
+src/features/shopreel/story-sources/fromOpportunity.ts:43:      opportunity.workOrderId ? "work_order" : null,
+src/features/shopreel/story-sources/fromOpportunity.ts:45:    assets: opportunity.visualUrls.map((url, index) => ({
+src/features/shopreel/story-sources/fromOpportunity.ts:46:      id: `asset:${opportunity.sourceId}:${index + 1}`,
+src/features/shopreel/story-sources/fromOpportunity.ts:56:        type: opportunity.workOrderId ? "future_work_order" : "content_piece",
+src/features/shopreel/story-sources/fromOpportunity.ts:57:        id: opportunity.workOrderId ?? opportunity.sourceId,
+src/features/shopreel/story-sources/fromOpportunity.ts:60:    notes: [opportunity.reason],
+src/features/shopreel/story-sources/fromOpportunity.ts:62:      hook: opportunity.hook,
+src/features/shopreel/story-sources/fromOpportunity.ts:63:      contentType: opportunity.contentType,
+src/features/shopreel/story-sources/fromOpportunity.ts:64:      sourceType: opportunity.sourceType,
+src/features/shopreel/story-sources/fromOpportunity.ts:67:      sourceId: opportunity.sourceId,
+src/features/shopreel/story-sources/fromOpportunity.ts:68:      workOrderId: opportunity.workOrderId,
+src/features/shopreel/story-sources/fromOpportunity.ts:69:      hook: opportunity.hook,
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:7:  const opportunities = await discoverContent(shopId);
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:9:  return opportunities.map((opportunity) => ({
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:10:    title: opportunity.title,
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:12:      opportunity.contentType === "repair_story"
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:14:        : opportunity.contentType === "inspection_highlight"
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:16:          : opportunity.contentType === "before_after"
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:18:            : opportunity.contentType === "educational_tip"
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:22:    reason: opportunity.reason,
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:23:    tags: [opportunity.contentType, opportunity.sourceType].filter(Boolean),
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:25:      sourceId: opportunity.sourceId,
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:26:      workOrderId: opportunity.workOrderId,
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:27:      hook: opportunity.hook,
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts:28:      visualUrlCount: opportunity.visualUrls.length,
+src/features/shopreel/calendar/generateContentCalendar.ts:123:            : `${shopName} content idea ${index + 1}`,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:335:              description="Send approved opportunities to render automatically."
+src/features/shopreel/ui/ShopReelSidebar.tsx:26:  { label: "Ideas", compactLabel: "ID", href: "/shopreel/opportunities", icon: "◈" },
+src/features/shopreel/ui/system/GlassNav.tsx:10:  { href: "/shopreel/opportunities", label: "Opportunities" },
+src/features/shopreel/dashboard/getDashboardData.ts:13:    opportunitiesRes,
+src/features/shopreel/dashboard/getDashboardData.ts:34:      .from("shopreel_content_opportunities")
+src/features/shopreel/dashboard/getDashboardData.ts:40:  const opportunities = opportunitiesRes.data ?? [];
+src/features/shopreel/dashboard/getDashboardData.ts:41:  const highScoreOpportunities = opportunities.filter((row) => Number(row.score ?? 0) >= 80).length;
+src/features/shopreel/dashboard/getDashboardData.ts:42:  const readyOpportunities = opportunities.filter((row) => row.status === "ready").length;
+src/features/shopreel/dashboard/getDashboardData.ts:49:    opportunitiesCount: opportunitiesRes.count ?? 0,
+src/features/shopreel/automation/runShopReelAutopilot.ts:95:function baseRank(opportunity: ContentOpportunity): number {
+src/features/shopreel/automation/runShopReelAutopilot.ts:96:  switch (opportunity.contentType) {
+src/features/shopreel/automation/runShopReelAutopilot.ts:163:      "No opportunities found for this shop. Add content assets or existing content first, then generate the calendar again.",
+src/features/shopreel/automation/runShopReelAutopilot.ts:182:      opportunity_count: ranked.length,
+src/features/shopreel/automation/runShopReelAutopilot.ts:206:    const opportunity = ranked[index];
+src/features/shopreel/automation/runShopReelAutopilot.ts:207:    const hookOptions = await generateHooks(opportunity.contentType);
+src/features/shopreel/automation/runShopReelAutopilot.ts:209:    const resolvedCta = defaultCta(opportunity.contentType, defaultCtaValue);
+src/features/shopreel/automation/runShopReelAutopilot.ts:216:      source_type: opportunity.sourceType,
+src/features/shopreel/automation/runShopReelAutopilot.ts:217:      source_id: opportunity.sourceId,
+src/features/shopreel/automation/runShopReelAutopilot.ts:218:      reason: opportunity.reason,
+src/features/shopreel/automation/runShopReelAutopilot.ts:219:      visual_urls: opportunity.visualUrls,
+src/features/shopreel/automation/runShopReelAutopilot.ts:224:    if (opportunity.sourceType === "existing_content_piece") {
+src/features/shopreel/automation/runShopReelAutopilot.ts:225:      resolvedContentPieceId = opportunity.sourceId;
+src/features/shopreel/automation/runShopReelAutopilot.ts:230:          hook: opportunity.hook,
+src/features/shopreel/automation/runShopReelAutopilot.ts:246:        source_work_order_id: opportunity.workOrderId,
+src/features/shopreel/automation/runShopReelAutopilot.ts:247:        title: opportunity.title,
+src/features/shopreel/automation/runShopReelAutopilot.ts:248:        content_type: opportunity.contentType,
+src/features/shopreel/automation/runShopReelAutopilot.ts:249:        hook: opportunity.hook,
+src/features/shopreel/automation/runShopReelAutopilot.ts:250:        caption: opportunity.hook,
+src/features/shopreel/automation/runShopReelAutopilot.ts:283:        source_type: opportunity.sourceType,
+src/features/shopreel/automation/runShopReelAutopilot.ts:284:        source_id: opportunity.sourceId,
+src/features/shopreel/automation/runShopReelAutopilot.ts:285:        reason: opportunity.reason,
+src/features/shopreel/automation/runShopReelAutopilot.ts:286:        visual_urls: opportunity.visualUrls,
+src/features/shopreel/automation/runShopReelAutopilot.ts:287:        work_order_id: opportunity.workOrderId,
+src/features/shopreel/automation/runShopReelAutopilot.ts:306:      title: opportunity.title,
+src/features/shopreel/automation/runShopReelAutopilot.ts:307:      contentType: opportunity.contentType,
+src/features/shopreel/automation/runShopReelAutopilot.ts:308:      hook: opportunity.hook,
+src/features/shopreel/automation/runShopReelAutopilot.ts:310:      sourceType: opportunity.sourceType,
+src/features/shopreel/automation/runShopReelAutopilot.ts:311:      sourceId: opportunity.sourceId,
+src/features/shopreel/automation/runShopReelAutopilot.ts:312:      workOrderId: opportunity.workOrderId,
+src/features/shopreel/automation/runShopReelAutopilot.ts:313:      visualUrls: opportunity.visualUrls,
+src/features/shopreel/automation/runShopReelAutopilot.ts:314:      reason: opportunity.reason,
+src/features/shopreel/automation/runAutomationLoop.ts:7:import { refreshOpportunityScores } from "@/features/shopreel/opportunities/scoring/refreshOpportunityScores";
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:20:  angle: string;
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:41:    angles?: Angle[];
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:46:      angleTitle: string;
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:86:        const count = Array.isArray(item.result_payload?.angles) ? item.result_payload?.angles.length ?? 0 : 0;
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:100:      const res = await fetch(`/api/shopreel/creator-requests/${requestId}`, {
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:107:        throw new Error(json.error ?? "Failed to delete creator request");
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:112:      setError(err instanceof Error ? err.message : "Failed to delete creator request");
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:120:    angleIndex: number,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:125:    const key = `${requestId}:${angleIndex}:${outputType}`;
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:130:      const res = await fetch(`/api/shopreel/creator-requests/${requestId}/angles/${angleIndex}`, {
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:152:        throw new Error(("error" in json && json.error) || "Failed to create from angle");
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:159:          const angles = Array.isArray(item.result_payload?.angles) ? item.result_payload.angles : [];
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:160:          const angle = angles[angleIndex];
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:171:                  angleTitle: string;
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:174:                  title: `${item.topic ?? item.title ?? "Creator request"} — ${angle?.title ?? `Angle ${angleIndex + 1}`}`,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:177:                  angleTitle: angle?.title ?? `Angle ${angleIndex + 1}`,
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:187:      setError(err instanceof Error ? err.message : "Failed to create from angle");
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:198:        description="Every creator prompt can become a reusable request, a future opportunity, or a blog seed."
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:203:            <GlassBadge tone="copper">{totalAngles} angles</GlassBadge>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:229:            No creator requests yet.
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:234:              const angles = Array.isArray(item.result_payload?.angles) ? item.result_payload?.angles : [];
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:264:                      <GlassBadge tone="default">{angles.length} angles</GlassBadge>
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:304:                  {angles.length > 0 ? (
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:306:                      {angles.map((angle, index) => {
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:313:                            key={`${item.id}:${angle.title}:${index}`}
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:323:                                  {angle.title}
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:326:                                  {angle.angle}
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:367:                                <span className={glassTheme.text.secondary}>Hook:</span> {angle.hook}
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:370:                                <span className="text-white/85">Why it works:</span> {angle.whyItWorks}
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:373:                                <span className="text-white/85">CTA:</span> {angle.suggestedCta}
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx:398:                              {post.angleTitle} • {timeAgoLabel(post.createdAt)}
+src/features/shopreel/creator/buildCreatorOutputs.ts:15:  angle: string;
+src/features/shopreel/creator/buildCreatorResearchDraft.ts:19:  mode?: "research_script" | "angle_pack" | "debunk" | "stitch";
+src/features/shopreel/creator/buildCreatorResearchDraft.ts:145:    sourceKind: "creator_idea",
+src/features/shopreel/creator/generateCreatorScript.ts:6:  | "angle_pack"
+src/features/shopreel/creator/generateCreatorScript.ts:12:  angle: string;
+src/features/shopreel/creator/generateCreatorScript.ts:38:  angles: CreatorAngle[];
+src/features/shopreel/creator/generateCreatorScript.ts:63:      angle: `Quick update on ${expanded}`,
+src/features/shopreel/creator/generateCreatorScript.ts:70:      angle: `Separate strong signals from weak rumors around ${expanded}`,
+src/features/shopreel/creator/generateCreatorScript.ts:77:      angle: `Explain why ${expanded} matters for buyers or viewers`,
+src/features/shopreel/creator/generateCreatorScript.ts:79:      whyItWorks: "Useful angle with broader appeal.",
+src/features/shopreel/creator/generateCreatorScript.ts:84:      angle: `Push back on exaggerated claims around ${expanded}`,
+src/features/shopreel/creator/generateCreatorScript.ts:96:  const angles = fallbackAngles(input);
+src/features/shopreel/creator/generateCreatorScript.ts:113:      angles,
+src/features/shopreel/creator/generateCreatorScript.ts:124:      takeaway: "A strong stitch does not just react — it improves the conversation.",
+src/features/shopreel/creator/generateCreatorScript.ts:129:        "Best response angle",
+src/features/shopreel/creator/generateCreatorScript.ts:132:      angles,
+src/features/shopreel/creator/generateCreatorScript.ts:140:    context: `Here is the main conversation happening around ${expandedTopic}.`,
+src/features/shopreel/creator/generateCreatorScript.ts:150:    angles,
+src/features/shopreel/creator/generateCreatorScript.ts:180:        angle: safeString(record.angle, ""),
+src/features/shopreel/creator/generateCreatorScript.ts:190:        !!item.angle &&
+src/features/shopreel/creator/generateCreatorScript.ts:210:  const response = await openai.chat.completions.create({
+src/features/shopreel/creator/generateCreatorScript.ts:224:              enum: ["research_script", "angle_pack", "debunk", "stitch"],
+src/features/shopreel/creator/generateCreatorScript.ts:239:            angles: {
+src/features/shopreel/creator/generateCreatorScript.ts:248:                  angle: { type: "string" },
+src/features/shopreel/creator/generateCreatorScript.ts:253:                required: ["title", "angle", "hook", "whyItWorks", "suggestedCta"],
+src/features/shopreel/creator/generateCreatorScript.ts:267:            "angles",
+src/features/shopreel/creator/generateCreatorScript.ts:279:          "You generate a speaking hook, context, explanation, takeaway, CTA, research bullets, and multiple post angles. " +
+src/features/shopreel/creator/generateCreatorScript.ts:298:          "4. Provide 4 to 8 different post angles that could each become separate posts.\n" +
+src/features/shopreel/creator/generateCreatorScript.ts:312:        parsed.mode === "angle_pack" ||
+src/features/shopreel/creator/generateCreatorScript.ts:325:      angles: safeAngles(parsed.angles, fallback.angles),
+src/features/shopreel/creator/generateBlogSection.ts:6:  | "more_conversational"
+src/features/shopreel/creator/generateBlogSection.ts:48:    case "more_conversational":
+src/features/shopreel/creator/generateBlogSection.ts:49:      return "Rewrite this section to sound more conversational and natural.";
+src/features/shopreel/creator/generateBlogSection.ts:76:  const response = await openai.chat.completions.create({
+src/features/shopreel/creator/generateBlogSection.ts:101:          "Write in a practical, conversational, industry-aware tone. " +
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:18:  angleTitle?: string | null;
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:19:  angleDescription?: string | null;
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:57:    /^Write a conversational blog article.*$/gim,
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:135:  const seed = `${input.topic}:${input.angleTitle ?? ""}:${input.angleDescription ?? ""}`;
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:151:  const title = (input.angleTitle ?? input.topic).trim() || "Generated blog";
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:210:      body: [input.hook, input.angleDescription ?? input.summary, input.takeaway, input.cta]
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:218:          body: [input.angleDescription ?? "", input.summary, input.takeaway]
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:259:  const response = await openai.chat.completions.create({
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:413:          "For blog output, write a real article in a conversational, practical, industry-aware voice. " +
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:424:          `Angle title: ${input.angleTitle ?? "none"}\n` +
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:425:          `Angle description: ${input.angleDescription ?? "none"}\n` +
+src/features/shopreel/content/components/OutputTypeSelector.tsx:22:    description: "Open a long-form article editor from the same angle.",
+src/features/shopreel/content/components/OutputTypeSelector.tsx:27:    description: "Turn the angle into a subject line, preview text, and email body.",
+src/features/shopreel/content/components/OutputTypeSelector.tsx:51:          description="Select the content format to generate from this angle."
+src/features/shopreel/content/editors/ContentEditorShell.tsx:68:        description="This editor is generated from the same creator research and angle system."
+src/features/shopreel/content/editors/ContentEditorShell.tsx:181:        description="AI-generated structure from your selected angle."
+src/features/shopreel/editor/components/BlogEditorClient.tsx:32:  { value: "more_conversational", label: "Conversational" },
+src/features/shopreel/editor/components/BlogEditorClient.tsx:44:const DEFAULT_REWRITE_STYLE: BlogRewriteStyle = "more_conversational";
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:84:      draft.campaignAngle ? `Campaign angle: ${draft.campaignAngle}` : null,
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:304:                <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Campaign angle</div>
+src/features/shopreel/integrations/profixiq/upsertIngestedOpportunity.ts:35:    .from("shopreel_content_opportunities")
+src/features/shopreel/worker/processPremiumCampaignJobs.ts:86:    angle: item.angle,
+
+============================================================
+4) SEARCH: OpenAI usage in idea/creator/opportunity paths
+============================================================
+src/app/api/shopreel/video-creation/jobs/[id]/sync/route.ts:8:} from "@/features/shopreel/video-creation/lib/openaiVideo";
+src/app/api/shopreel/video-creation/jobs/[id]/sync/route.ts:29:    if (mediaJob.provider !== "openai" || mediaJob.job_type !== "video") {
+src/app/api/shopreel/video-creation/series/route.ts:10:  provider?: "openai" | "runway" | "pika" | "luma";
+src/app/api/shopreel/video-creation/series/route.ts:61:          provider: body.provider ?? "openai",
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:4:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:485:    provider: "openai",
+src/app/api/shopreel/work-orders/[id]/concept/route.ts:486:    model: SHOPREEL_AI_MODELS.text,
+src/app/api/shopreel/create/from-idea/route.ts:11:import { openai } from "@/features/ai/server/openai";
+src/app/api/shopreel/create/from-idea/route.ts:12:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/app/api/shopreel/create/from-idea/route.ts:144:  const response = await openai.responses.create({
+src/app/api/shopreel/create/from-idea/route.ts:145:    model: SHOPREEL_AI_MODELS.text,
+src/features/shopreel/video-creation/components/SeriesDetailClient.tsx:54:          job.provider === "openai" &&
+src/features/shopreel/video-creation/components/SeriesDetailClient.tsx:327:              job.provider === "openai" &&
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:74:  const [provider, setProvider] = useState<VideoCreationProvider>("openai");
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:857:                        job.provider === "openai" &&
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:868:                                  job.provider === "openai" &&
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:958:                      {job.provider === "openai" && job.job_type === "video" && job.status === "processing" ? (
+src/features/shopreel/video-creation/providers/openai.ts:1:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/video-creation/providers/openai.ts:54:  name: "openai",
+src/features/shopreel/video-creation/providers/openai.ts:62:      const response = await fetch("https://api.openai.com/v1/images/generations", {
+src/features/shopreel/video-creation/providers/openai.ts:69:          model: SHOPREEL_AI_MODELS.image,
+src/features/shopreel/video-creation/providers/openai.ts:84:        providerJobId: `openai-image-${input.jobId}`,
+src/features/shopreel/video-creation/providers/openai.ts:88:          provider: "openai",
+src/features/shopreel/video-creation/providers/openai.ts:99:      const response = await fetch("https://api.openai.com/v1/videos", {
+src/features/shopreel/video-creation/providers/openai.ts:106:          form.append("model", SHOPREEL_AI_MODELS.videoDraft);
+src/features/shopreel/video-creation/providers/openai.ts:125:          provider: "openai",
+src/features/shopreel/video-creation/providers/openai.ts:128:          openai_video_id: json.id,
+src/features/shopreel/video-creation/providers/openai.ts:129:          openai_status: json.status ?? "queued",
+src/features/shopreel/video-creation/providers/openai.ts:138:      providerJobId: `openai-${input.jobId}`,
+src/features/shopreel/video-creation/providers/openai.ts:142:        provider: "openai",
+src/features/shopreel/video-creation/providers/index.ts:2:export * from "./openai";
+src/features/shopreel/video-creation/providers/index.ts:9:import { openAiMediaProvider } from "./openai";
+src/features/shopreel/video-creation/providers/index.ts:14:    case "openai":
+src/features/shopreel/video-creation/lib/types.ts:27:export type VideoCreationProvider = "openai" | "runway" | "pika" | "luma" | "assembly";
+src/features/shopreel/video-creation/lib/types.ts:100:  { value: "openai", label: "OpenAI" },
+src/features/shopreel/video-creation/lib/storyboards.ts:167:      provider: "openai",
+src/features/shopreel/video-creation/lib/server.ts:32:  if (provider === "openai") {
+src/features/shopreel/video-creation/lib/automation.ts:13:    .eq("provider", "openai")
+src/features/shopreel/video-creation/lib/openaiVideo.ts:20:  const response = await fetch(`https://api.openai.com/v1/videos/${videoId}`, {
+src/features/shopreel/video-creation/lib/openaiVideo.ts:38:  const response = await fetch(`https://api.openai.com/v1/videos/${videoId}/content`, {
+src/features/shopreel/video-creation/lib/openaiVideo.ts:87:    openai_video_id: status.id ?? null,
+src/features/shopreel/video-creation/lib/openaiVideo.ts:88:    openai_status: status.status ?? null,
+src/features/shopreel/campaigns/lib/voiceover.ts:1:import OpenAI from "openai";
+src/features/shopreel/campaigns/lib/voiceover.ts:2:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/campaigns/lib/voiceover.ts:6:const openai = new OpenAI({
+src/features/shopreel/campaigns/lib/voiceover.ts:38:  const response = await openai.responses.create({
+src/features/shopreel/campaigns/lib/voiceover.ts:39:    model: SHOPREEL_AI_MODELS.text,
+src/features/shopreel/campaigns/lib/voiceover.ts:51:  const audio = await openai.audio.speech.create({
+src/features/shopreel/campaigns/lib/voiceover.ts:52:    model: "gpt-4o-mini-tts",
+src/features/shopreel/campaigns/lib/multiscene.ts:311:        provider: "openai",
+src/features/shopreel/campaigns/lib/premiumRunway.ts:46:    model: "gen4_turbo",
+src/features/shopreel/campaigns/lib/server.ts:239:    provider: "openai",
+src/features/shopreel/campaigns/lib/server.ts:427:    if (mediaJob.provider !== "openai" || mediaJob.job_type !== "video") continue;
+src/features/shopreel/ai/modelConfig.ts:2:export const SHOPREEL_AI_MODELS = {
+src/features/shopreel/calendar/generateContentCalendar.ts:1:import { openai } from "@/features/ai/server/openai";
+src/features/shopreel/calendar/generateContentCalendar.ts:2:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/calendar/generateContentCalendar.ts:91:    const res = await openai.responses.create({
+src/features/shopreel/calendar/generateContentCalendar.ts:92:      model: SHOPREEL_AI_MODELS.text,
+src/features/shopreel/hooks/generateViralHooks.ts:1:import OpenAI from "openai";
+src/features/shopreel/hooks/generateViralHooks.ts:2:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/hooks/generateViralHooks.ts:4:const openai = new OpenAI({
+src/features/shopreel/hooks/generateViralHooks.ts:25:    const response = await openai.responses.create({
+src/features/shopreel/hooks/generateViralHooks.ts:26:      model: SHOPREEL_AI_MODELS.text,
+src/features/shopreel/hooks/generateHooks.ts:1:import { openai } from "@/features/ai/server/openai";
+src/features/shopreel/hooks/generateHooks.ts:2:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/hooks/generateHooks.ts:19:  const response = await openai.responses.create({
+src/features/shopreel/hooks/generateHooks.ts:20:    model: SHOPREEL_AI_MODELS.text,
+src/features/shopreel/manual/lib/creativeBrief.ts:2:import { openai } from "@/features/ai/server/openai";
+src/features/shopreel/manual/lib/creativeBrief.ts:6:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/manual/lib/creativeBrief.ts:282:  const response = await openai.responses.create({
+src/features/shopreel/manual/lib/creativeBrief.ts:284:    model: SHOPREEL_AI_MODELS.vision,
+src/features/shopreel/manual/lib/creativeBrief.ts:344:  const response = await openai.responses.create({
+src/features/shopreel/manual/lib/creativeBrief.ts:346:    model: SHOPREEL_AI_MODELS.text,
+src/features/shopreel/creator/generateCreatorScript.ts:1:import { openai } from "@/features/ai/server/openai";
+src/features/shopreel/creator/generateCreatorScript.ts:2:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/creator/generateCreatorScript.ts:210:  const response = await openai.chat.completions.create({
+src/features/shopreel/creator/generateCreatorScript.ts:211:    model: SHOPREEL_AI_MODELS.text,
+src/features/shopreel/creator/generateBlogSection.ts:1:import { openai } from "@/features/ai/server/openai";
+src/features/shopreel/creator/generateBlogSection.ts:2:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/creator/generateBlogSection.ts:76:  const response = await openai.chat.completions.create({
+src/features/shopreel/creator/generateBlogSection.ts:77:    model: SHOPREEL_AI_MODELS.text,
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:1:import { openai } from "@/features/ai/server/openai";
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:2:import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:259:  const response = await openai.chat.completions.create({
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:260:    model: SHOPREEL_AI_MODELS.text,
+
+============================================================
+5) KEY FILE CONTENTS: IDEAS / OPPORTUNITIES / CREATOR REQUESTS
+============================================================
+
+------------------------------------------------------------
+FILE: src/app/shopreel/ideas/page.tsx
+------------------------------------------------------------
+MISSING
+
+------------------------------------------------------------
+FILE: src/app/shopreel/opportunities/page.tsx
+------------------------------------------------------------
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelOpportunitiesClient from "@/features/shopreel/components/ShopReelOpportunitiesClient";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { getOpportunityStatusesForTab } from "@/features/shopreel/opportunities/lib/status";
+import { ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+
+const STARTERS=["Product launch","Founder story","Behind the scenes","How-to tutorial","Newsletter sequence","Repurpose a video"];
+
+export default async function ShopReelOpportunitiesPage(props: { searchParams?: Promise<{ status?: string }>; }) {
+  const searchParams = (await props.searchParams) ?? {};
+  const status = searchParams.status ?? "active";
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+  const allowedStatuses = getOpportunityStatusesForTab(status);
+  const { data: opportunities, error } = await supabase.from("shopreel_content_opportunities").select(`*,story_source:shopreel_story_sources (id,title,description,kind,origin)`).eq("shop_id", shopId).in("status", allowedStatuses).order("score", { ascending: false }).order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const normalized = (opportunities ?? []).map((row) => ({...row,story_source: Array.isArray(row.story_source) ? row.story_source[0] ?? null : row.story_source,}));
+  return <GlassShell title="Ideas" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Ideas" subtitle="Capture prompts, campaign angles, and content opportunities." actions={[{label:"Create from idea",href:"/shopreel/create",primary:true},{label:"Discover ideas",href:"/shopreel/opportunities?status=active"}]}/><ShopReelSurface title="Prompt starters"><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{STARTERS.map((s)=><div key={s} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{s}</div>)}</div></ShopReelSurface><ShopReelSurface title="Idea board"><ShopReelOpportunitiesClient opportunities={normalized} activeTab={status} /></ShopReelSurface></div></GlassShell>;
+}
+
+------------------------------------------------------------
+FILE: src/app/shopreel/creator-requests/page.tsx
+------------------------------------------------------------
+export const dynamic = "force-dynamic";
+
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
+import { createAdminClient } from "@/lib/supabase/server";
+import CreatorRequestsClient from "@/features/shopreel/creator/components/CreatorRequestsClient";
+
+type Angle = {
+  title: string;
+  angle: string;
+  hook: string;
+  whyItWorks: string;
+  suggestedCta: string;
+};
+
+type CreatorRequestRow = {
+  id: string;
+  title: string | null;
+  topic: string | null;
+  audience: string | null;
+  tone: string | null;
+  platform_focus: "instagram" | "tiktok" | "youtube" | "facebook" | "multi" | null;
+  mode: string;
+  status: string;
+  created_at: string;
+  source_generation_id: string | null;
+  result_payload: {
+    expandedTopic?: string;
+    summary?: string;
+    bullets?: string[];
+    angles?: Angle[];
+    derivedPosts?: Array<{
+      title: string;
+      generationId: string;
+      createdAt: string;
+      angleTitle: string;
+    }>;
+  } | null;
+};
+
+export default async function ShopReelCreatorRequestsPage() {
+  const supabase = createAdminClient();
+  const legacy = supabase as any;
+
+  const { data, error } = await legacy
+    .from("shopreel_creator_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="AI Requests"
+      subtitle="Track saved AI requests for research, concepts, angle packs, and automation support."
+    >
+      <ShopReelNav />
+      <CreatorRequestsClient initialItems={(data ?? []) as CreatorRequestRow[]} />
+    </GlassShell>
+  );
+}
+
+------------------------------------------------------------
+FILE: src/app/shopreel/ai-requests/page.tsx
+------------------------------------------------------------
+MISSING
+
+------------------------------------------------------------
+FILE: src/app/api/shopreel/opportunities/route.ts
+------------------------------------------------------------
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
+
+type OpportunityItem = {
+  id: string;
+  kind: "story_opportunity" | "creator_request";
+  title: string;
+  contentType: string;
+  score: number | null;
+  status: string;
+  source: string;
+  sourceType: "manual_upload" | "shop_data" | "creator_prompt";
+  createdAt: string;
+  generationId: string | null;
+  creatorMode: string | null;
+  summary: string | null;
+};
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function dedupeItems(items: OpportunityItem[]): OpportunityItem[] {
+  const seen = new Set<string>();
+  const result: OpportunityItem[] = [];
+
+  for (const item of items) {
+    const key = `${item.kind}:${item.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+}
+
+export async function GET(req: Request) {
+  try {
+    const shopId = await getCurrentShopId();
+    const { searchParams } = new URL(req.url);
+    const limitRaw = searchParams.get("limit");
+    const limit = limitRaw ? Number(limitRaw) : 50;
+
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data, error } = await legacy
+      .from("shopreel_content_opportunities")
+      .select(`
+        id,
+        score,
+        status,
+        reason,
+        created_at,
+        story_source_id,
+        metadata,
+        shopreel_story_sources!inner (
+          id,
+          title,
+          kind,
+          origin,
+          created_at
+        )
+      `)
+      .eq("shop_id", shopId)
+      .order("score", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const storySourceIds = Array.from(
+      new Set(
+        (data ?? [])
+          .map((row: any) =>
+            typeof row.story_source_id === "string" ? row.story_source_id : null,
+          )
+          .filter((value: string | null): value is string => !!value),
+      ),
+    );
+
+    const generationByStorySourceId = new Map<
+      string,
+      {
+        id: string;
+        outputType: string | null;
+      }
+    >();
+
+    if (storySourceIds.length > 0) {
+      const { data: generations, error: generationError } = await legacy
+        .from("shopreel_story_generations")
+        .select("id, story_source_id, generation_metadata")
+        .eq("shop_id", shopId)
+        .in("story_source_id", storySourceIds)
+        .order("created_at", { ascending: false });
+
+      if (generationError) {
+        throw new Error(generationError.message);
+      }
+
+      for (const generation of generations ?? []) {
+        if (!generation?.story_source_id) continue;
+        if (generationByStorySourceId.has(generation.story_source_id)) continue;
+
+        const generationMetadata = objectRecord(generation.generation_metadata);
+
+        generationByStorySourceId.set(generation.story_source_id, {
+          id: generation.id,
+          outputType:
+            typeof generationMetadata.output_type === "string"
+              ? generationMetadata.output_type
+              : null,
+        });
+      }
+    }
+
+    const creatorRequestIds = Array.from(
+      new Set(
+        (data ?? [])
+          .map((row: any) => {
+            const metadata = objectRecord(row.metadata);
+            return typeof metadata.creator_request_id === "string"
+              ? metadata.creator_request_id
+              : null;
+          })
+          .filter((value: string | null): value is string => !!value),
+      ),
+    );
+
+    const creatorRequestById = new Map<
+      string,
+      {
+        id: string;
+        source_generation_id: string | null;
+        mode: string | null;
+      }
+    >();
+
+    if (creatorRequestIds.length > 0) {
+      const { data: creatorRequests, error: creatorRequestError } = await legacy
+        .from("shopreel_creator_requests")
+        .select("id, source_generation_id, mode")
+        .eq("shop_id", shopId)
+        .in("id", creatorRequestIds);
+
+      if (creatorRequestError) {
+        throw new Error(creatorRequestError.message);
+      }
+
+      for (const request of creatorRequests ?? []) {
+        creatorRequestById.set(request.id, {
+          id: request.id,
+          source_generation_id:
+            typeof request.source_generation_id === "string"
+              ? request.source_generation_id
+              : null,
+          mode: typeof request.mode === "string" ? request.mode : null,
+        });
+      }
+    }
+
+    const items = dedupeItems(
+      (data ?? []).map((row: any) => {
+        const metadata = objectRecord(row.metadata);
+        const storySource = row.shopreel_story_sources ?? null;
+        const isCreator =
+          metadata.source_type === "creator_request" ||
+          storySource?.origin === "creator_mode";
+
+        const creatorRequestId =
+          typeof metadata.creator_request_id === "string"
+            ? metadata.creator_request_id
+            : null;
+
+        const creatorRequest = creatorRequestId
+          ? creatorRequestById.get(creatorRequestId) ?? null
+          : null;
+
+        const generationFromSource =
+          typeof row.story_source_id === "string"
+            ? generationByStorySourceId.get(row.story_source_id) ?? null
+            : null;
+
+        const creatorMode =
+          typeof metadata.creator_mode === "string"
+            ? metadata.creator_mode
+            : typeof metadata.creator_mode_type === "string"
+              ? metadata.creator_mode_type
+              : creatorRequest?.mode ?? null;
+
+        const generationId =
+          typeof metadata.generation_id === "string"
+            ? metadata.generation_id
+            : creatorRequest?.source_generation_id ??
+              generationFromSource?.id ??
+              null;
+
+        return {
+          id: isCreator && creatorRequestId ? creatorRequestId : row.id,
+          kind: isCreator ? "creator_request" : "story_opportunity",
+          title:
+            storySource?.title ??
+            (typeof metadata.creator_title === "string"
+              ? metadata.creator_title
+              : typeof metadata.source_title === "string"
+                ? metadata.source_title
+                : "Untitled"),
+          contentType:
+            creatorMode ??
+            (typeof metadata.output_type === "string"
+              ? metadata.output_type
+              : storySource?.kind ?? "story_source"),
+          score:
+            typeof row.score === "number" ? row.score : Number(row.score ?? 0),
+          status: normalizeOpportunityStatus(row.status, "ready"),
+          source:
+            typeof storySource?.origin === "string"
+              ? storySource.origin
+              : "shopreel",
+          sourceType: isCreator
+            ? "creator_prompt"
+            : storySource?.origin === "manual_upload"
+              ? "manual_upload"
+              : "shop_data",
+          createdAt:
+            typeof storySource?.created_at === "string"
+              ? storySource.created_at
+              : typeof row.created_at === "string"
+                ? row.created_at
+                : new Date().toISOString(),
+          generationId,
+          creatorMode,
+          summary:
+            typeof row.reason === "string"
+              ? row.reason
+              : typeof metadata.research_summary === "string"
+                ? metadata.research_summary
+                : null,
+        } satisfies OpportunityItem;
+      }),
+    );
+
+    return NextResponse.json({
+      ok: true,
+      items,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load opportunities";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+
+------------------------------------------------------------
+FILE: src/app/api/shopreel/opportunities/[id]/route.ts
+------------------------------------------------------------
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  isOpportunityStatus,
+  normalizeOpportunityStatus,
+} from "@/features/shopreel/opportunities/lib/status";
+
+export async function PATCH(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await ctx.params;
+    const body = await req.json().catch(() => ({}));
+    if (typeof body.status === "string" && !isOpportunityStatus(body.status.trim())) {
+      return NextResponse.json(
+        { ok: false, error: `Invalid status "${body.status}" for opportunity.` },
+        { status: 400 }
+      );
+    }
+
+    const nextStatus = normalizeOpportunityStatus(body.status, "dismissed");
+
+    const supabase = createAdminClient();
+    const shopId = await getCurrentShopId();
+
+    const { data, error } = await supabase
+      .from("shopreel_content_opportunities")
+      .update({
+        status: nextStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message ?? "Failed to update opportunity");
+    }
+
+    return NextResponse.json({
+      ok: true,
+      opportunity: data,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update opportunity",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+------------------------------------------------------------
+FILE: src/app/api/shopreel/opportunities/[id]/generate/route.ts
+------------------------------------------------------------
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { generateStoryPipeline } from "@/features/shopreel/story-builder/generateStoryPipeline";
+import type { Json } from "@/types/supabase";
+
+export async function POST(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await ctx.params;
+    const supabase = createAdminClient();
+    const shopId = await getCurrentShopId();
+
+    const { data: opportunity, error: opportunityError } = await supabase
+      .from("shopreel_content_opportunities")
+      .select(`
+        *,
+        story_source:shopreel_story_sources (*)
+      `)
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .single();
+
+    if (opportunityError || !opportunity) {
+      throw new Error(opportunityError?.message ?? "Opportunity not found");
+    }
+
+    const storySource = Array.isArray(opportunity.story_source)
+      ? opportunity.story_source[0] ?? null
+      : opportunity.story_source;
+
+    if (!storySource?.id) {
+      throw new Error("Opportunity is missing story source");
+    }
+
+    const result = await generateStoryPipeline({
+      shopId,
+      source: storySource,
+    });
+
+    const nextMetadata =
+      opportunity.metadata && typeof opportunity.metadata === "object" && !Array.isArray(opportunity.metadata)
+        ? { ...(opportunity.metadata as Record<string, Json | undefined>) }
+        : ({} as Record<string, Json | undefined>);
+
+    nextMetadata.linked_generation_id = result.generation?.id ?? null;
+    nextMetadata.linked_content_piece_id = result.contentPiece?.id ?? null;
+
+    const { error: updateError } = await supabase
+      .from("shopreel_content_opportunities")
+      .update({
+        status: "generated",
+        metadata: nextMetadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", opportunity.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      generation: result.generation ?? null,
+      contentPiece: result.contentPiece ?? null,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Failed to generate from opportunity",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+------------------------------------------------------------
+FILE: src/app/api/shopreel/creator-requests/route.ts
+------------------------------------------------------------
+MISSING
+
+------------------------------------------------------------
+FILE: src/app/api/shopreel/creator-requests/[id]/route.ts
+------------------------------------------------------------
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+
+export async function DELETE(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await ctx.params;
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { error } = await legacy
+      .from("shopreel_creator_requests")
+      .delete()
+      .eq("id", id)
+      .eq("shop_id", shopId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      deletedId: id,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to delete creator request";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+------------------------------------------------------------
+FILE: src/app/api/shopreel/creator-requests/[id]/generate/route.ts
+------------------------------------------------------------
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import { generateCreatorContentOutputs } from "@/features/shopreel/creator/generateCreatorContentOutputs";
+import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
+import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
+import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+import type { StorySource } from "@/features/shopreel/story-sources";
+import {
+  editorUrlForOutputType,
+  normalizeBlogLengthMode,
+  normalizeBlogStyle,
+  normalizeOutputType,
+  type OutputType,
+  type BlogStyle,
+  type BlogLengthMode,
+} from "@/features/shopreel/creator/buildCreatorOutputs";
+
+type Body = {
+  outputType?: OutputType;
+  blogStyle?: BlogStyle;
+  blogLengthMode?: BlogLengthMode;
+};
+
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const body = (await req.json().catch(() => ({}))) as Body;
+    const { id } = await ctx.params;
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data: creatorRequest, error } = await legacy
+      .from("shopreel_creator_requests")
+      .select("*")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!creatorRequest) {
+      return NextResponse.json(
+        { ok: false, error: "Creator request not found" },
+        { status: 404 },
+      );
+    }
+
+    const requestPayload =
+      creatorRequest.request_payload &&
+      typeof creatorRequest.request_payload === "object" &&
+      !Array.isArray(creatorRequest.request_payload)
+        ? creatorRequest.request_payload
+        : {};
+
+    const outputType = normalizeOutputType(
+      body.outputType ?? (requestPayload as { outputType?: unknown }).outputType,
+    );
+    const blogStyle = normalizeBlogStyle(
+      body.blogStyle ?? (requestPayload as { blogStyle?: unknown }).blogStyle,
+    );
+    const blogLengthMode = normalizeBlogLengthMode(
+      body.blogLengthMode ?? (requestPayload as { blogLengthMode?: unknown }).blogLengthMode,
+    );
+
+    if (creatorRequest.source_generation_id && outputType === "video") {
+      return NextResponse.json({
+        ok: true,
+        generated: {
+          creatorRequestId: creatorRequest.id,
+          generationId: creatorRequest.source_generation_id,
+          editorUrl: editorUrlForOutputType(outputType, creatorRequest.source_generation_id),
+        },
+      });
+    }
+
+    const ai = await generateCreatorScript({
+      mode: creatorRequest.mode ?? "research_script",
+      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+      audience: creatorRequest.audience ?? null,
+      tone: creatorRequest.tone ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      sourceText:
+        typeof (requestPayload as { sourceText?: unknown }).sourceText === "string"
+          ? (requestPayload as { sourceText?: string }).sourceText ?? null
+          : null,
+      sourceUrl: creatorRequest.source_url ?? null,
+    });
+
+    const now = new Date().toISOString();
+
+    const source: StorySource = {
+      id: `creator:${Date.now()}`,
+      shopId,
+      title: creatorRequest.title ?? creatorRequest.topic ?? "Creator prompt",
+      description: ai.summary,
+      kind: "creator_idea",
+      origin: "creator_mode",
+      generationMode: "manual",
+      occurredAt: now,
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      projectName: null,
+      vehicleLabel: null,
+      customerLabel: null,
+      technicianLabel: null,
+      tags: ["creator_mode", creatorRequest.mode ?? "research_script", outputType],
+      notes: ai.bullets,
+      facts: {
+        hook: ai.hook,
+        context: ai.context,
+        explanation: ai.explanation,
+        takeaway: ai.takeaway,
+        cta: ai.cta,
+        expanded_topic: ai.expandedTopic,
+      },
+      metadata: {
+        creatorMode: true,
+        creatorRequestId: creatorRequest.id,
+        anglePack: ai.angles,
+        outputType,
+        blogStyle,
+        blogLengthMode,
+      },
+      assets: [],
+      refs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const savedSource = await saveStorySource(source);
+
+    const draft = buildCreatorResearchDraft({
+      shopId,
+      sourceId: savedSource.id,
+      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+      audience: creatorRequest.audience ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      tone: creatorRequest.tone ?? "confident",
+      researchSummary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      contextLine: ai.context,
+      explanationLine: ai.explanation,
+      takeawayLine: ai.takeaway,
+      ctaLine: ai.cta,
+      expandedTopic: ai.expandedTopic,
+      mode: creatorRequest.mode ?? "research_script",
+    });
+
+    const contentPiece = await createContentPieceFromStoryDraft({
+      shopId,
+      draft,
+      sourceSystem: "creator_mode",
+    });
+
+    const textOutputs = await generateCreatorContentOutputs({
+      topic: creatorRequest.topic ?? creatorRequest.title ?? "Creator prompt",
+      summary: ai.summary,
+      bullets: ai.bullets,
+      hook: ai.hook,
+      context: ai.context,
+      explanation: ai.explanation,
+      takeaway: ai.takeaway,
+      cta: ai.cta,
+      audience: creatorRequest.audience ?? null,
+      blogStyle,
+      blogLengthMode,
+    });
+
+    const generation = await saveStoryGeneration({
+      shopId,
+      storySourceId: savedSource.id,
+      contentPieceId: contentPiece.id,
+      draft,
+      status: "draft",
+      metadata: {
+        creator_mode: true,
+        creator_mode_type: creatorRequest.mode ?? "research_script",
+        creator_request_id: creatorRequest.id,
+        output_type: outputType,
+        blog_style: blogStyle,
+        blog_length_mode: blogLengthMode,
+        text_outputs: textOutputs,
+        expanded_topic: ai.expandedTopic,
+        research_summary: ai.summary,
+        research_bullets: ai.bullets,
+        angle_pack: ai.angles,
+      },
+    });
+
+    await legacy
+      .from("shopreel_creator_requests")
+      .update({
+        source_story_source_id: savedSource.id,
+        source_generation_id:
+          outputType === "video" ? generation.id : creatorRequest.source_generation_id,
+        status: "generated",
+        result_payload: {
+          ...(creatorRequest.result_payload ?? {}),
+          expandedTopic: ai.expandedTopic,
+          summary: ai.summary,
+          bullets: ai.bullets,
+          angles: ai.angles,
+        },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", creatorRequest.id);
+
+    return NextResponse.json({
+      ok: true,
+      generated: {
+        creatorRequestId: creatorRequest.id,
+        generationId: generation.id,
+        editorUrl: editorUrlForOutputType(outputType, generation.id),
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to generate from creator request";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+------------------------------------------------------------
+FILE: src/app/api/shopreel/creator-requests/[id]/angles/[index]/route.ts
+------------------------------------------------------------
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
+import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
+import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCreatorResearchDraft";
+import { generateCreatorScript } from "@/features/shopreel/creator/generateCreatorScript";
+import { generateCreatorContentOutputs } from "@/features/shopreel/creator/generateCreatorContentOutputs";
+import {
+  editorUrlForOutputType,
+  normalizeBlogLengthMode,
+  normalizeBlogStyle,
+  normalizeOutputType,
+  type OutputType,
+  type BlogStyle,
+  type BlogLengthMode,
+} from "@/features/shopreel/creator/buildCreatorOutputs";
+import type { StorySource } from "@/features/shopreel/story-sources";
+
+type Body = {
+  outputType?: OutputType;
+  blogStyle?: BlogStyle;
+  blogLengthMode?: BlogLengthMode;
+};
+
+function objectRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+export async function POST(
+  req: Request,
+  ctx: { params: Promise<{ id: string; index: string }> },
+) {
+  try {
+    const body = (await req.json().catch(() => ({}))) as Body;
+    const { id, index } = await ctx.params;
+    const angleIndex = Number(index);
+
+    if (!Number.isInteger(angleIndex) || angleIndex < 0) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid angle index" },
+        { status: 400 },
+      );
+    }
+
+    const shopId = await getCurrentShopId();
+    const supabase = createAdminClient();
+    const legacy = supabase as any;
+
+    const { data: creatorRequest, error } = await legacy
+      .from("shopreel_creator_requests")
+      .select("*")
+      .eq("id", id)
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!creatorRequest) {
+      return NextResponse.json(
+        { ok: false, error: "Creator request not found" },
+        { status: 404 },
+      );
+    }
+
+    const requestPayload = objectRecord(creatorRequest.request_payload);
+    const resultPayload = objectRecord(creatorRequest.result_payload);
+    const angles = Array.isArray(resultPayload.angles) ? resultPayload.angles : [];
+    const rawAngle = angles[angleIndex];
+
+    if (!rawAngle || typeof rawAngle !== "object" || Array.isArray(rawAngle)) {
+      return NextResponse.json(
+        { ok: false, error: "Angle not found" },
+        { status: 404 },
+      );
+    }
+
+    const angle = rawAngle as {
+      title?: string;
+      angle?: string;
+      hook?: string;
+      whyItWorks?: string;
+      suggestedCta?: string;
+    };
+
+    const outputType = normalizeOutputType(body.outputType ?? requestPayload.outputType);
+    const blogStyle = normalizeBlogStyle(body.blogStyle ?? requestPayload.blogStyle);
+    const blogLengthMode = normalizeBlogLengthMode(
+      body.blogLengthMode ?? requestPayload.blogLengthMode,
+    );
+
+    const topicBase = creatorRequest.topic ?? creatorRequest.title ?? "Creator request";
+    const topic = `${topicBase} — ${angle.title ?? `Angle ${angleIndex + 1}`}`;
+
+    const ai = await generateCreatorScript({
+      mode: creatorRequest.mode ?? "research_script",
+      topic,
+      audience: creatorRequest.audience ?? null,
+      tone: creatorRequest.tone ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      sourceText:
+        typeof requestPayload.sourceText === "string" ? requestPayload.sourceText : null,
+      sourceUrl: creatorRequest.source_url ?? null,
+    });
+
+    const now = new Date().toISOString();
+
+    const source: StorySource = {
+      id: `creator-angle:${Date.now()}`,
+      shopId,
+      title: topic,
+      description: ai.summary,
+      kind: "creator_idea",
+      origin: "creator_mode",
+      generationMode: "manual",
+      occurredAt: now,
+      startedAt: null,
+      endedAt: null,
+      projectId: null,
+      projectName: null,
+      vehicleLabel: null,
+      customerLabel: null,
+      technicianLabel: null,
+      tags: [
+        "creator_mode",
+        creatorRequest.mode ?? "research_script",
+        "derived_angle",
+        outputType,
+      ],
+      notes: ai.bullets,
+      facts: {
+        hook: angle.hook ?? ai.hook,
+        context: ai.context,
+        explanation: ai.explanation,
+        takeaway: ai.takeaway,
+        cta: angle.suggestedCta ?? ai.cta,
+        expanded_topic: ai.expandedTopic,
+      },
+      metadata: {
+        creatorMode: true,
+        creatorRequestId: creatorRequest.id,
+        derivedFromAngleIndex: angleIndex,
+        derivedFromAngleTitle: angle.title ?? null,
+        derivedFromAngleDescription: angle.angle ?? null,
+        outputType,
+        blogStyle,
+        blogLengthMode,
+      },
+      assets: [],
+      refs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const savedSource = await saveStorySource(source);
+
+    const draft = buildCreatorResearchDraft({
+      shopId,
+      sourceId: savedSource.id,
+      topic,
+      audience: creatorRequest.audience ?? null,
+      platformFocus: creatorRequest.platform_focus ?? "multi",
+      tone: creatorRequest.tone ?? "confident",
+      researchSummary: ai.summary,
+      bullets: ai.bullets,
+      hook: angle.hook ?? ai.hook,
+      contextLine: ai.context,
+      explanationLine: ai.explanation,
+      takeawayLine: ai.takeaway,
+      ctaLine: angle.suggestedCta ?? ai.cta,
+      expandedTopic: ai.expandedTopic,
+      mode: creatorRequest.mode ?? "research_script",
+    });
+
+    const contentPiece = await createContentPieceFromStoryDraft({
+      shopId,
+      draft,
+      sourceSystem: "creator_mode",
+    });
+
+    const textOutputs = await generateCreatorContentOutputs({
+      topic,
+      summary: ai.summary,
+      bullets: ai.bullets,
+      hook: angle.hook ?? ai.hook,
+      context: ai.context,
+      explanation: ai.explanation,
+      takeaway: ai.takeaway,
+      cta: angle.suggestedCta ?? ai.cta,
+      angleTitle: angle.title ?? null,
+      angleDescription: angle.angle ?? null,
+      audience: creatorRequest.audience ?? null,
+      blogStyle,
+      blogLengthMode,
+    });
+
+    const generation = await saveStoryGeneration({
+      shopId,
+      storySourceId: savedSource.id,
+      contentPieceId: contentPiece.id,
+      draft,
+      status: "draft",
+      metadata: {
+        creator_mode: true,
+        creator_mode_type: creatorRequest.mode ?? "research_script",
+        creator_request_id: creatorRequest.id,
+        output_type: outputType,
+        blog_style: blogStyle,
+        blog_length_mode: blogLengthMode,
+        text_outputs: textOutputs,
+        derived_from_angle_index: angleIndex,
+        derived_from_angle_title: angle.title ?? null,
+        derived_from_angle_description: angle.angle ?? null,
+        expanded_topic: ai.expandedTopic,
+        research_summary: ai.summary,
+        research_bullets: ai.bullets,
+      },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      generated: {
+        creatorRequestId: creatorRequest.id,
+        generationId: generation.id,
+        editorUrl: editorUrlForOutputType(outputType, generation.id),
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to create from angle";
+
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: 500 },
+    );
+  }
+}
+
+------------------------------------------------------------
+FILE: src/features/shopreel/opportunities/createOpportunities.ts
+------------------------------------------------------------
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { scoreStorySource } from "./scoreStorySource";
+import type { Json } from "@/types/supabase";
+import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
+
+function buildReason(score: number): string {
+  if (score >= 90) return "Very strong story potential";
+  if (score >= 75) return "High-value marketing opportunity";
+  if (score >= 60) return "Promising content opportunity";
+  return "Detected story opportunity";
+}
+
+export async function createOpportunities() {
+  const supabase = createAdminClient();
+  const shopId = await getCurrentShopId();
+
+  const { data: sources, error: sourceError } = await supabase
+    .from("shopreel_story_sources")
+    .select("*")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (sourceError) {
+    throw new Error(sourceError.message);
+  }
+
+  const createdOrUpdated = [];
+
+  for (const source of sources ?? []) {
+    const { data: existing } = await supabase
+      .from("shopreel_content_opportunities")
+      .select("*")
+      .eq("shop_id", shopId)
+      .eq("story_source_id", source.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const current = existing?.[0] ?? null;
+
+    if (current?.status === "dismissed" || current?.status === "generated") {
+      continue;
+    }
+
+    const score = scoreStorySource(source);
+    const reason = buildReason(score);
+
+    if (current) {
+      const currentMetadata =
+        current.metadata && typeof current.metadata === "object" && !Array.isArray(current.metadata)
+          ? (current.metadata as Record<string, Json | undefined>)
+          : {};
+
+      const { data: updated, error: updateError } = await supabase
+        .from("shopreel_content_opportunities")
+        .update({
+          score,
+          reason,
+          metadata: {
+            ...currentMetadata,
+            scoring: {
+              source_kind: source.kind,
+              source_origin: source.origin,
+              source_title: source.title,
+            },
+          },
+          status: normalizeOpportunityStatus(current.status, "ready"),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", current.id)
+        .select("*")
+        .single();
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      createdOrUpdated.push(updated);
+      continue;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("shopreel_content_opportunities")
+      .insert({
+        shop_id: shopId,
+        story_source_id: source.id,
+        score,
+        reason,
+        metadata: {
+          scoring: {
+            source_kind: source.kind,
+            source_origin: source.origin,
+            source_title: source.title,
+          },
+        },
+        status: normalizeOpportunityStatus("ready"),
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    createdOrUpdated.push(inserted);
+  }
+
+  return createdOrUpdated;
+}
+
+------------------------------------------------------------
+FILE: src/features/shopreel/creator/generateCreatorContentOutputs.ts
+------------------------------------------------------------
+import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+import type {
+  BlogLengthMode,
+  BlogStyle,
+  CreatorTextOutputs,
+} from "./buildCreatorOutputs";
+
+type Input = {
+  topic: string;
+  summary: string;
+  bullets: string[];
+  hook: string;
+  context: string;
+  explanation: string;
+  takeaway: string;
+  cta: string;
+  angleTitle?: string | null;
+  angleDescription?: string | null;
+  audience?: string | null;
+  blogStyle?: BlogStyle;
+  blogLengthMode?: BlogLengthMode;
+};
+
+type GeneratedShape = {
+  blog: CreatorTextOutputs["blog"];
+  email: CreatorTextOutputs["email"];
+  post: CreatorTextOutputs["post"];
+  vlog: CreatorTextOutputs["vlog"];
+};
+
+function cleanText(value: unknown, fallback = ""): string {
+  if (typeof value !== "string") return fallback;
+  return stripInstructionLeakage(value.trim()) || fallback;
+}
+
+function cleanStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => stripInstructionLeakage(item.trim()))
+    .filter(Boolean);
+}
+
+function stripInstructionLeakage(input: string): string {
+  let text = input;
+
+  const bannedPatterns = [
+    /SYSTEM INSTRUCTIONS[\s\S]*/gi,
+    /ARTICLE TOPIC[\s\S]*/gi,
+    /^Topic:\s.*$/gim,
+    /^Instructions:\s.*$/gim,
+    /^Structure:\s.*$/gim,
+    /^Only output.*$/gim,
+    /^Do not include.*$/gim,
+    /^Guidelines:\s*$/gim,
+    /^Write a conversational blog article.*$/gim,
+    /^Current system pipeline:.*$/gim,
+    /^The generator must never output.*$/gim,
+    /^Below are the required improvements\..*$/gim,
+    /^\d+\.\s.*$/gim,
+    /^-\s.*$/gim,
+    /^---$/gim,
+  ];
+
+  for (const pattern of bannedPatterns) {
+    text = text.replace(pattern, "");
+  }
+
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function normalizeStyle(
+  style: unknown,
+  fallback: Exclude<BlogStyle, "auto">,
+): Exclude<BlogStyle, "auto"> {
+  if (
+    style === "story_driven" ||
+    style === "educational" ||
+    style === "opinion" ||
+    style === "case_study" ||
+    style === "problem_solution"
+  ) {
+    return style;
+  }
+  return fallback;
+}
+
+function normalizeLengthMode(
+  value: unknown,
+  fallback: BlogLengthMode,
+): BlogLengthMode {
+  if (value === "short" || value === "standard" || value === "long") return value;
+  return fallback;
+}
+
+function normalizeSections(value: unknown, fallback: CreatorTextOutputs["blog"]["sections"]) {
+  if (!Array.isArray(value)) return fallback;
+
+  const sections = value
+    .map((section, index) => {
+      if (!section || typeof section !== "object" || Array.isArray(section)) return null;
+      const record = section as Record<string, unknown>;
+
+      const title = cleanText(record.title, `Section ${index + 1}`);
+      const body = cleanText(record.body, "");
+
+      if (!body) return null;
+
+      return {
+        key:
+          typeof record.key === "string" && record.key.trim().length > 0
+            ? record.key.trim()
+            : `section_${index + 1}`,
+        title,
+        body,
+      };
+    })
+    .filter(
+      (section): section is { key: string; title: string; body: string } => !!section,
+    );
+
+  return sections.length > 0 ? sections : fallback;
+}
+
+function deterministicStyle(input: Input): Exclude<BlogStyle, "auto"> {
+  if (
+    input.blogStyle &&
+    input.blogStyle !== "auto" &&
+    input.blogStyle !== undefined
+  ) {
+    return input.blogStyle;
+  }
+
+  const seed = `${input.topic}:${input.angleTitle ?? ""}:${input.angleDescription ?? ""}`;
+  const total = Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const styles: Array<Exclude<BlogStyle, "auto">> = [
+    "story_driven",
+    "educational",
+    "opinion",
+    "case_study",
+    "problem_solution",
+  ];
+
+  return styles[total % styles.length] ?? "story_driven";
+}
+
+function fallbackOutputs(input: Input): GeneratedShape {
+  const style = deterministicStyle(input);
+  const lengthMode = input.blogLengthMode ?? "standard";
+  const title = (input.angleTitle ?? input.topic).trim() || "Generated blog";
+  const intro =
+    style === "story_driven"
+      ? `Picture a technician finishing a job, wiping their hands, and then walking back to a computer that slows everything down. That is what this topic really comes back to: ${input.summary}`
+      : `${input.summary} ${input.context}`.trim();
+
+  const blogSections: CreatorTextOutputs["blog"]["sections"] = [
+    {
+      key: "intro",
+      title: "Intro",
+      body: intro,
+    },
+    {
+      key: "section_1",
+      title: "What is happening",
+      body: input.context,
+    },
+    {
+      key: "section_2",
+      title: "Why it matters",
+      body: input.explanation,
+    },
+    {
+      key: "section_3",
+      title: "The takeaway",
+      body: input.takeaway,
+    },
+    {
+      key: "cta",
+      title: "Conclusion",
+      body: input.cta,
+    },
+  ];
+
+  return {
+    blog: {
+      title,
+      style,
+      lengthMode,
+      body: blogSections.map((section, index) => {
+        if (index === 0) return section.body;
+        return `## ${section.title}\n\n${section.body}`;
+      }).join("\n\n"),
+      sections: blogSections,
+    },
+    email: {
+      subject: title,
+      body: [input.hook, input.summary, input.explanation, input.cta]
+        .filter(Boolean)
+        .join("\n\n"),
+      sections: [
+        { key: "intro", title: "Intro", body: input.hook },
+        { key: "section_1", title: "Main point", body: input.summary },
+        { key: "section_2", title: "Details", body: input.explanation },
+        { key: "cta", title: "Closing", body: input.cta },
+      ],
+    },
+    post: {
+      title,
+      body: [input.hook, input.angleDescription ?? input.summary, input.takeaway, input.cta]
+        .filter(Boolean)
+        .join("\n\n"),
+      sections: [
+        { key: "hook", title: "Hook", body: input.hook },
+        {
+          key: "body",
+          title: "Body",
+          body: [input.angleDescription ?? "", input.summary, input.takeaway]
+            .filter(Boolean)
+            .join(" "),
+        },
+        { key: "cta", title: "CTA", body: input.cta },
+      ],
+    },
+    vlog: {
+      title,
+      hook: input.hook,
+      talkingPoints: [input.summary, input.context, input.explanation, input.takeaway]
+        .filter(Boolean)
+        .slice(0, 5),
+      bRoll: [
+        "Opening talking-head shot",
+        "Relevant shop floor detail shots",
+        "Process footage",
+        "Finished result or supporting visual",
+      ],
+      sceneOrder: [
+        { title: "Hook", description: input.hook, durationLabel: "0-5s" },
+        { title: "Scene 1", description: input.context, durationLabel: "5-20s" },
+        { title: "Scene 2", description: input.explanation, durationLabel: "20-40s" },
+        { title: "Scene 3", description: input.takeaway, durationLabel: "40-55s" },
+        { title: "Closing CTA", description: input.cta, durationLabel: "55-60s" },
+      ],
+      closingCta: input.cta,
+      script: [input.hook, input.context, input.explanation, input.takeaway, input.cta]
+        .filter(Boolean)
+        .join("\n\n"),
+    },
+  };
+}
+
+export async function generateCreatorContentOutputs(
+  input: Input,
+): Promise<CreatorTextOutputs> {
+  const fallback = fallbackOutputs(input);
+  const style = deterministicStyle(input);
+  const lengthMode = input.blogLengthMode ?? "standard";
+
+  const response = await openai.chat.completions.create({
+    model: SHOPREEL_AI_MODELS.text,
+
+------------------------------------------------------------
+FILE: src/features/shopreel/creator/generateCreatorScript.ts
+------------------------------------------------------------
+import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+
+export type CreatorMode =
+  | "research_script"
+  | "angle_pack"
+  | "debunk"
+  | "stitch";
+
+export type CreatorAngle = {
+  title: string;
+  angle: string;
+  hook: string;
+  whyItWorks: string;
+  suggestedCta: string;
+};
+
+export type CreatorScriptInput = {
+  mode?: CreatorMode;
+  topic: string;
+  audience?: string | null;
+  tone?: string | null;
+  platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi" | null;
+  sourceText?: string | null;
+  sourceUrl?: string | null;
+};
+
+export type CreatorScriptResult = {
+  mode: CreatorMode;
+  expandedTopic: string;
+  hook: string;
+  context: string;
+  explanation: string;
+  takeaway: string;
+  cta: string;
+  summary: string;
+  bullets: string[];
+  angles: CreatorAngle[];
+};
+
+function buildExpandedTopic(input: CreatorScriptInput): string {
+  const base = input.topic.trim();
+
+  if (!base) return "Creator topic";
+
+  if (/iphone\s*18/i.test(base)) {
+    return "iPhone 18 leaks, Apple hardware rumors, design changes, AI features, release expectations, and what appears credible so far";
+  }
+
+  if (/apple/i.test(base)) {
+    return "Apple rumors, device leaks, feature expectations, launch timing, and what appears credible so far";
+  }
+
+  return base;
+}
+
+function fallbackAngles(input: CreatorScriptInput): CreatorAngle[] {
+  const expanded = buildExpandedTopic(input);
+
+  return [
+    {
+      title: "Fast rumor breakdown",
+      angle: `Quick update on ${expanded}`,
+      hook: `Here’s the latest on ${input.topic}.`,
+      whyItWorks: "Fast, broad, easy to publish.",
+      suggestedCta: "Follow for the next update.",
+    },
+    {
+      title: "What looks credible",
+      angle: `Separate strong signals from weak rumors around ${expanded}`,
+      hook: `Not every rumor about ${input.topic} is real — here’s what actually looks credible.`,
+      whyItWorks: "Trust-building, informative, strong retention.",
+      suggestedCta: "Comment which rumor you think is real.",
+    },
+    {
+      title: "Why this matters",
+      angle: `Explain why ${expanded} matters for buyers or viewers`,
+      hook: `Here’s why these ${input.topic} rumors actually matter.`,
+      whyItWorks: "Useful angle with broader appeal.",
+      suggestedCta: "Save this for later.",
+    },
+    {
+      title: "Debunk the wild claims",
+      angle: `Push back on exaggerated claims around ${expanded}`,
+      hook: `Some of the rumors around ${input.topic} are getting out of hand.`,
+      whyItWorks: "High engagement and corrective framing.",
+      suggestedCta: "Send me the wildest rumor you’ve seen.",
+    },
+  ];
+}
+
+function fallbackCreatorScript(input: CreatorScriptInput): CreatorScriptResult {
+  const topic = input.topic.trim();
+  const mode = input.mode ?? "research_script";
+  const expandedTopic = buildExpandedTopic(input);
+  const angles = fallbackAngles(input);
+
+  if (mode === "debunk") {
+    return {
+      mode,
+      expandedTopic,
+      hook: `A lot of people are saying this about ${topic} — but that claim does not really hold up.`,
+      context: input.sourceText?.trim() || `This rumor is spreading quickly around ${topic}.`,
+      explanation: "The strongest parts of the claim are weak, missing context, or unsupported.",
+      takeaway: "The better move is to separate attention-grabbing rumor from what can actually be supported.",
+      cta: "Send me more claims to fact-check.",
+      summary: `Debunk-style creator script for ${topic}.`,
+      bullets: [
+        `Main claim circulating about ${topic}`,
+        "Where the claim becomes weak or unsupported",
+        "What viewers should believe instead",
+      ],
+      angles,
+    };
+  }
+
+  if (mode === "stitch") {
+    return {
+      mode,
+      expandedTopic,
+      hook: `I saw a take about ${topic}, and here’s my response.`,
+      context: input.sourceText?.trim() || `This is the original claim or talking point around ${topic}.`,
+      explanation: "Here is the part that deserves a direct response, correction, or better context.",
+      takeaway: "A strong stitch does not just react — it improves the conversation.",
+      cta: "Drop another take you want me to respond to.",
+      summary: `Stitch-response creator script for ${topic}.`,
+      bullets: [
+        `Original take about ${topic}`,
+        "Best response angle",
+        "Why the response is worth posting",
+      ],
+      angles,
+    };
+  }
+
+  return {
+    mode,
+    expandedTopic,
+    hook: `${topic} — here’s what you need to know.`,
+    context: `Here is the main conversation happening around ${expandedTopic}.`,
+    explanation: "Here is what looks credible, what still sounds uncertain, and what people should pay attention to.",
+    takeaway: "The real takeaway is what changes for the viewer, buyer, or follower.",
+    cta: "Follow for more updates, and check back for the next breakdown.",
+    summary: `Fast breakdown of ${expandedTopic} for short-form creator content.`,
+    bullets: [
+      `What people are saying about ${expandedTopic}`,
+      "Which claims appear strongest right now",
+      "Why this matters for viewers",
+    ],
+    angles,
+  };
+}
+
+function safeString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function safeBullets(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback;
+
+  const cleaned = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+function safeAngles(value: unknown, fallback: CreatorAngle[]): CreatorAngle[] {
+  if (!Array.isArray(value)) return fallback;
+
+  const cleaned = value
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const record = item as Record<string, unknown>;
+
+      return {
+        title: safeString(record.title, ""),
+        angle: safeString(record.angle, ""),
+        hook: safeString(record.hook, ""),
+        whyItWorks: safeString(record.whyItWorks, ""),
+        suggestedCta: safeString(record.suggestedCta, ""),
+      };
+    })
+    .filter(
+      (item): item is CreatorAngle =>
+        !!item &&
+        !!item.title &&
+        !!item.angle &&
+        !!item.hook &&
+        !!item.whyItWorks &&
+        !!item.suggestedCta,
+    )
+    .slice(0, 8);
+
+  return cleaned.length > 0 ? cleaned : fallback;
+}
+
+export async function generateCreatorScript(
+  input: CreatorScriptInput,
+): Promise<CreatorScriptResult> {
+  const normalized: CreatorScriptInput = {
+    ...input,
+    mode: input.mode ?? "research_script",
+  };
+
+  const fallback = fallbackCreatorScript(normalized);
+
+  const response = await openai.chat.completions.create({
+    model: SHOPREEL_AI_MODELS.text,
+    temperature: 0.7,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "creator_script_expansion",
+        strict: true,
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            mode: {
+              type: "string",
+              enum: ["research_script", "angle_pack", "debunk", "stitch"],
+            },
+            expandedTopic: { type: "string" },
+            hook: { type: "string" },
+            context: { type: "string" },
+            explanation: { type: "string" },
+            takeaway: { type: "string" },
+            cta: { type: "string" },
+            summary: { type: "string" },
+            bullets: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 3,
+              maxItems: 6,
+            },
+            angles: {
+              type: "array",
+              minItems: 4,
+              maxItems: 8,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  title: { type: "string" },
+                  angle: { type: "string" },
+                  hook: { type: "string" },
+                  whyItWorks: { type: "string" },
+                  suggestedCta: { type: "string" },
+                },
+                required: ["title", "angle", "hook", "whyItWorks", "suggestedCta"],
+              },
+            },
+          },
+          required: [
+            "mode",
+            "expandedTopic",
+            "hook",
+
+------------------------------------------------------------
+FILE: src/features/shopreel/hooks/generateHooks.ts
+------------------------------------------------------------
+import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+
+export async function generateHooks(contentType: string, vehicle?: string) {
+  const prompt = `
+Generate 10 viral short-form video hooks for an auto repair shop.
+
+Content type: ${contentType}
+Vehicle: ${vehicle ?? "generic vehicle"}
+
+Hooks must:
+- grab attention in first 2 seconds
+- be short
+- be curiosity driven
+
+Return JSON array.
+`;
+
+  const response = await openai.responses.create({
+    model: SHOPREEL_AI_MODELS.text,
+    input: prompt,
+  });
+
+  const text = response.output_text;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text.split("\n").filter(Boolean);
+  }
+}
+
+------------------------------------------------------------
+FILE: src/features/shopreel/hooks/generateViralHooks.ts
+------------------------------------------------------------
+import OpenAI from "openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+type HookResult = {
+  hook: string;
+  scorePredicted: number;
+};
+
+function fallbackHooks(subject: string): HookResult[] {
+  return [
+    { hook: `You would never guess what we found on this ${subject}.`, scorePredicted: 78 },
+    { hook: `This ${subject} came in with a small issue. It was not small.`, scorePredicted: 81 },
+    { hook: `Here’s what actually happened when this ${subject} hit the shop.`, scorePredicted: 76 },
+    { hook: `Most drivers miss this warning sign until it gets expensive.`, scorePredicted: 84 },
+    { hook: `This repair tells the whole story in under 30 seconds.`, scorePredicted: 73 },
+  ];
+}
+
+export async function generateViralHooks(subject: string, contentType: string) {
+  try {
+    const response = await openai.responses.create({
+      model: SHOPREEL_AI_MODELS.text,
+      input: [
+        {
+          role: "system",
+          content:
+            "Generate 5 strong short-form video hooks for an automotive repair shop. Return strict JSON only.",
+        },
+        {
+          role: "user",
+          content: `Subject: ${subject}\nContent type: ${contentType}\nReturn: [{"hook":"string","scorePredicted":0}]`,
+        },
+      ],
+    });
+
+    const raw = JSON.parse(response.output_text) as unknown;
+    if (!Array.isArray(raw)) {
+      return fallbackHooks(subject);
+    }
+
+    const hooks = raw
+      .filter((row): row is { hook?: unknown; scorePredicted?: unknown } => typeof row === "object" && row !== null)
+      .map((row) => ({
+        hook: typeof row.hook === "string" ? row.hook : "Real work. Real findings. Real repairs.",
+        scorePredicted:
+          typeof row.scorePredicted === "number" ? row.scorePredicted : 70,
+      }))
+      .slice(0, 5);
+
+    return hooks.length > 0 ? hooks : fallbackHooks(subject);
+  } catch {
+    return fallbackHooks(subject);
+  }
+}
+
+============================================================
+6) GIT STATUS
+============================================================
+ M tsconfig.tsbuildinfo

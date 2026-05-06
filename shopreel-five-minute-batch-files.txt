@@ -1,0 +1,2831 @@
+
+============================================================
+FILE: src/app/shopreel/create/page.tsx
+============================================================
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+import { DEFAULT_SHOPREEL_PLATFORM_IDS, SHOPREEL_PLATFORM_PRESETS, type ShopReelPlatformId } from "@/features/shopreel/platforms/presets";
+
+type UploadFileMeta = { file: File; fileType: "image" | "video" };
+
+type CreatePrefillPayload = {
+  prompt?: string;
+  audience?: string;
+  contentType?: string;
+  source?: string;
+  angleTitle?: string;
+  angleHook?: string;
+  angleCta?: string;
+  createdAt?: number;
+};
+const CONTENT_TYPES = [
+  { title: "Short-form video", description: "Reels, Shorts, TikToks, launch clips, and founder moments." },
+  { title: "Social post", description: "Hooks, captions, carousels, and CTA-led static content." },
+  { title: "Blog post", description: "Long-form drafts from notes, product media, or transcripts." },
+  { title: "Campaign bundle", description: "Multi-channel assets with one audience and one message." },
+  { title: "Repurpose content", description: "Convert one source file into many content formats." },
+  { title: "Custom", description: "Describe exactly what outcome you want from ShopReel." },
+] as const;
+
+function detectFileType(file: File): "image" | "video" {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  throw new Error(`Unsupported file type: ${file.type}`);
+}
+
+export default function ShopReelCreatePage() {
+  const router = useRouter();
+  const [prompt, setPrompt] = useState("");
+  const [audience, setAudience] = useState("");
+  const [files, setFiles] = useState<UploadFileMeta[]>([]);
+  const [platformIds, setPlatformIds] = useState<ShopReelPlatformId[]>(DEFAULT_SHOPREEL_PLATFORM_IDS);
+  const [selectedContentType, setSelectedContentType] = useState<string>("Short-form video");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const [prefillNotice, setPrefillNotice] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const storedRaw = window.localStorage.getItem("shopreel:createPrefill");
+
+    let stored: CreatePrefillPayload | null = null;
+    if (storedRaw) {
+      try {
+        stored = JSON.parse(storedRaw) as CreatePrefillPayload;
+      } catch {
+        stored = null;
+      }
+    }
+
+    const promptFromParams = params.get("prompt");
+    const audienceFromParams = params.get("audience");
+    const contentTypeFromParams = params.get("contentType");
+    const sourceFromParams = params.get("source");
+
+    const nextPrompt = promptFromParams || stored?.prompt || "";
+    const nextAudience = audienceFromParams || stored?.audience || "";
+    const nextContentType = contentTypeFromParams || stored?.contentType || "";
+
+    if (nextPrompt && !prompt.trim()) {
+      setPrompt(nextPrompt);
+    }
+
+    if (nextAudience && !audience.trim()) {
+      setAudience(nextAudience);
+    }
+
+    if (nextContentType && CONTENT_TYPES.some((item) => item.title === nextContentType)) {
+      setSelectedContentType(nextContentType);
+    }
+
+    const source = sourceFromParams || stored?.source;
+    if (nextPrompt && source === "ideas") {
+      setPrefillNotice("Loaded from Ideas Chat. Upload media, confirm platforms, and generate the draft.");
+    }
+  }, [audience, prompt]);
+
+  function onSelectFiles(fileList: FileList | null) { if (!fileList?.length) return; const next: UploadFileMeta[] = []; let unsupportedCount = 0; for (const file of Array.from(fileList)) { if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) { unsupportedCount += 1; continue; } next.push({ file, fileType: detectFileType(file) }); } setFiles(next); setUploadNotice(unsupportedCount > 0 ? `${unsupportedCount} unsupported file${unsupportedCount === 1 ? "" : "s"} skipped. Use images or videos only.` : null); }
+  function togglePlatform(platformId: ShopReelPlatformId) { setPlatformIds((current) => current.includes(platformId) ? current.filter((id) => id !== platformId) : [...current, platformId]); }
+
+  async function uploadAssetAndFiles() {
+    const assetType = files.some((f) => f.fileType === "video") ? (files.some((f) => f.fileType === "image") ? "mixed" : "video") : "image";
+    const createRes = await fetch("/api/shopreel/manual-assets/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: prompt.slice(0, 120) || "ShopReel create upload", description: prompt, note: `Prompt-first create flow (${platformIds.join(",")})`, assetType, contentGoal: "promotion", platformTargets: platformIds, tags: ["shopreel_create", selectedContentType.toLowerCase().replaceAll(" ", "_")] }) });
+    const createJson = await createRes.json(); if (!createRes.ok) throw new Error(createJson.error ?? "Failed to create media asset");
+    const assetId: string = createJson.assetId; const uploadedFiles = [];
+    for (const item of files) {
+      const signRes = await fetch("/api/shopreel/manual-assets/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assetId, fileName: item.file.name, mimeType: item.file.type, sizeBytes: item.file.size }) });
+      const signJson = await signRes.json(); if (!signRes.ok) throw new Error(signJson.error ?? "Failed to sign upload");
+      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/upload/sign/shopreel-media/${signJson.path}?token=${signJson.token}`, { method: "PUT", headers: { "Content-Type": item.file.type, "x-upsert": "false" }, body: item.file });
+      if (!uploadRes.ok) throw new Error(`Upload failed for ${item.file.name}`);
+      uploadedFiles.push({ filePath: signJson.path, fileName: item.file.name, fileType: item.fileType, mimeType: item.file.type, sizeBytes: item.file.size });
+    }
+    const completeRes = await fetch("/api/shopreel/manual-assets/complete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assetId, files: uploadedFiles.map((f, index) => ({ ...f, sortOrder: index })) }) });
+    const completeJson = await completeRes.json(); if (!completeRes.ok) throw new Error(completeJson.error ?? "Failed to finalize upload");
+    return assetId;
+  }
+
+  async function handleSubmit() {
+    try {
+      setError(null); setIsSubmitting(true);
+      if (!prompt.trim()) throw new Error("Prompt is required");
+      if (!files.length) throw new Error("Upload at least one photo or video");
+      if (!platformIds.length) throw new Error("Select at least one platform");
+      const manualAssetId = await uploadAssetAndFiles();
+      const createRes = await fetch("/api/shopreel/create/from-idea", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, audience, platformIds, manualAssetId, contentType: selectedContentType }) });
+      const createJson = await createRes.json();
+      if (!createRes.ok || !createJson.ok) throw new Error(createJson.error ?? "Failed to create draft");
+      router.push(createJson.reviewUrl ?? `/shopreel/review/${createJson.generationId}`);
+    } catch (err) { setError(err instanceof Error ? err.message : "Failed to create"); }
+    finally { setIsSubmitting(false); }
+  }
+
+  return (
+    <GlassShell eyebrow="Create" title="Create your next piece of content" subtitle="Guided studio flow: choose format, upload media, brief AI, select channels, then generate draft.">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="space-y-4">
+          {prefillNotice ? (
+            <div className="rounded-2xl border border-cyan-300/25 bg-cyan-400/[0.07] px-4 py-3 text-sm text-cyan-50">
+              {prefillNotice}
+            </div>
+          ) : null}
+          <section className="rounded-[30px] border border-violet-300/25 bg-[radial-gradient(circle_at_12%_0%,rgba(122,92,255,0.34),transparent_40%),linear-gradient(140deg,rgba(8,12,29,0.95),rgba(7,11,26,0.86))] p-5">
+            <div className="text-xs tracking-[0.2em] text-cyan-100/65">GUIDED STUDIO</div>
+            <h2 className="mt-2 text-2xl font-semibold text-white md:text-3xl">Build from one brief to one generated draft</h2>
+            <p className="mt-2 text-sm text-white/75">Upload source media, describe the outcome, set audience and channels, then hand off to review.</p>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mb-3 text-sm font-semibold text-white">Step 1 · Choose format</div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {CONTENT_TYPES.map((type) => {
+                const selected = selectedContentType === type.title;
+                return (
+                  <button key={type.title} type="button" onClick={() => setSelectedContentType(type.title)} className={cx("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", selected ? "border-violet-300/35 bg-violet-500/12 shadow-[0_10px_35px_rgba(94,71,255,0.22)]" : "border-white/10 bg-black/20", glassTheme.text.primary)}>
+                    <div className="text-sm font-semibold">{type.title}</div>
+                    <p className="mt-2 text-xs leading-5 text-white/70">{type.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mb-3 text-sm font-semibold text-white">Step 2 · Upload media</div>
+            <label className="block cursor-pointer rounded-3xl border border-dashed border-violet-300/35 bg-black/25 p-5">
+              <div className="text-lg font-semibold text-white">Drop media or choose files</div>
+              <div className="mt-1 text-sm text-white/70">Photos and videos are used as source truth for generation quality.</div>
+              <div className="mt-1 text-xs text-cyan-100/75">Best for screenshot-led launches (PayProof, SaaS, app updates), offers, and creator-brand campaigns.</div>
+              <div className="mt-4 inline-flex rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2 text-sm text-white">Choose files</div>
+              <input type="file" multiple accept="image/*,video/*" onChange={(e) => onSelectFiles(e.target.files)} className="sr-only" />
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/70">
+              <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5">{files.length} files selected</span>
+              {files.slice(0, 4).map((item) => <span key={`${item.file.name}-${item.file.size}`} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5">{item.file.name}</span>)}
+            </div>
+            {uploadNotice ? <div className="mt-2 text-xs text-amber-200">{uploadNotice}</div> : null}
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mb-3 text-sm font-semibold text-white">Step 3 · Describe outcome</div>
+            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Create a 30-second product launch reel for Instagram with upbeat music, captions, and a strong opening hook." className="min-h-32 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-white outline-none placeholder:text-white/45 focus:border-violet-300/40" />
+            <input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Audience: founders, creators, local shoppers, B2B marketers..." className="mt-3 w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-cyan-300/40" />
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mb-3 text-sm font-semibold text-white">Step 4 · Choose platforms</div>
+            <p className="mb-3 text-xs text-white/65">For this MVP, select Instagram and Facebook to generate platform-specific post copy you can review, copy, and download.</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {SHOPREEL_PLATFORM_PRESETS.map((platform) => {
+                const selected = platformIds.includes(platform.id);
+                return (
+                  <label key={platform.id} className={cx("flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition", selected ? "border-cyan-300/35 bg-cyan-500/12 text-white" : "border-white/10 bg-black/20 text-white/85")}>
+                    <span>{platform.label}</span>
+                    <input type="checkbox" checked={selected} onChange={() => togglePlatform(platform.id)} className="h-4 w-4" />
+                  </label>
+                );
+              })}
+            </div>
+            {error ? <div className="mt-4 rounded-xl border border-rose-300/35 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
+            <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="mt-4 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_35px_rgba(99,82,255,0.4)] disabled:opacity-70">{isSubmitting ? "Generating draft..." : "Generate draft"}</button>
+          </section>
+        </section>
+
+        <aside className="space-y-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-sm font-semibold text-white">Brief summary</div>
+            <div className="mt-3 space-y-2 text-sm text-white/75">
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Format: {selectedContentType}</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Files: {files.length}</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Platforms: {platformIds.length}</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Audience: {audience || "Not set"}</div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-sm font-semibold text-white">Tips for stronger output</div>
+            <div className="mt-3 space-y-2 text-sm text-white/70">
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Lead with one clear outcome and one CTA.</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Use creator-style pacing cues (hook, proof, close).</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Keep prompt specific to platform behavior.</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </GlassShell>
+  );
+}
+
+============================================================
+FILE: src/app/api/shopreel/create/from-idea/route.ts
+============================================================
+import { NextResponse } from "next/server";
+import crypto from "crypto";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import {
+  DEFAULT_SHOPREEL_PLATFORM_IDS,
+  SHOPREEL_PLATFORM_PRESETS,
+  type ShopReelPlatformId,
+} from "@/features/shopreel/platforms/presets";
+import { getEditorPath } from "@/features/shopreel/lib/editorPaths";
+import { openai } from "@/features/ai/server/openai";
+import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+import {
+  assertManualAssetAccess,
+  buildCreativeBrief,
+  extractScreenshotContext,
+  type CreativeBrief,
+} from "@/features/shopreel/manual/lib/creativeBrief";
+
+type Body = {
+  idea?: string;
+  prompt?: string;
+  audience?: string;
+  platformFocus?: "instagram" | "tiktok" | "youtube" | "facebook" | "multi";
+  tone?: "professional" | "educational" | "friendly" | "direct" | "confident" | "high-energy";
+  platformIds?: ShopReelPlatformId[];
+  manualAssetId?: string | null;
+};
+
+type PlatformOutput = {
+  hook: string;
+  body: string;
+  cta: string;
+  caption: string;
+  hashtags: string[];
+};
+
+type GeneratedDraftPayload = {
+  title: string;
+  hook: string;
+  summary: string;
+  cta: string;
+  caption: string;
+  scriptText: string;
+  voiceoverText: string;
+  platformOutputs: Partial<Record<ShopReelPlatformId, PlatformOutput>>;
+  alternateHooks: string[];
+};
+
+const PLATFORM_ID_SET = new Set<ShopReelPlatformId>(
+  SHOPREEL_PLATFORM_PRESETS.map((platform) => platform.id),
+);
+
+function makeId(prefix: string) {
+  return `${prefix}:${crypto.randomUUID()}`;
+}
+
+function similarity(a: string, b: string): number {
+  const aTokens = new Set(a.toLowerCase().split(/\W+/).filter(Boolean));
+  const bTokens = new Set(b.toLowerCase().split(/\W+/).filter(Boolean));
+  if (!aTokens.size || !bTokens.size) return 0;
+
+  let overlap = 0;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) overlap += 1;
+  }
+
+  return overlap / Math.max(aTokens.size, bTokens.size);
+}
+
+function asString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function normalizePlatformOutput(value: unknown, fallback: PlatformOutput): PlatformOutput {
+  const record = asRecord(value);
+  return {
+    hook: asString(record.hook, fallback.hook),
+    body: asString(record.body, fallback.body),
+    cta: asString(record.cta, fallback.cta),
+    caption: asString(record.caption, fallback.caption),
+    hashtags: asStringArray(record.hashtags),
+  };
+}
+
+function normalizeGeneratedPayload(value: unknown, brief: CreativeBrief, platformIds: ShopReelPlatformId[]): GeneratedDraftPayload {
+  const record = asRecord(value);
+  const fallbackHook = brief.alternateHooks[0] ?? "Turn proof into confidence.";
+  const fallbackCta = brief.ctaGoal || "Learn more.";
+  const fallbackCaption = `${brief.positioningSummary}\n\n${fallbackCta}`;
+
+  const platformOutputsRaw = asRecord(record.platformOutputs);
+  const platformOutputs: Partial<Record<ShopReelPlatformId, PlatformOutput>> = {};
+
+  for (const platformId of platformIds) {
+    const isInstagram = platformId === "instagram_reels";
+    const fallback: PlatformOutput = {
+      hook: fallbackHook,
+      body: isInstagram
+        ? `${brief.primaryValueProp} ${brief.emotionalPromise}`.trim()
+        : `${brief.positioningSummary} ${brief.primaryValueProp}`.trim(),
+      cta: fallbackCta,
+      caption: fallbackCaption,
+      hashtags: isInstagram ? ["#contentmarketing", "#productlaunch", "#smallbusiness"] : [],
+    };
+    platformOutputs[platformId] = normalizePlatformOutput(platformOutputsRaw[platformId], fallback);
+  }
+
+  return {
+    title: asString(record.title, brief.productName),
+    hook: asString(record.hook, fallbackHook),
+    summary: asString(record.summary, brief.positioningSummary),
+    cta: asString(record.cta, fallbackCta),
+    caption: asString(record.caption, fallbackCaption),
+    scriptText: asString(record.scriptText, brief.positioningSummary),
+    voiceoverText: asString(record.voiceoverText, brief.positioningSummary),
+    platformOutputs,
+    alternateHooks: asStringArray(record.alternateHooks).length > 0
+      ? asStringArray(record.alternateHooks)
+      : brief.alternateHooks,
+  };
+}
+
+async function generateDraftFromBrief(input: {
+  idea: string;
+  audience: string;
+  platformIds: ShopReelPlatformId[];
+  tone: string;
+  brief: CreativeBrief;
+  shopId: string;
+  sourceId: string;
+  platformFocus: NonNullable<Body["platformFocus"]>;
+}) {
+  const response = await openai.responses.create({
+    model: SHOPREEL_AI_MODELS.text,
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text:
+              "Return JSON only. Create launch-ready social copy from the creative brief. " +
+              "Do not repeat the original user prompt verbatim. Write original polished marketing copy. " +
+              "Instagram and Facebook must be meaningfully different when both are requested. " +
+              "Instagram should be hook-first, punchy, shorter, CTA-forward, and include hashtags. " +
+              "Facebook should be more explanatory, practical, trust-building, and use fewer or no hashtags. " +
+              "Use screenshot context as factual support only. Do not invent unsupported product features.",
+          },
+          { type: "input_text", text: `Original user prompt, for context only: ${input.idea}` },
+          { type: "input_text", text: `Creative brief: ${JSON.stringify(input.brief)}` },
+          { type: "input_text", text: `Requested platform IDs: ${input.platformIds.join(", ")}` },
+        ],
+      },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: "manual_copy",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            title: { type: "string" },
+            hook: { type: "string" },
+            summary: { type: "string" },
+            cta: { type: "string" },
+            caption: { type: "string" },
+            scriptText: { type: "string" },
+            voiceoverText: { type: "string" },
+            platformOutputs: {
+              type: "object",
+              additionalProperties: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  hook: { type: "string" },
+                  body: { type: "string" },
+                  cta: { type: "string" },
+                  caption: { type: "string" },
+                  hashtags: { type: "array", items: { type: "string" } },
+                },
+                required: ["hook", "body", "cta", "caption", "hashtags"],
+              },
+            },
+            alternateHooks: { type: "array", items: { type: "string" } },
+          },
+          required: [
+            "title",
+            "hook",
+            "summary",
+            "cta",
+            "caption",
+            "scriptText",
+            "voiceoverText",
+            "platformOutputs",
+            "alternateHooks",
+          ],
+        },
+      },
+    },
+  });
+
+  let parsed: GeneratedDraftPayload;
+  try {
+    parsed = normalizeGeneratedPayload(JSON.parse(response.output_text || "{}") as unknown, input.brief, input.platformIds);
+  } catch {
+    parsed = normalizeGeneratedPayload({}, input.brief, input.platformIds);
+  }
+
+  if (similarity(parsed.hook, input.idea) > 0.72 || similarity(parsed.caption, input.idea) > 0.72) {
+    parsed.hook = input.brief.alternateHooks[0] ?? "Your work deserves proof.";
+    parsed.caption = `${input.brief.positioningSummary}\n\n${input.brief.ctaGoal}`.trim();
+  }
+
+  const instagram = parsed.platformOutputs.instagram_reels;
+  const facebook = parsed.platformOutputs.facebook_reels;
+  if (
+    instagram &&
+    facebook &&
+    similarity(
+      `${instagram.hook} ${instagram.body} ${instagram.caption}`,
+      `${facebook.hook} ${facebook.body} ${facebook.caption}`,
+    ) > 0.8
+  ) {
+    parsed.platformOutputs.facebook_reels = {
+      ...facebook,
+      body: `${facebook.body}\n\nFor teams and technicians, the value is simple: clearer records, fewer payday surprises, and a practical way to talk through missing pay with evidence.`,
+      hashtags: [],
+    };
+  }
+
+  const targetChannels =
+    input.platformFocus === "instagram"
+      ? ["instagram_reel"]
+      : input.platformFocus === "tiktok"
+        ? ["tiktok_video"]
+        : input.platformFocus === "youtube"
+          ? ["youtube_short"]
+          : input.platformFocus === "facebook"
+            ? ["facebook_video"]
+            : ["instagram_reel", "tiktok_video", "youtube_short", "facebook_video"];
+
+  return {
+    id: makeId("draft"),
+    shopId: input.shopId,
+    sourceId: input.sourceId,
+    sourceKind: "creator_idea",
+    title: parsed.title,
+    hook: parsed.hook,
+    caption: parsed.caption,
+    cta: parsed.cta,
+    hashtags: [],
+    tone: input.tone,
+    targetChannels,
+    targetDurationSeconds: 21,
+    summary: parsed.summary,
+    voiceoverText: parsed.voiceoverText,
+    scriptText: parsed.scriptText,
+    scenes: [],
+    metadata: {
+      creatorMode: true,
+      audience: input.audience.trim() || null,
+      platformFocus: input.platformFocus,
+      sourceOrigin: "creator_mode",
+      creativeBrief: input.brief,
+      positioningSummary: input.brief.positioningSummary,
+      alternateHooks: parsed.alternateHooks,
+    },
+    platformOutputs: parsed.platformOutputs,
+  };
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json()) as Body;
+    const idea = (body.prompt ?? body.idea ?? "").trim();
+    const audience = body.audience?.trim() ?? "";
+
+    if (!idea) {
+      return NextResponse.json({ ok: false, error: "prompt is required" }, { status: 400 });
+    }
+
+    const authSupabase = await createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await authSupabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { ok: false, error: "Please sign in to create content." },
+        { status: 401 },
+      );
+    }
+
+    let shopId: string | null = null;
+    try {
+      shopId = await getCurrentShopId();
+    } catch {
+      shopId = null;
+    }
+
+    const supabase = createAdminClient();
+    const submittedPlatformIds = body.platformIds ?? [];
+    const platformIds = submittedPlatformIds.filter((id): id is ShopReelPlatformId =>
+      PLATFORM_ID_SET.has(id),
+    );
+    const normalizedPlatformIds =
+      platformIds.length > 0 ? platformIds : DEFAULT_SHOPREEL_PLATFORM_IDS;
+
+    if (body.manualAssetId) {
+      await assertManualAssetAccess({
+        manualAssetId: body.manualAssetId,
+        userId: user.id,
+        shopId,
+      });
+    }
+
+    const now = new Date().toISOString();
+    const sourceId = crypto.randomUUID();
+    const contentPieceId = shopId ? crypto.randomUUID() : null;
+    const generationId = crypto.randomUUID();
+
+    const screenshotContext = body.manualAssetId
+      ? await extractScreenshotContext({
+          manualAssetId: body.manualAssetId,
+          userId: user.id,
+          shopId,
+        }).catch(() => null)
+      : null;
+
+    const creativeBrief = await buildCreativeBrief({
+      prompt: idea,
+      audience,
+      platformIds: normalizedPlatformIds,
+      tone: body.tone ?? "confident",
+      screenshotContext,
+    });
+
+    const draft = await generateDraftFromBrief({
+      shopId: shopId ?? user.id,
+      sourceId,
+      idea,
+      audience,
+      tone: body.tone ?? "confident",
+      platformFocus: body.platformFocus ?? "multi",
+      platformIds: normalizedPlatformIds,
+      brief: creativeBrief,
+    });
+
+============================================================
+FILE: src/app/shopreel/review/[id]/page.tsx
+============================================================
+export const dynamic = "force-dynamic";
+
+import { notFound } from "next/navigation";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+import ReviewWorkspaceClient from "@/features/shopreel/review/components/ReviewWorkspaceClient";
+import { mapGenerationToReviewDraft } from "@/features/shopreel/review/reviewDraft";
+
+type JsonObject = Record<string, unknown>;
+
+export default async function ShopReelReviewRoute(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
+
+  const authSupabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await authSupabase.auth.getUser();
+
+  if (userError || !user) {
+    notFound();
+  }
+
+  let shopId: string | null = null;
+  try {
+    shopId = await getCurrentShopId();
+  } catch {
+    shopId = null;
+  }
+
+  const supabase = createAdminClient();
+
+  const { data: generation, error } = await supabase
+    .from("shopreel_story_generations")
+    .select("id, shop_id, story_source_id, content_piece_id, status, story_draft, generation_metadata, created_by, created_at, updated_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!generation) notFound();
+
+  const isOwner = generation.created_by === user.id;
+  const isSameShop = Boolean(shopId && generation.shop_id === shopId);
+
+  if (!isOwner && !isSameShop) {
+    notFound();
+  }
+
+  const [{ data: storySource }, { data: contentPiece }] = await Promise.all([
+    generation.story_source_id
+      ? supabase
+          .from("shopreel_story_sources")
+          .select("id, shop_id, description, metadata")
+          .eq("id", generation.story_source_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    generation.content_piece_id
+      ? supabase
+          .from("content_pieces")
+          .select("id, tenant_shop_id, title, hook, script_text, voiceover_text, caption")
+          .eq("id", generation.content_piece_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  let manualAssetFiles: string[] = [];
+  const metadata =
+    typeof generation.generation_metadata === "object" && generation.generation_metadata
+      ? (generation.generation_metadata as JsonObject)
+      : null;
+  const manualAssetId =
+    typeof metadata?.manualAssetId === "string" ? metadata.manualAssetId : null;
+
+  if (manualAssetId) {
+    const { data: asset } = await supabase
+      .from("shopreel_manual_assets")
+      .select("id, shop_id, created_by")
+      .eq("id", manualAssetId)
+      .maybeSingle();
+
+    const canReadAsset =
+      Boolean(asset?.created_by === user.id) ||
+      Boolean(shopId && asset?.shop_id === shopId);
+
+    if (asset && canReadAsset) {
+      const { data: files } = await supabase
+        .from("shopreel_manual_asset_files")
+        .select("file_name")
+        .eq("asset_id", manualAssetId)
+        .order("sort_order", { ascending: true });
+
+      manualAssetFiles = (files ?? [])
+        .map((row) => row.file_name)
+        .filter((name): name is string => typeof name === "string" && name.trim().length > 0);
+    }
+  }
+
+  const draft = mapGenerationToReviewDraft({
+    generation: {
+      ...generation,
+      generation_metadata: {
+        ...(metadata ?? {}),
+        manualAssetFiles,
+      },
+    },
+    storySource,
+    contentPiece,
+  });
+
+  return (
+    <GlassShell
+      eyebrow="ShopReel"
+      title="Review draft"
+      subtitle="Validate platform copy, copy the output, or download a manual posting package."
+    >
+      {!draft.prompt ? (
+        <GlassCard>
+          <p className="text-sm text-white/70">No prompt was captured for this draft.</p>
+        </GlassCard>
+      ) : null}
+      <ReviewWorkspaceClient draft={draft} />
+    </GlassShell>
+  );
+}
+
+============================================================
+FILE: src/features/shopreel/review/components/ReviewWorkspaceClient.tsx
+============================================================
+
+"use client";
+
+import { useMemo, useState } from "react";
+
+import { useRouter } from "next/navigation";
+
+import Link from "next/link";
+
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
+
+import GlassCard from "@/features/shopreel/ui/system/GlassCard";
+
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
+
+import { SHOPREEL_PLATFORM_PRESETS } from "@/features/shopreel/platforms/presets";
+
+import type { ShopReelReviewDraft } from "@/features/shopreel/review/reviewDraft";
+
+type Props = { draft: ShopReelReviewDraft };
+
+function buildPlatformCopy(output: ShopReelReviewDraft["platformOutputs"][number]) {
+
+  return [
+
+    output.hook,
+
+    output.body,
+
+    output.cta,
+
+    output.caption,
+
+    output.hashtags.join(" "),
+
+  ]
+
+    .filter((value) => value.trim().length > 0)
+
+    .join("\n\n");
+
+}
+
+export default function ReviewWorkspaceClient({ draft }: Props) {
+
+  const [conceptTitle, setConceptTitle] = useState(draft.conceptTitle ?? "");
+
+  const [hook, setHook] = useState(draft.hook ?? "");
+
+  const [script, setScript] = useState(draft.script ?? "");
+
+  const [voiceover, setVoiceover] = useState(draft.voiceover ?? "");
+
+  const [captionText, setCaptionText] = useState(draft.captionText ?? "");
+
+  const [saving, setSaving] = useState(false);
+
+  const [message, setMessage] = useState<string | null>(null);
+
+  const [startingRender, setStartingRender] = useState(false);
+
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+
+  const router = useRouter();
+
+  const platformLabels = draft.platforms.map((id) => {
+
+    const preset = SHOPREEL_PLATFORM_PRESETS.find((item) => item.id === id);
+
+    return preset?.label ?? id;
+
+  });
+
+  const fullPackageText = useMemo(() => {
+
+    const lines = [
+
+      "# ShopReel Social Package",
+
+      "",
+
+      `Generation ID: ${draft.generationId}`,
+
+      draft.campaignAngle ? `Campaign angle: ${draft.campaignAngle}` : null,
+
+      draft.primaryCta ? `Primary CTA: ${draft.primaryCta}` : null,
+
+      draft.audience ? `Audience: ${draft.audience}` : "Audience: not provided",
+
+      "",
+
+      "## Source prompt",
+
+      draft.prompt || "Not provided.",
+
+      "",
+
+      "## Source media",
+
+      ...(draft.manualAssetFiles.length > 0
+
+        ? draft.manualAssetFiles.map((file) => `- ${file}`)
+
+        : ["- No media files attached."]),
+
+      "",
+
+      "## Platform copy",
+
+    ].filter((line): line is string => typeof line === "string");
+
+    for (const output of draft.platformOutputs) {
+
+      lines.push("");
+
+      lines.push(`### ${output.platformLabel}`);
+
+      lines.push(`Intent: ${output.intentLabel}`);
+
+      lines.push("");
+
+      lines.push(`Hook: ${output.hook || "—"}`);
+
+      lines.push("");
+
+      lines.push(output.body || "—");
+
+      lines.push("");
+
+      lines.push(`CTA: ${output.cta || "—"}`);
+
+      lines.push("");
+
+      lines.push("Caption:");
+
+      lines.push(output.caption || "—");
+
+      lines.push("");
+
+      lines.push(`Hashtags: ${output.hashtags.join(" ") || "—"}`);
+
+    }
+
+    if (draft.alternateHooks.length > 0) {
+
+      lines.push("");
+
+      lines.push("## Alternate hooks");
+
+      lines.push(...draft.alternateHooks.slice(0, 5).map((item) => `- ${item}`));
+
+    }
+
+    lines.push("");
+
+    lines.push("## Manual posting checklist");
+
+    lines.push("- Pick the platform copy.");
+
+    lines.push("- Attach the uploaded media.");
+
+    lines.push("- Confirm CTA and hashtags.");
+
+    lines.push("- Post manually to the selected channel.");
+
+    return lines.join("\n");
+
+  }, [draft]);
+
+  async function saveDraft() {
+
+    setSaving(true);
+
+    setMessage(null);
+
+    try {
+
+      const res = await fetch(`/api/shopreel/generations/${draft.generationId}/draft`, {
+
+        method: "POST",
+
+        headers: { "content-type": "application/json" },
+
+        body: JSON.stringify({
+
+          storyDraft: {
+
+            title: conceptTitle,
+
+            hook,
+
+            scriptText: script,
+
+            voiceoverText: voiceover,
+
+            caption: captionText,
+
+          },
+
+        }),
+
+      });
+
+      if (!res.ok) throw new Error("Failed to save draft edits");
+
+      setMessage("Draft saved.");
+
+    } catch {
+
+      setMessage("Unable to save right now. Please try again.");
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
+  }
+
+  async function startRender() {
+
+    setStartingRender(true);
+
+    setMessage(null);
+
+    try {
+
+      const res = await fetch(`/api/shopreel/generations/${draft.generationId}/render`, { method: "POST" });
+
+      const json = (await res.json()) as { ok?: boolean; error?: string; renderJobsUrl?: string };
+
+      if (!res.ok || !json.ok) throw new Error(json.error ?? "Failed to start render");
+
+      router.push(json.renderJobsUrl ?? "/shopreel/render-jobs");
+
+    } catch (error) {
+
+      setMessage(error instanceof Error ? error.message : "Unable to start render right now.");
+
+    } finally {
+
+      setStartingRender(false);
+
+    }
+
+  }
+
+  async function copyText(value: string, label: string) {
+
+    try {
+
+      await navigator.clipboard.writeText(value);
+
+      setCopyMessage(`${label} copied.`);
+
+    } catch {
+
+      setCopyMessage(`Unable to copy ${label.toLowerCase()}.`);
+
+    }
+
+  }
+
+  function downloadPackage() {
+
+    const blob = new Blob([fullPackageText], { type: "text/markdown;charset=utf-8" });
+
+    const url = URL.createObjectURL(blob);
+
+    const anchor = document.createElement("a");
+
+    anchor.href = url;
+
+    anchor.download = `shopreel-social-package-${draft.generationId.slice(0, 8)}.md`;
+
+    anchor.click();
+
+    URL.revokeObjectURL(url);
+
+    setCopyMessage("Markdown package downloaded.");
+
+  }
+
+  const hasPlatformOutputs = draft.platformOutputs.some(
+
+    (output) => output.hook || output.body || output.caption || output.cta || output.hashtags.length > 0,
+
+  );
+
+  return (
+
+    <div className="space-y-5">
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_360px]">
+
+        <GlassCard label="Campaign brief" title="Ready-to-use social package" strong>
+
+          <div className="space-y-4">
+
+            {draft.campaignAngle ? (
+
+              <div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.06] p-4">
+
+                <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Campaign angle</div>
+
+                <p className="mt-2 text-base leading-7 text-white">{draft.campaignAngle}</p>
+
+              </div>
+
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-3">
+
+              <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
+
+                <div className="text-xs uppercase tracking-[0.16em] text-white/45">Platforms</div>
+
+                <div className="mt-2 flex flex-wrap gap-2">
+
+                  {platformLabels.map((label) => (
+
+                    <GlassBadge key={label} tone="muted">{label}</GlassBadge>
+
+                  ))}
+
+                </div>
+
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
+
+                <div className="text-xs uppercase tracking-[0.16em] text-white/45">Source media</div>
+
+                <p className="mt-2 text-sm text-white/85">{draft.manualAssetFiles.length} file{draft.manualAssetFiles.length === 1 ? "" : "s"}</p>
+
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
+
+                <div className="text-xs uppercase tracking-[0.16em] text-white/45">CTA goal</div>
+
+                <p className="mt-2 text-sm text-white/85">{draft.primaryCta || "Manual posting handoff"}</p>
+
+              </div>
+
+            </div>
+
+            <div>
+
+              <div className="text-xs uppercase tracking-[0.18em] text-white/45">Original prompt</div>
+
+              <p className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/25 p-3 text-sm leading-6 text-white/75">
+
+                {draft.prompt || "—"}
+
+              </p>
+
+            </div>
+
+          </div>
+
+============================================================
+FILE: src/features/shopreel/review/reviewDraft.ts
+============================================================
+
+import type { ShopReelPlatformId } from "@/features/shopreel/platforms/presets";
+
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord {
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return value as UnknownRecord;
+
+}
+
+function asStringArray(value: unknown): string[] {
+
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+
+}
+
+function platformIdsFrom(value: unknown): ShopReelPlatformId[] {
+
+  const raw = asStringArray(value);
+
+  return raw.filter((id): id is ShopReelPlatformId =>
+
+    id === "instagram_reels" ||
+
+    id === "facebook_reels" ||
+
+    id === "tiktok" ||
+
+    id === "youtube_shorts",
+
+  );
+
+}
+
+function stringFromRecord(record: UnknownRecord, key: string): string | undefined {
+
+  const value = record[key];
+
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+
+}
+
+export type ShopReelReviewDraft = {
+
+  generationId: string;
+
+  sourceId?: string;
+
+  contentPieceId?: string;
+
+  prompt: string;
+
+  audience?: string;
+
+  platforms: ShopReelPlatformId[];
+
+  status: string;
+
+  conceptTitle?: string;
+
+  hook?: string;
+
+  script?: string;
+
+  voiceover?: string;
+
+  onScreenText?: string[];
+
+  captionText?: string;
+
+  hashtags?: string[];
+
+  thumbnailDirection?: string;
+
+  notes?: string;
+
+  manualAssetId?: string;
+
+  manualAssetFiles: string[];
+
+  campaignAngle?: string;
+
+  primaryCta?: string;
+
+  alternateHooks: string[];
+
+  platformOutputs: Array<{
+
+    platformId: ShopReelPlatformId;
+
+    platformLabel: string;
+
+    intentLabel: string;
+
+    hook: string;
+
+    body: string;
+
+    cta: string;
+
+    caption: string;
+
+    hashtags: string[];
+
+  }>;
+
+  createdAt?: string;
+
+  updatedAt?: string;
+
+};
+
+export function mapGenerationToReviewDraft(input: {
+
+  generation: Record<string, unknown>;
+
+  storySource?: Record<string, unknown> | null;
+
+  contentPiece?: Record<string, unknown> | null;
+
+}): ShopReelReviewDraft {
+
+  const generation = asRecord(input.generation);
+
+  const storyDraft = asRecord(generation.story_draft);
+
+  const storyDraftMetadata = asRecord(storyDraft.metadata);
+
+  const metadata = asRecord(generation.generation_metadata);
+
+  const sourceMetadata = asRecord(input.storySource?.metadata ?? null);
+
+  const contentPiece = asRecord(input.contentPiece ?? null);
+
+  const creativeBrief = asRecord(metadata.creativeBrief ?? sourceMetadata.creativeBrief ?? storyDraftMetadata.creativeBrief);
+
+  const prompt =
+
+    stringFromRecord(storyDraft, "sourceText") ||
+
+    (typeof input.storySource?.description === "string" && input.storySource.description) ||
+
+    stringFromRecord(metadata, "prompt") ||
+
+    "";
+
+  const platforms = platformIdsFrom(metadata.platformIds ?? sourceMetadata.platformIds);
+
+  const platformOutputsRaw = asRecord(storyDraft.platformOutputs);
+
+  const platformOutputs = platforms.map((platformId) => {
+
+    const payload = asRecord(platformOutputsRaw[platformId]);
+
+    const label =
+
+      platformId === "instagram_reels"
+
+        ? "Instagram"
+
+        : platformId === "facebook_reels"
+
+          ? "Facebook"
+
+          : platformId === "tiktok"
+
+            ? "TikTok"
+
+            : "YouTube Shorts";
+
+    const intentLabel =
+
+      platformId === "instagram_reels"
+
+        ? "Hook-first caption"
+
+        : platformId === "facebook_reels"
+
+          ? "Trust-building post"
+
+          : platformId === "tiktok"
+
+            ? "Short-form social copy"
+
+            : "Shorts-ready copy";
+
+    return {
+
+      platformId,
+
+      platformLabel: label,
+
+      intentLabel,
+
+      hook: stringFromRecord(payload, "hook") ?? "",
+
+      body: stringFromRecord(payload, "body") ?? "",
+
+      cta: stringFromRecord(payload, "cta") ?? "",
+
+      caption: stringFromRecord(payload, "caption") ?? "",
+
+      hashtags: asStringArray(payload.hashtags),
+
+    };
+
+  });
+
+  const alternateHooks =
+
+    asStringArray(metadata.alternateHooks).length > 0
+
+      ? asStringArray(metadata.alternateHooks)
+
+      : asStringArray(storyDraftMetadata.alternateHooks).length > 0
+
+        ? asStringArray(storyDraftMetadata.alternateHooks)
+
+        : asStringArray(creativeBrief.alternateHooks);
+
+  return {
+
+    generationId: String(generation.id ?? ""),
+
+    sourceId: stringFromRecord(generation, "story_source_id"),
+
+    contentPieceId: stringFromRecord(generation, "content_piece_id"),
+
+    prompt,
+
+    audience:
+
+      stringFromRecord(metadata, "audience") ||
+
+      stringFromRecord(sourceMetadata, "audience") ||
+
+      stringFromRecord(creativeBrief, "audience"),
+
+    platforms,
+
+    status: stringFromRecord(generation, "status") ?? "draft",
+
+    conceptTitle:
+
+      stringFromRecord(storyDraft, "title") ||
+
+      stringFromRecord(contentPiece, "title") ||
+
+      stringFromRecord(creativeBrief, "productName"),
+
+    hook:
+
+      stringFromRecord(storyDraft, "hook") ||
+
+      stringFromRecord(contentPiece, "hook"),
+
+    script:
+
+      stringFromRecord(storyDraft, "scriptText") ||
+
+      stringFromRecord(contentPiece, "script_text"),
+
+    voiceover:
+
+      stringFromRecord(storyDraft, "voiceoverText") ||
+
+      stringFromRecord(contentPiece, "voiceover_text"),
+
+    onScreenText: asStringArray(storyDraft.overlayText),
+
+    captionText:
+
+      stringFromRecord(storyDraft, "caption") ||
+
+      stringFromRecord(contentPiece, "caption"),
+
+    hashtags: asStringArray(storyDraft.hashtags),
+
+    thumbnailDirection: stringFromRecord(storyDraft, "thumbnailDirection"),
+
+    notes: stringFromRecord(metadata, "notes"),
+
+    manualAssetId:
+
+      stringFromRecord(metadata, "manualAssetId") ||
+
+      stringFromRecord(sourceMetadata, "manualAssetId"),
+
+    manualAssetFiles: asStringArray(metadata.manualAssetFiles),
+
+    campaignAngle:
+
+      stringFromRecord(metadata, "positioningSummary") ||
+
+      stringFromRecord(storyDraftMetadata, "positioningSummary") ||
+
+      stringFromRecord(creativeBrief, "positioningSummary"),
+
+    primaryCta:
+
+      stringFromRecord(creativeBrief, "ctaGoal") ||
+
+      stringFromRecord(storyDraft, "cta"),
+
+    alternateHooks,
+
+    platformOutputs,
+
+    createdAt: stringFromRecord(generation, "created_at"),
+
+    updatedAt: stringFromRecord(generation, "updated_at"),
+
+  };
+
+}
+
+
+============================================================
+FILE: src/features/shopreel/ui/ShopReelSidebar.tsx
+============================================================
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+
+type SidebarItem = {
+  label: string;
+  compactLabel: string;
+  href: string;
+  icon: string;
+};
+
+const PRIMARY_ITEMS: SidebarItem[] = [
+  { label: "Home", compactLabel: "HM", href: "/shopreel", icon: "⌂" },
+  { label: "Create", compactLabel: "CR", href: "/shopreel/create", icon: "✦" },
+  { label: "Projects", compactLabel: "PR", href: "/shopreel/generations", icon: "▣" },
+  { label: "Library", compactLabel: "LB", href: "/shopreel/library", icon: "◫" },
+  { label: "Calendar", compactLabel: "CA", href: "/shopreel/calendar", icon: "◷" },
+  { label: "Settings", compactLabel: "ST", href: "/shopreel/settings", icon: "⚙" },
+];
+
+const SECONDARY_ITEMS: SidebarItem[] = [
+  { label: "Processing", compactLabel: "PS", href: "/shopreel/render-jobs", icon: "◌" },
+  { label: "Downloads", compactLabel: "DL", href: "/shopreel/exports", icon: "⇩" },
+  { label: "Ideas", compactLabel: "ID", href: "/shopreel/ideas", icon: "◈" },
+  { label: "Editor", compactLabel: "ED", href: "/shopreel/editor", icon: "✎" },
+];
+
+function normalizePathname(pathname: string): string {
+  return pathname === "/shopreel/dashboard" ? "/shopreel" : pathname;
+}
+
+function isActive(pathname: string, href: string): boolean {
+  const current = normalizePathname(pathname);
+  return href === "/shopreel" ? current === href : current === href || current.startsWith(`${href}/`);
+}
+
+export default function ShopReelSidebar(props: {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
+}) {
+  const { collapsed, onToggleCollapse, mobileOpen, onCloseMobile } = props;
+  const pathname = usePathname() ?? "";
+
+  const renderItems = (items: SidebarItem[], closeAfterNavigate = false) => (
+    <div className="grid gap-1.5">
+      {items.map((item) => {
+        const active = isActive(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={closeAfterNavigate ? onCloseMobile : undefined}
+            className={cx(
+              "group rounded-xl px-2.5 py-2 text-sm font-medium transition duration-200",
+              collapsed ? "flex h-10 items-center justify-center" : "flex items-center gap-2.5",
+              active
+                ? "bg-gradient-to-r from-violet-500/30 to-cyan-400/20 text-white shadow-[0_10px_30px_rgba(82,68,255,0.3)]"
+                : cx("text-white/70 hover:bg-white/[0.08] hover:text-white"),
+            )}
+            title={collapsed ? item.label : undefined}
+          >
+            <span className={cx("inline-flex h-6 min-w-6 items-center justify-center rounded-md text-xs", active ? "bg-white/20 text-white" : "bg-white/10 text-white/75")}>{collapsed ? item.compactLabel : item.icon}</span>
+            {!collapsed ? <span>{item.label}</span> : null}
+          </Link>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <>
+      <button type="button" className={cx("fixed inset-0 z-40 bg-black/55 transition lg:hidden", mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0")} onClick={onCloseMobile} />
+      <aside
+        className={cx(
+          "fixed inset-y-0 left-0 z-50 border-r border-white/10 bg-[radial-gradient(circle_at_30%_0%,rgba(110,76,255,0.22),transparent_45%),linear-gradient(180deg,rgba(8,11,29,0.96),rgba(4,7,18,0.98))] transition-all duration-300",
+          collapsed ? "w-20" : "w-60",
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        )}
+      >
+        <div className="flex h-full flex-col px-2.5 py-4">
+          <div className={cx("mb-4 flex items-center", collapsed ? "justify-center" : "justify-between px-1")}>
+            {!collapsed ? (
+              <div>
+                <div className="text-[11px] tracking-[0.2em] text-cyan-200/75">SHOPREEL</div>
+                <div className="text-base font-semibold text-white">Content Engine</div>
+              </div>
+            ) : null}
+            <button type="button" onClick={onToggleCollapse} className={cx("inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]", glassTheme.text.secondary)}>
+              {collapsed ? "→" : "←"}
+            </button>
+          </div>
+
+          <nav className="space-y-4 overflow-y-auto pb-4">
+            {renderItems(PRIMARY_ITEMS, true)}
+            {!collapsed ? <div className="px-2 text-[11px] uppercase tracking-[0.2em] text-white/45">More</div> : null}
+            {renderItems(SECONDARY_ITEMS, true)}
+          </nav>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+============================================================
+FILE: src/app/shopreel/page.tsx
+============================================================
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import ShopReelTemplateCard from "@/features/shopreel/ui/ShopReelTemplateCard";
+
+const PROMPT_CHIPS = ["Product launch reel", "Founder video", "Social media campaign", "Blog post", "How-to video"];
+const IDEAS = ["Q2 launch narrative with founder-led hooks", "Before/after transformation carousel with short captions", "Repurpose one product demo into a week of channel content"];
+const READINESS = ["Upload at least one source video", "Define your preferred tone in prompt", "Connect channels before publishing"];
+
+const START_TEMPLATES = [
+  { title: "Short-form video", description: "Reels, TikToks, and Shorts with hook-first pacing.", icon: "▶", tone: "from-violet-500/40 to-blue-400/20" },
+  { title: "Social post", description: "Visual + caption concepts tuned for conversions.", icon: "✦", tone: "from-fuchsia-500/40 to-rose-400/20" },
+  { title: "Blog post", description: "Long-form narratives from clips, notes, or interviews.", icon: "✎", tone: "from-emerald-500/30 to-cyan-400/20" },
+  { title: "Repurpose content", description: "Turn one upload into cross-channel assets.", icon: "↻", tone: "from-amber-500/35 to-orange-400/20" },
+  { title: "Campaign bundle", description: "Generate a campaign set from one brief.", icon: "◈", tone: "from-sky-500/40 to-indigo-400/20" },
+  { title: "Product promo", description: "Benefit-led promo sequences with clear CTA.", icon: "⚑", tone: "from-purple-500/40 to-cyan-300/20" },
+  { title: "Influencer content", description: "Creator-native scripts and cut directions.", icon: "☼", tone: "from-pink-500/35 to-violet-400/20" },
+];
+
+const PIPELINE_STEPS: Array<{ label: string; key: "drafts" | "review" | "processing" | "ready" | "published"; hint: string }> = [
+  { label: "Drafts", key: "drafts", hint: "Ideas forming" },
+  { label: "In Review", key: "review", hint: "Awaiting edits" },
+  { label: "Processing", key: "processing", hint: "Rendering now" },
+  { label: "Ready", key: "ready", hint: "Prepared output" },
+  { label: "Published", key: "published", hint: "Live channels" },
+];
+
+export default async function ShopReelPage() {
+  const shopId = await getCurrentShopId();
+  const supabase = createAdminClient();
+
+  const [{ count: drafts = 0 }, { count: review = 0 }, { count: rendering = 0 }, { count: ready = 0 }, { data: recentData }] = await Promise.all([
+    supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).in("status", ["draft", "queued"]),
+    supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "review"),
+    supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "rendering"),
+    supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "ready"),
+    supabase.from("shopreel_story_generations").select("id, status, created_at").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(6),
+  ]);
+
+  const recent = recentData ?? [];
+  const pipelineValues = { drafts, review, processing: rendering, ready, published: 0 };
+
+  return (
+    <GlassShell
+      title="Home"
+      hidePageIntro
+      className="space-y-4 md:space-y-5"
+    >
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 backdrop-blur-xl md:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-1.5 text-sm text-white/70">⌘K Search ideas, projects, and templates</div>
+          <div className="flex items-center gap-2 text-white/70">
+            <button type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm">⚡ Quick create</button>
+            <button type="button" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm">🔔</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="space-y-3">
+          <section className="relative overflow-hidden rounded-[30px] border border-violet-300/30 bg-[radial-gradient(circle_at_15%_0%,rgba(127,92,255,0.4),transparent_44%),radial-gradient(circle_at_92%_0%,rgba(66,198,255,0.25),transparent_40%),linear-gradient(145deg,rgba(7,10,25,0.98),rgba(5,8,20,0.88))] p-5 shadow-[0_40px_130px_rgba(12,10,35,0.55)] md:p-6">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-3xl font-semibold text-white md:text-4xl">Your AI content engine</h2>
+                <p className="mt-2 max-w-3xl text-sm text-white/75">Upload media, describe the outcome, and generate videos, posts, blogs, captions, and campaigns — all in one place.</p>
+              </div>
+              <div className="rounded-3xl border border-white/20 bg-black/30 p-3.5 backdrop-blur-2xl md:p-4">
+                <div className="rounded-2xl border border-violet-300/25 bg-slate-950/80 px-4 py-4 text-sm text-white/70">Describe what you want. Example: Create a 30-second product launch reel for Instagram with upbeat pacing, captions, social cutdowns, and one clear CTA.</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link href="/shopreel/upload" className="rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-white hover:bg-white/[0.14]">Upload media</Link>
+                  <Link href="/shopreel/create?template=Enhance%20my%20draft" className="rounded-xl border border-white/15 bg-black/35 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.08]">Enhance</Link>
+                  <Link href="/shopreel/create" className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_35px_rgba(108,85,255,0.45)]">Create new content</Link>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {PROMPT_CHIPS.map((chip) => (
+                  <Link key={chip} href={`/shopreel/create?template=${encodeURIComponent(chip)}`} className="rounded-full border border-white/15 bg-gradient-to-r from-white/[0.12] to-white/[0.04] px-4 py-2 text-xs font-medium text-white/85 transition hover:-translate-y-0.5 hover:bg-white/[0.15]">
+                    {chip}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+            <div className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-white/60">Your content pipeline</div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              {PIPELINE_STEPS.map((step) => (
+                <div key={step.key} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
+                  <div className="text-xs text-white/55">{step.label}</div>
+                  <div className="mt-0.5 text-lg font-semibold text-white">{pipelineValues[step.key]}</div>
+                  <div className="text-[11px] text-white/45">{step.hint}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-2 text-lg font-semibold text-white">Start creating</div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+              {START_TEMPLATES.map((template) => (
+                <ShopReelTemplateCard key={template.title} {...template} />
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+            <div className="text-base font-semibold text-white">Recent projects</div>
+            {recent.length === 0 ? (
+              <div className="mt-2.5 rounded-xl border border-white/10 bg-black/25 p-3">
+                <div className="text-base font-semibold text-white">Your first project starts here.</div>
+                <div className="mt-1 text-sm text-white/70">Upload media or start with an idea and ShopReel will generate your first draft.</div>
+                <div className="mt-2.5"><Link href="/shopreel/create" className="rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 px-3.5 py-2 text-sm font-semibold text-white">Create content</Link></div>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {recent.map((item) => (
+                  <Link key={item.id} href={`/shopreel/generations/${item.id}`} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/85 hover:bg-white/[0.06]">
+                    <div className="font-medium">Project {item.id.slice(0, 8)}</div>
+                    <div className="mt-1 text-xs text-white/60">Status: {item.status}</div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        </section>
+
+        <aside className="hidden space-y-3 xl:block">
+          <div className="rounded-2xl border border-white/10 bg-[linear-gradient(150deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-3.5">
+            <div className="text-xs tracking-[0.18em] text-cyan-100/75">FEATURED PREVIEW</div>
+            <div className="mt-2 text-lg font-semibold text-white">What you can create</div>
+            <div className="mt-2.5 rounded-xl border border-white/10 bg-black/30 p-3 text-sm text-white/75">Launch reels, platform-ready posts, product explainers, campaign packs, and blog drafts from a single brief.</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+            <div className="text-sm font-semibold text-white">AI content ideas</div>
+            <div className="mt-3 space-y-2.5">{IDEAS.map((idea) => <div key={idea} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white/80">{idea}</div>)}</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+            <div className="text-sm font-semibold text-white">Brand voice summary</div>
+            <p className="mt-2 text-sm text-white/70">Keep tone clear, confident, and customer-focused. Lead with outcomes, keep hooks concise, and anchor every output to one CTA.</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-semibold text-white">Brand voice setup</div>
+              <Link href="/settings" className="text-xs font-medium text-cyan-200 hover:text-cyan-100">Settings</Link>
+            </div>
+            <div className="mt-2 text-sm text-white/70">Keep tone clear, confident, and customer-focused. Lead with outcomes, concise hooks, and one CTA per output.</div>
+            <div className="mt-2.5 space-y-2">{READINESS.map((item) => <div key={item} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs text-white/75">{item}</div>)}</div>
+          </div>
+        </aside>
+      </div>
+    </GlassShell>
+  );
+}
+
+============================================================
+FILE: src/app/shopreel/calendar/page.tsx
+============================================================
+export const dynamic = "force-dynamic";
+
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import GenerateCalendarButton from "@/features/shopreel/calendar/components/GenerateCalendarButton";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { ShopReelActionRail, ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+const WEEK_DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const WINDOWS = ["8:30 AM","12:15 PM","5:40 PM"];
+export default async function ShopReelCalendarPage(){const shopId=await getCurrentShopId();const supabase=createAdminClient();const legacy=supabase as unknown as {from:(table:string)=>any};const {data:calendar}=await legacy.from("content_calendars").select("id").or(`tenant_shop_id.eq.${shopId},source_shop_id.eq.${shopId}`).order("created_at",{ascending:false}).limit(1).maybeSingle();let hasItems=false;if(calendar?.id){const {data}=await legacy.from("content_calendar_items").select("id").eq("calendar_id",calendar.id).limit(1);hasItems=(data??[]).length>0;}return <GlassShell title="Calendar" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Calendar" subtitle="Plan upcoming posts, campaigns, and publishing windows." actions={[{label:"Generate calendar",href:"#",primary:true},{label:"Create content",href:"/shopreel/create"}]}/><div className="hidden"><GenerateCalendarButton/></div><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="7-day planning board" description="Planning slots only — these are not published posts."><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{WEEK_DAYS.map((d)=><div key={d} className="rounded-xl border border-white/10 bg-black/25 p-3"><div className="text-xs font-medium text-white/80">{d}</div><div className="mt-2 rounded-lg border border-dashed border-white/20 p-3 text-xs text-white/50">Open planning slot</div></div>)}</div></ShopReelSurface>{!hasItems&&<ShopReelEmptyState title="No scheduled content yet" description="Generate a calendar from projects or create content first."/>}</div><ShopReelActionRail title="Recommended posting windows" items={WINDOWS.map((w)=>`${w} local audience window`)} /></div></div></GlassShell>}
+
+============================================================
+FILE: src/app/shopreel/exports/page.tsx
+============================================================
+export const dynamic = "force-dynamic";
+import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase/server";
+import { requireShopId } from "@/features/shopreel/server/requireShopId";
+import { mapExportPackage } from "@/features/shopreel/export/exportPackage";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import { ShopReelActionRail, ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+const TYPES=["Video exports","Caption packs","Thumbnail assets","Blog drafts","Campaign bundles"];
+export default async function ShopReelDownloadsPage(){const shopId=await requireShopId();const supabase=createAdminClient();const {data}=await supabase.from("shopreel_export_packages").select("*").eq("shop_id",shopId).order("created_at",{ascending:false}).limit(100);const items=(data??[]).map(mapExportPackage);return <GlassShell title="Downloads" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Downloads" subtitle="Export-ready server packages appear here after processing. For manual social posts, you can copy or download a package immediately from Review." actions={[{label:"Create content",href:"/shopreel/create",primary:true},{label:"Open processing",href:"/shopreel/render-jobs"}]}/><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="Package types"><div className="grid gap-2 sm:grid-cols-2">{TYPES.map((t)=><div key={t} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{t}</div>)}</div></ShopReelSurface><ShopReelSurface title="Export packages">{items.length===0?<ShopReelEmptyState title="No downloads yet" description="Process a draft to create your first server export package. Manual social post packages are available immediately on Review."/>:<div className="grid gap-2">{items.map((pkg)=><div key={pkg.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/80">Package {pkg.id.slice(0,8)} · {pkg.status}</div>)}</div>}</ShopReelSurface></div><ShopReelActionRail title="Export package includes" items={["Primary video file(s)","Caption text and hashtag set","Thumbnail assets","Channel checklist and bundle notes"]}/></div></div></GlassShell>}
+
+============================================================
+FILE: src/app/shopreel/library/page.tsx
+============================================================
+export const dynamic = "force-dynamic";
+import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase/server";
+import { requireShopId } from "@/features/shopreel/server/requireShopId";
+import LibraryIndexClient from "@/features/shopreel/library/LibraryIndexClient";
+import { buildShopReelLibraryItems } from "@/features/shopreel/library/libraryItem";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import { ShopReelActionRail, ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+const QUERY_LIMIT = 120;
+const CATEGORIES = ["Videos", "Captions", "Blog drafts", "Thumbnails", "Campaign assets", "Exports"];
+
+export default async function ShopReelLibraryPage() { const shopId = await requireShopId(); const supabase = createAdminClient(); const { data: generations } = await supabase.from("shopreel_story_generations").select("id, content_piece_id, render_job_id, status, story_draft, generation_metadata, created_at, updated_at").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(QUERY_LIMIT); const generationIds = (generations ?? []).map((g) => g.id); const { data: contentPieces } = await supabase.from("content_pieces").select("id, title, hook, caption").eq("tenant_shop_id", shopId); const { data: renderJobs } = await supabase.from("reel_render_jobs").select("id, status, content_piece_id, render_payload, render_url, thumbnail_url, error_message, attempt_count, created_at, updated_at").eq("shop_id", shopId).limit(QUERY_LIMIT); const { data: exportPackages } = generationIds.length > 0 ? await supabase.from("shopreel_export_packages").select("id, generation_id, render_job_id, content_piece_id, status, mp4_path, thumbnail_path, caption_text, hashtags, platform_outputs, exported_at, created_at, updated_at").eq("shop_id", shopId).in("generation_id", generationIds).order("created_at", { ascending: false }) : { data: [] }; const items = buildShopReelLibraryItems({ generations: generations ?? [], contentPieces: contentPieces ?? [], renderJobs: renderJobs ?? [], exportPackages: exportPackages ?? [] });
+return <GlassShell title="Library" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Library" subtitle="Browse finished videos, captions, posts, blog drafts, thumbnails, and reusable campaign assets." actions={[{label:"Create content",href:"/shopreel/create",primary:true}]} /><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="Asset categories"><div className="grid gap-2 sm:grid-cols-3">{CATEGORIES.map((c)=><div key={c} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{c}</div>)}</div></ShopReelSurface><ShopReelSurface title="Library assets">{items.length===0?<ShopReelEmptyState title="No library assets yet" description="Generated assets appear here once real project data exists. Manual social post packages can be downloaded directly from Review."/>:<LibraryIndexClient items={items} resultLimit={QUERY_LIMIT} />}</ShopReelSurface></div><ShopReelActionRail title="What belongs here" items={["Finished videos and channel cutdowns","Caption packs and hashtags","Thumbnails and design notes","Campaign-ready bundles and exports"]}/></div></div></GlassShell>; }
+
+============================================================
+FILE: src/app/shopreel/editor/page.tsx
+============================================================
+import Link from "next/link";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import { createAdminClient } from "@/lib/supabase/server";
+import { ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+
+const MODES=["Draft review","Caption editing","Thumbnail direction","Export packaging","Platform adaptation"];
+export default async function ShopReelEditorHubPage() {const supabase=createAdminClient();const legacy=supabase as unknown as {from:(table:string)=>any};const { data: generations } = await legacy.from("shopreel_story_generations").select("id, status, created_at, story_draft").order("created_at", { ascending: false }).limit(12);return <GlassShell title="Editor" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Editor" subtitle="Open drafts and finished assets for editing, packaging, and export prep." actions={[{label:"Create content",href:"/shopreel/create",primary:true},{label:"Open projects",href:"/shopreel/generations"}]}/><ShopReelSurface title="Editor modes"><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{MODES.map((m)=><div key={m} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{m}</div>)}</div></ShopReelSurface><ShopReelSurface title="Recent editable projects">{(generations??[]).length===0?<ShopReelEmptyState title="No editable projects yet" description="Create a draft first, then return here to refine and package it."/>:<div className="grid gap-2">{(generations??[]).map((item:{id:string;status:string;created_at:string;story_draft?:{title?:string}})=><div key={item.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] p-3"><div><div className="text-sm text-white">{item.story_draft?.title ?? "Untitled generation"}</div><div className="text-xs text-white/60">{item.status}</div></div><Link className="text-xs text-cyan-200" href={`/shopreel/editor/video/${item.id}`}>Open editor</Link></div>)}</div>}</ShopReelSurface></div></GlassShell>}
+
+============================================================
+FILE: src/features/shopreel/ai/modelConfig.ts
+============================================================
+
+export const SHOPREEL_AI_MODELS = {
+
+  text: process.env.OPENAI_TEXT_MODEL ?? "gpt-5.5",
+
+  vision: process.env.OPENAI_VISION_MODEL ?? process.env.OPENAI_TEXT_MODEL ?? "gpt-5.5",
+
+  image: process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2",
+
+  videoDraft: process.env.OPENAI_VIDEO_DRAFT_MODEL ?? "sora-2",
+
+  videoProduction: process.env.OPENAI_VIDEO_PRODUCTION_MODEL ?? "sora-2-pro",
+
+} as const;
+
+
+============================================================
+FILE: src/features/shopreel/manual/lib/uploadLimits.ts
+============================================================
+
+export const SHOPREEL_MANUAL_UPLOAD_MAX_BYTES = 52_428_800;
+
+export const SHOPREEL_MANUAL_UPLOAD_MAX_LABEL = "50 MB";
+
+export function formatBytes(bytes: number): string {
+
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+
+  const units = ["B", "KB", "MB", "GB"] as const;
+
+  let value = bytes;
+
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+
+    value /= 1024;
+
+    unitIndex += 1;
+
+  }
+
+  return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+
+}
+
+
+============================================================
+FILE: src/types/supabase.ts
+============================================================
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      content_analytics_events: {
+        Row: {
+          content_piece_id: string | null
+          created_at: string
+          event_name: string
+          event_value: number | null
+          id: string
+          occurred_at: string
+          payload: Json
+          platform: Database["public"]["Enums"]["content_platform"] | null
+          publication_id: string | null
+          source_shop_id: string
+          source_system: string
+          tenant_shop_id: string
+        }
+        Insert: {
+          content_piece_id?: string | null
+          created_at?: string
+          event_name: string
+          event_value?: number | null
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          platform?: Database["public"]["Enums"]["content_platform"] | null
+          publication_id?: string | null
+          source_shop_id: string
+          source_system?: string
+          tenant_shop_id: string
+        }
+        Update: {
+          content_piece_id?: string | null
+          created_at?: string
+          event_name?: string
+          event_value?: number | null
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          platform?: Database["public"]["Enums"]["content_platform"] | null
+          publication_id?: string | null
+          source_shop_id?: string
+          source_system?: string
+          tenant_shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_analytics_events_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "content_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_analytics_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "video_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_assets: {
+        Row: {
+          asset_type: Database["public"]["Enums"]["content_asset_type"]
+          bucket: string | null
+          caption: string | null
+          created_at: string
+          duration_seconds: number | null
+          file_size_bytes: number | null
+          id: string
+          metadata: Json
+          mime_type: string | null
+          public_url: string | null
+          source_inspection_id: string | null
+          source_inspection_photo_id: string | null
+          source_media_upload_id: string | null
+          source_shop_id: string
+          source_system: string
+          source_vehicle_id: string | null
+          source_work_order_id: string | null
+          storage_path: string | null
+          tenant_shop_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_type?: Database["public"]["Enums"]["content_asset_type"]
+          bucket?: string | null
+          caption?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          public_url?: string | null
+          source_inspection_id?: string | null
+          source_inspection_photo_id?: string | null
+          source_media_upload_id?: string | null
+          source_shop_id: string
+          source_system?: string
+          source_vehicle_id?: string | null
+          source_work_order_id?: string | null
+          storage_path?: string | null
+          tenant_shop_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: Database["public"]["Enums"]["content_asset_type"]
+          bucket?: string | null
+          caption?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          public_url?: string | null
+          source_inspection_id?: string | null
+          source_inspection_photo_id?: string | null
+          source_media_upload_id?: string | null
+          source_shop_id?: string
+          source_system?: string
+          source_vehicle_id?: string | null
+          source_work_order_id?: string | null
+          storage_path?: string | null
+          tenant_shop_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      content_calendar_items: {
+        Row: {
+          calendar_id: string
+          content_piece_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          scheduled_for: string | null
+          source_shop_id: string
+          source_system: string
+          status: string
+          tenant_shop_id: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_id: string
+          content_piece_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          scheduled_for?: string | null
+          source_shop_id: string
+          source_system?: string
+          status?: string
+          tenant_shop_id: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_id?: string
+          content_piece_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          scheduled_for?: string | null
+          source_shop_id?: string
+          source_system?: string
+          status?: string
+          tenant_shop_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_calendar_items_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "content_calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_calendar_items_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_calendar_items_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_calendars: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          settings: Json
+          source_shop_id: string
+          source_system: string
+          tenant_shop_id: string
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          settings?: Json
+          source_shop_id: string
+          source_system?: string
+          tenant_shop_id: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          settings?: Json
+          source_shop_id?: string
+          source_system?: string
+          tenant_shop_id?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      content_events: {
+        Row: {
+          content_piece_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          occurred_at: string
+          payload: Json
+          source_inspection_id: string | null
+          source_inspection_photo_id: string | null
+          source_media_upload_id: string | null
+          source_shop_id: string
+          source_system: string
+          source_vehicle_id: string | null
+          source_work_order_id: string | null
+          tenant_shop_id: string
+        }
+        Insert: {
+          content_piece_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          source_inspection_id?: string | null
+          source_inspection_photo_id?: string | null
+          source_media_upload_id?: string | null
+          source_shop_id: string
+          source_system?: string
+          source_vehicle_id?: string | null
+          source_work_order_id?: string | null
+          tenant_shop_id: string
+        }
+        Update: {
+          content_piece_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          source_inspection_id?: string | null
+          source_inspection_photo_id?: string | null
+          source_media_upload_id?: string | null
+          source_shop_id?: string
+          source_system?: string
+          source_vehicle_id?: string | null
+          source_work_order_id?: string | null
+          tenant_shop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_events_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "content_pieces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_events_content_piece_id_fkey"
+            columns: ["content_piece_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_pieces: {
+        Row: {
+          caption: string | null
+          content_type: string | null
+
+============================================================
+SEARCH: Routes currently pointing to opportunities
+============================================================
+src/app/api/shopreel/discovery/route.ts:3:import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+src/app/api/shopreel/opportunities/generate/route.ts:2:import { createOpportunities } from "@/features/shopreel/opportunities/createOpportunities";
+src/app/api/shopreel/opportunities/route.ts:4:import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
+src/app/api/shopreel/opportunities/[id]/route.ts:7:} from "@/features/shopreel/opportunities/lib/status";
+src/app/api/shopreel/opportunities/auto-campaigns/route.ts:2:import { autoCreateCampaignsFromTopOpportunities } from "@/features/shopreel/opportunities/autoCreateCampaigns";
+src/app/shopreel/opportunities/page.tsx:5:import { getOpportunityStatusesForTab } from "@/features/shopreel/opportunities/lib/status";
+src/app/shopreel/opportunities/page.tsx:19:  return <GlassShell title="Ideas" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Ideas" subtitle="Capture prompts, campaign angles, and content opportunities." actions={[{label:"Create from idea",href:"/shopreel/create",primary:true},{label:"Discover ideas",href:"/shopreel/opportunities?status=active"}]}/><ShopReelSurface title="Prompt starters"><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{STARTERS.map((s)=><div key={s} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{s}</div>)}</div></ShopReelSurface><ShopReelSurface title="Idea board"><ShopReelOpportunitiesClient opportunities={normalized} activeTab={status} /></ShopReelSurface></div></GlassShell>;
+src/app/shopreel/generations/page.tsx:16:  return <GlassShell title="Projects" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Projects" subtitle="Review drafts, refine content, and move work toward ready-to-export." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Explore ideas", href: "/shopreel/opportunities" }]} />
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:75:      const res = await fetch("/api/shopreel/opportunities/auto-campaigns", {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:96:      const res = await fetch(`/api/shopreel/opportunities/${id}`, {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:117:      const res = await fetch(`/api/shopreel/opportunities/${id}/generate`, {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:136:      const res = await fetch(`/api/shopreel/opportunities/${id}/create-campaign`, {
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:159:          <Link href="/shopreel/opportunities?status=active">
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:162:          <Link href="/shopreel/opportunities?status=generated">
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx:165:          <Link href="/shopreel/opportunities?status=dismissed">
+src/features/shopreel/opportunities/lib/upsertOpportunity.ts:3:import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
+src/features/shopreel/opportunities/createOpportunities.ts:5:import { normalizeOpportunityStatus } from "@/features/shopreel/opportunities/lib/status";
+src/features/shopreel/lib/productSurfaceMap.ts:17:  { capability: "opportunities", route: "/shopreel/opportunities", classification: "canonical" },
+src/features/shopreel/ui/system/GlassNav.tsx:10:  { href: "/shopreel/opportunities", label: "Opportunities" },
+src/features/shopreel/automation/runAutomationLoop.ts:7:import { refreshOpportunityScores } from "@/features/shopreel/opportunities/scoring/refreshOpportunityScores";
+
+============================================================
+SEARCH: Manual posting / future copy
+============================================================
+src/app/shopreel/operator/page.tsx:4:import { getOperatorDashboardData } from "@/features/shopreel/automation/lib/server";
+src/app/shopreel/operator/page.tsx:13:      subtitle="Monitor queued jobs, processing jobs, active campaigns, learnings, and automation health."
+src/app/shopreel/account/page.tsx:172:          description="What still blocks full autopilot publishing."
+src/app/shopreel/published/page.tsx:7:} from "@/features/shopreel/publishing/components/PublishingHistoryClient";
+src/app/shopreel/published/page.tsx:23:      subtitle="Recent queued, published, and failed publication attempts."
+src/app/shopreel/opportunities/[id]/page.tsx:52:  render_job_id: string | null;
+src/app/shopreel/opportunities/[id]/page.tsx:97:      .select("id, status, created_at, story_draft, generation_metadata, render_job_id, content_piece_id")
+src/app/shopreel/opportunities/[id]/page.tsx:106:      .select("id, status, created_at, story_draft, generation_metadata, render_job_id, content_piece_id")
+src/app/shopreel/opportunities/[id]/page.tsx:148:  const renderUrl =
+src/app/shopreel/opportunities/[id]/page.tsx:149:    typeof generationMetadata.render_url === "string"
+src/app/shopreel/opportunities/[id]/page.tsx:150:      ? generationMetadata.render_url
+src/app/shopreel/opportunities/[id]/page.tsx:292:                {renderUrl ? "Render available" : "No render output yet"}
+src/app/shopreel/publish-queue/page.tsx:5:import PublishQueueClient from "@/features/shopreel/publishing/components/PublishQueueClient";
+src/app/shopreel/publish-queue/page.tsx:11:} from "@/features/shopreel/operations/lib/publishFailureDiagnostics";
+src/app/shopreel/publish-queue/page.tsx:20:      .from("shopreel_publish_jobs")
+src/app/shopreel/publish-queue/page.tsx:27:      .select("id, platform, status, created_at, updated_at, published_at, scheduled_for, error_text, metadata, content_piece_id, platform_post_url, platform_account_id")
+src/app/shopreel/publish-queue/page.tsx:29:      .in("status", ["queued", "publishing", "failed"])
+src/app/shopreel/publish-queue/page.tsx:65:          .select("id, render_url")
+src/app/shopreel/publish-queue/page.tsx:98:    const publishJob = jobByPublicationId.get(publication.id) ?? null;
+src/app/shopreel/publish-queue/page.tsx:108:      publishJob,
+src/app/shopreel/publish-queue/page.tsx:121:      publishJob,
+src/app/shopreel/publish-queue/page.tsx:133:      subtitle="Operational publish queue and failure diagnostics."
+src/app/shopreel/analytics/page.tsx:23:      .select("id, status, platform, content_piece_id, published_at, created_at")
+src/app/shopreel/analytics/page.tsx:37:      .select("id, title, content_type, status, created_at, published_at")
+src/app/shopreel/analytics/page.tsx:85:  const publishedCount = publications.filter((row) => row.status === "published").length;
+src/app/shopreel/analytics/page.tsx:87:    publishedCount > 0 ? Math.round(totalViews / publishedCount) : 0;
+src/app/shopreel/analytics/page.tsx:140:            {publishedCount}
+src/app/shopreel/analytics/page.tsx:238:                {winningCampaign.total_published} published items across {winningCampaign.total_items} campaign items
+src/app/shopreel/render-queue/page.tsx:32:    .from("reel_render_jobs")
+src/app/shopreel/render-queue/page.tsx:44:      .select("id, render_job_id")
+src/app/shopreel/render-queue/page.tsx:45:      .in("render_job_id", ids);
+src/app/shopreel/render-queue/page.tsx:48:      if (generation.render_job_id) {
+src/app/shopreel/render-queue/page.tsx:49:        generationByRenderJob.set(generation.render_job_id, generation.id);
+src/app/shopreel/render-queue/page.tsx:58:      subtitle="This page is only for render jobs. Review and publish happen in Generations and Publish Center."
+src/app/shopreel/render-queue/page.tsx:64:          <Link href="/shopreel/publish-center">
+src/app/shopreel/render-queue/page.tsx:75:        description="Jobs move from queued → rendering → ready."
+src/app/shopreel/render-queue/page.tsx:99:                    job.status === "rendering"
+src/app/shopreel/render-queue/page.tsx:122:                        job.status === "rendering"
+src/app/shopreel/render-jobs/page.tsx:6:import { mapRenderJob } from "@/features/shopreel/render/renderJob";
+src/app/shopreel/render-jobs/page.tsx:8:export default async function ShopReelRenderJobsPage(){const shopId=await requireShopId();const supabase=createAdminClient();const {data:jobsData}=await supabase.from("reel_render_jobs").select("id, status, content_piece_id, render_payload, render_url, thumbnail_url, error_message, attempt_count, created_at, updated_at").eq("shop_id",shopId).order("created_at",{ascending:false}).limit(100);const mapped=(jobsData??[]).map((job)=>mapRenderJob({row:job}));const summary={queued:mapped.filter((j)=>j.status==="queued").length,processing:mapped.filter((j)=>j.status==="processing").length,ready:mapped.filter((j)=>j.status==="ready").length,failed:mapped.filter((j)=>j.status==="failed").length};return <GlassShell title="Processing" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Processing" subtitle="Track drafts as they render, package, and become ready for download." actions={[{label:"Create content",href:"/shopreel/create",primary:true}]}/><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="Status summary"><div className="grid gap-2 sm:grid-cols-4">{Object.entries(summary).map(([k,v])=><div key={k} className="rounded-xl border border-white/10 bg-black/25 p-3"><div className="text-xs text-white/60">{k}</div><div className="text-lg font-semibold text-white">{v}</div></div>)}</div></ShopReelSurface><ShopReelSurface title="Recent processing activity">{mapped.length===0?<ShopReelEmptyState title="Nothing processing right now" description="Create or approve a draft to start processing."/>:<div className="grid gap-2">{mapped.slice(0,12).map((job)=><div key={job.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/80">{job.title ?? "Render job"} · {job.status}</div>)}</div>}</ShopReelSurface></div><ShopReelActionRail title="What happens here" items={["Drafts enter rendering and packaging","Assets are prepared for export delivery","Ready items appear in Downloads","Failed runs can be retried from project review"]}/></div></div></GlassShell>}
+src/app/shopreel/exports/page.tsx:9:export default async function ShopReelDownloadsPage(){const shopId=await requireShopId();const supabase=createAdminClient();const {data}=await supabase.from("shopreel_export_packages").select("*").eq("shop_id",shopId).order("created_at",{ascending:false}).limit(100);const items=(data??[]).map(mapExportPackage);return <GlassShell title="Downloads" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Downloads" subtitle="Export-ready server packages appear here after processing. For manual social posts, you can copy or download a package immediately from Review." actions={[{label:"Create content",href:"/shopreel/create",primary:true},{label:"Open processing",href:"/shopreel/render-jobs"}]}/><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="Package types"><div className="grid gap-2 sm:grid-cols-2">{TYPES.map((t)=><div key={t} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{t}</div>)}</div></ShopReelSurface><ShopReelSurface title="Export packages">{items.length===0?<ShopReelEmptyState title="No downloads yet" description="Process a draft to create your first server export package. Manual social post packages are available immediately on Review."/>:<div className="grid gap-2">{items.map((pkg)=><div key={pkg.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/80">Package {pkg.id.slice(0,8)} · {pkg.status}</div>)}</div>}</ShopReelSurface></div><ShopReelActionRail title="Export package includes" items={["Primary video file(s)","Caption text and hashtag set","Thumbnail assets","Channel checklist and bundle notes"]}/></div></div></GlassShell>}
+src/app/shopreel/calendar/page.tsx:11:export default async function ShopReelCalendarPage(){const shopId=await getCurrentShopId();const supabase=createAdminClient();const legacy=supabase as unknown as {from:(table:string)=>any};const {data:calendar}=await legacy.from("content_calendars").select("id").or(`tenant_shop_id.eq.${shopId},source_shop_id.eq.${shopId}`).order("created_at",{ascending:false}).limit(1).maybeSingle();let hasItems=false;if(calendar?.id){const {data}=await legacy.from("content_calendar_items").select("id").eq("calendar_id",calendar.id).limit(1);hasItems=(data??[]).length>0;}return <GlassShell title="Calendar" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Calendar" subtitle="Plan upcoming posts, campaigns, and publishing windows." actions={[{label:"Generate calendar",href:"#",primary:true},{label:"Create content",href:"/shopreel/create"}]}/><div className="hidden"><GenerateCalendarButton/></div><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="7-day planning board" description="Planning slots only — these are not published posts."><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{WEEK_DAYS.map((d)=><div key={d} className="rounded-xl border border-white/10 bg-black/25 p-3"><div className="text-xs font-medium text-white/80">{d}</div><div className="mt-2 rounded-lg border border-dashed border-white/20 p-3 text-xs text-white/50">Open planning slot</div></div>)}</div></ShopReelSurface>{!hasItems&&<ShopReelEmptyState title="No scheduled content yet" description="Generate a calendar from projects or create content first."/>}</div><ShopReelActionRail title="Recommended posting windows" items={WINDOWS.map((w)=>`${w} local audience window`)} /></div></div></GlassShell>}
+src/app/shopreel/settings/page.tsx:10:        <ShopReelPageHero title="Settings" subtitle="Manage brand voice, audience defaults, format preferences, channels, automation, and workspace details." actions={[{label:"Workspace details",href:"/shopreel/account",primary:true}]} />
+src/app/shopreel/creator-requests/page.tsx:59:      subtitle="Track saved AI requests for research, concepts, angle packs, and automation support."
+src/app/shopreel/automation/page.tsx:3:import AutomationRunner from "@/features/shopreel/automation/components/AutomationRunner";
+src/app/shopreel/page.tsx:9:const READINESS = ["Upload at least one source video", "Define your preferred tone in prompt", "Connect channels before publishing"];
+src/app/shopreel/page.tsx:21:const PIPELINE_STEPS: Array<{ label: string; key: "drafts" | "review" | "processing" | "ready" | "published"; hint: string }> = [
+src/app/shopreel/page.tsx:26:  { label: "Published", key: "published", hint: "Live channels" },
+src/app/shopreel/page.tsx:33:  const [{ count: drafts = 0 }, { count: review = 0 }, { count: rendering = 0 }, { count: ready = 0 }, { data: recentData }] = await Promise.all([
+src/app/shopreel/page.tsx:36:    supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "rendering"),
+src/app/shopreel/page.tsx:42:  const pipelineValues = { drafts, review, processing: rendering, ready, published: 0 };
+src/app/shopreel/content/[id]/page.tsx:101:  const renderUrl =
+src/app/shopreel/content/[id]/page.tsx:102:    contentPiece.render_url ??
+src/app/shopreel/content/[id]/page.tsx:124:          <Link href="/shopreel/publish-center">
+src/app/shopreel/content/[id]/page.tsx:142:          {renderUrl ? (
+src/app/shopreel/content/[id]/page.tsx:145:                src={renderUrl}
+src/app/shopreel/content/[id]/page.tsx:151:                src={renderUrl}
+src/app/shopreel/content/[id]/page.tsx:184:          description="The current content piece record driving review and publishing."
+src/app/shopreel/content/[id]/page.tsx:248:        description="Follow the cleanest route from generated output to editable story and publishing."
+src/app/shopreel/content/[id]/page.tsx:262:          <Link href="/shopreel/publish-center">
+src/app/shopreel/content/[id]/page.tsx:263:            <GlassButton variant="secondary">Prepare for publishing</GlassButton>
+src/app/shopreel/library/page.tsx:12:export default async function ShopReelLibraryPage() { const shopId = await requireShopId(); const supabase = createAdminClient(); const { data: generations } = await supabase.from("shopreel_story_generations").select("id, content_piece_id, render_job_id, status, story_draft, generation_metadata, created_at, updated_at").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(QUERY_LIMIT); const generationIds = (generations ?? []).map((g) => g.id); const { data: contentPieces } = await supabase.from("content_pieces").select("id, title, hook, caption").eq("tenant_shop_id", shopId); const { data: renderJobs } = await supabase.from("reel_render_jobs").select("id, status, content_piece_id, render_payload, render_url, thumbnail_url, error_message, attempt_count, created_at, updated_at").eq("shop_id", shopId).limit(QUERY_LIMIT); const { data: exportPackages } = generationIds.length > 0 ? await supabase.from("shopreel_export_packages").select("id, generation_id, render_job_id, content_piece_id, status, mp4_path, thumbnail_path, caption_text, hashtags, platform_outputs, exported_at, created_at, updated_at").eq("shop_id", shopId).in("generation_id", generationIds).order("created_at", { ascending: false }) : { data: [] }; const items = buildShopReelLibraryItems({ generations: generations ?? [], contentPieces: contentPieces ?? [], renderJobs: renderJobs ?? [], exportPackages: exportPackages ?? [] });
+src/app/shopreel/generations/[id]/page.tsx:15:import PublishPlatformButtons from "@/features/shopreel/publishing/components/PublishPlatformButtons";
+src/app/shopreel/generations/[id]/page.tsx:18:import { computeGenerationPublishReadiness } from "@/features/shopreel/operations/lib/publishReadiness";
+src/app/shopreel/generations/[id]/page.tsx:105:  const renderUrl =
+src/app/shopreel/generations/[id]/page.tsx:106:    typeof metadata.render_url === "string" ? metadata.render_url : null;
+src/app/shopreel/generations/[id]/page.tsx:113:  const [{ data: contentPiece }, { data: renderJob }, { data: generationPublications }, { data: connectedAccounts }] = await Promise.all([
+src/app/shopreel/generations/[id]/page.tsx:115:      ? legacy.from("content_pieces").select("id, render_url").eq("id", generation.content_piece_id).maybeSingle()
+src/app/shopreel/generations/[id]/page.tsx:117:    generation.render_job_id
+src/app/shopreel/generations/[id]/page.tsx:118:      ? legacy.from("reel_render_jobs").select("status, error_message").eq("id", generation.render_job_id).maybeSingle()
+src/app/shopreel/generations/[id]/page.tsx:121:      ? legacy.from("content_publications").select("status, scheduled_for").eq("content_piece_id", generation.content_piece_id)
+src/app/shopreel/generations/[id]/page.tsx:133:    renderJob: renderJob ?? null,
+src/app/shopreel/generations/[id]/page.tsx:135:    publications: (generationPublications ?? []) as Array<{ status: string; scheduled_for: string | null }>,
+src/app/shopreel/generations/[id]/page.tsx:139:  const canPublish = readiness.state === "ready_to_publish";
+src/app/shopreel/generations/[id]/page.tsx:149:      subtitle="Review generated story structure, preview render output, and open the editor."
+src/app/shopreel/generations/[id]/page.tsx:158:          <Link href="/shopreel/publish-queue">
+src/app/shopreel/generations/[id]/page.tsx:169:          description="This is the semantic story draft driving the render pipeline."
+src/app/shopreel/generations/[id]/page.tsx:299:          {renderUrl ? (
+src/app/shopreel/generations/[id]/page.tsx:301:              src={renderUrl}
+src/app/shopreel/generations/[id]/page.tsx:322:              No render preview yet.
+src/app/shopreel/generations/[id]/page.tsx:329:              ["Render Job", generation.render_job_id ?? "—"],
+src/app/shopreel/publish-center/page.tsx:9:import PublishPlatformButtons from "@/features/shopreel/publishing/components/PublishPlatformButtons";
+src/app/shopreel/publish-center/page.tsx:77:    { data: publishJobData },
+src/app/shopreel/publish-center/page.tsx:83:      .select("id, status, review_approval_state, reviewed_by, reviewed_at, review_note, story_draft, generation_metadata, content_piece_id, updated_at, created_at, render_job_id")
+src/app/shopreel/publish-center/page.tsx:90:        "id, content_piece_id, status, scheduled_for, published_at, created_at, updated_at, platform, metadata, error_text, platform_post_url, platform_account_id",
+src/app/shopreel/publish-center/page.tsx:96:      .from("shopreel_publish_jobs")
+src/app/shopreel/publish-center/page.tsx:103:      .select("id, render_url")
+src/app/shopreel/publish-center/page.tsx:125:      render_job_id: typeof row.render_job_id === "string" ? row.render_job_id : null,
+src/app/shopreel/publish-center/page.tsx:132:  const renderJobIds = generations
+src/app/shopreel/publish-center/page.tsx:133:    .map((generation) => generation.render_job_id)
+src/app/shopreel/publish-center/page.tsx:136:  let renderJobs: OperationRenderJob[] = [];
+src/app/shopreel/publish-center/page.tsx:137:  if (renderJobIds.length > 0) {
+src/app/shopreel/publish-center/page.tsx:138:    const { data: renderJobData } = await legacy
+src/app/shopreel/publish-center/page.tsx:139:      .from("reel_render_jobs")
+src/app/shopreel/publish-center/page.tsx:141:      .in("id", Array.from(new Set(renderJobIds)));
+src/app/shopreel/publish-center/page.tsx:143:    renderJobs = ((renderJobData ?? []) as Array<Record<string, unknown>>).map((row) => ({
+src/app/shopreel/publish-center/page.tsx:154:      render_url: typeof row.render_url === "string" ? row.render_url : null,
+src/app/shopreel/publish-center/page.tsx:162:      scheduled_for: typeof row.scheduled_for === "string" ? row.scheduled_for : null,
+src/app/shopreel/publish-center/page.tsx:163:      published_at: typeof row.published_at === "string" ? row.published_at : null,
+src/app/shopreel/publish-center/page.tsx:174:  const publishJobs: OperationPublishJob[] = ((publishJobData ?? []) as Array<Record<string, unknown>>).map(
+src/app/shopreel/publish-center/page.tsx:189:    renderJobs,
+src/app/shopreel/publish-center/page.tsx:192:    publishJobs,
+src/app/shopreel/publish-center/page.tsx:202:      subtitle="Canonical daily board for review queues, blocked renders, publish readiness, scheduling, and recent publishing output."
+src/app/shopreel/publish-center/page.tsx:208:          <Link href="/shopreel/publish-queue">
+src/app/shopreel/publish-center/page.tsx:223:          description="Rendered items that are not yet review-approved for publish."
+src/app/shopreel/publish-center/page.tsx:280:          title="Approved but render blocked"
+src/app/shopreel/publish-center/page.tsx:281:          description="Approved items that cannot advance until render issues are resolved."
+src/app/shopreel/publish-center/page.tsx:293:              No render-blocked items.
+src/app/shopreel/publish-center/page.tsx:332:          title="Ready to publish"
+src/app/shopreel/publish-center/page.tsx:333:          description="Review-approved generations with render output and no scheduled/published record yet."
+src/app/shopreel/publish-center/page.tsx:345:              No publish-ready generations right now.
+src/app/shopreel/publish-center/page.tsx:442:          title="Approved but publish blocked"
+src/app/shopreel/publish-center/page.tsx:443:          description="Approved items blocked by account/config or current publish state."
+src/app/shopreel/publish-center/page.tsx:446:          {buckets.publishBlocked.length === 0 ? (
+src/app/shopreel/publish-center/page.tsx:455:              No publish-blocked approved items.
+src/app/shopreel/publish-center/page.tsx:459:              {buckets.publishBlocked.map(({ generation, reason }) => (
+src/app/shopreel/publish-center/page.tsx:490:          description={`${buckets.scheduled.length} scheduled publications with queue visibility.`}
+src/app/shopreel/publish-center/page.tsx:493:          {buckets.scheduled.length === 0 ? (
+src/app/shopreel/publish-center/page.tsx:502:              Nothing scheduled yet. Open Calendar to set publish times.
+src/app/shopreel/publish-center/page.tsx:506:              {buckets.scheduled.map((publication) => (
+src/app/shopreel/publish-center/page.tsx:521:                        {publication.platform ?? "platform"} • {new Date(publication.scheduled_for ?? "").toLocaleString()}
+src/app/shopreel/publish-center/page.tsx:530:                        <GlassButton variant="ghost">Open scheduled item</GlassButton>
+src/app/shopreel/publish-center/page.tsx:546:          description="Most recent successfully published records."
+src/app/shopreel/publish-center/page.tsx:558:              No published output yet.
+src/app/shopreel/publish-center/page.tsx:577:                        {publication.platform ?? "platform"} • {timeAgoLabel(publication.published_at ?? publication.created_at)}
+src/app/shopreel/publish-center/page.tsx:580:                    <GlassBadge tone="copper">published</GlassBadge>
+src/app/shopreel/publish-center/page.tsx:585:                        <GlassButton variant="ghost">View published output</GlassButton>
+src/app/shopreel/publish-center/page.tsx:603:          description={`Failed publications: ${buckets.publishFailures.length}. Queue: ${buckets.queueSummary.queuedPublications} queued publication(s), ${buckets.queueSummary.queuedJobs} queued job(s), ${buckets.queueSummary.processingJobs} processing job(s).`}
+src/app/shopreel/publish-center/page.tsx:606:          {buckets.publishFailures.length === 0 ? (
+src/app/shopreel/publish-center/page.tsx:615:              No publish failures in the current window.
+src/app/shopreel/publish-center/page.tsx:619:              {buckets.publishFailures.map(({ publication, publishJob, generation, diagnostics, nextAction }) => (
+src/app/shopreel/publish-center/page.tsx:669:                    {publishJob ? (
+src/app/shopreel/publish-center/page.tsx:670:                      <Link href="/shopreel/publish-queue">
+src/app/shopreel/publish-center/page.tsx:671:                        <GlassButton variant="ghost">Inspect publish job</GlassButton>
+src/app/shopreel/publish-center/page.tsx:674:                    <Link href="/shopreel/publish-queue">
+src/app/shopreel/upload/page.tsx:10:      subtitle="Add manual photos and videos, then turn them into ShopReel AI concepts, videos, and render jobs."
+src/app/shopreel/editor/video/[id]/page.tsx:38:  const renderUrl = typeof metadata.render_url === "string" ? metadata.render_url : null;
+src/app/shopreel/editor/video/[id]/page.tsx:65:          <Link href="/shopreel/render-queue">
+src/app/shopreel/editor/video/[id]/page.tsx:76:        initialRenderUrl={renderUrl}
+src/app/shopreel/review/[id]/page.tsx:116:      subtitle="Validate platform copy, copy the output, or download a manual posting package."
+src/app/shopreel/create/page.tsx.bak.20260505042607:374:            description="This MVP is built for fast creation from your own media. Upload assets, write the brief, and review the generated draft before rendering or export."
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:122:        description="Generate structured scenes before rendering or media generation."
+src/features/shopreel/video-creation/lib/convertToStoryGeneration.ts:22:    cta: "Create, publish, and grow with ShopReel.",
+src/features/shopreel/video-creation/lib/convertToStoryGeneration.ts:117:      render_job_id: null,
+src/features/shopreel/video-creation/lib/contentPieces.ts:58:      render_url: null,
+src/features/shopreel/video-creation/lib/contentPieces.ts:59:      published_at: null,
+src/features/shopreel/types/index.ts:22:  publishDate: string;
+src/features/shopreel/server/scheduler.ts:132:    const publishDate = new Date(Date.now() + index * 86400000)
+src/features/shopreel/server/scheduler.ts:139:      publish_date: publishDate,
+src/features/shopreel/operator/components/OperatorDashboard.tsx:78:          title="Recent automation runs"
+src/features/shopreel/operator/components/OperatorDashboard.tsx:84:              <div className={cx("text-sm", glassTheme.text.secondary)}>No automation runs yet.</div>
+src/features/shopreel/operator/components/OperatorDashboard.tsx:118:          description="Newest activity in the render/generation pipeline."
+src/features/shopreel/discovery/discoverContent.ts:183:        : `${row.title?.trim() || "Content piece"} — ready to schedule.`),
+src/features/shopreel/discovery/discoverContent.ts:243:    .in("status", ["draft", "queued", "processing", "ready", "published"])
+src/features/shopreel/media/types.ts:31:  assetType: "photo" | "video" | "thumbnail" | "render_input" | "render_output" | "other"
+src/features/shopreel/architecture/README.md:17:- rendering
+src/features/shopreel/architecture/README.md:18:- publishing
+src/features/shopreel/architecture/README.md:40:Map Story Drafts into existing render and publication flows.
+src/features/shopreel/platforms/tiktok.ts:1:export async function publishToTikTok(videoId: string) {
+src/features/shopreel/platforms/platformRegistry.ts:7:  publish(payload: PublishPayload): Promise<{ externalId?: string }>;
+src/features/shopreel/platforms/youtube.ts:1:export async function publishToYouTube(videoId: string) {
+src/features/shopreel/platforms/facebook.ts:1:export async function publishToFacebook(videoId: string) {
+src/features/shopreel/platforms/instagramAdapter.ts:4:  async publish(payload) {
+src/features/shopreel/platforms/instagram.ts:1:export async function publishToInstagram(videoId: string) {
+src/features/shopreel/render/runRenderWorker.ts:49:        status: "rendering",
+src/features/shopreel/render/runRenderWorker.ts:53:    const renderUrl = `/renders/${item.id}.mp4`;
+src/features/shopreel/render/runRenderWorker.ts:59:        render_url: renderUrl,
+src/features/shopreel/render/createRenderJob.ts:13:  renderPayload: unknown;
+src/features/shopreel/render/createRenderJob.ts:22:    input.renderPayload && typeof input.renderPayload === "object" && !Array.isArray(input.renderPayload)
+src/features/shopreel/render/createRenderJob.ts:23:      ? (input.renderPayload as Record<string, unknown>)
+src/features/shopreel/render/createRenderJob.ts:24:      : { value: input.renderPayload };
+src/features/shopreel/render/createRenderJob.ts:31:    render_payload: {
+src/features/shopreel/render/createRenderJob.ts:45:    .from("reel_render_jobs")
+src/features/shopreel/render/renderJob.ts:60:  if (normalized === "rendering" || normalized === "processing" || normalized === "in_progress") return "processing";
+src/features/shopreel/render/renderJob.ts:61:  if (normalized === "ready" || normalized === "completed" || normalized === "published") return "ready";
+src/features/shopreel/render/renderJob.ts:73:  const payload = asRecord(row.render_payload);
+src/features/shopreel/render/renderJob.ts:84:    outputVideoPath: asString(row.render_url),
+src/features/shopreel/render/startRenderForGeneration.ts:2:import { createRenderJob } from "@/features/shopreel/render/createRenderJob";
+src/features/shopreel/render/startRenderForGeneration.ts:29:  if (generation.render_job_id) {
+src/features/shopreel/render/startRenderForGeneration.ts:31:      .from("reel_render_jobs")
+src/features/shopreel/render/startRenderForGeneration.ts:33:      .eq("id", generation.render_job_id)
+src/features/shopreel/render/startRenderForGeneration.ts:37:    if (existing && ["queued", "rendering", "ready"].includes(existing.status)) {
+src/features/shopreel/render/startRenderForGeneration.ts:38:      return { renderJobId: existing.id, created: false };
+src/features/shopreel/render/startRenderForGeneration.ts:44:  const renderJob = await createRenderJob({
+src/features/shopreel/render/startRenderForGeneration.ts:50:    renderPayload: {
+src/features/shopreel/render/startRenderForGeneration.ts:65:      render_job_id: renderJob.id,
+src/features/shopreel/render/startRenderForGeneration.ts:69:        rerender_requested_at: new Date().toISOString(),
+src/features/shopreel/render/startRenderForGeneration.ts:70:        rerender_job_id: renderJob.id,
+src/features/shopreel/render/startRenderForGeneration.ts:77:  return { renderJobId: renderJob.id, created: true };
+src/features/shopreel/scheduler/runScheduledPublishWorker.ts:1:import { runPublishWorker } from "../publish/runPublishWorker";
+src/features/shopreel/scheduler/queueScheduledContent.ts:2:import { createRenderJob } from "@/features/shopreel/render/createRenderJob";
+src/features/shopreel/scheduler/queueScheduledContent.ts:8:  scheduled_for: string | null;
+src/features/shopreel/scheduler/queueScheduledContent.ts:41:    .select("id, content_piece_id, tenant_shop_id, scheduled_for, status, metadata")
+src/features/shopreel/scheduler/queueScheduledContent.ts:44:    .lte("scheduled_for", new Date().toISOString())
+src/features/shopreel/scheduler/queueScheduledContent.ts:45:    .order("scheduled_for", { ascending: true })
+src/features/shopreel/scheduler/queueScheduledContent.ts:64:      renderJobsCreated: 0,
+src/features/shopreel/scheduler/queueScheduledContent.ts:70:  let renderJobsCreated = 0;
+src/features/shopreel/scheduler/queueScheduledContent.ts:105:      .from("reel_render_jobs")
+src/features/shopreel/scheduler/queueScheduledContent.ts:134:        renderPayload: {
+src/features/shopreel/scheduler/queueScheduledContent.ts:135:          mode: "scheduled_calendar_render",
+src/features/shopreel/scheduler/queueScheduledContent.ts:146:      renderJobsCreated += 1;
+src/features/shopreel/scheduler/queueScheduledContent.ts:167:    renderJobsCreated,
+src/features/shopreel/lib/productSurfaceMap.ts:20:  { capability: "render_queue", route: "/shopreel/render-queue", classification: "canonical" },
+src/features/shopreel/lib/productSurfaceMap.ts:21:  { capability: "publish_center", route: "/shopreel/publish-center", classification: "canonical" },
+src/features/shopreel/lib/productSurfaceMap.ts:22:  { capability: "publish_queue", route: "/shopreel/publish-queue", classification: "canonical" },
+src/features/shopreel/lib/productSurfaceMap.ts:48:    capability: "render_jobs",
+src/features/shopreel/lib/productSurfaceMap.ts:49:    canonicalFamily: "/api/shopreel/render-jobs/*",
+src/features/shopreel/lib/productSurfaceMap.ts:50:    legacyFamilies: ["/api/shopreel/render-job/*"],
+src/features/shopreel/lib/productSurfaceMap.ts:53:    capability: "publishing",
+src/features/shopreel/lib/productSurfaceMap.ts:54:    canonicalFamily: "/api/shopreel/publications/* + /api/shopreel/publish-queue",
+src/features/shopreel/lib/productSurfaceMap.ts:55:    legacyFamilies: ["/api/shopreel/publish"],
+src/features/shopreel/lib/uiLabels.ts:13:    case "published":
+src/features/shopreel/lib/uiLabels.ts:15:    case "publishing":
+src/features/shopreel/lib/uiLabels.ts:35:    case "render queue":
+src/features/shopreel/lib/uiLabels.ts:37:    case "render":
+src/features/shopreel/lib/uiLabels.ts:41:    case "published":
+src/features/shopreel/lib/contracts/lifecycle.ts:6:  "published",
+src/features/shopreel/lib/contracts/lifecycle.ts:47:  "publishing",
+src/features/shopreel/lib/contracts/lifecycle.ts:48:  "published",
+src/features/shopreel/lib/contracts/lifecycle.ts:57:  "publishing",
+src/features/shopreel/lib/contracts/lifecycle.ts:62:export const PUBLISHING_PUBLICATION_STATUS: PublicationStatus = "publishing";
+src/features/shopreel/lib/contracts/lifecycle.ts:63:export const PUBLISHED_PUBLICATION_STATUS: PublicationStatus = "published";
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx:79:  if (normalizedStatus === "published") return "Published";
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx:94:  if (normalized.includes("published")) return "copper" as const;
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx:46:    return { action: "publish", label: "Publish campaign" };
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx:144:          {nextAction.action === "publish" && (
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx:145:            <Link href={`/shopreel/publish-center?campaign=${campaign.id}`}>
+src/features/shopreel/campaigns/lib/getCampaignNextAction.ts:18:  | "publish";
+src/features/shopreel/campaigns/lib/getCampaignNextAction.ts:82:    action: "publish",
+src/features/shopreel/campaigns/lib/getCampaignNextAction.ts:84:    description: "Everything is ready. Review and publish your videos.",
+src/features/shopreel/campaigns/lib/server.ts:543:    total_published: publications.filter((row) => row.status === "published").length,
+src/features/shopreel/campaigns/lib/getCampaignProgressSummary.ts:24:    | "ready_to_publish";
+src/features/shopreel/campaigns/lib/getCampaignProgressSummary.ts:52:    stage = "ready_to_publish";
+src/features/shopreel/campaigns/lib/getCampaignProgressSummary.ts:53:    stageLabel = "Ready to publish";
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:15:  published_at: string | null;
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:23:    .select("id, tenant_shop_id, content_piece_id, platform, published_at")
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:25:    .not("published_at", "is", null)
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:26:    .order("published_at", { ascending: false })
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:33:  const publishedRows = (publications ?? []) as PublicationRow[];
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:35:  const analyticsRows = publishedRows
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:58:      event_name: "published",
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:60:      occurred_at: row.published_at ?? new Date().toISOString(),
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:91:    publicationCount: publishedRows.length,
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:107:        memory_key: "automation_loop_snapshot",
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts:109:        source_type: "automation_loop",
+src/features/shopreel/analytics/syncPlatformMetrics.ts:134:    .eq("status", "published")
+src/features/shopreel/analytics/syncPlatformMetrics.ts:136:    .order("published_at", { ascending: false })
+src/features/shopreel/publishing/types/index.ts:17:  | "scheduled";
+src/features/shopreel/publishing/types/index.ts:24:  scheduledFor?: string | null;
+src/features/shopreel/publishing/types/index.ts:25:  publishMode?: PublishMode | null;
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:34:  async function publishTo(platform: PublishPlatform) {
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:43:      const res = await fetch(`/api/shopreel/generations/${generationId}/publish`, {
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:59:        throw new Error(json.error ?? "Failed to queue publish job");
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:63:        setMessage(`${formatLabel(platform)} publish job was repaired and queued.`);
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:66:        setMessage(`${formatLabel(platform)} already has a queued publish job.`);
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:69:        setMessage(`${formatLabel(platform)} publication and publish job queued.`);
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:73:      setError(err instanceof Error ? err.message : "Failed to queue publish job");
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:90:              onClick={() => void publishTo(platform)}
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:100:          This generation must be ready before it can be published.
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:109:            <Link href="/shopreel/publish-queue">
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx:114:            <Link href="/shopreel/published">
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:36:  publishJob: PublishJobRow | null;
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:73:  if (status === "completed" || status === "published") return "copper";
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:146:      const res = await fetch(`/api/shopreel/publish-jobs/${jobId}/run`, {
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:153:        throw new Error(json.error ?? "Failed to run publish job");
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:159:      setError(err instanceof Error ? err.message : "Failed to run publish job");
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:168:      title="Outbound publishing jobs"
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:169:      description="This is the worker/job view behind publishing activity."
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:215:          No publish jobs yet.
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:280:                    Publication exists but no publish job is attached yet.
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:353:                      {pendingPublicationId === row.publication.id ? "Queueing..." : "Retry publish"}
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:369:                  {row.publishJob?.id ? (
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:372:                      onClick={() => void runJob(row.publishJob!.id)}
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:373:                      disabled={runningJobId === row.publishJob.id || row.publishJob.status !== "queued"}
+src/features/shopreel/publishing/components/PublishQueueClient.tsx:375:                      {runningJobId === row.publishJob.id ? "Running..." : "Run queued job"}
+src/features/shopreel/publishing/components/PublishingHistoryClient.tsx:14:  published_at: string | null;
+src/features/shopreel/publishing/components/PublishingHistoryClient.tsx:116:      description="A record of what has already been sent through the publishing engine."
+src/features/shopreel/publishing/components/PublishingHistoryClient.tsx:159:          No publishing history yet.
+src/features/shopreel/publishing/components/PublishingHistoryClient.tsx:180:                    {item.platform ?? "platform"} • {timeAgoLabel(item.published_at ?? item.created_at)}
+src/features/shopreel/publishing/components/PublishingHistoryClient.tsx:195:                  <GlassBadge tone={item.status === "published" ? "copper" : "default"}>
+src/features/shopreel/publishing/lib/createPublication.ts:31:      scheduled_for: input.scheduledFor ?? null,
+src/features/shopreel/publishing/lib/createPublication.ts:32:      published_at: null,
+src/features/shopreel/publishing/lib/createPublication.ts:37:        publish_mode: input.publishMode ?? "manual",
+src/features/shopreel/publishing/lib/processPublishJob.ts:41:  render_url: string | null;
+src/features/shopreel/publishing/lib/processPublishJob.ts:59:    .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/processPublishJob.ts:75:    .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/processPublishJob.ts:80:      locked_by: "worker:publish",
+src/features/shopreel/publishing/lib/processPublishJob.ts:89:  if (!video.render_url) {
+src/features/shopreel/publishing/lib/processPublishJob.ts:90:    throw new Error("Video has no render_url");
+src/features/shopreel/publishing/lib/processPublishJob.ts:105:    const result = await integration.publishVideo({
+src/features/shopreel/publishing/lib/processPublishJob.ts:110:      videoUrl: video.render_url,
+src/features/shopreel/publishing/lib/processPublishJob.ts:125:        published_at:
+src/features/shopreel/publishing/lib/processPublishJob.ts:136:          publish_result: result,
+src/features/shopreel/publishing/lib/processPublishJob.ts:148:        event_type: "published",
+src/features/shopreel/publishing/lib/processPublishJob.ts:160:      .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/processPublishJob.ts:176:      error instanceof Error ? error.message : "Unexpected publish error";
+src/features/shopreel/publishing/lib/processPublishJob.ts:188:      .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/createPublicationBundle.ts:9:  scheduledFor?: string | null;
+src/features/shopreel/publishing/lib/createPublicationBundle.ts:10:  publishMode?: "manual" | "assisted" | "autopilot" | "scheduled" | null;
+src/features/shopreel/publishing/lib/createPublicationBundle.ts:26:    scheduledFor: input.scheduledFor ?? null,
+src/features/shopreel/publishing/lib/createPublicationBundle.ts:27:    publishMode: input.publishMode ?? "manual",
+src/features/shopreel/publishing/lib/createPublicationBundle.ts:38:  const publishJob = input.enqueueNow
+src/features/shopreel/publishing/lib/createPublicationBundle.ts:42:        runAfter: input.scheduledFor ?? null,
+src/features/shopreel/publishing/lib/createPublicationBundle.ts:48:    publishJob,
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:19:  status: "draft" | "queued" | "publishing" | "published" | "failed" | "skipped";
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:27:  render_url: string | null;
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:67:      .select("id, title, caption, render_url, thumbnail_url, metadata")
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:115:    piece?.render_url ??
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:116:    (typeof generationMetadata.render_url === "string"
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:117:      ? generationMetadata.render_url
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:118:      : typeof pieceMetadata.render_url === "string"
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:119:        ? pieceMetadata.render_url
+src/features/shopreel/publishing/lib/getPublicationPayload.ts:136:      render_url: resolvedRenderUrl,
+src/features/shopreel/publishing/lib/enqueuePublishJob.ts:9:    .from("shopreel_publish_jobs")
+src/features/shopreel/publishing/lib/enqueuePublishJob.ts:20:    throw new Error(error?.message ?? "Failed to enqueue publish job");
+src/features/shopreel/editing/buildAutoEditPlan.ts:2:import { buildRenderPayload, type RenderPayload } from "@/features/shopreel/render/buildRenderPayload";
+src/features/shopreel/editing/buildAutoEditPlan.ts:28:  renderPayload: RenderPayload;
+src/features/shopreel/editing/buildAutoEditPlan.ts:56:  const renderPayload = buildRenderPayload({
+src/features/shopreel/editing/buildAutoEditPlan.ts:77:    renderPayload,
+src/features/shopreel/story-sources/server/saveStoryGeneration.ts:13:  renderJobId?: string | null;
+src/features/shopreel/story-sources/server/saveStoryGeneration.ts:28:      render_job_id: input.renderJobId ?? null,
+src/features/shopreel/publish/publishVideo.ts:2:import { publishToTikTok } from "@/features/shopreel/platforms/tiktok";
+src/features/shopreel/publish/publishVideo.ts:3:import { publishToInstagram } from "@/features/shopreel/platforms/instagram";
+src/features/shopreel/publish/publishVideo.ts:4:import { publishToFacebook } from "@/features/shopreel/platforms/facebook";
+src/features/shopreel/publish/publishVideo.ts:5:import { publishToYouTube } from "@/features/shopreel/platforms/youtube";
+src/features/shopreel/publish/publishVideo.ts:7:export async function publishVideo(videoId: string, platform: string) {
+src/features/shopreel/publish/publishVideo.ts:14:      ? await publishToTikTok(videoId)
+src/features/shopreel/publish/publishVideo.ts:16:        ? await publishToInstagram(videoId)
+src/features/shopreel/publish/publishVideo.ts:18:          ? await publishToFacebook(videoId)
+src/features/shopreel/publish/publishVideo.ts:20:            ? await publishToYouTube(videoId)
+src/features/shopreel/publish/publishVideo.ts:29:      published_at: result.status === "published" ? new Date().toISOString() : null,
+src/features/shopreel/publish/runPublishWorker.ts:2:import { createPublicationBundle } from "@/features/shopreel/publishing/lib/createPublicationBundle";
+src/features/shopreel/publish/runPublishWorker.ts:3:import { processPublishJob } from "@/features/shopreel/publishing/lib/processPublishJob";
+src/features/shopreel/publish/runPublishWorker.ts:11:  published_at: string | null;
+src/features/shopreel/publish/runPublishWorker.ts:85:    .select("id, tenant_shop_id, title, caption, published_at")
+src/features/shopreel/publish/runPublishWorker.ts:88:    .is("published_at", null)
+src/features/shopreel/publish/runPublishWorker.ts:104:  let published = 0;
+src/features/shopreel/publish/runPublishWorker.ts:117:          status: "failed_publish",
+src/features/shopreel/publish/runPublishWorker.ts:148:          .from("shopreel_publish_jobs")
+src/features/shopreel/publish/runPublishWorker.ts:172:        publishMode: "autopilot",
+src/features/shopreel/publish/runPublishWorker.ts:173:        scheduledFor: new Date().toISOString(),
+src/features/shopreel/publish/runPublishWorker.ts:179:      if (bundle.publishJob?.id) {
+src/features/shopreel/publish/runPublishWorker.ts:180:        dueJobIds.push(bundle.publishJob.id);
+src/features/shopreel/publish/runPublishWorker.ts:186:    .from("shopreel_publish_jobs")
+src/features/shopreel/publish/runPublishWorker.ts:229:      if (publication.status === "published") {
+src/features/shopreel/publish/runPublishWorker.ts:233:            status: "published",
+src/features/shopreel/publish/runPublishWorker.ts:234:            published_at: new Date().toISOString(),
+src/features/shopreel/publish/runPublishWorker.ts:242:            status: "published",
+src/features/shopreel/publish/runPublishWorker.ts:247:        published += 1;
+src/features/shopreel/publish/runPublishWorker.ts:255:    published,
+src/features/shopreel/calendar/components/PipelineControls.tsx:7:type WorkerAction = "scheduler" | "render-worker" | "publish-worker";
+src/features/shopreel/calendar/components/PipelineControls.tsx:34:          : typeof json.published === "number"
+src/features/shopreel/calendar/components/PipelineControls.tsx:35:            ? json.published
+src/features/shopreel/calendar/components/PipelineControls.tsx:52:          onClick={() => void runWorker("scheduler")}
+src/features/shopreel/calendar/components/PipelineControls.tsx:55:          {busy === "scheduler" ? "Running..." : "Run scheduler"}
+src/features/shopreel/calendar/components/PipelineControls.tsx:59:          onClick={() => void runWorker("render-worker")}
+src/features/shopreel/calendar/components/PipelineControls.tsx:62:          {busy === "render-worker" ? "Running..." : "Run render"}
+src/features/shopreel/calendar/components/PipelineControls.tsx:66:          onClick={() => void runWorker("publish-worker")}
+src/features/shopreel/calendar/components/PipelineControls.tsx:69:          {busy === "publish-worker" ? "Running..." : "Run publish"}
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:7:type ActionKind = "queue" | "render" | "publish";
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:25:          ? "/api/shopreel/scheduler"
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:26:          : kind === "render"
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:27:            ? "/api/shopreel/render-worker"
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:28:            : "/api/shopreel/publish-worker";
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:49:          : kind === "render"
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:65:  const canRender = normalizedStatus === "queued" || normalizedStatus === "rendering";
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:66:  const canPublish = normalizedStatus === "ready" || normalizedStatus === "publishing";
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:84:            onClick={() => void runAction("render")}
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:87:            {busy === "render" ? "Rendering..." : "Render"}
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:94:            onClick={() => void runAction("publish")}
+src/features/shopreel/calendar/components/CalendarItemActions.tsx:97:            {busy === "publish" ? "Publishing..." : "Publish"}
+src/features/shopreel/settings/saveShopReelSettings.ts:28:  publishMode?: "manual" | "approval_required" | "autopilot";
+src/features/shopreel/settings/saveShopReelSettings.ts:51:    publish_mode: payload.publishMode ?? "manual",
+src/features/shopreel/settings/getShopReelSettings.ts:16:    publish_mode: "manual" | "approval_required" | "autopilot";
+src/features/shopreel/settings/getShopReelSettings.ts:36:    publish_mode: "manual" | "scheduled" | "autopilot";
+src/features/shopreel/settings/getShopReelSettings.ts:57:  publish_mode: "manual" | "approval_required" | "autopilot";
+src/features/shopreel/settings/getShopReelSettings.ts:127:      "shop_id, publish_mode, default_cta, default_location, brand_voice, enabled_platforms, connected_platforms, onboarding_completed",
+src/features/shopreel/settings/getShopReelSettings.ts:178:        publish_mode: "manual",
+src/features/shopreel/settings/getShopReelSettings.ts:207:    settings?.publish_mode === "autopilot" &&
+src/features/shopreel/settings/getShopReelSettings.ts:214:          publish_mode: settings.publish_mode,
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:16:  postingTimezone: string;
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:62:  postingTimezone: "America/Edmonton",
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:279:            value={state.postingTimezone}
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:280:            onChange={(e) => setField("postingTimezone", e.target.value)}
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:329:          title="Approval and publishing flow"
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:334:              label="Auto-queue renders"
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:335:              description="Send approved opportunities to render automatically."
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:348:              label="Auto-publish"
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:349:              description="Publish scheduled content automatically after render completes."
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:464:                      OAuth and publish wiring still needs to be completed for this platform.
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:468:                      Planned destination. UI and publish-path scaffolding added, live connection
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:498:        description="Live publishing connection state and core output preferences."
+src/features/shopreel/ui/ShopReelSettingsClient.tsx:502:            ["Publishing timezone", state.postingTimezone],
+src/features/shopreel/ui/ShopReelSidebar.tsx:24:  { label: "Processing", compactLabel: "PS", href: "/shopreel/render-jobs", icon: "◌" },
+src/features/shopreel/ui/ShopReelSidebar.tsx:48:  const renderItems = (items: SidebarItem[], closeAfterNavigate = false) => (
+src/features/shopreel/ui/ShopReelSidebar.tsx:98:            {renderItems(PRIMARY_ITEMS, true)}
+src/features/shopreel/ui/ShopReelSidebar.tsx:100:            {renderItems(SECONDARY_ITEMS, true)}
+src/features/shopreel/ui/system/GlassNav.tsx:12:  { href: "/shopreel/render-queue", label: "Render Queue" },
+src/features/shopreel/ui/system/GlassNav.tsx:14:  { href: "/shopreel/published", label: "Published" },
+src/features/shopreel/story-builder/generateStoryPipeline.ts:2:import { createRenderJob } from "../render/createRenderJob";
+src/features/shopreel/story-builder/generateStoryPipeline.ts:45:  const renderJob = input.createRenderJobNow
+src/features/shopreel/story-builder/generateStoryPipeline.ts:54:        renderPayload: {
+src/features/shopreel/story-builder/generateStoryPipeline.ts:69:    renderJobId: renderJob?.id ?? null,
+src/features/shopreel/story-builder/generateStoryPipeline.ts:71:    status: renderJob ? "queued" : "draft",
+src/features/shopreel/story-builder/generateStoryPipeline.ts:84:    renderJob,
+src/features/shopreel/dashboard/components/RunAutomationButton.tsx:5:    await fetch("/api/shopreel/automation", {
+src/features/shopreel/optimization/updateGlobalBenchmarks.ts:20:    .not("published_at", "is", null)
+src/features/shopreel/optimization/updateGlobalBenchmarks.ts:21:    .gte("published_at", since);
+src/features/shopreel/optimization/buildPrePublishRanking.ts:147:        memory_key: "pre_publish_ranking",
+src/features/shopreel/optimization/getOptimizationSnapshot.ts:62:        .in("memory_key", ["top_content_patterns", "automation_loop_snapshot"]),
+src/features/shopreel/automation/components/AutomationRunner.tsx:19:      const res = await fetch("/api/shopreel/automation", {
+src/features/shopreel/automation/components/AutomationRunner.tsx:26:        throw new Error(json.error ?? "Failed to run automation");
+src/features/shopreel/automation/components/AutomationRunner.tsx:31:      setError(err instanceof Error ? err.message : "Failed to run automation");
+src/features/shopreel/automation/components/AutomationRunner.tsx:40:      title="Run ShopReel automation"
+src/features/shopreel/automation/runShopReelAutopilot.ts:16:  scheduledFor: string;
+src/features/shopreel/automation/runShopReelAutopilot.ts:111:  const scheduled = new Date();
+src/features/shopreel/automation/runShopReelAutopilot.ts:112:  scheduled.setUTCDate(scheduled.getUTCDate() + dayOffset);
+src/features/shopreel/automation/runShopReelAutopilot.ts:113:  scheduled.setUTCHours(16, 0, 0, 0);
+src/features/shopreel/automation/runShopReelAutopilot.ts:114:  return scheduled.toISOString();
+src/features/shopreel/automation/runShopReelAutopilot.ts:208:    const scheduledFor = buildScheduledFor(index);
+src/features/shopreel/automation/runShopReelAutopilot.ts:215:      scheduled_for: scheduledFor,
+src/features/shopreel/automation/runShopReelAutopilot.ts:277:      scheduled_for: scheduledFor,
+src/features/shopreel/automation/runShopReelAutopilot.ts:304:      scheduledFor,
+src/features/shopreel/automation/lib/server.ts:10:    .from("shopreel_automation_runs")
+src/features/shopreel/automation/lib/server.ts:20:    throw new Error(error?.message ?? "Failed to start automation run");
+src/features/shopreel/automation/lib/server.ts:38:    .from("shopreel_automation_runs")
+src/features/shopreel/automation/lib/server.ts:63:    .from("shopreel_automation_runs")
+src/features/shopreel/automation/lib/server.ts:109:      .from("shopreel_automation_runs")
+src/features/shopreel/automation/runAutomationLoop.ts:3:import { queueScheduledContent } from "@/features/shopreel/scheduler/queueScheduledContent";
+src/features/shopreel/automation/runAutomationLoop.ts:5:import { runPublishWorker } from "@/features/shopreel/publish/runPublishWorker";
+src/features/shopreel/automation/runAutomationLoop.ts:17:    .in("status", ["planned", "queued", "ready", "publishing"]);
+src/features/shopreel/automation/runAutomationLoop.ts:35:  const rendered = await processRenderJobs();
+src/features/shopreel/automation/runAutomationLoop.ts:36:  const published = await runPublishWorker({ shopId });
+src/features/shopreel/automation/runAutomationLoop.ts:45:    rendered,
+src/features/shopreel/automation/runAutomationLoop.ts:46:    published,
+src/features/shopreel/manual/components/ManualUploadClient.tsx:24:  renderJob: { id: string; status: string } | null;
+src/features/shopreel/manual/components/ManualUploadClient.tsx:201:          generateJson.renderJob ? ` • Render job ${generateJson.renderJob.id}` : ""
+src/features/shopreel/creator/generateCreatorScript.ts:65:      whyItWorks: "Fast, broad, easy to publish.",
+src/features/shopreel/creator/generateCreatorScript.ts:130:        "Why the response is worth posting",
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:418:          "Email and social post outputs should also feel publish-ready.",
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:437:          "1. A publish-ready blog article with editable sections.\n" +
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:438:          "2. A publish-ready email draft with editable sections.\n" +
+src/features/shopreel/creator/generateCreatorContentOutputs.ts:439:          "3. A publish-ready social post with editable sections.\n" +
+src/features/shopreel/content/components/ContentLibraryClient.tsx:46:      `Delete "${item.title}"?\n\nThis removes the generated item and its linked publish/render records.`
+src/features/shopreel/content/actions/contentActions.ts:56:      render_url: null,
+src/features/shopreel/library/libraryItem.ts:4:import { mapRenderJob, type ShopReelRenderJob } from "@/features/shopreel/render/renderJob";
+src/features/shopreel/library/libraryItem.ts:7:export type ShopReelLibraryLifecycleStatus = "draft" | "reviewed" | "render_queued" | "rendering" | "render_ready" | "render_failed" | "export_ready" | "exported" | "posted" | "failed" | "archived" | "unknown";
+src/features/shopreel/library/libraryItem.ts:8:export type ShopReelLibraryItem = { id: string; generationId?: string; contentPieceId?: string; renderJobId?: string; exportPackageId?: string; title?: string; prompt?: string; captionText?: string; hashtags: string[]; platforms: ShopReelPlatformId[]; status: ShopReelLibraryLifecycleStatus; statusLabel: string; primaryActionLabel: string; primaryActionHref: string; secondaryActionHref?: string; mp4Path?: string; thumbnailPath?: string; createdAt?: string; updatedAt?: string; exportedAt?: string; };
+src/features/shopreel/library/libraryItem.ts:10:type GenerationRow = { id: string; content_piece_id: string | null; render_job_id: string | null; status: string | null; story_draft: Json | null; generation_metadata: Json | null; created_at: string; updated_at: string; };
+src/features/shopreel/library/libraryItem.ts:26:  return { draft: "Draft", reviewed: "Reviewed", render_queued: "Render queued", rendering: "Rendering", render_ready: "Render ready", render_failed: "Render failed", export_ready: "Ready to export", exported: "Exported", posted: "Posted", failed: "Failed", archived: "Archived", unknown: "Unknown" }[status];
+src/features/shopreel/library/libraryItem.ts:30:  if (item.status === "draft" || item.status === "reviewed") return { primaryActionLabel: "Review", primaryActionHref: `/shopreel/review/${item.generationId ?? ""}`, secondaryActionHref: "/shopreel/render-jobs" };
+src/features/shopreel/library/libraryItem.ts:31:  if (["render_queued", "rendering", "render_failed", "failed"].includes(item.status)) return { primaryActionLabel: "View render jobs", primaryActionHref: "/shopreel/render-jobs", secondaryActionHref: item.generationId ? `/shopreel/review/${item.generationId}` : undefined };
+src/features/shopreel/library/libraryItem.ts:32:  if (item.status === "render_ready") return { primaryActionLabel: "Create/open export", primaryActionHref: "/shopreel/render-jobs", secondaryActionHref: "/shopreel/exports" };
+src/features/shopreel/library/libraryItem.ts:33:  if (["export_ready", "exported", "posted"].includes(item.status)) return { primaryActionLabel: "Open exports", primaryActionHref: item.exportPackageId ? `/shopreel/exports?packageId=${item.exportPackageId}` : "/shopreel/exports", secondaryActionHref: "/shopreel/render-jobs" };
+src/features/shopreel/library/libraryItem.ts:37:export function buildShopReelLibraryItems(input: { generations: GenerationRow[]; contentPieces: ContentPieceRow[]; renderJobs: Record<string, unknown>[]; exportPackages: Record<string, unknown>[]; }): ShopReelLibraryItem[] {
+src/features/shopreel/library/libraryItem.ts:39:  const renderById = new Map<string, ShopReelRenderJob>();
+src/features/shopreel/library/libraryItem.ts:40:  for (const row of input.renderJobs) {
+src/features/shopreel/library/libraryItem.ts:42:    if (mapped.id) renderById.set(mapped.id, mapped);
+src/features/shopreel/library/libraryItem.ts:54:    const render = g.render_job_id ? renderById.get(g.render_job_id) : undefined;
+src/features/shopreel/library/libraryItem.ts:57:    if (render?.status === "queued") status = "render_queued";
+src/features/shopreel/library/libraryItem.ts:58:    else if (render?.status === "processing") status = "rendering";
+src/features/shopreel/library/libraryItem.ts:59:    else if (render?.status === "ready") status = "render_ready";
+src/features/shopreel/library/libraryItem.ts:60:    else if (render?.status === "failed") status = "render_failed";
+src/features/shopreel/library/libraryItem.ts:72:      renderJobId: render?.id,
+src/features/shopreel/library/libraryItem.ts:82:      mp4Path: exp?.mp4Path ?? render?.outputVideoPath,
+src/features/shopreel/library/libraryItem.ts:83:      thumbnailPath: exp?.thumbnailPath ?? render?.thumbnailPath,
+src/features/shopreel/library/libraryItem.ts:85:      updatedAt: exp?.updatedAt ?? render?.updatedAt ?? g.updated_at,
+src/features/shopreel/library/LibraryIndexClient.tsx:18:    const statusPass = status === "all" || (status === "draft" && ["draft", "reviewed"].includes(item.status)) || (status === "rendering" && ["render_queued", "rendering"].includes(item.status)) || (status === "ready" && ["render_ready", "export_ready"].includes(item.status)) || (status === "exported" && ["exported", "posted"].includes(item.status)) || (status === "failed" && ["render_failed", "failed"].includes(item.status));
+src/features/shopreel/library/LibraryIndexClient.tsx:27:      <select className="rounded border border-white/20 bg-black/20 p-2" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">All statuses</option><option value="draft">Drafts</option><option value="rendering">Rendering</option><option value="ready">Ready to export</option><option value="exported">Exported</option><option value="failed">Failed</option></select>
+src/features/shopreel/generations/components/GenerationTimelineEditor.tsx:96:        description="Adjust scene structure, overlay copy, and voiceover flow before publishing."
+src/features/shopreel/editor/components/EditorClient.tsx:267:  async function renderAgain() {
+src/features/shopreel/editor/components/EditorClient.tsx:287:      const res = await fetch(`/api/shopreel/story-generations/${props.generationId}/render`, {
+src/features/shopreel/editor/components/EditorClient.tsx:294:        throw new Error(json.error ?? "Failed to queue render");
+src/features/shopreel/editor/components/EditorClient.tsx:299:      setError(err instanceof Error ? err.message : "Failed to queue render");
+src/features/shopreel/editor/components/EditorClient.tsx:417:              No render preview yet.
+src/features/shopreel/editor/components/EditorClient.tsx:595:            <GlassButton variant="primary" onClick={() => void renderAgain()} disabled={isRendering}>
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:156:    lines.push("## Manual posting checklist");
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:228:      const res = await fetch(`/api/shopreel/generations/${draft.generationId}/render`, { method: "POST" });
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:230:      const json = (await res.json()) as { ok?: boolean; error?: string; renderJobsUrl?: string };
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:232:      if (!res.ok || !json.ok) throw new Error(json.error ?? "Failed to start render");
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:234:      router.push(json.renderJobsUrl ?? "/shopreel/render-jobs");
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:238:      setMessage(error instanceof Error ? error.message : "Unable to start render right now.");
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:342:                <p className="mt-2 text-sm text-white/85">{draft.primaryCta || "Manual posting handoff"}</p>
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:368:            <p>Use this package for manual Facebook/Instagram posting. Rendering remains optional for video workflows.</p>
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx:384:                {startingRender ? "Starting render…" : "Start render (optional)"}
+src/features/shopreel/operations/components/RetryRenderButton.tsx:19:      const res = await fetch(`/api/shopreel/generations/${generationId}/render`, {
+src/features/shopreel/operations/components/RetryRenderButton.tsx:26:        throw new Error(json.error ?? "Failed to queue render");
+src/features/shopreel/operations/components/RetryRenderButton.tsx:31:      setError(err instanceof Error ? err.message : "Failed to queue render");
+src/features/shopreel/operations/components/RetryRenderButton.tsx:40:        {pending ? "Queueing render..." : "Retry render"}
+src/features/shopreel/operations/components/EnqueuePublicationButton.tsx:39:        {pending ? "Queueing..." : "Retry publish"}
+src/features/shopreel/operations/lib/lifecycleBoard.ts:16:} from "@/features/shopreel/operations/lib/publishReadiness";
+src/features/shopreel/operations/lib/lifecycleBoard.ts:21:} from "@/features/shopreel/operations/lib/publishFailureDiagnostics";
+src/features/shopreel/operations/lib/lifecycleBoard.ts:23:export type BoardBlockReason = PublishReadinessBlockReason | "publish_job_failed" | "unsupported_state";
+src/features/shopreel/operations/lib/lifecycleBoard.ts:39:  render_job_id: string | null;
+src/features/shopreel/operations/lib/lifecycleBoard.ts:53:  render_url: string | null;
+src/features/shopreel/operations/lib/lifecycleBoard.ts:60:  scheduled_for: string | null;
+src/features/shopreel/operations/lib/lifecycleBoard.ts:61:  published_at: string | null;
+src/features/shopreel/operations/lib/lifecycleBoard.ts:96:    case "publishing":
+src/features/shopreel/operations/lib/lifecycleBoard.ts:97:    case "published":
+src/features/shopreel/operations/lib/lifecycleBoard.ts:108:  renderJobs: OperationRenderJob[];
+src/features/shopreel/operations/lib/lifecycleBoard.ts:111:  publishJobs: OperationPublishJob[];
+src/features/shopreel/operations/lib/lifecycleBoard.ts:114:  const { generations, renderJobs, contentPieces, publications, publishJobs, readiness } = input;
+src/features/shopreel/operations/lib/lifecycleBoard.ts:116:  const renderJobsById = new Map(renderJobs.map((job) => [job.id, job]));
+src/features/shopreel/operations/lib/lifecycleBoard.ts:118:  const publishJobByPublicationId = new Map(publishJobs.map((job) => [job.publication_id, job]));
+src/features/shopreel/operations/lib/lifecycleBoard.ts:132:  const publishBlocked: Array<{ generation: OperationGeneration; reason: BoardBlockReasonLabel }> = [];
+src/features/shopreel/operations/lib/lifecycleBoard.ts:141:      renderJob: generation.render_job_id ? renderJobsById.get(generation.render_job_id) ?? null : null,
+src/features/shopreel/operations/lib/lifecycleBoard.ts:157:    if (readinessResult.state === "approved_render_blocked") {
+src/features/shopreel/operations/lib/lifecycleBoard.ts:168:    if (readinessResult.state === "approved_publish_blocked") {
+src/features/shopreel/operations/lib/lifecycleBoard.ts:169:      publishBlocked.push({
+src/features/shopreel/operations/lib/lifecycleBoard.ts:179:    if (readinessResult.state === "ready_to_publish") {
+src/features/shopreel/operations/lib/lifecycleBoard.ts:184:  const scheduled = publications
+src/features/shopreel/operations/lib/lifecycleBoard.ts:185:    .filter((publication) => !!publication.scheduled_for)
+src/features/shopreel/operations/lib/lifecycleBoard.ts:186:    .sort((a, b) => parseIso(a.scheduled_for) - parseIso(b.scheduled_for));
+src/features/shopreel/operations/lib/lifecycleBoard.ts:190:    .sort((a, b) => parseIso(b.published_at ?? b.created_at) - parseIso(a.published_at ?? a.created_at))
+src/features/shopreel/operations/lib/lifecycleBoard.ts:200:  const publishFailures = publications
+src/features/shopreel/operations/lib/lifecycleBoard.ts:203:      const publishJob = publishJobByPublicationId.get(publication.id) ?? null;
+src/features/shopreel/operations/lib/lifecycleBoard.ts:204:      const failedStatus = status === FAILED_PUBLICATION_STATUS || publishJob?.status === FAILED_PUBLISH_JOB_STATUS;
+src/features/shopreel/operations/lib/lifecycleBoard.ts:218:        publishJob,
+src/features/shopreel/operations/lib/lifecycleBoard.ts:229:      return { publication, publishJob, generation, diagnostics, nextAction };
+src/features/shopreel/operations/lib/lifecycleBoard.ts:236:        publishJob: OperationPublishJob | null;
+src/features/shopreel/operations/lib/lifecycleBoard.ts:257:    publishBlocked,
+src/features/shopreel/operations/lib/lifecycleBoard.ts:258:    scheduled,
+src/features/shopreel/operations/lib/lifecycleBoard.ts:260:    publishFailures,
+src/features/shopreel/operations/lib/lifecycleBoard.ts:265:      publishingPublications: publications.filter(
+src/features/shopreel/operations/lib/lifecycleBoard.ts:268:      queuedJobs: publishJobs.filter((job) => job.status === QUEUED_PUBLISH_JOB_STATUS).length,
+src/features/shopreel/operations/lib/lifecycleBoard.ts:269:      processingJobs: publishJobs.filter((job) => job.status === PROCESSING_PUBLISH_JOB_STATUS).length,
+src/features/shopreel/operations/lib/lifecycleBoard.ts:270:      completedJobs: publishJobs.filter((job) => job.status === COMPLETED_PUBLISH_JOB_STATUS).length,
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:17:  | "render_not_ready"
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:21:  | "unknown_publish_failure";
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:34:  publishJob: {
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:45:    render_url: string | null;
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:64:const QUEUE_ERROR_MATCH = /(queue|enqueue|worker|job not found|publish job)/i;
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:65:const PLATFORM_REJECTION_MATCH = /(failed to publish|invalid parameter|unsupported|not wired yet|not implemented)/i;
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:77:  return input.publishJob?.error_message ?? input.publication.error_text ?? "Publish failed";
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:82:  const jobStatus = input.publishJob?.status ? String(input.publishJob.status) : null;
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:92:  const renderUrl = input.contentPiece?.render_url;
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:93:  if (!renderUrl || renderUrl.trim().length === 0) {
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:98:      return "render_not_ready";
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:132:  return "unknown_publish_failure";
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:142:      return "Platform rejected publish";
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:145:    case "render_not_ready":
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:148:      return "Invalid publish state";
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:153:    case "unknown_publish_failure":
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:155:      return "Unknown publish failure";
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:164:    case "unknown_publish_failure":
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:170:    case "render_not_ready":
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:187:    input.publishJob?.completed_at ??
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:188:    input.publishJob?.updated_at ??
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:190:    input.publishJob?.created_at ??
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:202:    currentPublishJobStatus: input.publishJob?.status ? String(input.publishJob.status) : null,
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:218:    return { label: "Inspect queue and retry", href: "/shopreel/publish-queue" };
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:224:      return { label: "Open publishing settings", href: "/shopreel/settings" };
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:226:    case "render_not_ready":
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:228:        return { label: "Fix content/render first", href: `/shopreel/generations/${input.generationId}` };
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:233:      return { label: "Inspect publish detail", href: "/shopreel/publish-queue" };
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:236:    case "unknown_publish_failure":
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts:239:      return { label: "Inspect publication/job detail", href: "/shopreel/publish-queue" };
+src/features/shopreel/operations/lib/publishReadiness.ts:17:  | "render_failed"
+src/features/shopreel/operations/lib/publishReadiness.ts:18:  | "missing_render_output"
+src/features/shopreel/operations/lib/publishReadiness.ts:21:  | "publish_failed"
+src/features/shopreel/operations/lib/publishReadiness.ts:22:  | "already_scheduled_or_published"
+src/features/shopreel/operations/lib/publishReadiness.ts:23:  | "publish_in_progress"
+src/features/shopreel/operations/lib/publishReadiness.ts:29:  | "approved_render_blocked"
+src/features/shopreel/operations/lib/publishReadiness.ts:30:  | "approved_publish_blocked"
+src/features/shopreel/operations/lib/publishReadiness.ts:31:  | "ready_to_publish"
+src/features/shopreel/operations/lib/publishReadiness.ts:32:  | "scheduled_or_published";
+src/features/shopreel/operations/lib/publishReadiness.ts:43:  render_job_id: string | null;
+src/features/shopreel/operations/lib/publishReadiness.ts:54:  render_url: string | null;
+src/features/shopreel/operations/lib/publishReadiness.ts:59:  scheduled_for: string | null;
+src/features/shopreel/operations/lib/publishReadiness.ts:70:  return !!(metadata && typeof metadata.render_url === "string" && metadata.render_url.trim().length > 0);
+src/features/shopreel/operations/lib/publishReadiness.ts:74:  return !!(contentPiece && typeof contentPiece.render_url === "string" && contentPiece.render_url.trim().length > 0);
+src/features/shopreel/operations/lib/publishReadiness.ts:79:  renderJob: ReadinessRenderJob;
+src/features/shopreel/operations/lib/publishReadiness.ts:84:  const { generation, renderJob, contentPiece, publications, hasConnectedPlatformAccount } = input;
+src/features/shopreel/operations/lib/publishReadiness.ts:95:  if (renderJob?.status === FAILED_RENDER_JOB_STATUS || generation.status === STORY_GENERATION_FAILED_STATUS) {
+src/features/shopreel/operations/lib/publishReadiness.ts:96:    return { state: "approved_render_blocked", blockedBy: "render_failed", label: renderJob?.error_message ?? "Render failed" };
+src/features/shopreel/operations/lib/publishReadiness.ts:99:  if (!generation.render_job_id || (!hasGenerationRenderUrl(generation) && !hasContentRenderUrl(contentPiece))) {
+src/features/shopreel/operations/lib/publishReadiness.ts:100:    return { state: "approved_render_blocked", blockedBy: "missing_render_output", label: "Missing render output" };
+src/features/shopreel/operations/lib/publishReadiness.ts:104:    return { state: "approved_render_blocked", blockedBy: "missing_content_piece", label: "Missing content piece link" };
+src/features/shopreel/operations/lib/publishReadiness.ts:108:    return { state: "approved_render_blocked", blockedBy: "missing_content_artifact", label: "Missing publishable content artifact" };
+src/features/shopreel/operations/lib/publishReadiness.ts:112:    (publication) => publication.status === PUBLISHED_PUBLICATION_STATUS || !!publication.scheduled_for,
+src/features/shopreel/operations/lib/publishReadiness.ts:116:    return { state: "scheduled_or_published", blockedBy: "already_scheduled_or_published", label: "Already scheduled or published" };
+src/features/shopreel/operations/lib/publishReadiness.ts:124:    return { state: "approved_publish_blocked", blockedBy: "publish_in_progress", label: "Already queued for publish" };
+src/features/shopreel/operations/lib/publishReadiness.ts:129:    return { state: "approved_publish_blocked", blockedBy: "publish_failed", label: "Latest publication failed" };
+src/features/shopreel/operations/lib/publishReadiness.ts:133:    return { state: "approved_publish_blocked", blockedBy: "no_connected_account", label: "No connected publishing account" };
+src/features/shopreel/operations/lib/publishReadiness.ts:136:  return { state: "ready_to_publish", blockedBy: null, label: "Ready to publish" };
+src/features/shopreel/integrations/email/connect.ts:17:  async publishVideo(): Promise<PublishResult> {
+src/features/shopreel/integrations/instagram/connect.ts:48:    "instagram_content_publish",
+src/features/shopreel/integrations/instagram/connect.ts:253:  async publishVideo(input) {
+src/features/shopreel/integrations/instagram/connect.ts:254:    const mod = await import("./publish");
+src/features/shopreel/integrations/instagram/connect.ts:255:    return mod.publishInstagramVideo(input);
+src/features/shopreel/integrations/instagram/publish.ts:47:export async function publishInstagramVideo(
+src/features/shopreel/integrations/instagram/publish.ts:110:  const publishRes = await fetch(
+src/features/shopreel/integrations/instagram/publish.ts:111:    `https://graph.facebook.com/v18.0/${encodeURIComponent(instagramBusinessId)}/media_publish`,
+src/features/shopreel/integrations/instagram/publish.ts:125:  const publishJson =
+src/features/shopreel/integrations/instagram/publish.ts:126:    (await publishRes.json().catch(() => ({}))) as MetaPublishResponse;
+src/features/shopreel/integrations/instagram/publish.ts:128:  if (!publishRes.ok || !publishJson.id) {
+src/features/shopreel/integrations/instagram/publish.ts:130:      publishJson.error?.message ?? "Failed to publish Instagram Reel.",
+src/features/shopreel/integrations/instagram/publish.ts:137:    remotePostId: publishJson.id,
+src/features/shopreel/integrations/instagram/publish.ts:139:    status: "published",
+src/features/shopreel/integrations/linkedin/connect.ts:17:  async publishVideo(): Promise<PublishResult> {
+src/features/shopreel/integrations/blog/connect.ts:10:    throw new Error("Blog publishing does not use OAuth yet.");
+src/features/shopreel/integrations/blog/connect.ts:14:    throw new Error("Blog publishing OAuth is not implemented yet.");
+src/features/shopreel/integrations/blog/connect.ts:17:  async publishVideo(): Promise<PublishResult> {
+src/features/shopreel/integrations/facebook/connect.ts:58:    "instagram_content_publish",
+src/features/shopreel/integrations/facebook/connect.ts:337:  async publishVideo(input) {
+src/features/shopreel/integrations/facebook/connect.ts:338:    const mod = await import("./publish");
+src/features/shopreel/integrations/facebook/connect.ts:339:    return mod.publishFacebookVideo(input);
+src/features/shopreel/integrations/facebook/publish.ts:37:export async function publishFacebookVideo(
+src/features/shopreel/integrations/facebook/publish.ts:91:    throw new Error(json.error?.message ?? "Failed to publish Facebook video.");
+src/features/shopreel/integrations/facebook/publish.ts:99:    status: "published",
+src/features/shopreel/integrations/youtube/connect.ts:16:  async publishVideo() {
+src/features/shopreel/integrations/youtube/connect.ts:17:    const mod = await import("./publish");
+src/features/shopreel/integrations/youtube/connect.ts:18:    return mod.publishYouTubeShort(arguments[0]);
+src/features/shopreel/integrations/youtube/publish.ts:3:export async function publishYouTubeShort(
+src/features/shopreel/integrations/youtube/publish.ts:7:    `YouTube publishing is not wired yet for shop ${input.shopId}.`,
+src/features/shopreel/integrations/google-business/connect.ts:17:  async publishVideo(): Promise<PublishResult> {
+src/features/shopreel/integrations/tiktok/connect.ts:16:  async publishVideo(input) {
+src/features/shopreel/integrations/tiktok/connect.ts:17:    const mod = await import("./publish");
+src/features/shopreel/integrations/tiktok/connect.ts:18:    return mod.publishTikTokVideo(input);
+src/features/shopreel/integrations/tiktok/publish.ts:3:export async function publishTikTokVideo(
+src/features/shopreel/integrations/tiktok/publish.ts:7:    `TikTok publishing is not wired yet for shop ${input.shopId}.`,
+src/features/shopreel/integrations/shared/types.ts:44:  status: "queued" | "published";
+src/features/shopreel/integrations/shared/types.ts:50:  publishVideo: (input: PublishInput) => Promise<PublishResult>;
+src/features/shopreel/worker/processRenderJobs.ts:7:  render_payload: Record<string, unknown> | null;
+src/features/shopreel/worker/processRenderJobs.ts:24:    .from("reel_render_jobs")
+src/features/shopreel/worker/processRenderJobs.ts:48:        .from("reel_render_jobs")
+src/features/shopreel/worker/processRenderJobs.ts:52:          locked_by: "worker:render",
+src/features/shopreel/worker/processRenderJobs.ts:58:      const fakeRenderUrl = `https://example.com/rendered/${job.id}.mp4`;
+src/features/shopreel/worker/processRenderJobs.ts:62:        .from("reel_render_jobs")
+src/features/shopreel/worker/processRenderJobs.ts:65:          render_url: fakeRenderUrl,
+src/features/shopreel/worker/processRenderJobs.ts:78:            render_url: fakeRenderUrl,
+src/features/shopreel/worker/processRenderJobs.ts:99:            ...safeObject(job.render_payload),
+src/features/shopreel/worker/processRenderJobs.ts:100:            render_completed_at: new Date().toISOString(),
+src/features/shopreel/worker/processRenderJobs.ts:101:            render_url: fakeRenderUrl,
+src/features/shopreel/worker/processRenderJobs.ts:103:            render_worker: "worker:render",
+src/features/shopreel/worker/processRenderJobs.ts:106:        .eq("render_job_id", job.id);
+src/features/shopreel/worker/processRenderJobs.ts:111:        .from("reel_render_jobs")
+src/features/shopreel/worker/processRenderJobs.ts:125:            ...safeObject(job.render_payload),
+src/features/shopreel/worker/processRenderJobs.ts:126:            render_failed_at: new Date().toISOString(),
+src/features/shopreel/worker/processRenderJobs.ts:127:            render_error: message,
+src/features/shopreel/worker/processRenderJobs.ts:128:            render_worker: "worker:render",
+src/features/shopreel/worker/processRenderJobs.ts:131:        .eq("render_job_id", job.id);
+src/features/shopreel/export/exportPackage.ts:6:export type ShopReelExportPackage = { id: string; generationId?: string; renderJobId?: string; contentPieceId?: string; status: ShopReelExportPackageStatus; mp4Path?: string; thumbnailPath?: string; captionText?: string; hashtags: string[]; platformOutputs: ShopReelExportPlatformOutput[]; exportedAt?: string; createdAt?: string; updatedAt?: string };
+src/features/shopreel/export/exportPackage.ts:8:type ExportRow = { id: string; generation_id: string | null; render_job_id: string | null; content_piece_id: string | null; status: string; mp4_path: string | null; thumbnail_path: string | null; caption_text: string | null; hashtags: Json | null; platform_outputs: Json | null; exported_at: string | null; created_at: string; updated_at: string; };
+src/features/shopreel/export/exportPackage.ts:20:  return { id: row.id, generationId: row.generation_id ?? undefined, renderJobId: row.render_job_id ?? undefined, contentPieceId: row.content_piece_id ?? undefined, status: mapExportStatus(row.status), mp4Path: row.mp4_path ?? undefined, thumbnailPath: row.thumbnail_path ?? undefined, captionText: row.caption_text ?? undefined, hashtags: asStrings(row.hashtags), platformOutputs, exportedAt: row.exported_at ?? undefined, createdAt: row.created_at, updatedAt: row.updated_at };
+
+============================================================
+SEARCH: Review refine/generation routes
+============================================================
+src/app/api/shopreel/generations/[id]/draft/route.ts
+src/app/api/shopreel/generations/[id]/publish/route.ts
+src/app/api/shopreel/generations/[id]/render/route.ts
+src/app/api/shopreel/generations/[id]/review/route.ts
+src/app/api/shopreel/generations/route.ts
+
+============================================================
+GIT STATUS
+============================================================
+?? shopreel-idea-brainstorming-audit.txt
