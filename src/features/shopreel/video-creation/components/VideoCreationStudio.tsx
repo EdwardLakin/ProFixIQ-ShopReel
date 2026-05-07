@@ -100,6 +100,7 @@ export default function VideoCreationStudio({
   const [deleting, setDeleting] = useState(false);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
   const [deletingSeriesKey, setDeletingSeriesKey] = useState<string | null>(null);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -526,6 +527,13 @@ export default function VideoCreationStudio({
 
   const showAssetPicker = jobType === "asset_assembly" || jobType === "series";
   const serviceUnavailable = envHealth.state !== "configured";
+  const readinessMissing = [
+    !title.trim() ? "Add an idea title" : null,
+    !prompt.trim() ? "Add a prompt/brief" : null,
+    showAssetPicker && selectedAssetIds.length === 0 ? "Select source media assets" : null,
+    !serviceUnavailable ? null : "Connect required render services",
+  ].filter(Boolean) as string[];
+  const renderReady = readinessMissing.length === 0;
 
   return (
     <div className="grid gap-5">
@@ -541,40 +549,59 @@ export default function VideoCreationStudio({
       ) : null}
 
       <GlassCard
-        label="Studio"
-        title="Beginner video brief"
-        description="Create clips, build from assets, or create an uploaded-media-first series."
+        label="Advanced Video Studio"
+        title="Idea to render command center"
+        description="Build production-ready videos with script-first control and lifecycle-aware render actions."
         strong
       >
-        <div className="grid gap-5">          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+          <div className="space-y-5">
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>1. Idea & Brief</div>
+              <label className="grid gap-2">
+                <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Title</span>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Launch idea, offer, or story title" className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none" />
+              </label>
+              <label className="grid gap-2">
+                <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Prompt</span>
+                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Describe the story, offer, transformation, product, service, or message." rows={5} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none" />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <GlassButton variant="secondary" onClick={() => void enhancePrompt()} disabled={enhancing}>{enhancing ? "Enhancing..." : "Enhance Prompt"}</GlassButton>
+                <GlassButton variant="primary" onClick={() => void submitJob()} disabled={submitting || serviceUnavailable}>{serviceUnavailable ? "Service unavailable" : submitting ? "Creating..." : jobType === "series" ? "Create series" : "Create media job"}</GlassButton>
+              </div>
+            </section>
+
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Presets</div>
+              <div className="grid gap-2 md:grid-cols-2">
             {VIDEO_CREATION_PRESETS.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset.id)}
                 className={cx(
-                  "rounded-2xl border p-4 text-left transition",
+                  "rounded-xl border p-3 text-left transition",
                   glassTheme.border.softer,
                   glassTheme.glass.panelSoft
                 )}
               >
-                <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
-                  {preset.title}
+                <div className="flex items-center justify-between gap-2">
+                  <div className={cx("text-sm font-medium", glassTheme.text.primary)}>{preset.title}</div>
+                  <div className={cx("text-xs", glassTheme.text.secondary)}>{preset.aspectRatio}</div>
                 </div>
-                <div className={cx("mt-1 text-xs leading-5", glassTheme.text.secondary)}>
-                  {preset.description}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className={cx("mt-1 text-xs leading-5", glassTheme.text.secondary)}>{preset.description}</div>
+                <div className="mt-2 flex flex-wrap gap-2">
                   <GlassBadge tone="default">{formatLabel(preset.jobType)}</GlassBadge>
-                  <GlassBadge tone="muted">{preset.aspectRatio}</GlassBadge>
                 </div>
               </button>
             ))}
-          </div>
+              </div>
+            </section>
 
-          <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>2. Media Inputs</div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {VIDEO_CREATION_JOB_TYPES.map((item) => {
                   const active = item.value === jobType;
 
@@ -584,7 +611,7 @@ export default function VideoCreationStudio({
                       type="button"
                       onClick={() => selectJobType(item.value)}
                       className={cx(
-                        "rounded-2xl border p-4 text-left transition",
+                        "rounded-xl border px-3 py-2 text-left transition",
                         active ? glassTheme.border.copper : glassTheme.border.softer,
                         glassTheme.glass.panelSoft
                       )}
@@ -592,14 +619,23 @@ export default function VideoCreationStudio({
                       <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
                         {item.label}
                       </div>
-                      <div className={cx("mt-1 text-xs", glassTheme.text.secondary)}>
-                        {item.description}
-                      </div>
+                      <div className={cx("mt-1 text-xs", glassTheme.text.secondary)}>{item.description}</div>
                     </button>
                   );
                 })}
               </div>
+              {showAssetPicker ? (
+                <div className="grid gap-2 md:grid-cols-2">
+                  {selectableAssets.length === 0 ? <div className={cx("rounded-xl border p-3 text-sm", glassTheme.border.softer, glassTheme.glass.panelSoft, glassTheme.text.secondary)}>No assets available yet. Upload media first.</div> : selectableAssets.map((asset) => {
+                    const active = selectedAssetIds.includes(asset.id);
+                    return <button key={asset.id} type="button" onClick={() => toggleAsset(asset.id)} className={cx("rounded-xl border p-3 text-left transition", active ? glassTheme.border.copper : glassTheme.border.softer, glassTheme.glass.panelSoft)}><div className={cx("text-sm font-medium", glassTheme.text.primary)}>{asset.title ?? "Untitled asset"}</div><div className={cx("mt-1 text-xs", glassTheme.text.secondary)}>{formatLabel(asset.asset_type)} • {timeAgoLabel(asset.created_at)}</div></button>;
+                  })}
+                </div>
+              ) : null}
+            </section>
 
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>3. AI Storyboard / Scene Plan</div>
               {jobType === "series" ? (
                 <div className="rounded-2xl border border-cyan-300/30 bg-cyan-400/[0.05] p-4">
                   <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
@@ -626,32 +662,6 @@ export default function VideoCreationStudio({
                 </div>
               ) : null}
 
-              <div className="grid gap-4">
-                <label className="grid gap-2">
-                  <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
-                    Title
-                  </span>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Launch idea, offer, or story title"
-                    className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
-                  />
-                </label>
-
-                <label className="grid gap-2">
-                  <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
-                    Prompt
-                  </span>
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Describe the story, offer, transformation, product, service, or message."
-                    rows={6}
-                    className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
-                  />
-                </label>
-
                 <label className="grid gap-2">
                   <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
                     Negative prompt
@@ -664,63 +674,19 @@ export default function VideoCreationStudio({
                     className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
                   />
                 </label>
-              </div>
 
-              {showAssetPicker ? (
-                <div className="space-y-3">
-                  <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
-                    {jobType === "series" ? "Select uploaded assets for the series" : "Select assets"}
-                  </div>
+            </section>
 
-                  {selectableAssets.length === 0 ? (
-                    <div
-                      className={cx(
-                        "rounded-2xl border p-4 text-sm",
-                        glassTheme.border.softer,
-                        glassTheme.glass.panelSoft,
-                        glassTheme.text.secondary
-                      )}
-                    >
-                      No assets available yet. Upload media first, then return here.
-                    </div>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {selectableAssets.map((asset) => {
-                        const active = selectedAssetIds.includes(asset.id);
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>4. Timeline Preview</div>
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Timeline editing remains in the editor after generation. Next step: create job, then open edit workspace.</div>
+            </section>
 
-                        return (
-                          <button
-                            key={asset.id}
-                            type="button"
-                            onClick={() => toggleAsset(asset.id)}
-                            className={cx(
-                              "rounded-2xl border p-4 text-left transition",
-                              active ? glassTheme.border.copper : glassTheme.border.softer,
-                              glassTheme.glass.panelSoft
-                            )}
-                          >
-                            <div className={cx("text-sm font-medium", glassTheme.text.primary)}>
-                              {asset.title ?? "Untitled asset"}
-                            </div>
-                            <div className={cx("mt-1 text-xs", glassTheme.text.secondary)}>
-                              {formatLabel(asset.asset_type)} • {timeAgoLabel(asset.created_at)}
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <GlassBadge tone={active ? "copper" : "default"}>
-                                {active ? "Selected" : "Select"}
-                              </GlassBadge>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid gap-4">
+            <details className="rounded-2xl border border-white/10 bg-white/[0.02] p-4" open={showAdvancedSettings} onToggle={(e) => setShowAdvancedSettings((e.target as HTMLDetailsElement).open)}>
+              <summary className={cx("cursor-pointer text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Advanced settings (Provider / Render / Debug)</summary>
+              <div className="mt-3 space-y-4">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid gap-4">
                 <label className="grid gap-2">
                   <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
                     Provider
@@ -831,16 +797,38 @@ export default function VideoCreationStudio({
                 </GlassButton>
               </div>
 
-              {message ? <div className={cx("text-sm", glassTheme.text.copperSoft)}>{message}</div> : null}
-              {error ? <div className={cx("text-sm", glassTheme.text.copperSoft)}>{error}</div> : null}
-            </div>
+                {message ? <div className={cx("text-sm", glassTheme.text.copperSoft)}>{message}</div> : null}
+                {error ? <div className={cx("text-sm", glassTheme.text.copperSoft)}>{error}</div> : null}
+              </div>
+              </div>
+            </details>
+
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>5. Voice / Captions / Music</div>
+              <div className={cx("text-xs", glassTheme.text.secondary)}>Captions are generated downstream after render; voice and music here are creative direction only.</div>
+            </section>
+
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4"><div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>6. Render Settings</div><div className={cx("text-sm", glassTheme.text.secondary)}>Provider, style, visual mode, aspect ratio, and duration configured in Advanced settings.</div></section>
+
+            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4"><div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>7. Quality Checklist</div><ul className={cx("list-disc pl-5 text-sm", glassTheme.text.secondary)}><li>Prompt is specific and outcome-based.</li><li>Asset selection matches intended story.</li><li>Voice/music direction aligns with brand.</li><li>Render provider is configured.</li></ul></section>
           </div>
+
+          <aside className="space-y-4">
+            <GlassCard label="Readiness" title="Render readiness" description={renderReady ? "Ready to render." : "Resolve missing items before render."}>
+              <div className="space-y-2 text-sm">
+                <div className={cx(renderReady ? glassTheme.text.copperSoft : glassTheme.text.secondary)}>{renderReady ? "All core inputs are present." : "Missing:"}</div>
+                {!renderReady ? <ul className="list-disc pl-5 text-white/80">{readinessMissing.map((item) => <li key={item}>{item}</li>)}</ul> : null}
+                <div className={cx("mt-3 text-xs", glassTheme.text.muted)}>Service status: {serviceUnavailable ? "Disconnected" : "Connected"}.</div>
+                {!renderReady ? <GlassButton variant="secondary" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Go to missing inputs</GlassButton> : null}
+              </div>
+            </GlassCard>
+          </aside>
         </div>
       </GlassCard>
 
 
       <GlassCard
-        label="Audio direction"
+        label="Voice / Captions / Music"
         title="Voiceover and music direction"
         description="ShopReel uses this as creative direction. Use licensed/user-owned music later; for now this guides mood, tempo, and voice."
         strong
@@ -913,7 +901,7 @@ export default function VideoCreationStudio({
       </GlassCard>
 
       <GlassCard
-        label="Recent"
+        label="8. Recent Jobs / Variants"
         title="Recent generation jobs"
         description="Series are grouped together below. Standalone jobs remain separate."
         strong
