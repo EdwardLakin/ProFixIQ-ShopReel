@@ -9,7 +9,7 @@ export async function POST() {
   const run = await createRun(userId, "running");
   try {
     const features = await scanShopReelRoutes();
-    const saved = await upsertFeatures(features, run.id);
+    const saved = await upsertFeatures(features, run.id, userId);
     await completeRun(run.id, "completed", `Discovered ${saved.length} features.`);
     return NextResponse.json({ run, features: saved, phase: "draft_only" });
   } catch (error) {
