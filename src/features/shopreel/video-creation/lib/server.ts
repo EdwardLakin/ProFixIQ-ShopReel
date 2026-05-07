@@ -116,6 +116,11 @@ export async function createMediaGenerationJob(
     throw new Error(error?.message ?? "Failed to create media generation job");
   }
 
+  await supabase
+    .from("shopreel_media_generation_jobs")
+    .update({ submitted_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any)
+    .eq("id", data.id);
+
   return data;
 }
 
@@ -293,7 +298,7 @@ export async function processMediaGenerationJob(
       const { data: processingJob, error: processingError } = await supabase
         .from("shopreel_media_generation_jobs")
         .update({
-          status: "processing",
+          status: "submitted",
           provider_job_id: providerResult.providerJobId,
           preview_url: providerResult.previewUrl,
           updated_at: new Date().toISOString(),

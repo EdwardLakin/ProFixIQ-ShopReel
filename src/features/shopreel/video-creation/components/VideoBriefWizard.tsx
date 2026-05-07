@@ -22,6 +22,7 @@ import {
   type VideoVoiceoverMode,
 } from "@/features/shopreel/video-creation/lib/types";
 import type { Database } from "@/types/supabase";
+import { normalizeVideoJobStatus } from "@/features/shopreel/video-creation/lib/status";
 
 type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["Row"];
 
@@ -96,6 +97,7 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshingJobs, setRefreshingJobs] = useState(false);
+  const [activeRequest, setActiveRequest] = useState(false);
 
   useEffect(() => {
     setJobs(recentJobs);
@@ -136,6 +138,7 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
       }
 
       setSubmitting(true);
+      setActiveRequest(true);
       setError(null);
       setMessage(null);
 
@@ -191,6 +194,7 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
       setError(err instanceof Error ? err.message : "Failed to create video job.");
     } finally {
       setSubmitting(false);
+      setActiveRequest(false);
     }
   }
 
@@ -232,7 +236,12 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
       if (!res.ok || !json.ok || !json.jobs) {
         throw new Error(json.error ?? "Failed to refresh recent jobs.");
       }
-      setJobs(json.jobs);
+      setJobs((current) => {
+        const merged = new Map<string, MediaJob>();
+        for (const job of current) merged.set(job.id, job);
+        for (const job of json.jobs ?? []) merged.set(job.id, { ...merged.get(job.id), ...job } as MediaJob);
+        return Array.from(merged.values()).sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+      });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to refresh recent jobs.");
@@ -435,13 +444,16 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
               {refreshingJobs ? "Refreshing…" : "Refresh"}
             </GlassButton>
           </div>
-          {jobs.length === 0 ? (
+          {jobs.length === 0 && !activeRequest && !submitting ? (
             <p className="text-sm leading-6 text-white/60">No video jobs yet. Create your first one from the brief.</p>
+          ) : jobs.length === 0 ? (
+            <p className="text-sm leading-6 text-white/60">Creating your job… keeping queue warm.</p>
           ) : (
             <div className="space-y-3">
               {jobs.slice(0, 8).map((job) => {
-                const canRun = job.status === "queued" || job.status === "failed";
-                const canSync = job.job_type === "video" && job.status === "processing";
+                const normalized = normalizeVideoJobStatus(job.status);
+                const canRun = normalized === "queued" || normalized === "failed";
+                const canSync = job.job_type === "video" && (normalized === "processing" || normalized === "submitted" || normalized === "rendering");
 
                 return (
                   <div key={job.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
@@ -449,7 +461,7 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
                       <div>
                         <div className="text-sm font-semibold text-white">{job.title ?? "Untitled video"}</div>
                         <div className="mt-1 flex flex-wrap gap-2">
-                          <GlassBadge tone="muted">{job.status}</GlassBadge>
+                          <GlassBadge tone="muted">{normalized}</GlassBadge>
                           {job.style ? <GlassBadge tone="muted">{formatLabel(job.style)}</GlassBadge> : null}
                           {job.duration_seconds ? <GlassBadge tone="muted">{job.duration_seconds}s</GlassBadge> : null}
                         </div>
