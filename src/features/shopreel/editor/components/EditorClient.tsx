@@ -22,6 +22,8 @@ import {
 import { buildSubtitleBlocks } from "@/features/shopreel/subtitles/buildSubtitleBlocks";
 import { buildEditorSessionFromDraft, type EditorScene, type EditorVariant } from "@/features/shopreel/editor/lib/session";
 import { buildPersistedEditorSession, reorderScenesByPersistedOrder, type PersistedEditorSession } from "@/features/shopreel/editor/lib/sessionPersistence";
+import { applyEditorCommand, type CommandState, type EditorCommand } from "@/features/shopreel/editor/lib/commands";
+import { runEditorPreflight } from "@/features/shopreel/editor/lib/preflight";
 
 type Props = {
   generationId: string;
@@ -154,6 +156,10 @@ export default function EditorClient(props: Props) {
   const [isRendering, setIsRendering] = useState(false);
   const [isRegeneratingScript, setIsRegeneratingScript] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [variants, setVariants] = useState<EditorVariant[]>(() => props.persistedEditorSession?.variants ?? []);
+  const [activeVariantId, setActiveVariantId] = useState<string | null>(props.persistedEditorSession?.variants[0]?.id ?? null);
+  const [commandHistory, setCommandHistory] = useState<EditorCommand[]>([]);
+  const [lastSavedCommandSummary, setLastSavedCommandSummary] = useState<string>("Never");
 
   const timelineClips = useMemo(() => buildTimelineClips(draft), [draft]);
   const totalMs = useMemo(() => draftDurationMs(draft), [draft]);
@@ -189,57 +195,25 @@ export default function EditorClient(props: Props) {
     return { sceneCount, ctaIndex, captionDensity, introMiddleOutro };
   }, [draft.scenes]);
 
-  const readiness = useMemo(() => {
-    const blockers: string[] = [];
-    if (draft.scenes.length === 0) blockers.push("Empty storyboard");
-    if (!draft.cta?.trim()) blockers.push("Missing CTA");
-    if (draft.scenes.some((scene) => (scene.media ?? []).length === 0)) blockers.push("Some scenes have no assets");
-    if (totalSeconds > 90) blockers.push("Runtime exceeds 90s max profile");
-    return { blockers, score: Math.max(0, 100 - blockers.length * 20) };
-  }, [draft, totalSeconds]);
+  const activeVariant = useMemo(() => variants.find((variant) => variant.id === activeVariantId) ?? null, [variants, activeVariantId]);
+  const preflight = useMemo(() => runEditorPreflight(draft, activeVariant), [draft, activeVariant]);
 
 
   function updateDraft(updater: (prev: StoryDraft) => StoryDraft) {
     setDraft((prev) => syncDraftText(updater(prev)));
   }
 
-  function updateScene(sceneId: string, updater: (scene: StoryScene) => StoryScene) {
-    updateDraft((prev) => ({
-      ...prev,
-      scenes: prev.scenes.map((scene) => (scene.id === sceneId ? updater(scene) : scene)),
-    }));
+  function execCommand(payload: Parameters<typeof applyEditorCommand>[1]) {
+    const state: CommandState = { draft, variants, activeSceneId: selectedScene?.id ?? null, activeVariantId };
+    const applied = applyEditorCommand(state, payload, editorSession.id);
+    setDraft(syncDraftText(applied.nextState.draft));
+    setVariants(applied.nextState.variants);
+    setActiveVariantId(applied.nextState.activeVariantId);
+    setSelection(applied.nextState.activeSceneId ? { type: "scene", id: applied.nextState.activeSceneId } : selection);
+    setCommandHistory((prev) => [...prev.slice(-19), applied.command]);
   }
 
-  function duplicateScene(sceneId: string) {
-    updateDraft((prev) => {
-      const index = prev.scenes.findIndex((scene) => scene.id === sceneId);
-      if (index < 0) return prev;
-      const source = prev.scenes[index];
-      const clone: StoryScene = { ...source, id: `${source.id}-copy-${Date.now()}`, media: [...source.media] };
-      const nextScenes = [...prev.scenes];
-      nextScenes.splice(index + 1, 0, clone);
-      return { ...prev, scenes: nextScenes };
-    });
-  }
-
-  function moveScene(sceneId: string, direction: -1 | 1) {
-    updateDraft((prev) => {
-      const index = prev.scenes.findIndex((scene) => scene.id === sceneId);
-      if (index < 0) return prev;
-
-      const nextIndex = index + direction;
-      if (nextIndex < 0 || nextIndex >= prev.scenes.length) return prev;
-
-      const nextScenes = [...prev.scenes];
-      const [moved] = nextScenes.splice(index, 1);
-      nextScenes.splice(nextIndex, 0, moved);
-
-      return {
-        ...prev,
-        scenes: nextScenes,
-      };
-    });
-  }
+  function moveScene(sceneId: string, direction: -1 | 1) { execCommand({ type: "scene.reorder", sceneId, direction }); }
 
   function dragScene(sceneId: string, deltaPx: number) {
     if (Math.abs(deltaPx) < PX_PER_SECOND) return;
@@ -250,27 +224,7 @@ export default function EditorClient(props: Props) {
     const deltaSeconds = Math.round(deltaPx / PX_PER_SECOND);
     if (deltaSeconds === 0) return;
 
-    updateScene(sceneId, (scene) => ({
-      ...scene,
-      durationSeconds: Math.max(1, Number(scene.durationSeconds ?? 3) + deltaSeconds),
-    }));
-  }
-
-
-
-  const [variants, setVariants] = useState<EditorVariant[]>(() => props.persistedEditorSession?.variants ?? []);
-
-  function createVariant(platform: EditorVariant["targetPlatform"]) {
-    const labelMap: Record<EditorVariant["targetPlatform"], string> = { instagram: "Instagram variant", tiktok: "TikTok variant", youtube_shorts: "YouTube Shorts variant", ad: "Ad variant" };
-    const targetDuration = platform === "youtube_shorts" ? 60 : platform === "ad" ? 20 : 30;
-    setVariants((prev) => [...prev, { id: `variant-${Date.now()}-${platform}`, name: labelMap[platform], targetPlatform: platform, targetDuration, captionDensity: "medium", ctaStyle: platform === "ad" ? "direct" : "soft", framingPreference: "9:16", sourceVariantId: null }]);
-  }
-
-  function attachPlaceholderMedia(scene: EditorScene) {
-    updateScene(scene.id, (current) => ({
-      ...current,
-      media: [...current.media, { url: null, metadata: { source: "reference" } }],
-    }));
+    execCommand({ type: "scene.update", sceneId, patch: { durationSeconds: Math.max(1, Number(selectedScene?.durationSeconds ?? 3) + deltaSeconds) } });
   }
 
   function regenerateScriptFromScenes() {
@@ -320,6 +274,7 @@ export default function EditorClient(props: Props) {
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ editorSession: persisted }),
       });
+      setLastSavedCommandSummary(commandHistory.at(-1)?.type ?? "manual save");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save draft");
@@ -332,6 +287,9 @@ export default function EditorClient(props: Props) {
     try {
       setIsRendering(true);
       setError(null);
+      if (preflight.status === "blocked") {
+        throw new Error(`Preflight blocked: ${preflight.blockers.map((item) => item.message).join("; ")}`);
+      }
 
       const saveRes = await fetch(`/api/shopreel/story-generations/${props.generationId}`, {
         method: "PATCH",
@@ -350,6 +308,8 @@ export default function EditorClient(props: Props) {
 
       const res = await fetch(`/api/shopreel/story-generations/${props.generationId}/render`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preflight }),
       });
 
       const json = (await res.json()) as { ok?: boolean; error?: string };
@@ -522,7 +482,7 @@ export default function EditorClient(props: Props) {
                 Status
               </div>
               <div className="mt-2 text-base font-medium text-white">
-                {props.initialStatus} • readiness {readiness.score}
+                {props.initialStatus} • preflight {preflight.score}
               </div>
             </div>
           </div>
@@ -723,10 +683,7 @@ export default function EditorClient(props: Props) {
               label="Scene title"
               value={selectedScene.title}
               onChange={(e) =>
-                updateScene(selectedScene.id, (scene) => ({
-                  ...scene,
-                  title: e.target.value,
-                }))
+                execCommand({ type: "scene.update", sceneId: selectedScene.id, patch: { title: e.target.value } })
               }
             />
 
@@ -734,10 +691,7 @@ export default function EditorClient(props: Props) {
               label="Overlay text"
               value={selectedScene.overlayText ?? ""}
               onChange={(e) =>
-                updateScene(selectedScene.id, (scene) => ({
-                  ...scene,
-                  overlayText: e.target.value,
-                }))
+                execCommand({ type: "caption.update", sceneId: selectedScene.id, caption: e.target.value })
               }
             />
 
@@ -745,10 +699,7 @@ export default function EditorClient(props: Props) {
               label="Voiceover text"
               value={selectedScene.voiceoverText ?? ""}
               onChange={(e) =>
-                updateScene(selectedScene.id, (scene) => ({
-                  ...scene,
-                  voiceoverText: e.target.value,
-                }))
+                execCommand({ type: "audio.update", sceneId: selectedScene.id, voiceover: e.target.value })
               }
             />
 
@@ -758,15 +709,15 @@ export default function EditorClient(props: Props) {
               min={1}
               value={String(selectedScene.durationSeconds ?? 0)}
               onChange={(e) =>
-                updateScene(selectedScene.id, (scene) => ({
-                  ...scene,
-                  durationSeconds: Math.max(1, Number(e.target.value || 1)),
-                }))
+                execCommand({ type: "scene.update", sceneId: selectedScene.id, patch: { durationSeconds: Math.max(1, Number(e.target.value || 1)) } })
               }
             />
             <div className="grid gap-2 sm:grid-cols-2">
-              <GlassButton variant="ghost" onClick={() => duplicateScene(selectedScene.id)}>Duplicate scene</GlassButton>
-              <GlassButton variant="ghost" onClick={() => attachPlaceholderMedia(editorSession.scenes.find((item) => item.id === selectedScene.id) ?? editorSession.scenes[0])}>Attach media</GlassButton>
+              <GlassButton variant="ghost" onClick={() => execCommand({ type: "scene.duplicate", sceneId: selectedScene.id })}>Duplicate scene</GlassButton>
+              <GlassButton variant="ghost" onClick={() => execCommand({ type: "scene.split", sceneId: selectedScene.id })}>Split scene</GlassButton>
+              <GlassButton variant="ghost" onClick={() => execCommand({ type: "scene.merge", sceneId: selectedScene.id })}>Merge next</GlassButton>
+              <GlassButton variant="ghost" onClick={() => execCommand({ type: "scene.remove", sceneId: selectedScene.id })}>Remove scene</GlassButton>
+              <GlassButton variant="ghost" onClick={() => execCommand({ type: "asset.attach", sceneId: selectedScene.id, media: { url: null, metadata: { source: "reference", label: "Reference slot" } } })}>Attach ref slot</GlassButton>
             </div>
             <div className={cx("rounded-2xl border p-3 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft, glassTheme.text.secondary)}>
               Regeneration actions: hook and visual regenerate are currently <strong>local deterministic</strong>. AI-assisted regen is unavailable until a backend endpoint is wired.
@@ -776,20 +727,23 @@ export default function EditorClient(props: Props) {
 
         <div className="space-y-2">
           <div className={cx("rounded-xl border p-2 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft)}>
+            Last command: {commandHistory.at(-1)?.type ?? "none"} • Saved: {lastSavedCommandSummary === (commandHistory.at(-1)?.type ?? "none") ? "Saved" : "Unsaved changes"}
+          </div>
+          <div className={cx("rounded-xl border p-2 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft)}>
             Sequence summary: CTA scene {sequenceSummary.ctaIndex >= 0 ? sequenceSummary.ctaIndex + 1 : "missing"}, caption density {(sequenceSummary.captionDensity * 100).toFixed(0)}%.
           </div>
-          <div className={cx("rounded-xl border p-2 text-xs", readiness.blockers.length ? glassTheme.border.copper : glassTheme.border.softer, glassTheme.glass.panelSoft)}>
-            Creative readiness blockers: {readiness.blockers.length ? readiness.blockers.join("; ") : "none"}.
+          <div className={cx("rounded-xl border p-2 text-xs", preflight.blockers.length ? glassTheme.border.copper : glassTheme.border.softer, glassTheme.glass.panelSoft)}>
+            Preflight blockers: {preflight.blockers.length ? preflight.blockers.map((item) => item.message).join("; ") : "none"}.
           </div>
           <div className="text-sm font-medium text-white">Variants</div>
           <div className="flex flex-wrap gap-2">
-            <GlassButton variant="ghost" onClick={() => createVariant("instagram")}>Create variant</GlassButton>
-            <GlassButton variant="ghost" onClick={() => createVariant("tiktok")}>TikTok variant</GlassButton>
-            <GlassButton variant="ghost" onClick={() => createVariant("youtube_shorts")}>YouTube Shorts variant</GlassButton>
-            <GlassButton variant="ghost" onClick={() => createVariant("ad")}>Ad variant</GlassButton>
+            <GlassButton variant="ghost" onClick={() => execCommand({ type: "variant.create", parentVariantId: activeVariantId, platform: "instagram" })}>Create variant</GlassButton>
+            <GlassButton variant="ghost" onClick={() => execCommand({ type: "variant.create", parentVariantId: activeVariantId, platform: "tiktok" })}>TikTok variant</GlassButton>
+            <GlassButton variant="ghost" onClick={() => execCommand({ type: "variant.create", parentVariantId: activeVariantId, platform: "youtube_shorts" })}>YouTube Shorts variant</GlassButton>
+            <GlassButton variant="ghost" onClick={() => execCommand({ type: "variant.create", parentVariantId: activeVariantId, platform: "ad" })}>Ad variant</GlassButton>
           </div>
           {variants.map((variant) => (
-            <div key={variant.id} className={cx("rounded-xl border p-2 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft)}>{variant.name} • {variant.targetPlatform} • {variant.targetDuration}s • {variant.captionDensity} caption density</div>
+            <button key={variant.id} type="button" onClick={() => execCommand({ type: "variant.setActive", variantId: variant.id })} className={cx("w-full rounded-xl border p-2 text-left text-xs", activeVariantId === variant.id ? glassTheme.border.copper : glassTheme.border.softer, glassTheme.glass.panelSoft)}>{variant.name} • {variant.targetPlatform} • parent {variant.sourceVariantId ?? "root"}</button>
           ))}
         </div>
       </GlassCard>
