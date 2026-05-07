@@ -16,4 +16,5 @@ export type DiscoveredGrowthFeature = {
   audience: string;
   valueProps: string[];
   launchAngle: string;
+  scanMetadata?: { navLabel: string | null; routeGroup: string | null; keywords: string[] };
 };
