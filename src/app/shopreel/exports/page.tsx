@@ -35,7 +35,7 @@ export default async function ShopReelDownloadsPage() {
       <p className="mt-1 text-xs text-white/65">Readiness: {readiness.status} · blockers {readiness.blockerCount} · warnings {readiness.warningCount}</p>
       <p className="mt-1 text-xs text-white/65">Video: {pkg.mp4Path ? "available" : "missing"} · Thumbnail: {pkg.thumbnailPath ? "available" : "missing"} · Caption: {pkg.captionText ? "available" : "missing"}</p>
       <div className="mt-2 flex flex-wrap gap-2 text-xs">
-        <Link href={`/shopreel/exports?packageId=${pkg.id}`} className="text-cyan-200">Open package</Link>
+        <Link href={`/shopreel/exports/${pkg.id}`} className="text-cyan-200">Open package</Link>
         {pkg.captionText ? <button type="button" className="text-violet-200">Copy caption</button> : null}
         {pkg.hashtags.length ? <button type="button" className="text-violet-200">Copy hashtags</button> : null}
         {pkg.mp4Path ? <a className="text-emerald-200" href={pkg.mp4Path} target="_blank">Download video</a> : null}

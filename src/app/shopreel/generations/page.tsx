@@ -7,6 +7,7 @@ import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { listStoryGenerations } from "@/features/shopreel/story-sources/server/listStoryGenerations";
 import { ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import StatusBadge from "@/features/shopreel/components/StatusBadge";
+import { deriveLifecycleMeta, deriveLifecycleStage, deriveNextBestAction } from "@/features/shopreel/publish/lifecycleReadModel";
 
 type Generation = Awaited<ReturnType<typeof listStoryGenerations>>[number];
 
@@ -55,6 +56,9 @@ function GenerationCard({ generation }: { generation: Generation }) {
   const title = draft?.title ?? "Untitled generation";
   const prompt = metadata?.prompt ?? draft?.summary ?? "No prompt summary available yet.";
   const editorPath = getEditorPath(metadata?.output_type ?? "video", generation.id);
+  const lifecycle = deriveLifecycleMeta(generation.generation_metadata);
+  const stage = deriveLifecycleStage({ hasStoryboard: Boolean(generation.story_draft), hasEditor: Boolean(generation.content_piece_id), renderStatus: generation.status, packageStatus: undefined, approvalState: generation.review_approval_state });
+  const action = deriveNextBestAction({ stage, generationId: generation.id, editorPath, blocked: false });
 
   return (
     <Link href={`/shopreel/generations/${generation.id}`} className="group block rounded-2xl border border-white/10 bg-white/[0.02] p-3 transition hover:border-cyan-300/40 hover:bg-white/[0.04]">
@@ -70,13 +74,16 @@ function GenerationCard({ generation }: { generation: Generation }) {
             <span>Platforms: {metadata?.platformIds?.length ? metadata.platformIds.join(", ") : "Unassigned"}</span>
             <span>Provider: {metadata?.provider ?? "Unspecified"}</span>
             <span>Duration: {duration ? `${duration}s` : "Unknown"}</span>
+            <span>Lifecycle: {stage}</span>
+            <span>Variant: {lifecycle.activeVariant ?? "default"}</span>
+            <span>Scenes: {lifecycle.sceneCount ?? "n/a"}</span>
             <span>Updated: {relativeTime(generation.updated_at ?? generation.created_at)}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 md:flex-col md:items-end">
           <StatusBadge label={status} variant={variantForStatus(status)} />
           <div className="flex gap-2 text-xs">
-            <span className="text-cyan-200">Open</span>
+            <span className="text-cyan-200">{action.label}</span>
             <Link href={editorPath} className="text-violet-200">Edit</Link>
             <span className="text-white/70">Duplicate</span>
             <span className="text-white/70">Sync</span>
