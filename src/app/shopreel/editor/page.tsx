@@ -1,94 +1,8 @@
 import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import { createAdminClient } from "@/lib/supabase/server";
-import {
-  ShopReelEmptyState,
-  ShopReelPageHero,
-  ShopReelSurface,
-} from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
-
-const MODES = [
-  "Draft review",
-  "Caption editing",
-  "Thumbnail direction",
-  "Export packaging",
-  "Platform adaptation",
-];
-
-const SOURCE_LABELS: Record<string, string> = {
-  idea: "Ideas",
-  ideas: "Ideas",
-  library: "Library",
-  review: "Review",
-  manual: "Manual",
-  manual_create: "Manual",
-};
-
-type StoryDraft = { title?: string };
-type GenerationMetadata = {
-  platformIds?: unknown;
-  source?: unknown;
-  sourceType?: unknown;
-  createdFrom?: unknown;
-};
-
-type GenerationRow = {
-  id: string;
-  status: string | null;
-  created_at: string;
-  updated_at: string | null;
-  story_draft: StoryDraft | null;
-  generation_metadata: GenerationMetadata | null;
-};
-
-function formatRelativeDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown time";
-
-  const elapsedMs = Date.now() - date.getTime();
-  const minute = 60_000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (elapsedMs < hour) {
-    return `${Math.max(1, Math.floor(elapsedMs / minute))}m ago`;
-  }
-
-  if (elapsedMs < day) {
-    return `${Math.floor(elapsedMs / hour)}h ago`;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
-
-function formatAbsoluteDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown date";
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
-
-function toPlatformLabels(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string" && item.length > 0);
-}
-
-function getSourceLabel(metadata: GenerationMetadata | null): string {
-  const rawSource = metadata?.source ?? metadata?.sourceType ?? metadata?.createdFrom;
-  if (typeof rawSource !== "string") return "Manual";
-
-  const normalized = rawSource.toLowerCase().trim();
-  return SOURCE_LABELS[normalized] ?? "Manual";
-}
+import { ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+import StatusBadge from "@/features/shopreel/components/StatusBadge";
 
 export default async function ShopReelEditorHubPage() {
   const supabase = createAdminClient();
@@ -98,94 +12,43 @@ export default async function ShopReelEditorHubPage() {
     .order("created_at", { ascending: false })
     .limit(12);
 
-  const items: GenerationRow[] = (generations ?? []).map((row) => ({
-    id: row.id,
-    status: row.status,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    story_draft:
-      row.story_draft && typeof row.story_draft === "object" && !Array.isArray(row.story_draft)
-        ? (row.story_draft as StoryDraft)
-        : null,
-    generation_metadata:
-      row.generation_metadata &&
-      typeof row.generation_metadata === "object" &&
-      !Array.isArray(row.generation_metadata)
-        ? (row.generation_metadata as GenerationMetadata)
-        : null,
-  }));
+  const items = generations ?? [];
 
   return (
     <GlassShell title="Editor" hidePageIntro>
       <div className="space-y-4">
-        <ShopReelPageHero
-          title="Editor"
-          subtitle="Open drafts and finished assets for editing, packaging, and export prep."
-          actions={[
-            { label: "Create content", href: "/shopreel/create", primary: true },
-            { label: "Open projects", href: "/shopreel/generations" },
-          ]}
-        />
-        <ShopReelSurface title="Editor modes">
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {MODES.map((mode) => (
-              <div
-                key={mode}
-                className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80"
-              >
-                {mode}
-              </div>
-            ))}
-          </div>
-        </ShopReelSurface>
-        <ShopReelSurface title="Recent editable projects">
-          {items.length === 0 ? (
-            <ShopReelEmptyState
-              title="No editable projects yet"
-              description="Create a draft first, then return here to refine and package it."
-            />
-          ) : (
-            <div className="grid gap-2">
-              {items.map((item) => {
-                const title = item.story_draft?.title?.trim() || "Untitled generation";
-                const labeledTitle = `${title} · ${item.id.slice(0, 8)}`;
-                const relativeCreated = formatRelativeDateTime(item.created_at);
-                const absoluteCreated = formatAbsoluteDateTime(item.created_at);
-                const hasUpdated = Boolean(item.updated_at);
-                const relativeUpdated = item.updated_at ? formatRelativeDateTime(item.updated_at) : null;
-                const absoluteUpdated = item.updated_at ? formatAbsoluteDateTime(item.updated_at) : null;
-                const platforms = toPlatformLabels(item.generation_metadata?.platformIds);
-                const sourceLabel = getSourceLabel(item.generation_metadata);
+        <ShopReelPageHero title="Editor" subtitle="Shape scenes, tighten storyboards, and move drafts to render-ready without leaving the workflow." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Open generations", href: "/shopreel/generations" }]} />
 
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-start justify-between rounded-xl border border-white/10 bg-white/[0.02] p-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="text-sm text-white">{labeledTitle}</div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/60">
-                        <span className="capitalize">Status: {item.status ?? "unknown"}</span>
-                        <span>Source: {sourceLabel}</span>
-                        <span>
-                          Platforms: {platforms.length > 0 ? `${platforms.join(", ")} (${platforms.length})` : "None"}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/55">
-                        <span title={absoluteCreated}>Created: {relativeCreated}</span>
-                        {hasUpdated && relativeUpdated && absoluteUpdated ? (
-                          <span title={absoluteUpdated}>Updated: {relativeUpdated}</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <Link className="text-xs text-cyan-200" href={`/shopreel/editor/video/${item.id}`}>
-                      Open editor
-                    </Link>
-                  </div>
-                );
-              })}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)]">
+          <ShopReelSurface title="Timeline workspace" description="Real timeline surface with guided next actions when media or scenes are missing.">
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+              <div className="mb-3 flex items-center justify-between"><p className="text-sm text-white/85">Scene lane</p><Link href="/shopreel/create" className="rounded-lg border border-cyan-300/40 px-2.5 py-1 text-xs text-cyan-200">Add source media</Link></div>
+              <div className="h-40 rounded-xl border border-dashed border-white/20 bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:36px_24px] p-3">
+                <div className="grid h-full gap-2 sm:grid-cols-2">
+                  {[
+                    "Generate storyboard",
+                    "Create first scene",
+                    "Render preview unavailable",
+                    "Add source media",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center rounded-lg border border-white/10 bg-white/[0.02] px-3 text-xs text-white/70">{item}</div>
+                  ))}
+                </div>
+              </div>
             </div>
-          )}
+          </ShopReelSurface>
+
+          <ShopReelSurface title="Inspector" description="Metadata, status, and output context for the selected project.">
+            <div className="space-y-2">
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/80">No clip selected. Pick a generation to inspect scene-level controls.</div>
+              <div className="rounded-xl border border-white/10 bg-black/25 p-3 text-xs text-white/65">Render preview unavailable until first scene is created and queued.</div>
+              <div className="flex flex-wrap gap-2"><Link href="/shopreel/generations" className="rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-white/85">Open queue</Link><Link href="/shopreel/create" className="rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 px-2.5 py-1.5 text-xs font-semibold text-white">Generate storyboard</Link></div>
+            </div>
+          </ShopReelSurface>
+        </div>
+
+        <ShopReelSurface title="Recent editor sessions" description="Open persisted generations directly into the editor.">
+          {items.length === 0 ? <ShopReelEmptyState title="No editable projects yet" description="Create a draft first, then return here to start scene assembly." /> : <div className="grid gap-2">{items.map((item:any) => (<Link key={item.id} href={`/shopreel/editor/video/${item.id}`} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 transition hover:border-cyan-300/40"><div className="flex items-center justify-between"><p className="text-sm text-white">{(item.story_draft as any)?.title ?? "Untitled generation"}</p><StatusBadge label={item.status ?? "unknown"} variant={item.status === "ready" ? "good" : item.status === "failed" ? "warn" : "neutral"} /></div><p className="mt-1 text-xs text-white/60">Opened {new Date(item.created_at).toLocaleDateString()}</p></Link>))}</div>}
         </ShopReelSurface>
       </div>
     </GlassShell>
