@@ -1,3 +1,7 @@
+/**
+ * Required env accessor for ShopReel video generation surfaces.
+ * Throws explicit errors so API routes fail fast when setup is incomplete.
+ */
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value || value.trim().length === 0) {
@@ -12,6 +16,7 @@ export function getVideoGenerationEnvHealth(): {
   state: EnvHealth;
   missing: string[];
 } {
+  // Canonical config for Railway-based generation + output persistence.
   const required = [
     "SHOPREEL_RAILWAY_VIDEO_BASE_URL",
     "SHOPREEL_RAILWAY_VIDEO_API_KEY",
