@@ -37,3 +37,11 @@ export type DiscoveredGrowthFeature = {
   launchAngle: string;
   scanMetadata?: { navLabel: string | null; routeGroup: string | null; keywords: string[] };
 };
+
+export type GrowthAssetSourceType = "uploaded_image" | "uploaded_video" | "ui_screenshot" | "generated_thumbnail" | "render_output" | "brand_asset" | "placeholder";
+export type GrowthAssetSourceStatus = "missing" | "uploaded" | "generated" | "archived";
+export type GrowthScreenshotViewport = "desktop" | "tablet" | "mobile";
+export type GrowthScreenshotRequestStatus = "requested" | "captured" | "approved" | "archived";
+export type GrowthRenderCompositionType = "short_video" | "carousel" | "promo_clip" | "launch_graphic";
+export type GrowthRenderStatus = "draft" | "ready" | "rendering" | "completed" | "failed";
+export type GrowthRenderJobStatus = "queued" | "preparing" | "rendering" | "completed" | "failed";
