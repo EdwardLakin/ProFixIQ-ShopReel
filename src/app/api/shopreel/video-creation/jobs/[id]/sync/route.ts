@@ -8,6 +8,7 @@ import {
 } from "@/features/shopreel/video-creation/lib/openaiVideo";
 import { fetchRailwayVideoJob } from "@/features/shopreel/video-creation/lib/railwayClient";
 import { finalizeCompletedMediaJob } from "@/features/shopreel/video-creation/lib/server";
+import { normalizeVideoJobStatus } from "@/features/shopreel/video-creation/lib/status";
 
 export async function POST(
   _req: Request,
@@ -41,15 +42,20 @@ export async function POST(
 
     if (mediaJob.provider === "openai") {
       const status = await fetchRailwayVideoJob(mediaJob.provider_job_id);
-      if (status.status === "queued" || status.status === "in_progress") {
+      const normalized = normalizeVideoJobStatus(status.status);
+      if (normalized === "queued" || normalized === "submitted" || normalized === "processing" || normalized === "rendering") {
+        await supabase.from("shopreel_media_generation_jobs").update({ status: normalized === "queued" ? "submitted" : "rendering", updated_at: new Date().toISOString() }).eq("id", mediaJob.id);
         return NextResponse.json({ ok: true, completed: false, job: mediaJob });
       }
-      if (status.status === "failed") {
-        const { data: failedJob } = await supabase.from("shopreel_media_generation_jobs").update({ status: "failed", error_text: status.error ?? "Railway generation failed", completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", mediaJob.id).select("*").single();
+      if (normalized === "failed") {
+        const { data: failedJob } = await supabase.from("shopreel_media_generation_jobs").update({ status: "failed", error_text: status.error ?? "Railway generation failed", failed_at: new Date().toISOString(), completed_at: new Date().toISOString(), updated_at: new Date().toISOString() } as any).eq("id", mediaJob.id).select("*").single();
         return NextResponse.json({ ok: true, completed: false, failed: true, job: failedJob });
       }
-      if (status.status === "completed") {
+      if (normalized === "completed") {
         const previewUrl = status.previewUrl ?? null;
+        if (!previewUrl) {
+          throw new Error("Railway marked job completed but returned no output URL.");
+        }
         const completedJob = await finalizeCompletedMediaJob({
           completedJob: mediaJob,
           providerResult: { providerJobId: mediaJob.provider_job_id, previewUrl, resultPayload: { provider: "railway", railway_job_id: status.id, railway_status: status.status ?? "unknown", error: status.error ?? null } },
