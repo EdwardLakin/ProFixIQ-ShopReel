@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { getBrandBrainProfile } from "@/features/shopreel/brain/repository";
 
 export type ShopReelPlatform =
   | "instagram"
@@ -20,6 +21,14 @@ export type ShopReelSettingsBundle = {
     enabled_platforms: string[];
     connected_platforms: string[];
     onboarding_completed: boolean;
+  } | null;
+  brandBrain: {
+    positioning: string | null;
+    brand_voice_rules: string | null;
+    prohibited_claims: string[];
+    preferred_ctas: string[];
+    visual_style_notes: string | null;
+    audience_notes: string | null;
   } | null;
   brandProfile: {
     brand_name: string | null;
@@ -133,6 +142,8 @@ export async function getShopReelSettings(
     throw new Error(settingsResult.error.message);
   }
 
+  const brandBrainProfile = await getBrandBrainProfile(shopId);
+
   const platformAccountsResult = await supabase
     .from("content_platform_accounts")
     .select(
@@ -220,6 +231,16 @@ export async function getShopReelSettings(
             .filter((p) => p.connection_active)
             .map((p) => p.platform),
           onboarding_completed: settings.onboarding_completed,
+        }
+      : null,
+    brandBrain: brandBrainProfile
+      ? {
+          positioning: brandBrainProfile.positioning,
+          brand_voice_rules: brandBrainProfile.brand_voice_rules,
+          prohibited_claims: brandBrainProfile.prohibited_claims ?? [],
+          preferred_ctas: brandBrainProfile.preferred_ctas ?? [],
+          visual_style_notes: brandBrainProfile.visual_style_notes,
+          audience_notes: brandBrainProfile.audience_notes,
         }
       : null,
     brandProfile: null,

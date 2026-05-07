@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { Database, Json } from "@/types/supabase";
+import { getBrandBrainProfile } from "@/features/shopreel/brain/repository";
 
 type CampaignInsert =
   Database["public"]["Tables"]["shopreel_campaigns"]["Insert"];
@@ -18,6 +19,9 @@ const DEFAULT_ANGLES = [
 ] as const;
 
 function buildCampaignPrompt(args: {
+  preferredCta?: string | null;
+  prohibitedClaims?: string[];
+  voiceRules?: string | null;
   coreIdea: string;
   angle: string;
   audience: string | null;
@@ -30,6 +34,9 @@ function buildCampaignPrompt(args: {
     args.audience ? `Audience: ${args.audience}.` : "",
     args.offer ? `Offer or promise: ${args.offer}.` : "",
     args.campaignGoal ? `Campaign goal: ${args.campaignGoal}.` : "",
+    args.voiceRules ? `Voice rules: ${args.voiceRules}.` : "",
+    args.preferredCta ? `Preferred CTA: ${args.preferredCta}.` : "",
+    (args.prohibitedClaims && args.prohibitedClaims.length > 0) ? `Do not claim: ${args.prohibitedClaims.join(", ")}.` : "",
     "Make it clear, modern, emotionally engaging, and platform-ready for short-form social video.",
   ].filter(Boolean);
 
@@ -46,6 +53,8 @@ export async function createCampaign(args: {
 }) {
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
+
+  const brandBrain = await getBrandBrainProfile(shopId);
 
   const campaignInsert: CampaignInsert = {
     shop_id: shopId,
@@ -81,6 +90,9 @@ export async function createCampaign(args: {
       audience: args.audience,
       offer: args.offer,
       campaignGoal: args.campaignGoal,
+      preferredCta: (brandBrain?.preferred_ctas ?? [])[0] ?? null,
+      prohibitedClaims: brandBrain?.prohibited_claims ?? [],
+      voiceRules: brandBrain?.brand_voice_rules ?? null,
     }),
     negative_prompt:
       "Avoid blurry visuals, distorted hands, low detail, unreadable text, cluttered composition.",

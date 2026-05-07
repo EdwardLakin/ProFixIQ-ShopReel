@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { saveShopReelSettings } from "@/features/shopreel/settings/saveShopReelSettings";
+import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
+import { upsertBrandBrainProfile } from "@/features/shopreel/brain/repository";
 import type { ShopReelPlatform } from "@/features/shopreel/settings/getShopReelSettings";
 
 const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
@@ -27,6 +29,16 @@ async function resolveShopId() {
   return String(shopIdData);
 }
 
+export async function GET() {
+  try {
+    const shopId = await resolveShopId();
+    const bundle = await getShopReelSettings(shopId);
+    return NextResponse.json(bundle);
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Unexpected error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const shopId = await resolveShopId();
@@ -39,7 +51,18 @@ export async function POST(req: NextRequest) {
       enabledPlatforms?: ShopReelPlatform[];
       platforms?: ShopReelPlatform[];
       onboardingCompleted?: boolean;
+      brandBrain?: {
+        positioning?: string | null;
+        brandVoiceRules?: string | null;
+        prohibitedClaims?: string[];
+        preferredCtas?: string[];
+        visualStyleNotes?: string | null;
+        audienceNotes?: string | null;
+      };
     };
+
+    const supabase = await createClient();
+    const { data: authData } = await supabase.auth.getUser();
 
     const result = await saveShopReelSettings({
       shopId,
@@ -54,6 +77,19 @@ export async function POST(req: NextRequest) {
           : [],
       onboardingCompleted: body.onboardingCompleted ?? false,
     });
+
+    if (body.brandBrain) {
+      await upsertBrandBrainProfile({
+        shopId,
+        userId: authData.user?.id ?? null,
+        positioning: body.brandBrain.positioning ?? null,
+        brandVoiceRules: body.brandBrain.brandVoiceRules ?? null,
+        prohibitedClaims: Array.isArray(body.brandBrain.prohibitedClaims) ? body.brandBrain.prohibitedClaims : [],
+        preferredCtas: Array.isArray(body.brandBrain.preferredCtas) ? body.brandBrain.preferredCtas : [],
+        visualStyleNotes: body.brandBrain.visualStyleNotes ?? null,
+        audienceNotes: body.brandBrain.audienceNotes ?? null,
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {

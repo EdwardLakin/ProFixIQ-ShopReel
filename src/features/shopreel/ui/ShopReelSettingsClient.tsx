@@ -11,6 +11,15 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 
+type BrandBrainState = {
+  positioning: string;
+  brandVoiceRules: string;
+  prohibitedClaims: string;
+  preferredCtas: string;
+  visualStyleNotes: string;
+  audienceNotes: string;
+};
+
 type SettingsState = {
   brandVoice: string;
   postingTimezone: string;
@@ -55,6 +64,15 @@ type ConnectionsResponse = {
   ok: boolean;
   connections?: ConnectionRow[];
   error?: string;
+};
+
+const initialBrainState: BrandBrainState = {
+  positioning: "",
+  brandVoiceRules: "",
+  prohibitedClaims: "",
+  preferredCtas: "",
+  visualStyleNotes: "",
+  audienceNotes: "",
 };
 
 const initialState: SettingsState = {
@@ -155,6 +173,7 @@ export default function ShopReelSettingsClient() {
 
   const [state, setState] = useState<SettingsState>(initialState);
   const [saved, setSaved] = useState(false);
+  const [brandBrain, setBrandBrain] = useState<BrandBrainState>(initialBrainState);
   const [connections, setConnections] = useState<
     Partial<Record<ShopReelPlatform, ConnectionRow>>
   >({});
@@ -202,9 +221,39 @@ export default function ShopReelSettingsClient() {
 
   useEffect(() => {
     void loadConnections();
+    void (async () => {
+      const res = await fetch("/api/shopreel/settings", { cache: "no-store" });
+      const json = (await res.json().catch(() => ({}))) as { settings?: { brand_voice?: string | null }; brandBrain?: { positioning?: string | null; brand_voice_rules?: string | null; prohibited_claims?: string[]; preferred_ctas?: string[]; visual_style_notes?: string | null; audience_notes?: string | null } | null; };
+      if (json.settings?.brand_voice) setState((prev) => ({ ...prev, brandVoice: json.settings?.brand_voice ?? prev.brandVoice }));
+      if (json.brandBrain) {
+        setBrandBrain({
+          positioning: json.brandBrain.positioning ?? "",
+          brandVoiceRules: json.brandBrain.brand_voice_rules ?? "",
+          prohibitedClaims: (json.brandBrain.prohibited_claims ?? []).join("\n"),
+          preferredCtas: (json.brandBrain.preferred_ctas ?? []).join("\n"),
+          visualStyleNotes: json.brandBrain.visual_style_notes ?? "",
+          audienceNotes: json.brandBrain.audience_notes ?? "",
+        });
+      }
+    })();
   }, [loadConnections]);
 
   async function handleSave() {
+    await fetch("/api/shopreel/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        brandVoice: state.brandVoice,
+        brandBrain: {
+          positioning: brandBrain.positioning,
+          brandVoiceRules: brandBrain.brandVoiceRules,
+          prohibitedClaims: brandBrain.prohibitedClaims.split("\n").map((s) => s.trim()).filter(Boolean),
+          preferredCtas: brandBrain.preferredCtas.split("\n").map((s) => s.trim()).filter(Boolean),
+          visualStyleNotes: brandBrain.visualStyleNotes,
+          audienceNotes: brandBrain.audienceNotes,
+        },
+      }),
+    });
     setSaved(true);
   }
 
@@ -316,6 +365,21 @@ export default function ShopReelSettingsClient() {
             placeholder="Enter your preferred short-form opener"
           />
 
+
+
+          <GlassTextarea
+            label="Brand Brain positioning"
+            value={brandBrain.positioning}
+            onChange={(e) => setBrandBrain((prev) => ({ ...prev, positioning: e.target.value }))}
+            placeholder="How this brand should be positioned by planning templates"
+          />
+
+          <GlassTextarea
+            label="Brand Brain voice rules"
+            value={brandBrain.brandVoiceRules}
+            onChange={(e) => setBrandBrain((prev) => ({ ...prev, brandVoiceRules: e.target.value }))}
+            placeholder="Explicit voice rules used by AI planning"
+          />
           <GlassTextarea
             label="Compliance note"
             value={state.complianceNote}

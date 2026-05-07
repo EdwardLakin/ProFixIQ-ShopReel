@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
@@ -83,8 +83,17 @@ export default function CampaignDetailClient({
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [campaignBrain, setCampaignBrain] = useState({ campaignObjective: "", targetAudience: "", channelPriorities: "", contentPillars: "" });
 
   const nextAction = useMemo(() => getNextAction(progress), [progress]);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await fetch(`/api/shopreel/campaigns/${campaign.id}/brain`, { cache: "no-store" });
+      const json = (await res.json().catch(() => ({}))) as { campaignBrain?: { campaign_objective?: string | null; target_audience?: string | null; channel_priorities?: string[]; content_pillars?: string[] } | null };
+      if (json.campaignBrain) setCampaignBrain({ campaignObjective: json.campaignBrain.campaign_objective ?? "", targetAudience: json.campaignBrain.target_audience ?? "", channelPriorities: (json.campaignBrain.channel_priorities ?? []).join("\n"), contentPillars: (json.campaignBrain.content_pillars ?? []).join("\n") });
+    })();
+  }, [campaign.id]);
 
   async function runAction(key: string, url: string) {
     try {
@@ -150,6 +159,12 @@ export default function CampaignDetailClient({
         </div>
 
         {error && <div className="text-red-400 text-sm mt-3">{error}</div>}
+        <div className="mt-4 space-y-2">
+          <div className="text-xs text-white/60">Campaign Brain (planning memory)</div>
+          <textarea className="w-full rounded-xl bg-black/30 border border-white/15 p-2 text-sm" placeholder="Campaign objective" value={campaignBrain.campaignObjective} onChange={(e)=>setCampaignBrain((prev)=>({...prev,campaignObjective:e.target.value}))} />
+          <textarea className="w-full rounded-xl bg-black/30 border border-white/15 p-2 text-sm" placeholder="Target audience" value={campaignBrain.targetAudience} onChange={(e)=>setCampaignBrain((prev)=>({...prev,targetAudience:e.target.value}))} />
+          <GlassButton variant="secondary" onClick={()=>void fetch(`/api/shopreel/campaigns/${campaign.id}/brain`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({campaignObjective:campaignBrain.campaignObjective,targetAudience:campaignBrain.targetAudience,channelPriorities:campaignBrain.channelPriorities.split("\n").map((x)=>x.trim()).filter(Boolean),contentPillars:campaignBrain.contentPillars.split("\n").map((x)=>x.trim()).filter(Boolean)})})}>Save Campaign Brain</GlassButton>
+        </div>
       </GlassCard>
 
       <GlassCard title="Progress" strong>
