@@ -695,6 +695,688 @@ export type Database = {
         }
         Relationships: []
       }
+      growth_engine_asset_plans: {
+        Row: {
+          asset_type: string
+          campaign_id: string
+          caption: string | null
+          created_at: string
+          cta: string | null
+          id: string
+          metadata: Json
+          required_inputs: Json
+          shot_list: Json
+          status: string
+          storyboard: Json
+          target_platform: string | null
+          title: string
+          updated_at: string
+          visual_direction: string | null
+          voiceover_script: string | null
+        }
+        Insert: {
+          asset_type: string
+          campaign_id: string
+          caption?: string | null
+          created_at?: string
+          cta?: string | null
+          id?: string
+          metadata?: Json
+          required_inputs?: Json
+          shot_list?: Json
+          status?: string
+          storyboard?: Json
+          target_platform?: string | null
+          title: string
+          updated_at?: string
+          visual_direction?: string | null
+          voiceover_script?: string | null
+        }
+        Update: {
+          asset_type?: string
+          campaign_id?: string
+          caption?: string | null
+          created_at?: string
+          cta?: string | null
+          id?: string
+          metadata?: Json
+          required_inputs?: Json
+          shot_list?: Json
+          status?: string
+          storyboard?: Json
+          target_platform?: string | null
+          title?: string
+          updated_at?: string
+          visual_direction?: string | null
+          voiceover_script?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growth_engine_asset_plans_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "internal_growth_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growth_engine_asset_sources: {
+        Row: {
+          asset_plan_id: string | null
+          asset_source_type: string
+          campaign_id: string | null
+          created_at: string
+          duration_ms: number | null
+          height: number | null
+          id: string
+          metadata: Json
+          mime_type: string
+          source_id: string
+          status: string
+          storage_path: string | null
+          title: string
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          asset_plan_id?: string | null
+          asset_source_type: string
+          campaign_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          height?: number | null
+          id?: string
+          metadata?: Json
+          mime_type: string
+          source_id: string
+          status?: string
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          asset_plan_id?: string | null
+          asset_source_type?: string
+          campaign_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          height?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string
+          source_id?: string
+          status?: string
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growth_engine_asset_sources_asset_plan_id_fkey"
+            columns: ["asset_plan_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_asset_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "growth_engine_asset_sources_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "internal_growth_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "growth_engine_asset_sources_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growth_engine_brand_kits: {
+        Row: {
+          brand_name: string
+          created_at: string
+          font_family: string | null
+          id: string
+          logo_asset_source_id: string | null
+          metadata: Json
+          primary_color: string | null
+          scope: string
+          secondary_color: string | null
+          source_id: string | null
+          tone: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand_name: string
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          logo_asset_source_id?: string | null
+          metadata?: Json
+          primary_color?: string | null
+          scope?: string
+          secondary_color?: string | null
+          source_id?: string | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string
+          created_at?: string
+          font_family?: string | null
+          id?: string
+          logo_asset_source_id?: string | null
+          metadata?: Json
+          primary_color?: string | null
+          scope?: string
+          secondary_color?: string | null
+          source_id?: string | null
+          tone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growth_engine_brand_kits_logo_asset_source_id_fkey"
+            columns: ["logo_asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_asset_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "growth_engine_brand_kits_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growth_engine_render_compositions: {
+        Row: {
+          aspect_ratio: string
+          asset_plan_id: string
+          captions: Json
+          composition_type: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          metadata: Json
+          overlays: Json
+          render_status: string
+          scenes: Json
+          soundtrack_direction: string | null
+          timeline: Json
+          transitions: Json
+          updated_at: string
+          voiceover_direction: string | null
+        }
+        Insert: {
+          aspect_ratio?: string
+          asset_plan_id: string
+          captions?: Json
+          composition_type: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          metadata?: Json
+          overlays?: Json
+          render_status?: string
+          scenes?: Json
+          soundtrack_direction?: string | null
+          timeline?: Json
+          transitions?: Json
+          updated_at?: string
+          voiceover_direction?: string | null
+        }
+        Update: {
+          aspect_ratio?: string
+          asset_plan_id?: string
+          captions?: Json
+          composition_type?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          metadata?: Json
+          overlays?: Json
+          render_status?: string
+          scenes?: Json
+          soundtrack_direction?: string | null
+          timeline?: Json
+          transitions?: Json
+          updated_at?: string
+          voiceover_direction?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growth_engine_render_compositions_asset_plan_id_fkey"
+            columns: ["asset_plan_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_asset_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growth_engine_render_jobs: {
+        Row: {
+          composition_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json
+          output_asset_source_id: string | null
+          progress: number
+          provider: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          composition_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          output_asset_source_id?: string | null
+          progress?: number
+          provider?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          composition_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          output_asset_source_id?: string | null
+          progress?: number
+          provider?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growth_engine_render_jobs_composition_id_fkey"
+            columns: ["composition_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_render_compositions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "growth_engine_render_jobs_output_asset_source_id_fkey"
+            columns: ["output_asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_asset_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growth_engine_screenshot_requests: {
+        Row: {
+          annotation: string | null
+          asset_plan_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          priority: number
+          route_hint: string | null
+          status: string
+          title: string
+          updated_at: string
+          viewport: string
+        }
+        Insert: {
+          annotation?: string | null
+          asset_plan_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          priority?: number
+          route_hint?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          viewport: string
+        }
+        Update: {
+          annotation?: string | null
+          asset_plan_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          priority?: number
+          route_hint?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          viewport?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growth_engine_screenshot_requests_asset_plan_id_fkey"
+            columns: ["asset_plan_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_asset_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growth_engine_signals: {
+        Row: {
+          confidence: number
+          created_at: string
+          description: string
+          evidence: Json
+          feature_id: string | null
+          id: string
+          signal_key: string
+          signal_type: string
+          source_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          description: string
+          evidence?: Json
+          feature_id?: string | null
+          id?: string
+          signal_key: string
+          signal_type: string
+          source_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          description?: string
+          evidence?: Json
+          feature_id?: string | null
+          id?: string
+          signal_key?: string
+          signal_type?: string
+          source_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "growth_engine_signals_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "internal_growth_features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "growth_engine_signals_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "growth_engine_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      growth_engine_sources: {
+        Row: {
+          config: Json
+          created_at: string
+          display_name: string
+          id: string
+          last_scanned_at: string | null
+          metadata: Json
+          scope_id: string
+          scope_type: string
+          source_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          display_name: string
+          id?: string
+          last_scanned_at?: string | null
+          metadata?: Json
+          scope_id: string
+          scope_type?: string
+          source_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          display_name?: string
+          id?: string
+          last_scanned_at?: string | null
+          metadata?: Json
+          scope_id?: string
+          scope_type?: string
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      internal_growth_agent_admins: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      internal_growth_agent_runs: {
+        Row: {
+          created_at: string
+          created_by: string
+          error_message: string | null
+          id: string
+          metadata: Json
+          source_type: string
+          status: string
+          summary: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          source_type: string
+          status: string
+          summary?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json
+          source_type?: string
+          status?: string
+          summary?: string | null
+        }
+        Relationships: []
+      }
+      internal_growth_campaigns: {
+        Row: {
+          campaign_type: string
+          created_at: string
+          feature_id: string | null
+          id: string
+          metadata: Json
+          objective: string
+          status: string
+          target_platforms: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_type: string
+          created_at?: string
+          feature_id?: string | null
+          id?: string
+          metadata?: Json
+          objective: string
+          status?: string
+          target_platforms?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_type?: string
+          created_at?: string
+          feature_id?: string | null
+          id?: string
+          metadata?: Json
+          objective?: string
+          status?: string
+          target_platforms?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_growth_campaigns_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "internal_growth_features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_growth_drafts: {
+        Row: {
+          body: string
+          campaign_id: string
+          created_at: string
+          cta: string | null
+          format: string
+          hook: string | null
+          id: string
+          metadata: Json
+          platform: string
+          score: Json | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          campaign_id: string
+          created_at?: string
+          cta?: string | null
+          format: string
+          hook?: string | null
+          id?: string
+          metadata?: Json
+          platform: string
+          score?: Json | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          campaign_id?: string
+          created_at?: string
+          cta?: string | null
+          format?: string
+          hook?: string | null
+          id?: string
+          metadata?: Json
+          platform?: string
+          score?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_growth_drafts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "internal_growth_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_growth_features: {
+        Row: {
+          audience: string
+          created_at: string
+          description: string
+          feature_key: string
+          id: string
+          launch_angle: string
+          route_path: string | null
+          run_id: string | null
+          source_files: Json
+          status: string
+          title: string
+          updated_at: string
+          value_props: Json
+        }
+        Insert: {
+          audience: string
+          created_at?: string
+          description: string
+          feature_key: string
+          id?: string
+          launch_angle: string
+          route_path?: string | null
+          run_id?: string | null
+          source_files?: Json
+          status?: string
+          title: string
+          updated_at?: string
+          value_props?: Json
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          description?: string
+          feature_key?: string
+          id?: string
+          launch_angle?: string
+          route_path?: string | null
+          run_id?: string | null
+          source_files?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+          value_props?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_growth_features_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "internal_growth_agent_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processed_source_events: {
         Row: {
           event_id: string
@@ -1003,6 +1685,57 @@ export type Database = {
         }
         Relationships: []
       }
+      shopreel_brand_brain_profiles: {
+        Row: {
+          audience_notes: string | null
+          brand_voice_rules: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          metadata: Json
+          positioning: string | null
+          preferred_ctas: string[]
+          prohibited_claims: string[]
+          shop_id: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          visual_style_notes: string | null
+        }
+        Insert: {
+          audience_notes?: string | null
+          brand_voice_rules?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          positioning?: string | null
+          preferred_ctas?: string[]
+          prohibited_claims?: string[]
+          shop_id: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          visual_style_notes?: string | null
+        }
+        Update: {
+          audience_notes?: string | null
+          brand_voice_rules?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          positioning?: string | null
+          preferred_ctas?: string[]
+          prohibited_claims?: string[]
+          shop_id?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          visual_style_notes?: string | null
+        }
+        Relationships: []
+      }
       shopreel_campaign_analytics: {
         Row: {
           campaign_id: string
@@ -1060,6 +1793,68 @@ export type Database = {
             foreignKeyName: "shopreel_campaign_analytics_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: true
+            referencedRelation: "shopreel_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopreel_campaign_brains: {
+        Row: {
+          campaign_id: string
+          campaign_objective: string | null
+          channel_priorities: string[]
+          content_pillars: string[]
+          created_at: string
+          created_by: string | null
+          experiment_hypotheses: string[]
+          id: string
+          metadata: Json
+          shop_id: string
+          status: string
+          success_signals: string[]
+          target_audience: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          campaign_id: string
+          campaign_objective?: string | null
+          channel_priorities?: string[]
+          content_pillars?: string[]
+          created_at?: string
+          created_by?: string | null
+          experiment_hypotheses?: string[]
+          id?: string
+          metadata?: Json
+          shop_id: string
+          status?: string
+          success_signals?: string[]
+          target_audience?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          campaign_objective?: string | null
+          channel_priorities?: string[]
+          content_pillars?: string[]
+          created_at?: string
+          created_by?: string | null
+          experiment_hypotheses?: string[]
+          id?: string
+          metadata?: Json
+          shop_id?: string
+          status?: string
+          success_signals?: string[]
+          target_audience?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopreel_campaign_brains_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
             referencedRelation: "shopreel_campaigns"
             referencedColumns: ["id"]
           },
