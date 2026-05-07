@@ -84,14 +84,20 @@ export default function CampaignDetailClient({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [campaignBrain, setCampaignBrain] = useState({ campaignObjective: "", targetAudience: "", channelPriorities: "", contentPillars: "" });
+  const [agentRuns, setAgentRuns] = useState<Array<{ id: string; agent_type: string; status: string; confidence: number | null; requires_approval: boolean; updated_at: string }>>([]);
 
   const nextAction = useMemo(() => getNextAction(progress), [progress]);
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch(`/api/shopreel/campaigns/${campaign.id}/brain`, { cache: "no-store" });
-      const json = (await res.json().catch(() => ({}))) as { campaignBrain?: { campaign_objective?: string | null; target_audience?: string | null; channel_priorities?: string[]; content_pillars?: string[] } | null };
-      if (json.campaignBrain) setCampaignBrain({ campaignObjective: json.campaignBrain.campaign_objective ?? "", targetAudience: json.campaignBrain.target_audience ?? "", channelPriorities: (json.campaignBrain.channel_priorities ?? []).join("\n"), contentPillars: (json.campaignBrain.content_pillars ?? []).join("\n") });
+      const [brainRes, runsRes] = await Promise.all([
+        fetch(`/api/shopreel/campaigns/${campaign.id}/brain`, { cache: "no-store" }),
+        fetch(`/api/shopreel/agents/runs?campaignId=${campaign.id}`, { cache: "no-store" }),
+      ]);
+      const brainJson = (await brainRes.json().catch(() => ({}))) as { campaignBrain?: { campaign_objective?: string | null; target_audience?: string | null; channel_priorities?: string[]; content_pillars?: string[] } | null };
+      const runsJson = (await runsRes.json().catch(() => ({}))) as { runs?: Array<{ id: string; agent_type: string; status: string; confidence: number | null; requires_approval: boolean; updated_at: string }> };
+      if (brainJson.campaignBrain) setCampaignBrain({ campaignObjective: brainJson.campaignBrain.campaign_objective ?? "", targetAudience: brainJson.campaignBrain.target_audience ?? "", channelPriorities: (brainJson.campaignBrain.channel_priorities ?? []).join("\n"), contentPillars: (brainJson.campaignBrain.content_pillars ?? []).join("\n") });
+      setAgentRuns(runsJson.runs ?? []);
     })();
   }, [campaign.id]);
 
@@ -100,7 +106,7 @@ export default function CampaignDetailClient({
       setBusy(key);
       setError(null);
 
-      const res = await fetch(url, { method: "POST" });
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: key === "plan" ? JSON.stringify({ campaignId: campaign.id, agentType: "content_strategist" }) : undefined });
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok || json?.ok === false) {
@@ -164,6 +170,23 @@ export default function CampaignDetailClient({
           <textarea className="w-full rounded-xl bg-black/30 border border-white/15 p-2 text-sm" placeholder="Campaign objective" value={campaignBrain.campaignObjective} onChange={(e)=>setCampaignBrain((prev)=>({...prev,campaignObjective:e.target.value}))} />
           <textarea className="w-full rounded-xl bg-black/30 border border-white/15 p-2 text-sm" placeholder="Target audience" value={campaignBrain.targetAudience} onChange={(e)=>setCampaignBrain((prev)=>({...prev,targetAudience:e.target.value}))} />
           <GlassButton variant="secondary" onClick={()=>void fetch(`/api/shopreel/campaigns/${campaign.id}/brain`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({campaignObjective:campaignBrain.campaignObjective,targetAudience:campaignBrain.targetAudience,channelPriorities:campaignBrain.channelPriorities.split("\n").map((x)=>x.trim()).filter(Boolean),contentPillars:campaignBrain.contentPillars.split("\n").map((x)=>x.trim()).filter(Boolean)})})}>Save Campaign Brain</GlassButton>
+        </div>
+      </GlassCard>
+
+
+      <GlassCard title="AI Planning" strong>
+        <div className="flex items-center gap-2">
+          <GlassButton variant="secondary" onClick={() => runAction("plan", `/api/shopreel/agents/plan`)}>{busy === "plan" ? "Generating…" : "Generate planning draft"}</GlassButton>
+          <span className="text-xs text-white/60">Read-only plans. Approval required before any execution.</span>
+        </div>
+        <div className="mt-3 grid gap-2">
+          {agentRuns.length === 0 ? <div className="text-sm text-white/60">No planning runs yet.</div> : agentRuns.slice(0, 6).map((run) => (
+            <div key={run.id} className="rounded-xl border border-white/10 bg-black/25 p-3 text-sm text-white/80">
+              <div className="font-medium text-white">{run.agent_type}</div>
+              <div>Status: {run.status} · Confidence: {run.confidence ?? "n/a"}</div>
+              <div>Requires approval: {run.requires_approval ? "Yes" : "No"}</div>
+            </div>
+          ))}
         </div>
       </GlassCard>
 
