@@ -43,6 +43,20 @@ type SelectableAsset = Pick<
   Database["public"]["Tables"]["content_assets"]["Row"],
   "id" | "title" | "asset_type" | "public_url" | "created_at" | "metadata"
 >;
+type StoryboardSceneStatus = "ready" | "needs_media" | "needs_copy" | "draft";
+type StoryboardScene = {
+  id: string;
+  sceneNumber: number;
+  title: string;
+  hookBeat: string;
+  voiceoverLine: string;
+  captionText: string;
+  visualDirection: string;
+  suggestedMediaSlot: string;
+  durationSeconds: number;
+  motionDirection: string;
+  status: StoryboardSceneStatus;
+};
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -63,6 +77,14 @@ function statusTone(status: string): "default" | "copper" | "muted" {
   if (status === "completed") return "copper";
   if (status === "failed") return "muted";
   return "default";
+}
+
+function sourceLabelForJob(job: MediaJob) {
+  const settings = (job.settings ?? {}) as Record<string, unknown>;
+  if (typeof settings.storyboard_summary === "string" && settings.storyboard_summary.trim()) return "Storyboard";
+  if (Array.isArray(job.input_asset_ids) && job.input_asset_ids.length > 0) return "Uploaded media";
+  if (typeof settings.is_variation_of_job_id === "string" && settings.is_variation_of_job_id) return "Variation";
+  return "Brief only";
 }
 
 export default function VideoCreationStudio({
@@ -90,6 +112,7 @@ export default function VideoCreationStudio({
   const [musicDirection, setMusicDirection] = useState<VideoMusicDirection>("modern_product_demo");
   const [customMusicDirection, setCustomMusicDirection] = useState("");
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [storyboardScenes, setStoryboardScenes] = useState<StoryboardScene[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
@@ -103,6 +126,7 @@ export default function VideoCreationStudio({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [storyboardMessage, setStoryboardMessage] = useState<string | null>(null);
 
   const recommendedProvider = useMemo(() => {
     if (jobType === "asset_assembly") return "assembly";
@@ -176,6 +200,61 @@ export default function VideoCreationStudio({
     if (preset.durationSeconds) setDurationSeconds(preset.durationSeconds);
   }
 
+  function normalizeSceneStatus(scene: StoryboardScene): StoryboardSceneStatus {
+    if (!scene.visualDirection.trim() && !scene.suggestedMediaSlot.trim()) return "needs_media";
+    if (!scene.voiceoverLine.trim() && !scene.captionText.trim()) return "needs_copy";
+    if (!scene.hookBeat.trim()) return "draft";
+    return "ready";
+  }
+
+  function generateStoryboardFromBrief() {
+    const sequence = ["Hook", "Problem / Context", "Proof / Demonstration", "Transformation / Value", "CTA"];
+    const sceneCount = durationSeconds <= 15 ? 3 : durationSeconds >= 30 ? 5 : 4;
+    const perScene = Math.max(3, Math.round(durationSeconds / sceneCount));
+    const briefLabel = title.trim() || "Untitled concept";
+    const promptFocus = prompt.trim() || "Core offer and message";
+
+    const generated = sequence.slice(0, sceneCount).map((beat, index) => {
+      const scene: StoryboardScene = {
+        id: `scene-${Date.now()}-${index + 1}`,
+        sceneNumber: index + 1,
+        title: beat,
+        hookBeat: `${beat} for ${briefLabel}`,
+        voiceoverLine: voiceoverMode === "none" ? "" : `${beat}: ${promptFocus.slice(0, 90)}`,
+        captionText: `${briefLabel} • ${beat}`,
+        visualDirection: `${formatLabel(style)} ${formatLabel(visualMode)} direction in ${aspectRatio}, ${jobType} format`,
+        suggestedMediaSlot: selectedAssetIds.length > 0 ? `Asset ${Math.min(index + 1, selectedAssetIds.length)}` : "",
+        durationSeconds: perScene,
+        motionDirection: index === 0 ? "Push-in opener" : index === sceneCount - 1 ? "Hold with CTA reveal" : "Smooth lateral movement",
+        status: "draft",
+      };
+      return { ...scene, status: normalizeSceneStatus(scene) };
+    });
+
+    setStoryboardScenes(generated);
+    setStoryboardMessage("Draft storyboard generated from brief (local deterministic planner).");
+  }
+
+  function updateScene(sceneId: string, changes: Partial<StoryboardScene>) {
+    setStoryboardScenes((current) =>
+      current.map((scene) => {
+        if (scene.id !== sceneId) return scene;
+        const updated = { ...scene, ...changes };
+        return { ...updated, status: normalizeSceneStatus(updated) };
+      })
+    );
+  }
+
+  function duplicateScene(sceneId: string) {
+    setStoryboardScenes((current) => {
+      const scene = current.find((item) => item.id === sceneId);
+      if (!scene) return current;
+      const clone: StoryboardScene = { ...scene, id: `scene-${Date.now()}-dup`, sceneNumber: scene.sceneNumber + 1 };
+      const next = [...current, clone].map((item, index) => ({ ...item, sceneNumber: index + 1 }));
+      return next;
+    });
+  }
+
   async function enhancePrompt() {
     try {
       setEnhancing(true);
@@ -221,6 +300,12 @@ export default function VideoCreationStudio({
         throw new Error("Select at least one asset for asset assembly.");
       }
 
+      const storyboardSummary = storyboardScenes.length
+        ? storyboardScenes
+            .map((scene) => `Scene ${scene.sceneNumber} ${scene.title}: ${scene.visualDirection || scene.suggestedMediaSlot}. Voice: ${scene.voiceoverLine || "none"}. Caption: ${scene.captionText || "none"}. ${scene.durationSeconds}s.`)
+            .join(" ")
+        : "";
+
       if (jobType === "series") {
         if (selectedAssetIds.length === 0) {
           throw new Error("Select uploaded assets first. Build Series is now uploaded-media-first.");
@@ -245,6 +330,7 @@ export default function VideoCreationStudio({
             voiceoverScript,
             musicDirection,
             customMusicDirection,
+            storyboardSummary,
             allowAiConcepts: false,
           }),
         });
@@ -276,6 +362,7 @@ export default function VideoCreationStudio({
         voiceoverScript,
         musicDirection,
         customMusicDirection,
+        storyboardSummary,
       };
 
       const res = await fetch("/api/shopreel/video-creation/jobs", {
@@ -527,10 +614,20 @@ export default function VideoCreationStudio({
 
   const showAssetPicker = jobType === "asset_assembly" || jobType === "series";
   const serviceUnavailable = envHealth.state !== "configured";
+  const totalStoryboardDuration = storyboardScenes.reduce((sum, scene) => sum + Math.max(scene.durationSeconds, 0), 0);
+  const storyboardReadinessMissing = storyboardScenes.flatMap((scene) => {
+    const missing: string[] = [];
+    if (!scene.visualDirection.trim() && !scene.suggestedMediaSlot.trim()) missing.push(`Scene ${scene.sceneNumber} needs visual direction`);
+    if (!scene.voiceoverLine.trim() && !scene.captionText.trim()) missing.push(`Scene ${scene.sceneNumber} needs voice/caption copy`);
+    return missing;
+  });
   const readinessMissing = [
     !title.trim() ? "Add an idea title" : null,
     !prompt.trim() ? "Add a prompt/brief" : null,
+    storyboardScenes.length === 0 ? "Add at least one scene" : null,
     showAssetPicker && selectedAssetIds.length === 0 ? "Select source media assets" : null,
+    ...storyboardReadinessMissing,
+    totalStoryboardDuration > 75 ? "Storyboard total duration exceeds recommended range" : null,
     !serviceUnavailable ? null : "Connect required render services",
   ].filter(Boolean) as string[];
   const renderReady = readinessMissing.length === 0;
@@ -634,8 +731,45 @@ export default function VideoCreationStudio({
               ) : null}
             </section>
 
-            <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+            <section className="space-y-3 rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.04] p-4">
               <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>3. AI Storyboard / Scene Plan</div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className={cx("text-sm", glassTheme.text.secondary)}>Storyboard-first creative layer. Build scenes before deep render configuration.</div>
+                <GlassButton variant="secondary" onClick={generateStoryboardFromBrief}>Generate storyboard</GlassButton>
+              </div>
+              {storyboardMessage ? <div className={cx("text-xs", glassTheme.text.copperSoft)}>{storyboardMessage}</div> : null}
+              {storyboardScenes.length > 0 ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {storyboardScenes.map((scene) => (
+                    <div key={scene.id} className="rounded-2xl border border-white/15 bg-black/25 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="text-xs text-white/60">Scene {scene.sceneNumber}</div>
+                        <div className="flex items-center gap-2">
+                          <GlassBadge tone="default">{scene.durationSeconds}s</GlassBadge>
+                          <GlassBadge tone={scene.status === "ready" ? "copper" : "muted"}>{formatLabel(scene.status)}</GlassBadge>
+                        </div>
+                      </div>
+                      <input value={scene.title} onChange={(e) => updateScene(scene.id, { title: e.target.value })} className="mb-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white" />
+                      <div className="grid gap-2">
+                        <input value={scene.voiceoverLine} onChange={(e) => updateScene(scene.id, { voiceoverLine: e.target.value })} placeholder="Voiceover line" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.captionText} onChange={(e) => updateScene(scene.id, { captionText: e.target.value })} placeholder="Caption text" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.visualDirection} onChange={(e) => updateScene(scene.id, { visualDirection: e.target.value })} placeholder="Visual direction" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input value={scene.suggestedMediaSlot} onChange={(e) => updateScene(scene.id, { suggestedMediaSlot: e.target.value })} placeholder="Media slot" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                          <input type="number" min={3} max={30} value={scene.durationSeconds} onChange={(e) => updateScene(scene.id, { durationSeconds: Number(e.target.value) || 3 })} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        </div>
+                        <input value={scene.motionDirection} onChange={(e) => updateScene(scene.id, { motionDirection: e.target.value })} placeholder="Motion direction" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <GlassButton variant="ghost">Edit</GlassButton>
+                        <GlassButton variant="ghost" onClick={() => updateScene(scene.id, { visualDirection: `${scene.visualDirection || "Regenerated visual direction"} (regen)` })}>Regenerate</GlassButton>
+                        <GlassButton variant="ghost" onClick={() => duplicateScene(scene.id)}>Duplicate</GlassButton>
+                        <GlassButton variant="ghost" onClick={() => setStoryboardScenes((current) => current.filter((item) => item.id !== scene.id).map((item, index) => ({ ...item, sceneNumber: index + 1 })))}>Remove</GlassButton>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               {jobType === "series" ? (
                 <div className="rounded-2xl border border-cyan-300/30 bg-cyan-400/[0.05] p-4">
                   <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
@@ -679,7 +813,15 @@ export default function VideoCreationStudio({
 
             <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
               <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>4. Timeline Preview</div>
-              <div className={cx("text-sm", glassTheme.text.secondary)}>Timeline editing remains in the editor after generation. Next step: create job, then open edit workspace.</div>
+              <div className={cx("text-sm", glassTheme.text.secondary)}>Timeline preview generated from storyboard (not a full editor).</div>
+              <div className={cx("text-xs", glassTheme.text.secondary)}>{storyboardScenes.length} scenes • {totalStoryboardDuration}s total</div>
+              <div className="flex flex-wrap gap-2 text-xs text-white/75">
+                {storyboardScenes.map((scene) => <span key={scene.id} className="rounded-full border border-white/15 px-2 py-1">S{scene.sceneNumber}: {scene.durationSeconds}s</span>)}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <GlassButton variant="secondary">Open timeline editor</GlassButton>
+                <GlassButton variant="primary" onClick={() => void submitJob()} disabled={submitting || serviceUnavailable}>Render from storyboard</GlassButton>
+              </div>
             </section>
 
             <details className="rounded-2xl border border-white/10 bg-white/[0.02] p-4" open={showAdvancedSettings} onToggle={(e) => setShowAdvancedSettings((e.target as HTMLDetailsElement).open)}>
@@ -1025,6 +1167,7 @@ export default function VideoCreationStudio({
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
                         {formatLabel(job.job_type)} • {formatLabel(job.provider)} • {timeAgoLabel(job.created_at)}
                       </div>
+                      <div className={cx("text-xs", glassTheme.text.muted)}>Source: {sourceLabelForJob(job)}</div>
                       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                         <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
                         <GlassBadge tone="default">{job.aspect_ratio}</GlassBadge>

@@ -102,6 +102,7 @@ export async function createMediaGenerationJob(
       voiceover_script: input.voiceoverScript ?? null,
       music_direction: input.musicDirection ?? "modern_product_demo",
       custom_music_direction: input.customMusicDirection ?? null,
+      storyboard_summary: input.storyboardSummary ?? null,
     },
     result_payload: {},
   };
