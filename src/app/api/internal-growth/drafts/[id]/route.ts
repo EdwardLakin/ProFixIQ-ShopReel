@@ -1,2 +1,16 @@
-import { NextResponse } from "next/server"; import { requireGrowthAgentOwnerContext } from "@/features/internal-growth/server/guards"; import { updateDraft } from "@/features/internal-growth/server/repository"; import { toEndpointErrorResponse } from "@/features/shopreel/server/endpointPolicy"; import type { GrowthDraftStatus } from "@/features/internal-growth/server/types";
-export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) { try { await requireGrowthAgentOwnerContext(); const { id } = await ctx.params; const body = await req.json() as { title?: string; body?: string; hook?: string | null; cta?: string | null; status?: GrowthDraftStatus }; return NextResponse.json({ draft: await updateDraft(id, body) }); } catch (error) { return toEndpointErrorResponse(error, "Failed to update draft"); }}
+import { NextResponse } from "next/server";
+import { requireGrowthAgentOwnerContext } from "@/features/internal-growth/server/guards";
+import { updateDraft } from "@/features/internal-growth/server/repository";
+import { toEndpointErrorResponse } from "@/features/shopreel/server/endpointPolicy";
+import type { GrowthDraftStatus } from "@/features/internal-growth/server/types";
+
+export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    const { userId } = await requireGrowthAgentOwnerContext();
+    const { id } = await ctx.params;
+    const body = (await req.json()) as { title?: string; body?: string; hook?: string | null; cta?: string | null; status?: GrowthDraftStatus };
+    return NextResponse.json({ draft: await updateDraft(userId, id, body) });
+  } catch (error) {
+    return toEndpointErrorResponse(error, "Failed to update draft");
+  }
+}
