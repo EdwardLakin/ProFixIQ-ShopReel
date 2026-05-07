@@ -7,6 +7,7 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { createAdminClient } from "@/lib/supabase/server";
 import { ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import StatusBadge from "@/features/shopreel/components/StatusBadge";
+import { deriveLifecycleStage, deriveNextBestAction } from "@/features/shopreel/publish/lifecycleReadModel";
 
 const GROUPS = ["queued", "processing", "rendering", "ready", "failed"] as const;
 
@@ -34,7 +35,10 @@ export default async function ShopReelRenderQueuePage() {
           return (
             <ShopReelSurface key={status} title={status[0].toUpperCase() + status.slice(1)} description={`${inGroup.length} jobs`}>
               <div className="space-y-2">
-                {inGroup.length === 0 ? <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/55">No jobs in this stage.</div> : inGroup.map((job: any) => (
+                {inGroup.length === 0 ? <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/55">No jobs in this stage.</div> : inGroup.map((job: any) => {
+                  const stage = deriveLifecycleStage({ hasStoryboard: true, hasEditor: Boolean(job.content_piece_id), renderStatus: job.status, packageStatus: job.export_package_status ?? null, approvalState: null });
+                  const action = deriveNextBestAction({ stage, blocked: false });
+                  return (
                   <div key={job.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-white/65">{job.provider ?? "provider: unknown"}</p>
@@ -42,15 +46,17 @@ export default async function ShopReelRenderQueuePage() {
                     </div>
                     <p className="mt-2 text-sm text-white">{job.content_piece_id ?? "No content piece linked"}</p>
                     <div className="mt-2 flex flex-wrap gap-1 text-[11px] text-white/60">
+                      <span className="rounded-md border border-white/10 px-2 py-0.5">Lifecycle {stage}</span>
                       <span className="rounded-md border border-white/10 px-2 py-0.5">{job.aspect_ratio ?? "ratio n/a"}</span>
                       <span className="rounded-md border border-white/10 px-2 py-0.5">{job.duration_seconds ? `${job.duration_seconds}s` : "duration n/a"}</span>
                       <span className="rounded-md border border-white/10 px-2 py-0.5">Attempt {job.attempt_count ?? 0}</span>
                     </div>
                     <p className="mt-2 text-[11px] text-white/50">Created {timeLabel(job.created_at)}</p>
                     {job.updated_at ? <p className="text-[11px] text-white/50">Updated {timeLabel(job.updated_at)}</p> : null}
+                    <p className="text-[11px] text-cyan-200">Next: {action.label}</p>
                     {job.error_message ? <p className="mt-2 rounded-md border border-rose-400/30 bg-rose-500/10 p-2 text-xs text-rose-200">{job.error_message}</p> : null}
                   </div>
-                ))}
+                );})}
               </div>
             </ShopReelSurface>
           );
