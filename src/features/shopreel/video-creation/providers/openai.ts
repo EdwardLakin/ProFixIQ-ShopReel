@@ -1,6 +1,7 @@
 import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
 import { getOpenAIApiKey } from "@/features/shopreel/video-creation/lib/env";
 import { normalizeOpenAIVideoSeconds } from "@/features/shopreel/video-creation/lib/normalizeOpenAIVideoSeconds";
+import { submitRailwayVideoJob } from "@/features/shopreel/video-creation/lib/railwayClient";
 import type { MediaProviderAdapter, MediaProviderJobInput, MediaProviderResult } from "./types";
 
 type OpenAIImageResponse = {
@@ -8,17 +9,6 @@ type OpenAIImageResponse = {
     url?: string;
     b64_json?: string;
   }>;
-  error?: {
-    message?: string;
-  };
-};
-
-type OpenAIVideoCreateResponse = {
-  id?: string;
-  status?: "queued" | "in_progress" | "completed" | "failed";
-  progress?: number;
-  seconds?: string | number;
-  size?: string;
   error?: {
     message?: string;
   };
@@ -95,41 +85,30 @@ export const openAiMediaProvider: MediaProviderAdapter = {
 
     if (input.jobType === "video") {
       const seconds = normalizeOpenAIVideoSeconds(input.durationSeconds);
-
-      const response = await fetch("https://api.openai.com/v1/videos", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${getOpenAIApiKey()}`,
-        },
-        body: (() => {
-          const form = new FormData();
-          form.append("model", SHOPREEL_AI_MODELS.videoDraft);
-          form.append("prompt", prompt);
-          form.append("size", mapAspectRatioToVideoSize(input.aspectRatio));
-          form.append("seconds", String(seconds));
-          return form;
-        })(),
+      const railwayJob = await submitRailwayVideoJob({
+        localJobId: input.jobId,
+        prompt,
+        promptEnhanced: input.promptEnhanced,
+        aspectRatio: input.aspectRatio,
+        durationSeconds: seconds,
+        style: input.style,
+        visualMode: input.visualMode,
+        inputAssetIds: input.inputAssetIds,
+        settings: input.settings,
       });
 
-      const json = (await response.json().catch(() => ({}))) as OpenAIVideoCreateResponse;
-
-      if (!response.ok || !json.id) {
-        throw new Error(json.error?.message ?? "OpenAI video generation failed to start");
-      }
-
       return {
-        providerJobId: json.id,
-        previewUrl: null,
-        providerStatus: json.status ?? "queued",
+        providerJobId: railwayJob.id,
+        previewUrl: railwayJob.previewUrl ?? null,
+        providerStatus: railwayJob.status ?? "queued",
         resultPayload: {
-          provider: "openai",
-          mode: "video_generation_async",
+          provider: "railway",
+          mode: "railway_video_generation_async",
           prompt,
-          openai_video_id: json.id,
-          openai_status: json.status ?? "queued",
-          progress: json.progress ?? null,
-          seconds: json.seconds ?? null,
-          size: json.size ?? null,
+          railway_job_id: railwayJob.id,
+          railway_status: railwayJob.status ?? "queued",
+          requested_model: SHOPREEL_AI_MODELS.videoDraft,
+          requested_size: mapAspectRatioToVideoSize(input.aspectRatio),
         },
       };
     }

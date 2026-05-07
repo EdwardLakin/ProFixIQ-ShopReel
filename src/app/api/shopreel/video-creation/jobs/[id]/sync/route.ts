@@ -6,6 +6,7 @@ import {
   fetchOpenAIVideoStatus,
   uploadGeneratedVideoToStorage,
 } from "@/features/shopreel/video-creation/lib/openaiVideo";
+import { fetchRailwayVideoJob } from "@/features/shopreel/video-creation/lib/railwayClient";
 import { finalizeCompletedMediaJob } from "@/features/shopreel/video-creation/lib/server";
 
 export async function POST(
@@ -26,16 +27,36 @@ export async function POST(
       throw new Error(error?.message ?? "Media job not found");
     }
 
-    if (mediaJob.provider !== "openai" || mediaJob.job_type !== "video") {
+    if (mediaJob.job_type !== "video") {
       return NextResponse.json({
         ok: true,
         skipped: true,
-        reason: "Sync currently only applies to OpenAI video jobs.",
+        reason: "Sync currently only applies to video jobs.",
       });
     }
 
     if (!mediaJob.provider_job_id) {
       throw new Error("Media job is missing provider_job_id");
+    }
+
+    if (mediaJob.provider === "openai") {
+      const status = await fetchRailwayVideoJob(mediaJob.provider_job_id);
+      if (status.status === "queued" || status.status === "in_progress") {
+        return NextResponse.json({ ok: true, completed: false, job: mediaJob });
+      }
+      if (status.status === "failed") {
+        const { data: failedJob } = await supabase.from("shopreel_media_generation_jobs").update({ status: "failed", error_text: status.error ?? "Railway generation failed", completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", mediaJob.id).select("*").single();
+        return NextResponse.json({ ok: true, completed: false, failed: true, job: failedJob });
+      }
+      if (status.status === "completed") {
+        const previewUrl = status.previewUrl ?? null;
+        const completedJob = await finalizeCompletedMediaJob({
+          completedJob: mediaJob,
+          providerResult: { providerJobId: mediaJob.provider_job_id, previewUrl, resultPayload: { provider: "railway", railway_job_id: status.id, railway_status: status.status ?? "unknown", error: status.error ?? null } },
+        });
+        return NextResponse.json({ ok: true, completed: true, job: completedJob });
+      }
+      throw new Error(`Unexpected Railway video status: ${status.status ?? "unknown"}`);
     }
 
     const status = await fetchOpenAIVideoStatus(mediaJob.provider_job_id);
