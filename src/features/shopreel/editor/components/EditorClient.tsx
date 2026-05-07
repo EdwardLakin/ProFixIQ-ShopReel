@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
@@ -21,8 +21,8 @@ import {
 } from "@/features/shopreel/editor/lib/timeline";
 import { buildSubtitleBlocks } from "@/features/shopreel/subtitles/buildSubtitleBlocks";
 import { buildEditorSessionFromDraft, type EditorScene, type EditorVariant } from "@/features/shopreel/editor/lib/session";
-import { buildPersistedEditorSession, reorderScenesByPersistedOrder, type PersistedEditorSession } from "@/features/shopreel/editor/lib/sessionPersistence";
-import { applyEditorCommand, type CommandState, type EditorCommand } from "@/features/shopreel/editor/lib/commands";
+import { buildPersistedEditorSession, reorderScenesByPersistedOrder, type PersistedCommandHistoryEntry, type PersistedEditorSession } from "@/features/shopreel/editor/lib/sessionPersistence";
+import { applyEditorCommand, summarizeCommand, type CommandState, type EditorCommand } from "@/features/shopreel/editor/lib/commands";
 import { runEditorPreflight } from "@/features/shopreel/editor/lib/preflight";
 
 type Props = {
@@ -159,7 +159,12 @@ export default function EditorClient(props: Props) {
   const [variants, setVariants] = useState<EditorVariant[]>(() => props.persistedEditorSession?.variants ?? []);
   const [activeVariantId, setActiveVariantId] = useState<string | null>(props.persistedEditorSession?.variants[0]?.id ?? null);
   const [commandHistory, setCommandHistory] = useState<EditorCommand[]>([]);
+  const [historyStack, setHistoryStack] = useState<CommandState[]>([{ draft, variants, activeSceneId: null, activeVariantId }]);
+  const [historyPointer, setHistoryPointer] = useState(0);
+  const [saveState, setSaveState] = useState<"saved"|"unsaved"|"saving"|"failed">("saved");
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [lastSavedCommandSummary, setLastSavedCommandSummary] = useState<string>("Never");
+  const autosaveTimer = useRef<number | null>(null);
 
   const timelineClips = useMemo(() => buildTimelineClips(draft), [draft]);
   const totalMs = useMemo(() => draftDurationMs(draft), [draft]);
@@ -210,7 +215,33 @@ export default function EditorClient(props: Props) {
     setVariants(applied.nextState.variants);
     setActiveVariantId(applied.nextState.activeVariantId);
     setSelection(applied.nextState.activeSceneId ? { type: "scene", id: applied.nextState.activeSceneId } : selection);
-    setCommandHistory((prev) => [...prev.slice(-19), applied.command]);
+    setCommandHistory((prev) => [...prev.slice(-49), applied.command]);
+    setHistoryStack((prev) => [...prev.slice(0, historyPointer + 1), applied.nextState].slice(-50));
+    setHistoryPointer((prev) => Math.min(49, prev + 1));
+    setSaveState("unsaved");
+  }
+
+  function undoCommand() {
+    if (historyPointer <= 0) return;
+    const prevState = historyStack[historyPointer - 1];
+    if (!prevState) return;
+    setDraft(syncDraftText(prevState.draft));
+    setVariants(prevState.variants);
+    setActiveVariantId(prevState.activeVariantId);
+    setSelection(prevState.activeSceneId ? { type: "scene", id: prevState.activeSceneId } : null);
+    setHistoryPointer((p) => Math.max(0, p - 1));
+    setSaveState("unsaved");
+  }
+
+  function redoCommand() {
+    const nextState = historyStack[historyPointer + 1];
+    if (!nextState) return;
+    setDraft(syncDraftText(nextState.draft));
+    setVariants(nextState.variants);
+    setActiveVariantId(nextState.activeVariantId);
+    setSelection(nextState.activeSceneId ? { type: "scene", id: nextState.activeSceneId } : null);
+    setHistoryPointer((p) => p + 1);
+    setSaveState("unsaved");
   }
 
   function moveScene(sceneId: string, direction: -1 | 1) { execCommand({ type: "scene.reorder", sceneId, direction }); }
@@ -250,6 +281,7 @@ export default function EditorClient(props: Props) {
   async function saveDraft() {
     try {
       setIsSaving(true);
+      setSaveState("saving");
       setError(null);
 
       const res = await fetch(`/api/shopreel/story-generations/${props.generationId}`, {
@@ -269,15 +301,21 @@ export default function EditorClient(props: Props) {
       }
 
       const persisted = buildPersistedEditorSession(draft, variants);
+      const historyEntries: PersistedCommandHistoryEntry[] = commandHistory.map((cmd) => ({ id: cmd.id, type: cmd.type, timestamp: cmd.createdAt, summary: summarizeCommand(cmd.type), beforeRef: cmd.before.sceneOrder.join(","), afterRef: cmd.after.sceneOrder.join(",") }));
+      persisted.commandHistory = { stack: historyEntries.slice(-50), pointer: historyPointer, limit: 50 };
+      persisted.saveState = { state: "saved", pendingCommandCount: Math.max(0, commandHistory.length - 1), lastSavedAt: new Date().toISOString(), lastError: null };
       await fetch(`/api/shopreel/story-generations/${props.generationId}/editor-session`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ editorSession: persisted }),
       });
       setLastSavedCommandSummary(commandHistory.at(-1)?.type ?? "manual save");
+      setLastSavedAt(new Date().toISOString());
+      setSaveState("saved");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save draft");
+      setSaveState("failed");
     } finally {
       setIsSaving(false);
     }
@@ -326,6 +364,13 @@ export default function EditorClient(props: Props) {
     }
   }
 
+  useEffect(() => {
+    if (saveState !== "unsaved") return;
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = window.setTimeout(() => { void saveDraft(); }, 1200);
+    return () => { if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current); };
+  }, [draft, variants, saveState]);
+
   return (
     <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
       <div className="space-y-5">
@@ -339,7 +384,21 @@ export default function EditorClient(props: Props) {
             {draft.scenes.map((scene, index) => {
               const isSelected = selectedScene?.id === scene.id;
 
-              return (
+              useEffect(() => {
+    if (saveState !== "unsaved") return;
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = window.setTimeout(() => { void saveDraft(); }, 1200);
+    return () => { if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current); };
+  }, [draft, variants, saveState]);
+
+  useEffect(() => {
+    if (saveState !== "unsaved") return;
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = window.setTimeout(() => { void saveDraft(); }, 1200);
+    return () => { if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current); };
+  }, [draft, variants, saveState]);
+
+  return (
                 <div
                   key={scene.id}
                   role="button"
@@ -386,6 +445,18 @@ export default function EditorClient(props: Props) {
         </GlassCard>
 
         <MediaBin items={props.mediaItems} />
+
+        <GlassCard label="Assets" title="Asset graph" description="All known assets connected to this editor session.">
+          <div className="grid gap-2">
+            {draft.scenes.flatMap((scene) => (scene.media ?? []).map((asset, index) => ({ sceneId: scene.id, sceneTitle: scene.title, index, asset }))).map((entry) => (
+              <div key={`${entry.sceneId}-${entry.index}`} className={cx("rounded-xl border p-2 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft)}>
+                <div className="font-medium text-white">{String(entry.asset.metadata?.label ?? "Asset placeholder")} · {(entry.asset.url ? "ready" : "missing")}</div>
+                <div className={glassTheme.text.secondary}>Used in {entry.sceneTitle}</div>
+              </div>
+            ))}
+            {draft.scenes.every((scene) => (scene.media ?? []).length === 0) ? <div className={cx("text-xs", glassTheme.text.secondary)}>Unused assets: {props.mediaItems.length}. Missing assets: all scenes currently missing media.</div> : null}
+          </div>
+        </GlassCard>
 
         <GlassCard
           label="Subtitles"
@@ -727,15 +798,15 @@ export default function EditorClient(props: Props) {
 
         <div className="space-y-2">
           <div className={cx("rounded-xl border p-2 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft)}>
-            Last command: {commandHistory.at(-1)?.type ?? "none"} • Saved: {lastSavedCommandSummary === (commandHistory.at(-1)?.type ?? "none") ? "Saved" : "Unsaved changes"}
+            Last action: {summarizeCommand(commandHistory.at(-1)?.type ?? "scene.update")} • State: {saveState} {lastSavedAt ? `• Last saved ${new Date(lastSavedAt).toLocaleTimeString()}` : ""}
           </div>
           <div className={cx("rounded-xl border p-2 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft)}>
             Sequence summary: CTA scene {sequenceSummary.ctaIndex >= 0 ? sequenceSummary.ctaIndex + 1 : "missing"}, caption density {(sequenceSummary.captionDensity * 100).toFixed(0)}%.
           </div>
           <div className={cx("rounded-xl border p-2 text-xs", preflight.blockers.length ? glassTheme.border.copper : glassTheme.border.softer, glassTheme.glass.panelSoft)}>
-            Preflight blockers: {preflight.blockers.length ? preflight.blockers.map((item) => item.message).join("; ") : "none"}.
+            Preflight blockers: {preflight.blockers.length ? preflight.blockers.map((item) => item.message).join("; ") : "none"}. Warnings: {preflight.warnings.length}.
           </div>
-          <div className="text-sm font-medium text-white">Variants</div>
+          <div className="flex gap-2"><GlassButton variant="ghost" onClick={undoCommand} disabled={historyPointer<=0}>Undo</GlassButton><GlassButton variant="ghost" onClick={redoCommand} disabled={!historyStack[historyPointer + 1]}>Redo</GlassButton></div><div className="text-sm font-medium text-white">Variants</div>
           <div className="flex flex-wrap gap-2">
             <GlassButton variant="ghost" onClick={() => execCommand({ type: "variant.create", parentVariantId: activeVariantId, platform: "instagram" })}>Create variant</GlassButton>
             <GlassButton variant="ghost" onClick={() => execCommand({ type: "variant.create", parentVariantId: activeVariantId, platform: "tiktok" })}>TikTok variant</GlassButton>

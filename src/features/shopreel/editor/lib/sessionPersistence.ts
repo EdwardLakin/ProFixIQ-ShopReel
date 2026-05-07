@@ -15,12 +15,32 @@ export type PersistedEditorSession = {
   sceneOrder: string[];
   variants: EditorVariant[];
   scenes: PersistedEditorScene[];
+  commandHistory: {
+    stack: PersistedCommandHistoryEntry[];
+    pointer: number;
+    limit: number;
+  };
+  saveState: {
+    state: "saved" | "unsaved" | "saving" | "failed";
+    pendingCommandCount: number;
+    lastSavedAt: string | null;
+    lastError: string | null;
+  };
   readiness: {
     storyboardComplete: boolean;
     assetCoverageRatio: number;
     captionCoverageRatio: number;
     audioCoverageRatio: number;
   };
+};
+
+export type PersistedCommandHistoryEntry = {
+  id: string;
+  type: string;
+  timestamp: string;
+  summary: string;
+  beforeRef: string;
+  afterRef: string;
 };
 
 export function buildPersistedEditorSession(draft: StoryDraft, variants: EditorVariant[]): PersistedEditorSession {
@@ -52,6 +72,8 @@ export function buildPersistedEditorSession(draft: StoryDraft, variants: EditorV
     sceneOrder: draft.scenes.map((scene) => scene.id),
     variants,
     scenes,
+    commandHistory: { stack: [], pointer: -1, limit: 50 },
+    saveState: { state: "saved", pendingCommandCount: 0, lastSavedAt: null, lastError: null },
     readiness: { storyboardComplete, assetCoverageRatio, captionCoverageRatio, audioCoverageRatio },
   };
 }
