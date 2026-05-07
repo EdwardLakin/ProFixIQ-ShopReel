@@ -3,6 +3,7 @@ import type { DiscoveredGrowthFeature, GrowthAssetPlanStatus, GrowthAssetType, G
 import { buildCampaignObjective, buildCampaignTitle, platformsOrDefault } from "./campaignPlanner";
 import { buildDraftSeeds } from "./draftGenerator";
 import { ShopReelEndpointError } from "@/features/shopreel/server/endpointPolicy";
+import { calculateRenderReadiness, generateScreenshotRequests, generateStarterComposition } from "./assetIntelligence";
 
 function db() { return createAdminClient() as unknown as { from: (table: string) => any }; }
 
@@ -87,7 +88,36 @@ function buildAssetPlans(campaign: Record<string, unknown>, drafts: Array<Record
 
 async function attachAssetPlans(campaign: Record<string, unknown>, drafts: Array<Record<string, unknown>>, platforms: GrowthPlatform[]) {
   const plans = buildAssetPlans(campaign, drafts, platforms);
-  if (plans.length) await db().from("growth_engine_asset_plans").insert(plans);
+  if (!plans.length) return;
+  const { data: insertedPlans, error } = await db().from("growth_engine_asset_plans").insert(plans).select("*");
+  if (error) throw error;
+  for (const plan of insertedPlans ?? []) {
+    const requests = generateScreenshotRequests(campaign.campaign_type as GrowthCampaignType, plan.target_platform as GrowthPlatform).map((req) => ({
+      asset_plan_id: plan.id,
+      title: req.title,
+      route_hint: req.routeHint,
+      viewport: req.viewport,
+      priority: req.priority,
+      annotation: req.annotation,
+      status: req.status,
+    }));
+    if (requests.length) await db().from("growth_engine_screenshot_requests").insert(requests);
+    const composition = generateStarterComposition(plan.asset_type as any, String(plan.title));
+    await db().from("growth_engine_render_compositions").insert({
+      asset_plan_id: plan.id,
+      composition_type: composition.compositionType,
+      timeline: composition.timeline,
+      scenes: composition.scenes,
+      overlays: composition.overlays,
+      captions: composition.captions,
+      transitions: composition.transitions,
+      soundtrack_direction: composition.soundtrackDirection,
+      voiceover_direction: composition.voiceoverDirection,
+      duration_seconds: composition.durationSeconds,
+      aspect_ratio: composition.aspectRatio,
+      render_status: composition.renderStatus,
+    });
+  }
 }
 
 export async function generateCampaign(actor: string, featureId: string, campaignType: GrowthCampaignType, targetPlatforms: GrowthPlatform[], forceRegenerate = false) {
@@ -132,19 +162,55 @@ export async function generateCampaignFromSignal(actor: string, signalId: string
 export async function getCampaignPackage(campaignId: string) {
   const { data: campaign, error } = await db().from("internal_growth_campaigns").select("*").eq("id", campaignId).single();
   if (error) throw error;
-  const [feature, drafts, assetPlans, audit] = await Promise.all([
+  const [feature, drafts, assetPlans, screenshotRequests, compositions, assetSources, brandKit, audit] = await Promise.all([
     db().from("internal_growth_features").select("*").eq("id", campaign.feature_id).maybeSingle(),
     db().from("internal_growth_drafts").select("*").eq("campaign_id", campaignId).order("created_at", { ascending: true }),
     db().from("growth_engine_asset_plans").select("*").eq("campaign_id", campaignId).order("created_at", { ascending: true }),
+    db().from("growth_engine_screenshot_requests").select("*").in("asset_plan_id", []),
+    db().from("growth_engine_render_compositions").select("*").in("asset_plan_id", []),
+    db().from("growth_engine_asset_sources").select("*").eq("campaign_id", campaignId),
+    db().from("growth_engine_brand_kits").select("*").eq("scope", "internal").limit(1),
     db().from("internal_growth_audit_logs").select("*").eq("entity_id", campaignId).order("created_at", { ascending: false }).limit(30),
   ]);
-  const missingInputs = (assetPlans.data ?? []).flatMap((plan: Record<string, unknown>) => Array.isArray((plan.metadata as Record<string, unknown>)?.missingInputs) ? (plan.metadata as Record<string, unknown>).missingInputs as string[] : []);
-  return { campaign, feature: feature.data ?? null, drafts: drafts.data ?? [], assetPlans: assetPlans.data ?? [], missingInputs: Array.from(new Set(missingInputs)), readyForRender: missingInputs.length === 0, futurePublishStatus: "disabled_internal_only", auditHistory: audit.data ?? [] };
+  const planIds = (assetPlans.data ?? []).map((plan: Record<string, unknown>) => plan.id as string);
+  const [shots, comps] = await Promise.all([
+    planIds.length ? db().from("growth_engine_screenshot_requests").select("*").in("asset_plan_id", planIds).order("priority", { ascending: false }) : Promise.resolve({ data: [] }),
+    planIds.length ? db().from("growth_engine_render_compositions").select("*").in("asset_plan_id", planIds).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
+  ]);
+  const readiness = (comps.data ?? []).map((composition: Record<string, unknown>) => calculateRenderReadiness({
+    screenshotRequests: (shots.data ?? []).filter((s: Record<string, unknown>) => s.asset_plan_id === composition.asset_plan_id),
+    assetSources: assetSources.data ?? [],
+    composition,
+    brandKit: (brandKit.data ?? [])[0] ?? null,
+    storyboard: (assetPlans.data ?? []).find((plan: Record<string, unknown>) => plan.id === composition.asset_plan_id)?.storyboard,
+  }));
+  const readyForRender = readiness.every((r: { ready: boolean }) => r.ready);
+  return { campaign, feature: feature.data ?? null, drafts: drafts.data ?? [], assetPlans: assetPlans.data ?? [], screenshotRequests: shots.data ?? [], renderCompositions: comps.data ?? [], assetSources: assetSources.data ?? [], renderReadiness: readiness, readyForRender, brandKit: (brandKit.data ?? [])[0] ?? null, futurePublishPayload: { status: "placeholder_internal_only" }, futurePublishStatus: "disabled_internal_only", auditHistory: audit.data ?? [] };
+}
+
+
+export async function createRenderJob(compositionId: string, provider?: string) {
+  const payload = { composition_id: compositionId, provider: provider ?? null, status: "queued", progress: 0, metadata: { mode: "simulated_preparation_only", providersPluggable: ["remotion", "ffmpeg", "runway", "veo", "sora", "internal_worker"] } };
+  const { data, error } = await db().from("growth_engine_render_jobs").insert(payload).select("*").single();
+  if (error) throw error;
+  return data;
+}
+
+export async function listRenderJobs() {
+  const { data, error } = await db().from("growth_engine_render_jobs").select("*").order("created_at", { ascending: false }).limit(200);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getRenderJob(id: string) {
+  const { data, error } = await db().from("growth_engine_render_jobs").select("*").eq("id", id).single();
+  if (error) throw error;
+  return data;
 }
 
 export async function overview() {
-  const [runs, features, campaigns, drafts, signals, sources] = await Promise.all([db().from("internal_growth_agent_runs").select("*").order("created_at", { ascending: false }).limit(20), db().from("internal_growth_features").select("*").order("updated_at", { ascending: false }).limit(200), db().from("internal_growth_campaigns").select("*").order("updated_at", { ascending: false }).limit(200), db().from("internal_growth_drafts").select("*").order("updated_at", { ascending: false }).limit(500), db().from("growth_engine_signals").select("*").order("updated_at", { ascending: false }).limit(200), db().from("growth_engine_sources").select("*").order("updated_at", { ascending: false }).limit(20)]);
+  const [runs, features, campaigns, drafts, signals, sources, assetPlans, screenshotRequests, renderCompositions, renderJobs] = await Promise.all([db().from("internal_growth_agent_runs").select("*").order("created_at", { ascending: false }).limit(20), db().from("internal_growth_features").select("*").order("updated_at", { ascending: false }).limit(200), db().from("internal_growth_campaigns").select("*").order("updated_at", { ascending: false }).limit(200), db().from("internal_growth_drafts").select("*").order("updated_at", { ascending: false }).limit(500), db().from("growth_engine_signals").select("*").order("updated_at", { ascending: false }).limit(200), db().from("growth_engine_sources").select("*").order("updated_at", { ascending: false }).limit(20), db().from("growth_engine_asset_plans").select("*").order("updated_at", { ascending: false }).limit(200), db().from("growth_engine_screenshot_requests").select("*").order("updated_at", { ascending: false }).limit(300), db().from("growth_engine_render_compositions").select("*").order("updated_at", { ascending: false }).limit(200), db().from("growth_engine_render_jobs").select("*").order("updated_at", { ascending: false }).limit(200)]);
   const draftCountsByPlatform = (drafts.data ?? []).reduce((acc: Record<string, number>, draft: Record<string, unknown>) => { const key = String(draft.platform); acc[key] = (acc[key] ?? 0) + 1; return acc; }, {});
   const latestRun = (runs.data ?? [])[0] ?? null;
-  return { runs: runs.data ?? [], features: features.data ?? [], campaigns: campaigns.data ?? [], drafts: drafts.data ?? [], signals: signals.data ?? [], sources: sources.data ?? [], summary: { totalFeatures: (features.data ?? []).length, approvedFeatures: (features.data ?? []).filter((f: Record<string, unknown>) => f.status === "approved").length, ignoredFeatures: (features.data ?? []).filter((f: Record<string, unknown>) => f.status === "ignored").length, totalCampaigns: (campaigns.data ?? []).length, draftCountsByPlatform, latestRunState: latestRun ? { status: latestRun.status, createdAt: latestRun.created_at, error: latestRun.error_message } : null } };
+  return { runs: runs.data ?? [], features: features.data ?? [], campaigns: campaigns.data ?? [], drafts: drafts.data ?? [], signals: signals.data ?? [], sources: sources.data ?? [], assetPlans: assetPlans.data ?? [], screenshotRequests: screenshotRequests.data ?? [], renderCompositions: renderCompositions.data ?? [], renderJobs: renderJobs.data ?? [], summary: { totalFeatures: (features.data ?? []).length, approvedFeatures: (features.data ?? []).filter((f: Record<string, unknown>) => f.status === "approved").length, ignoredFeatures: (features.data ?? []).filter((f: Record<string, unknown>) => f.status === "ignored").length, totalCampaigns: (campaigns.data ?? []).length, draftCountsByPlatform, latestRunState: latestRun ? { status: latestRun.status, createdAt: latestRun.created_at, error: latestRun.error_message } : null } };
 }
