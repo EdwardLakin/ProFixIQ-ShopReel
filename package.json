@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "shopreel:video:key": "node scripts/generate-shopreel-video-key.js"
   },
   "dependencies": {
     "@runwayml/sdk": "^3.16.0",

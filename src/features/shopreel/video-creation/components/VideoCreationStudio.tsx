@@ -31,6 +31,7 @@ import {
 } from "@/features/shopreel/video-creation/lib/types";
 import { VIDEO_CREATION_PRESETS } from "@/features/shopreel/video-creation/lib/presets";
 import { getMediaJobPrimaryAction } from "@/features/shopreel/video-creation/lib/editor";
+import type { EnvHealth } from "@/features/shopreel/video-creation/lib/env";
 import {
   getMediaJobSeriesInfo,
   groupMediaJobsIntoSeries,
@@ -67,9 +68,11 @@ function statusTone(status: string): "default" | "copper" | "muted" {
 export default function VideoCreationStudio({
   recentJobs,
   selectableAssets,
+  envHealth,
 }: {
   recentJobs: MediaJob[];
   selectableAssets: SelectableAsset[];
+  envHealth: { state: EnvHealth; missing: string[] };
 }) {
   const router = useRouter();
 
@@ -522,17 +525,28 @@ export default function VideoCreationStudio({
   }
 
   const showAssetPicker = jobType === "asset_assembly" || jobType === "series";
+  const serviceUnavailable = envHealth.state !== "configured";
 
   return (
     <div className="grid gap-5">
+      {serviceUnavailable ? (
+        <GlassCard label="Configuration" title="Video service not connected" description="Add the missing variables in your ShopReel env and Railway video service env." strong>
+          <div className="space-y-3 text-sm text-white/80">
+            <div>Missing: {envHealth.missing.join(", ")}</div>
+            <div>Set <code>SHOPREEL_RAILWAY_VIDEO_BASE_URL</code> to your deployed Railway base URL (example: <code>https://your-railway-service.up.railway.app</code>).</div>
+            <div>Set <code>SHOPREEL_RAILWAY_VIDEO_API_KEY</code> as the same shared secret in both ShopReel and Railway.</div>
+            <details className="text-xs text-white/60"><summary className="cursor-pointer">Advanced debug details</summary><pre className="mt-2 overflow-auto rounded-xl border border-white/10 bg-black/35 p-2">{JSON.stringify(envHealth, null, 2)}</pre></details>
+          </div>
+        </GlassCard>
+      ) : null}
+
       <GlassCard
         label="Studio"
         title="Beginner video brief"
         description="Create clips, build from assets, or create an uploaded-media-first series."
         strong
       >
-        <div className="grid gap-5">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-5">          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {VIDEO_CREATION_PRESETS.map((preset) => (
               <button
                 key={preset.id}
@@ -812,8 +826,8 @@ export default function VideoCreationStudio({
                 <GlassButton variant="secondary" onClick={() => void enhancePrompt()} disabled={enhancing}>
                   {enhancing ? "Enhancing..." : "Enhance Prompt"}
                 </GlassButton>
-                <GlassButton variant="primary" onClick={() => void submitJob()} disabled={submitting}>
-                  {submitting ? "Creating..." : jobType === "series" ? "Create series" : "Create media job"}
+                <GlassButton variant="primary" onClick={() => void submitJob()} disabled={submitting || serviceUnavailable}>
+                  {serviceUnavailable ? "Service unavailable" : submitting ? "Creating..." : jobType === "series" ? "Create series" : "Create media job"}
                 </GlassButton>
               </div>
 
