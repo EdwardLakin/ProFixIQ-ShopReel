@@ -14,15 +14,15 @@ type SidebarItem = {
 const PRIMARY_ITEMS: SidebarItem[] = [
   { label: "Home", compactLabel: "HM", href: "/shopreel", icon: "⌂" },
   { label: "Create", compactLabel: "CR", href: "/shopreel/create", icon: "✦" },
-  { label: "Projects", compactLabel: "PR", href: "/shopreel/generations", icon: "▣" },
-  { label: "Library", compactLabel: "LB", href: "/shopreel/library", icon: "◫" },
-  { label: "Calendar", compactLabel: "CA", href: "/shopreel/calendar", icon: "◷" },
+  { label: "Generations", compactLabel: "GN", href: "/shopreel/generations", icon: "▣" },
+  { label: "Render Queue", compactLabel: "RQ", href: "/shopreel/render-queue", icon: "◌" },
+  { label: "Content Library", compactLabel: "LB", href: "/shopreel/library", icon: "◫" },
+  { label: "Publish / Export", compactLabel: "PX", href: "/shopreel/exports", icon: "⇩" },
   { label: "Settings", compactLabel: "ST", href: "/shopreel/settings", icon: "⚙" },
 ];
 
 const SECONDARY_ITEMS: SidebarItem[] = [
-  { label: "Processing", compactLabel: "PS", href: "/shopreel/render-jobs", icon: "◌" },
-  { label: "Downloads", compactLabel: "DL", href: "/shopreel/exports", icon: "⇩" },
+  { label: "Video Studio (Advanced)", compactLabel: "VS", href: "/shopreel/video-creation/advanced", icon: "◍" },
   { label: "Ideas", compactLabel: "ID", href: "/shopreel/ideas", icon: "◈" },
   { label: "Editor", compactLabel: "ED", href: "/shopreel/editor", icon: "✎" },
   { label: "Billing", compactLabel: "BL", href: "/shopreel/billing", icon: "◍" },

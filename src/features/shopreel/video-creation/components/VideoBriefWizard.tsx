@@ -186,7 +186,7 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
       if (runError) {
         throw new Error(`Video job was created but could not be started: ${runError}`);
       }
-      router.refresh();
+      router.push(`/shopreel/video-creation/jobs/${jobId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create video job.");
     } finally {
@@ -441,7 +441,7 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
             <div className="space-y-3">
               {jobs.slice(0, 8).map((job) => {
                 const canRun = job.status === "queued" || job.status === "failed";
-                const canSync = job.provider === "openai" && job.job_type === "video" && job.status === "processing";
+                const canSync = job.job_type === "video" && job.status === "processing";
 
                 return (
                   <div key={job.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
@@ -476,6 +476,9 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
                           Open preview
                         </a>
                       ) : null}
+                      <Link href={`/shopreel/video-creation/jobs/${job.id}`} className="text-xs text-cyan-200 underline">
+                        View details
+                      </Link>
                     </div>
                   </div>
                 );

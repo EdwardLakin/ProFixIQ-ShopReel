@@ -13,3 +13,11 @@ export function getOpenAIApiKey() {
 export function getGeneratedMediaBucket() {
   return requireEnv("SHOPREEL_GENERATED_MEDIA_BUCKET");
 }
+
+export function getRailwayVideoBaseUrl() {
+  return requireEnv("SHOPREEL_RAILWAY_VIDEO_BASE_URL");
+}
+
+export function getRailwayVideoApiKey() {
+  return requireEnv("SHOPREEL_RAILWAY_VIDEO_API_KEY");
+}
