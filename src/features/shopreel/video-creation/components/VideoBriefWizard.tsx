@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
@@ -27,7 +28,8 @@ type MediaJob = Database["public"]["Tables"]["shopreel_media_generation_jobs"]["
 type CreateJobResponse = {
   ok?: boolean;
   error?: string;
-  job?: { id?: string };
+  job?: MediaJob;
+  jobs?: MediaJob[];
   mediaJob?: { id?: string };
   id?: string;
 };
@@ -78,6 +80,8 @@ function buildTitle(prompt: string) {
 }
 
 export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[] }) {
+  const router = useRouter();
+  const [jobs, setJobs] = useState<MediaJob[]>(recentJobs);
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState<VideoCreationStyle>("realistic");
   const [durationSeconds, setDurationSeconds] = useState<number>(20);
@@ -91,6 +95,11 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
   const [syncingJobId, setSyncingJobId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshingJobs, setRefreshingJobs] = useState(false);
+
+  useEffect(() => {
+    setJobs(recentJobs);
+  }, [recentJobs]);
 
   const visualMode = useMemo(() => styleToVisualMode(style), [style]);
 
@@ -160,13 +169,24 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
         throw new Error(json.error ?? "Failed to create video job.");
       }
 
-      const jobId = json.job?.id ?? json.mediaJob?.id ?? json.id ?? null;
-      setMessage(jobId ? "Video job created. Starting generation…" : "Video job created.");
+      const createdJob = json.job ?? null;
+      if (createdJob?.id) {
+        setJobs((current) => [createdJob, ...current.filter((job) => job.id !== createdJob.id)]);
+      }
+
+      const jobId = createdJob?.id ?? json.mediaJob?.id ?? json.id ?? null;
+      if (!jobId) {
+        throw new Error("Video job was created but response did not include a job id.");
+      }
+
+      setMessage("Video job created and started. It may take a moment to appear as processing.");
       window.localStorage.removeItem("shopreel:createPrefill");
 
-      if (jobId) {
-        await runJob(jobId);
+      const runError = await runJob(jobId);
+      if (runError) {
+        throw new Error(`Video job was created but could not be started: ${runError}`);
       }
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create video job.");
     } finally {
@@ -174,7 +194,7 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
     }
   }
 
-  async function runJob(jobId: string) {
+  async function runJob(jobId: string): Promise<string | null> {
     try {
       setRunningJobId(jobId);
       setError(null);
@@ -182,17 +202,42 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
       const res = await fetch(`/api/shopreel/video-creation/jobs/${jobId}/run`, {
         method: "POST",
       });
-      const json = (await res.json()) as { ok?: boolean; error?: string };
+      const json = (await res.json()) as { ok?: boolean; error?: string; job?: MediaJob };
 
       if (!res.ok || !json.ok) {
         throw new Error(json.error ?? "Failed to start video generation.");
       }
 
-      setMessage("Video generation started. Check recent jobs below and sync when it is ready.");
+      if (json.job?.id) {
+        setJobs((current) => current.map((job) => (job.id === json.job?.id ? { ...job, ...json.job } : job)));
+      } else {
+        setJobs((current) =>
+          current.map((job) => (job.id === jobId ? { ...job, status: "processing", started_at: new Date().toISOString() } : job))
+        );
+      }
+      setMessage("Video job created and started. It may take a moment to appear as processing.");
+      return null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start video generation.");
+      return err instanceof Error ? err.message : "Failed to start video generation.";
     } finally {
       setRunningJobId(null);
+    }
+  }
+
+  async function refreshJobs() {
+    try {
+      setRefreshingJobs(true);
+      const res = await fetch("/api/shopreel/video-creation/jobs?limit=24", { method: "GET" });
+      const json = (await res.json()) as CreateJobResponse;
+      if (!res.ok || !json.ok || !json.jobs) {
+        throw new Error(json.error ?? "Failed to refresh recent jobs.");
+      }
+      setJobs(json.jobs);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to refresh recent jobs.");
+    } finally {
+      setRefreshingJobs(false);
     }
   }
 
@@ -385,11 +430,16 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
         </GlassCard>
 
         <GlassCard label="Recent jobs" title="Video generation queue">
-          {recentJobs.length === 0 ? (
+          <div className="mb-3 flex justify-end">
+            <GlassButton variant="ghost" onClick={() => void refreshJobs()} disabled={refreshingJobs}>
+              {refreshingJobs ? "Refreshing…" : "Refresh"}
+            </GlassButton>
+          </div>
+          {jobs.length === 0 ? (
             <p className="text-sm leading-6 text-white/60">No video jobs yet. Create your first one from the brief.</p>
           ) : (
             <div className="space-y-3">
-              {recentJobs.slice(0, 8).map((job) => {
+              {jobs.slice(0, 8).map((job) => {
                 const canRun = job.status === "queued" || job.status === "failed";
                 const canSync = job.provider === "openai" && job.job_type === "video" && job.status === "processing";
 
@@ -408,7 +458,11 @@ export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       {canRun ? (
-                        <GlassButton variant="ghost" onClick={() => void runJob(job.id)} disabled={runningJobId === job.id}>
+                        <GlassButton
+                          variant="ghost"
+                          onClick={() => void runJob(job.id).then((runError) => runError && setError(runError))}
+                          disabled={runningJobId === job.id}
+                        >
                           {runningJobId === job.id ? "Starting…" : "Start"}
                         </GlassButton>
                       ) : null}
