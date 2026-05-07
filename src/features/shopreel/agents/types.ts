@@ -26,3 +26,27 @@ export type ShopReelAgentTaskApprovalEvent = {
   created_by: string | null;
   created_at: string;
 };
+
+export type ShopReelAgentExecutionType = "story_generation" | "render_preparation" | "publish_preparation" | "analytics_snapshot";
+export type ShopReelAgentExecutionStatus = "pending" | "prepared" | "blocked" | "canceled" | "failed";
+
+export type ShopReelAgentExecution = {
+  id: string;
+  shop_id: string;
+  task_id: string;
+  run_id: string | null;
+  campaign_id: string | null;
+  execution_type: ShopReelAgentExecutionType;
+  status: ShopReelAgentExecutionStatus;
+  generation_id: string | null;
+  render_job_id: string | null;
+  publication_id: string | null;
+  input_snapshot: Json;
+  output: Json;
+  trace: Json;
+  error_message: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};

@@ -86,6 +86,7 @@ export default function CampaignDetailClient({
   const [campaignBrain, setCampaignBrain] = useState({ campaignObjective: "", targetAudience: "", channelPriorities: "", contentPillars: "" });
   const [agentRuns, setAgentRuns] = useState<Array<{ id: string; agent_type: string; status: string; confidence: number | null; requires_approval: boolean; updated_at: string }>>([]);
   const [runTasks, setRunTasks] = useState<Record<string, Array<{ id: string; status: string; title: string; details: string | null; confidence: number | null; requires_approval: boolean }>>>({});
+  const [taskExecutions, setTaskExecutions] = useState<Record<string, { id: string; status: string; execution_type: string; generation_id: string | null; render_job_id: string | null; publication_id: string | null }>>({});
 
   const nextAction = useMemo(() => getNextAction(progress), [progress]);
 
@@ -100,12 +101,18 @@ export default function CampaignDetailClient({
       if (brainJson.campaignBrain) setCampaignBrain({ campaignObjective: brainJson.campaignBrain.campaign_objective ?? "", targetAudience: brainJson.campaignBrain.target_audience ?? "", channelPriorities: (brainJson.campaignBrain.channel_priorities ?? []).join("\n"), contentPillars: (brainJson.campaignBrain.content_pillars ?? []).join("\n") });
       const runs = runsJson.runs ?? [];
       setAgentRuns(runs);
-      const taskEntries = await Promise.all(runs.slice(0, 6).map(async (run) => {
-        const runRes = await fetch(`/api/shopreel/agents/runs/${run.id}`, { cache: "no-store" });
-        const runJson = (await runRes.json().catch(() => ({}))) as { tasks?: Array<{ id: string; status: string; title: string; details: string | null; confidence: number | null; requires_approval: boolean }> };
-        return [run.id, runJson.tasks ?? []] as const;
-      }));
+      const [taskEntries, executionsRes] = await Promise.all([
+        Promise.all(runs.slice(0, 6).map(async (run) => {
+          const runRes = await fetch(`/api/shopreel/agents/runs/${run.id}`, { cache: "no-store" });
+          const runJson = (await runRes.json().catch(() => ({}))) as { tasks?: Array<{ id: string; status: string; title: string; details: string | null; confidence: number | null; requires_approval: boolean }> };
+          return [run.id, runJson.tasks ?? []] as const;
+        })),
+        fetch(`/api/shopreel/executions?campaignId=${campaign.id}`, { cache: "no-store" }),
+      ]);
       setRunTasks(Object.fromEntries(taskEntries));
+      const executionsJson = (await executionsRes.json().catch(() => ({}))) as { executions?: Array<{ id: string; task_id: string; status: string; execution_type: string; generation_id: string | null; render_job_id: string | null; publication_id: string | null }> };
+      const byTask = Object.fromEntries((executionsJson.executions ?? []).map((execution) => [execution.task_id, execution]));
+      setTaskExecutions(byTask);
     })();
   }, [campaign.id]);
 
@@ -123,6 +130,22 @@ export default function CampaignDetailClient({
       setRunTasks((prev) => Object.fromEntries(Object.entries(prev).map(([runId, tasks]) => [runId, tasks.map((task) => task.id === taskId ? { ...task, status: json.task!.status } : task)])));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Task transition failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
+  async function prepareExecution(taskId: string) {
+    try {
+      setBusy(`execute-${taskId}`);
+      setError(null);
+      const res = await fetch(`/api/shopreel/agents/tasks/${taskId}/execute`, { method: "POST", headers: { "Content-Type": "application/json" } });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; execution?: { id: string; status: string; execution_type: string; generation_id: string | null; render_job_id: string | null; publication_id: string | null } };
+      if (!res.ok || json?.ok === false || !json.execution) throw new Error(json?.error ?? "Failed to prepare execution");
+      setTaskExecutions((prev) => ({ ...prev, [taskId]: json.execution! }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Execution preparation failed");
     } finally {
       setBusy(null);
     }
@@ -206,16 +229,19 @@ export default function CampaignDetailClient({
           <GlassButton variant="secondary" onClick={() => runAction("plan", `/api/shopreel/agents/plan`)}>{busy === "plan" ? "Generating…" : "Generate planning draft"}</GlassButton>
           <span className="text-xs text-white/60">Read-only plans. Approval required before any execution.</span>
         </div>
+        <div className="mt-2 text-xs text-amber-200/90">Execution preparation creates internal orchestration records only. No render jobs or social publishing are automatically executed.</div>
         <div className="mt-3 grid gap-2">
           {agentRuns.length === 0 ? <div className="text-sm text-white/60">No planning runs yet.</div> : agentRuns.slice(0, 6).map((run) => (
             <div key={run.id} className="rounded-xl border border-white/10 bg-black/25 p-3 text-sm text-white/80">
               <div className="font-medium text-white">{run.agent_type}</div>
               <div>Status: {run.status} · Confidence: {run.confidence ?? "n/a"}</div>
               <div>Requires approval: {run.requires_approval ? "Yes" : "No"}</div>
-              <div className="mt-2 text-xs text-white/60">Approval records intent only. Execution is not enabled yet.</div>
+              <div className="mt-2 text-xs text-white/60">Approval records intent only. Execution remains human-controlled.</div>
               <div className="mt-3 grid gap-2">
                 {(runTasks[run.id] ?? []).map((task) => {
                   const proposed = task.status === "proposed";
+                  const approved = task.status === "approved";
+                  const execution = taskExecutions[task.id];
                   return (
                     <div key={task.id} className="rounded-lg border border-white/10 px-3 py-2">
                       <div className="font-medium text-white">{task.title}</div>
@@ -226,6 +252,13 @@ export default function CampaignDetailClient({
                         <GlassButton variant="ghost" disabled={!proposed || busy === `reject-${task.id}`} onClick={() => void transitionTask(task.id, "reject")}>Reject</GlassButton>
                         <GlassButton variant="ghost" disabled={!proposed || busy === `cancel-${task.id}`} onClick={() => void transitionTask(task.id, "cancel")}>Cancel</GlassButton>
                       </div>
+                      {execution ? (
+                        <div className="mt-2 rounded-lg border border-amber-400/30 bg-amber-500/10 p-2 text-xs text-amber-100">
+                          <div className="font-medium">Execution prepared · {execution.status}</div>
+                          <div>Type: {execution.execution_type}</div>
+                          <div>Generation: {execution.generation_id ?? "none"} · Render: {execution.render_job_id ?? "none"} · Publication: {execution.publication_id ?? "none"}</div>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
