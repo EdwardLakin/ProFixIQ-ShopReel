@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { createRenderJob } from "@/features/shopreel/render/createRenderJob";
 import type { StoryDraft } from "@/features/shopreel/story-builder/types";
 import { STORY_GENERATION_QUEUED_STATUS } from "@/features/shopreel/lib/contracts/lifecycle";
+import type { Json } from "@/types/supabase";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -10,7 +11,7 @@ function asRecord(value: unknown): UnknownRecord {
   return value as UnknownRecord;
 }
 
-export async function startRenderForGeneration(input: { shopId: string; generationId: string }) {
+export async function startRenderForGeneration(input: { shopId: string; generationId: string; handoff?: { preflight?: { status?: string; score?: number; blockers?: Array<{ message: string }>; warnings?: Array<{ message: string }> }; publishIntent?: { targetPlatforms?: string[]; title?: string; caption?: string; cta?: string; variantId?: string; variantName?: string; sceneCount?: number; durationSeconds?: number; editorSessionId?: string } } }) {
   const supabase = createAdminClient();
 
   const { data: generation, error } = await supabase
@@ -56,19 +57,29 @@ export async function startRenderForGeneration(input: { shopId: string; generati
       caption: draft.caption ?? null,
       cta: draft.cta ?? null,
       scenes: draft.scenes,
+      handoff: input.handoff ?? null,
     },
   });
+
+  const nextMetadata = {
+        ...metadata,
+        rerender_requested_at: new Date().toISOString(),
+        rerender_job_id: renderJob.id,
+        preflight: input.handoff?.preflight ?? metadata.preflight ?? null,
+        publishIntent: input.handoff?.publishIntent ?? metadata.publishIntent ?? null,
+        activeVariantName: input.handoff?.publishIntent?.variantName ?? metadata.activeVariantName ?? null,
+        sceneCount: input.handoff?.publishIntent?.sceneCount ?? draft.scenes.length,
+        duration_seconds: input.handoff?.publishIntent?.durationSeconds ?? metadata.duration_seconds ?? null,
+        editorSessionId: input.handoff?.publishIntent?.editorSessionId ?? metadata.editorSessionId ?? null,
+        publishSource: "render",
+      };
 
   await supabase
     .from("shopreel_story_generations")
     .update({
       render_job_id: renderJob.id,
       status: STORY_GENERATION_QUEUED_STATUS,
-      generation_metadata: {
-        ...metadata,
-        rerender_requested_at: new Date().toISOString(),
-        rerender_job_id: renderJob.id,
-      },
+      generation_metadata: nextMetadata as unknown as Json,
       updated_at: new Date().toISOString(),
     })
     .eq("id", generation.id)

@@ -4,6 +4,52 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { requireShopId } from "@/features/shopreel/server/requireShopId";
 import { mapExportPackage } from "@/features/shopreel/export/exportPackage";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import { ShopReelActionRail, ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
-const TYPES=["Video exports","Caption packs","Thumbnail assets","Blog drafts","Campaign bundles"];
-export default async function ShopReelDownloadsPage(){const shopId=await requireShopId();const supabase=createAdminClient();const {data}=await supabase.from("shopreel_export_packages").select("*").eq("shop_id",shopId).order("created_at",{ascending:false}).limit(100);const items=(data??[]).map(mapExportPackage);return <GlassShell title="Downloads" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Downloads" subtitle="Export-ready server packages appear here after processing. For manual social posts, you can copy or download a package immediately from Review." actions={[{label:"Create content",href:"/shopreel/create",primary:true},{label:"Open processing",href:"/shopreel/render-jobs"}]}/><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="Package types"><div className="grid gap-2 sm:grid-cols-2">{TYPES.map((t)=><div key={t} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{t}</div>)}</div></ShopReelSurface><ShopReelSurface title="Export packages">{items.length===0?<ShopReelEmptyState title="No downloads yet" description="Process a draft to create your first server export package. Manual social post packages are available immediately on Review."/>:<div className="grid gap-2">{items.map((pkg)=><div key={pkg.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/80">Package {pkg.id.slice(0,8)} · {pkg.status}</div>)}</div>}</ShopReelSurface></div><ShopReelActionRail title="Export package includes" items={["Primary video file(s)","Caption text and hashtag set","Thumbnail assets","Channel checklist and bundle notes"]}/></div></div></GlassShell>}
+import { ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+import { computePublishReadiness } from "@/features/shopreel/publish/lifecycle";
+
+export default async function ShopReelDownloadsPage() {
+  const shopId = await requireShopId();
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("shopreel_export_packages").select("*").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(100);
+  const items = (data ?? []).map(mapExportPackage);
+
+  const groups = {
+    readyToPackage: items.filter((pkg) => pkg.status === "draft" && pkg.mp4Path),
+    needsReview: items.filter((pkg) => pkg.status === "draft" && !pkg.mp4Path),
+    draft: items.filter((pkg) => pkg.status === "ready"),
+    exported: items.filter((pkg) => pkg.status === "exported" || pkg.status === "posted"),
+  };
+
+  const renderList = (list: typeof items) => list.length === 0 ? <ShopReelEmptyState title="No packages" description="Completed renders with real output can be converted into publish packages." /> : <div className="grid gap-2">{list.map((pkg) => {
+    const readiness = computePublishReadiness({
+      videoUrl: pkg.mp4Path,
+      thumbnailUrl: pkg.thumbnailPath,
+      captionText: pkg.captionText,
+      title: undefined,
+      description: undefined,
+      hashtags: pkg.hashtags,
+      targets: pkg.platformOutputs.map((output) => ({ platformId: output.platformId, label: output.platformId })),
+    });
+    return <article key={pkg.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/80">
+      <div className="flex items-center justify-between"><p className="font-medium text-white">Package {pkg.id.slice(0, 8)}</p><p className="text-xs text-white/60">{pkg.status}</p></div>
+      <p className="mt-1 text-xs text-white/65">Readiness: {readiness.status} · blockers {readiness.blockerCount} · warnings {readiness.warningCount}</p>
+      <p className="mt-1 text-xs text-white/65">Video: {pkg.mp4Path ? "available" : "missing"} · Thumbnail: {pkg.thumbnailPath ? "available" : "missing"} · Caption: {pkg.captionText ? "available" : "missing"}</p>
+      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+        <Link href={`/shopreel/exports?packageId=${pkg.id}`} className="text-cyan-200">Open package</Link>
+        {pkg.captionText ? <button type="button" className="text-violet-200">Copy caption</button> : null}
+        {pkg.hashtags.length ? <button type="button" className="text-violet-200">Copy hashtags</button> : null}
+        {pkg.mp4Path ? <a className="text-emerald-200" href={pkg.mp4Path} target="_blank">Download video</a> : null}
+      </div>
+    </article>;
+  })}</div>;
+
+  return <GlassShell title="Publish / Export" hidePageIntro>
+    <div className="space-y-4">
+      <ShopReelPageHero title="Publish workspace" subtitle="Package completed render outputs with deterministic readiness before export." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Open render queue", href: "/shopreel/render-queue" }]} />
+      <ShopReelSurface title="Ready to package">{renderList(groups.readyToPackage)}</ShopReelSurface>
+      <ShopReelSurface title="Needs review">{renderList(groups.needsReview)}</ShopReelSurface>
+      <ShopReelSurface title="Draft packages">{renderList(groups.draft)}</ShopReelSurface>
+      <ShopReelSurface title="Exported packages">{renderList(groups.exported)}</ShopReelSurface>
+    </div>
+  </GlassShell>;
+}
