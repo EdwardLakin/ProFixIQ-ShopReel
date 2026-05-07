@@ -85,6 +85,7 @@ export default function CampaignDetailClient({
   const [error, setError] = useState<string | null>(null);
   const [campaignBrain, setCampaignBrain] = useState({ campaignObjective: "", targetAudience: "", channelPriorities: "", contentPillars: "" });
   const [agentRuns, setAgentRuns] = useState<Array<{ id: string; agent_type: string; status: string; confidence: number | null; requires_approval: boolean; updated_at: string }>>([]);
+  const [runTasks, setRunTasks] = useState<Record<string, Array<{ id: string; status: string; title: string; details: string | null; confidence: number | null; requires_approval: boolean }>>>({});
 
   const nextAction = useMemo(() => getNextAction(progress), [progress]);
 
@@ -97,9 +98,35 @@ export default function CampaignDetailClient({
       const brainJson = (await brainRes.json().catch(() => ({}))) as { campaignBrain?: { campaign_objective?: string | null; target_audience?: string | null; channel_priorities?: string[]; content_pillars?: string[] } | null };
       const runsJson = (await runsRes.json().catch(() => ({}))) as { runs?: Array<{ id: string; agent_type: string; status: string; confidence: number | null; requires_approval: boolean; updated_at: string }> };
       if (brainJson.campaignBrain) setCampaignBrain({ campaignObjective: brainJson.campaignBrain.campaign_objective ?? "", targetAudience: brainJson.campaignBrain.target_audience ?? "", channelPriorities: (brainJson.campaignBrain.channel_priorities ?? []).join("\n"), contentPillars: (brainJson.campaignBrain.content_pillars ?? []).join("\n") });
-      setAgentRuns(runsJson.runs ?? []);
+      const runs = runsJson.runs ?? [];
+      setAgentRuns(runs);
+      const taskEntries = await Promise.all(runs.slice(0, 6).map(async (run) => {
+        const runRes = await fetch(`/api/shopreel/agents/runs/${run.id}`, { cache: "no-store" });
+        const runJson = (await runRes.json().catch(() => ({}))) as { tasks?: Array<{ id: string; status: string; title: string; details: string | null; confidence: number | null; requires_approval: boolean }> };
+        return [run.id, runJson.tasks ?? []] as const;
+      }));
+      setRunTasks(Object.fromEntries(taskEntries));
     })();
   }, [campaign.id]);
+
+  async function transitionTask(taskId: string, action: "approve" | "reject" | "cancel") {
+    try {
+      setBusy(`${action}-${taskId}`);
+      setError(null);
+      const res = await fetch(`/api/shopreel/agents/tasks/${taskId}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ metadata: { source: "campaign_detail_ai_planning" } }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; task?: { status: string } };
+      if (!res.ok || json?.ok === false || !json.task) throw new Error(json?.error ?? `Failed to ${action} task`);
+      setRunTasks((prev) => Object.fromEntries(Object.entries(prev).map(([runId, tasks]) => [runId, tasks.map((task) => task.id === taskId ? { ...task, status: json.task!.status } : task)])));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Task transition failed");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function runAction(key: string, url: string) {
     try {
@@ -185,6 +212,24 @@ export default function CampaignDetailClient({
               <div className="font-medium text-white">{run.agent_type}</div>
               <div>Status: {run.status} · Confidence: {run.confidence ?? "n/a"}</div>
               <div>Requires approval: {run.requires_approval ? "Yes" : "No"}</div>
+              <div className="mt-2 text-xs text-white/60">Approval records intent only. Execution is not enabled yet.</div>
+              <div className="mt-3 grid gap-2">
+                {(runTasks[run.id] ?? []).map((task) => {
+                  const proposed = task.status === "proposed";
+                  return (
+                    <div key={task.id} className="rounded-lg border border-white/10 px-3 py-2">
+                      <div className="font-medium text-white">{task.title}</div>
+                      <div className="text-xs text-white/70">Status: {task.status} · Confidence: {task.confidence ?? "n/a"} · Requires approval: {task.requires_approval ? "Yes" : "No"}</div>
+                      {task.details ? <div className="mt-1 text-xs text-white/60">{task.details}</div> : null}
+                      <div className="mt-2 flex gap-2">
+                        <GlassButton variant="secondary" disabled={!proposed || busy === `approve-${task.id}`} onClick={() => void transitionTask(task.id, "approve")}>Approve</GlassButton>
+                        <GlassButton variant="ghost" disabled={!proposed || busy === `reject-${task.id}`} onClick={() => void transitionTask(task.id, "reject")}>Reject</GlassButton>
+                        <GlassButton variant="ghost" disabled={!proposed || busy === `cancel-${task.id}`} onClick={() => void transitionTask(task.id, "cancel")}>Cancel</GlassButton>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>
