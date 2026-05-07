@@ -20,6 +20,7 @@ import {
   type TimelineSelection,
 } from "@/features/shopreel/editor/lib/timeline";
 import { buildSubtitleBlocks } from "@/features/shopreel/subtitles/buildSubtitleBlocks";
+import { buildEditorSessionFromDraft, type EditorScene, type EditorVariant } from "@/features/shopreel/editor/lib/session";
 
 type Props = {
   generationId: string;
@@ -168,6 +169,8 @@ export default function EditorClient(props: Props) {
     [draft.voiceoverText, draft.scriptText, totalMs],
   );
 
+  const editorSession = useMemo(() => buildEditorSessionFromDraft(props.generationId, draft), [props.generationId, draft]);
+
   const scriptPanelValue = useMemo(() => buildScriptPanelValue(draft), [draft]);
 
   function updateDraft(updater: (prev: StoryDraft) => StoryDraft) {
@@ -179,6 +182,18 @@ export default function EditorClient(props: Props) {
       ...prev,
       scenes: prev.scenes.map((scene) => (scene.id === sceneId ? updater(scene) : scene)),
     }));
+  }
+
+  function duplicateScene(sceneId: string) {
+    updateDraft((prev) => {
+      const index = prev.scenes.findIndex((scene) => scene.id === sceneId);
+      if (index < 0) return prev;
+      const source = prev.scenes[index];
+      const clone: StoryScene = { ...source, id: `${source.id}-copy-${Date.now()}`, media: [...source.media] };
+      const nextScenes = [...prev.scenes];
+      nextScenes.splice(index + 1, 0, clone);
+      return { ...prev, scenes: nextScenes };
+    });
   }
 
   function moveScene(sceneId: string, direction: -1 | 1) {
@@ -212,6 +227,23 @@ export default function EditorClient(props: Props) {
     updateScene(sceneId, (scene) => ({
       ...scene,
       durationSeconds: Math.max(1, Number(scene.durationSeconds ?? 3) + deltaSeconds),
+    }));
+  }
+
+
+
+  const [variants, setVariants] = useState<EditorVariant[]>([]);
+
+  function createVariant(platform: EditorVariant["targetPlatform"]) {
+    const labelMap: Record<EditorVariant["targetPlatform"], string> = { instagram: "Instagram variant", tiktok: "TikTok variant", youtube_shorts: "YouTube Shorts variant", ad: "Ad variant" };
+    const targetDuration = platform === "youtube_shorts" ? 60 : platform === "ad" ? 20 : 30;
+    setVariants((prev) => [...prev, { id: `variant-${Date.now()}-${platform}`, name: labelMap[platform], targetPlatform: platform, targetDuration, captionDensity: "medium", ctaStyle: platform === "ad" ? "direct" : "soft", framingPreference: "9:16", sourceVariantId: null }]);
+  }
+
+  function attachPlaceholderMedia(scene: EditorScene) {
+    updateScene(scene.id, (current) => ({
+      ...current,
+      media: [...current.media, { url: null, metadata: { source: "reference" } }],
     }));
   }
 
@@ -340,7 +372,7 @@ export default function EditorClient(props: Props) {
                         {index + 1}. {scene.title}
                       </div>
                       <div className={cx("text-xs", glassTheme.text.secondary)}>
-                        {scene.role} • {scene.durationSeconds ?? 0}s
+                        {scene.role} • {scene.durationSeconds ?? 0}s • {scene.media.length} assets
                       </div>
                     </div>
 
@@ -525,9 +557,9 @@ export default function EditorClient(props: Props) {
         </GlassCard>
 
         <GlassCard
-          label="Timeline"
-          title="Sequence lanes"
-          description="Visual timeline with ruler, drag reorder, and resize handles."
+          label="Sequence"
+          title="Sequence preview"
+          description="Not frame-accurate timeline. Scene order, duration blocks, transitions, media and caption presence."
           strong
         >
           <div className="space-y-3 overflow-x-auto pb-1">
@@ -700,8 +732,28 @@ export default function EditorClient(props: Props) {
                 }))
               }
             />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <GlassButton variant="ghost" onClick={() => duplicateScene(selectedScene.id)}>Duplicate scene</GlassButton>
+              <GlassButton variant="ghost" onClick={() => attachPlaceholderMedia(editorSession.scenes.find((item) => item.id === selectedScene.id) ?? editorSession.scenes[0])}>Attach media</GlassButton>
+            </div>
+            <div className={cx("rounded-2xl border p-3 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft, glassTheme.text.secondary)}>
+              Regeneration actions: hook and visual regenerate are currently <strong>local deterministic</strong>. AI-assisted regen is unavailable until a backend endpoint is wired.
+            </div>
           </>
         ) : null}
+
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-white">Variants</div>
+          <div className="flex flex-wrap gap-2">
+            <GlassButton variant="ghost" onClick={() => createVariant("instagram")}>Create variant</GlassButton>
+            <GlassButton variant="ghost" onClick={() => createVariant("tiktok")}>TikTok variant</GlassButton>
+            <GlassButton variant="ghost" onClick={() => createVariant("youtube_shorts")}>YouTube Shorts variant</GlassButton>
+            <GlassButton variant="ghost" onClick={() => createVariant("ad")}>Ad variant</GlassButton>
+          </div>
+          {variants.map((variant) => (
+            <div key={variant.id} className={cx("rounded-xl border p-2 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft)}>{variant.name} • {variant.targetPlatform} • {variant.targetDuration}s • {variant.captionDensity} caption density</div>
+          ))}
+        </div>
       </GlassCard>
     </div>
   );
