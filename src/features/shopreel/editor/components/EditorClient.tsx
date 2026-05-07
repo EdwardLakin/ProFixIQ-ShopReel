@@ -21,6 +21,7 @@ import {
 } from "@/features/shopreel/editor/lib/timeline";
 import { buildSubtitleBlocks } from "@/features/shopreel/subtitles/buildSubtitleBlocks";
 import { buildEditorSessionFromDraft, type EditorScene, type EditorVariant } from "@/features/shopreel/editor/lib/session";
+import { buildPersistedEditorSession, reorderScenesByPersistedOrder, type PersistedEditorSession } from "@/features/shopreel/editor/lib/sessionPersistence";
 
 type Props = {
   generationId: string;
@@ -28,6 +29,7 @@ type Props = {
   initialStatus: string;
   initialRenderUrl: string | null;
   mediaItems: MediaBinItem[];
+  persistedEditorSession: PersistedEditorSession | null;
 };
 
 function cloneDraft(draft: StoryDraft): StoryDraft {
@@ -140,7 +142,10 @@ function IconAction(props: {
 export default function EditorClient(props: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [draft, setDraft] = useState<StoryDraft>(() => syncDraftText(cloneDraft(props.initialDraft)));
+  const [draft, setDraft] = useState<StoryDraft>(() => {
+    const ordered = reorderScenesByPersistedOrder(cloneDraft(props.initialDraft).scenes, props.persistedEditorSession);
+    return syncDraftText({ ...cloneDraft(props.initialDraft), scenes: ordered });
+  });
   const [selection, setSelection] = useState<TimelineSelection>(() => {
     const sceneId = searchParams.get("scene");
     return sceneId ? { type: "scene", id: sceneId } : null;
@@ -172,6 +177,27 @@ export default function EditorClient(props: Props) {
   const editorSession = useMemo(() => buildEditorSessionFromDraft(props.generationId, draft), [props.generationId, draft]);
 
   const scriptPanelValue = useMemo(() => buildScriptPanelValue(draft), [draft]);
+  const sequenceSummary = useMemo(() => {
+    const sceneCount = draft.scenes.length;
+    const ctaIndex = draft.scenes.findIndex((scene) => scene.role === "cta");
+    const captionDensity = sceneCount === 0 ? 0 : draft.scenes.filter((scene) => !!scene.overlayText?.trim()).length / sceneCount;
+    const introMiddleOutro = {
+      intro: Math.ceil(sceneCount * 0.2),
+      middle: Math.max(0, Math.floor(sceneCount * 0.6)),
+      outro: Math.max(1, sceneCount - Math.ceil(sceneCount * 0.2) - Math.floor(sceneCount * 0.6)),
+    };
+    return { sceneCount, ctaIndex, captionDensity, introMiddleOutro };
+  }, [draft.scenes]);
+
+  const readiness = useMemo(() => {
+    const blockers: string[] = [];
+    if (draft.scenes.length === 0) blockers.push("Empty storyboard");
+    if (!draft.cta?.trim()) blockers.push("Missing CTA");
+    if (draft.scenes.some((scene) => (scene.media ?? []).length === 0)) blockers.push("Some scenes have no assets");
+    if (totalSeconds > 90) blockers.push("Runtime exceeds 90s max profile");
+    return { blockers, score: Math.max(0, 100 - blockers.length * 20) };
+  }, [draft, totalSeconds]);
+
 
   function updateDraft(updater: (prev: StoryDraft) => StoryDraft) {
     setDraft((prev) => syncDraftText(updater(prev)));
@@ -232,7 +258,7 @@ export default function EditorClient(props: Props) {
 
 
 
-  const [variants, setVariants] = useState<EditorVariant[]>([]);
+  const [variants, setVariants] = useState<EditorVariant[]>(() => props.persistedEditorSession?.variants ?? []);
 
   function createVariant(platform: EditorVariant["targetPlatform"]) {
     const labelMap: Record<EditorVariant["targetPlatform"], string> = { instagram: "Instagram variant", tiktok: "TikTok variant", youtube_shorts: "YouTube Shorts variant", ad: "Ad variant" };
@@ -288,6 +314,12 @@ export default function EditorClient(props: Props) {
         throw new Error(json.error ?? "Failed to save draft");
       }
 
+      const persisted = buildPersistedEditorSession(draft, variants);
+      await fetch(`/api/shopreel/story-generations/${props.generationId}/editor-session`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ editorSession: persisted }),
+      });
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save draft");
@@ -476,7 +508,7 @@ export default function EditorClient(props: Props) {
               <div className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
                 Scene count
               </div>
-              <div className="mt-2 text-base font-medium text-white">{draft.scenes.length}</div>
+              <div className="mt-2 text-base font-medium text-white">{sequenceSummary.sceneCount}</div>
             </div>
 
             <div
@@ -490,7 +522,7 @@ export default function EditorClient(props: Props) {
                 Status
               </div>
               <div className="mt-2 text-base font-medium text-white">
-                {props.initialStatus}
+                {props.initialStatus} • readiness {readiness.score}
               </div>
             </div>
           </div>
@@ -743,6 +775,12 @@ export default function EditorClient(props: Props) {
         ) : null}
 
         <div className="space-y-2">
+          <div className={cx("rounded-xl border p-2 text-xs", glassTheme.border.softer, glassTheme.glass.panelSoft)}>
+            Sequence summary: CTA scene {sequenceSummary.ctaIndex >= 0 ? sequenceSummary.ctaIndex + 1 : "missing"}, caption density {(sequenceSummary.captionDensity * 100).toFixed(0)}%.
+          </div>
+          <div className={cx("rounded-xl border p-2 text-xs", readiness.blockers.length ? glassTheme.border.copper : glassTheme.border.softer, glassTheme.glass.panelSoft)}>
+            Creative readiness blockers: {readiness.blockers.length ? readiness.blockers.join("; ") : "none"}.
+          </div>
           <div className="text-sm font-medium text-white">Variants</div>
           <div className="flex flex-wrap gap-2">
             <GlassButton variant="ghost" onClick={() => createVariant("instagram")}>Create variant</GlassButton>

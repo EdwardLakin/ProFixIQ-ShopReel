@@ -5,6 +5,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import EditorClient from "@/features/shopreel/editor/components/EditorClient";
 import type { MediaBinItem } from "@/features/shopreel/editor/components/MediaBin";
 import type { StoryDraft } from "@/features/shopreel/story-builder/types";
+import type { PersistedEditorSession } from "@/features/shopreel/editor/lib/sessionPersistence";
 import { loadGenerationForEditor } from "@/features/shopreel/content/server/loadGenerationForEditor";
 
 function objectRecord(value: unknown): Record<string, unknown> {
@@ -36,6 +37,7 @@ export default async function ShopReelVideoEditorPage(
 
   const metadata = objectRecord(generation.generation_metadata ?? {});
   const renderUrl = typeof metadata.render_url === "string" ? metadata.render_url : null;
+  const persistedEditorSession = (metadata.editor_session ?? null) as PersistedEditorSession | null;
 
   const mediaItems: MediaBinItem[] = [];
   const storyDraft = draft as StoryDraft;
@@ -75,6 +77,7 @@ export default async function ShopReelVideoEditorPage(
         initialStatus={generation.status}
         initialRenderUrl={renderUrl}
         mediaItems={mediaItems}
+        persistedEditorSession={persistedEditorSession}
       />
     </GlassShell>
   );
