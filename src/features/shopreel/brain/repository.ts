@@ -1,0 +1,15 @@
+import { createAdminClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/supabase";
+import type { BrandBrainProfile, CampaignBrain } from "./types";
+
+type DbClient = { from: (table: string) => { select: (q: string) => any; upsert: (payload: unknown, options?: { onConflict?: string }) => any } };
+
+function db(): DbClient { return createAdminClient() as unknown as DbClient; }
+
+export type BrandBrainUpsertInput = { shopId: string; userId: string | null; positioning?: string | null; brandVoiceRules?: string | null; prohibitedClaims?: string[]; preferredCtas?: string[]; visualStyleNotes?: string | null; audienceNotes?: string | null; metadata?: Json; };
+export type CampaignBrainUpsertInput = { shopId: string; campaignId: string; userId: string | null; campaignObjective?: string | null; targetAudience?: string | null; channelPriorities?: string[]; contentPillars?: string[]; experimentHypotheses?: string[]; successSignals?: string[]; metadata?: Json; };
+
+export async function getBrandBrainProfile(shopId: string): Promise<BrandBrainProfile | null> { const { data, error } = await db().from("shopreel_brand_brain_profiles").select("*").eq("shop_id", shopId).maybeSingle(); if (error) throw new Error(error.message); return (data as BrandBrainProfile | null) ?? null; }
+export async function upsertBrandBrainProfile(input: BrandBrainUpsertInput): Promise<BrandBrainProfile> { const { data, error } = await db().from("shopreel_brand_brain_profiles").upsert({ shop_id: input.shopId, updated_by: input.userId, created_by: input.userId, positioning: input.positioning ?? null, brand_voice_rules: input.brandVoiceRules ?? null, prohibited_claims: input.prohibitedClaims ?? [], preferred_ctas: input.preferredCtas ?? [], visual_style_notes: input.visualStyleNotes ?? null, audience_notes: input.audienceNotes ?? null, metadata: input.metadata ?? {} }, { onConflict: "shop_id" }).select("*").single(); if (error) throw new Error(error.message); return data as BrandBrainProfile; }
+export async function getCampaignBrain(shopId: string, campaignId: string): Promise<CampaignBrain | null> { const { data, error } = await db().from("shopreel_campaign_brains").select("*").eq("shop_id", shopId).eq("campaign_id", campaignId).maybeSingle(); if (error) throw new Error(error.message); return (data as CampaignBrain | null) ?? null; }
+export async function upsertCampaignBrain(input: CampaignBrainUpsertInput): Promise<CampaignBrain> { const { data, error } = await db().from("shopreel_campaign_brains").upsert({ shop_id: input.shopId, campaign_id: input.campaignId, updated_by: input.userId, created_by: input.userId, campaign_objective: input.campaignObjective ?? null, target_audience: input.targetAudience ?? null, channel_priorities: input.channelPriorities ?? [], content_pillars: input.contentPillars ?? [], experiment_hypotheses: input.experimentHypotheses ?? [], success_signals: input.successSignals ?? [], metadata: input.metadata ?? {} }, { onConflict: "campaign_id" }).select("*").single(); if (error) throw new Error(error.message); return data as CampaignBrain; }
