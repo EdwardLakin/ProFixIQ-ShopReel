@@ -62,6 +62,28 @@ export type CommandState = {
 };
 
 export type AppliedCommand = { nextState: CommandState; warnings: string[]; command: EditorCommand };
+export function summarizeCommand(type: EditorCommandType): string {
+  const map: Record<EditorCommandType, string> = {
+    "scene.reorder": "Scene reordered",
+    "scene.insert": "Scene inserted",
+    "scene.duplicate": "Scene duplicated",
+    "scene.remove": "Scene removed",
+    "scene.split": "Scene split",
+    "scene.merge": "Scenes merged",
+    "scene.update": "Scene updated",
+    "asset.attach": "Asset attached",
+    "asset.detach": "Asset detached",
+    "asset.replace": "Asset replaced",
+    "asset.move": "Asset moved",
+    "variant.create": "Variant created",
+    "variant.rename": "Variant renamed",
+    "variant.setActive": "Variant switched",
+    "caption.update": "Caption updated",
+    "audio.update": "Audio updated",
+    "transition.update": "Transition updated",
+  };
+  return map[type];
+}
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
