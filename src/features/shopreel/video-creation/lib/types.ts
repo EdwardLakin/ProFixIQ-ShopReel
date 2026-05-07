@@ -63,6 +63,7 @@ export type VideoCreationFormInput = {
   voiceoverScript?: string;
   musicDirection?: VideoMusicDirection;
   customMusicDirection?: string;
+  storyboardSummary?: string;
 };
 
 export const VIDEO_CREATION_JOB_TYPES: Array<{
