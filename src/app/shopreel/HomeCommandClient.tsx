@@ -17,6 +17,7 @@ import {
   deriveCinematicOrchestrationState,
   deriveEcosystemState,
   deriveProductionConsciousnessState,
+  derivePersistentWorldState,
   readWorkspaceMemory,
   writeWorkspaceMemory,
   type WorkspaceMemory,
@@ -124,6 +125,15 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         minutesSinceUpdate,
         interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
         intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
+      }),
+      worldState: derivePersistentWorldState({
+        ecosystem: ecosystemState,
+        cinematic: cinematicState,
+        continuityThreadCount: continuityThreads.length,
+        blockerCount,
+        readyTaskCount,
+        minutesSinceUpdate,
+        interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
       }),
       operationalGraph,
       lastExecutionPlan: executionPlan,
@@ -244,6 +254,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div>Last route: {context?.lastRoute ?? "none"}</div>
           <div>Creative pattern: {context?.creativeContinuity?.structurePattern ?? "hook-proof-cta"}</div>
           <div>Caption density bias: {context?.creativeContinuity?.captionDensity ?? "light"}</div>
+          <div>World aging: {context?.worldState?.operationalAging ?? 0} · momentum: {context?.worldState?.momentumAcceleration ?? 0}</div>
+          <div>Autonomous stabilization: {context?.worldState?.autonomousStabilizationActions?.[0]?.replaceAll("_", " ") ?? "none"}</div>
         </div>
         {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Pending tasks</div>

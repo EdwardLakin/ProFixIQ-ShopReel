@@ -29,7 +29,41 @@ export type WorkspaceMemory = {
   productionConsciousness?: ProductionConsciousnessState;
   operationalGraph?: OperationalGraph;
   lastExecutionPlan?: CommandExecutionPlan;
+  worldState?: PersistentWorldState;
   updatedAt: string;
+};
+export type PersistentWorldState = {
+  operationalAging: number;
+  continuityDecay: number;
+  momentumAcceleration: number;
+  renderCooling: number;
+  exportUrgencyGrowth: number;
+  recoveryHalfLife: number;
+  dormantRestorationWarmth: number;
+  escalationWindow: number;
+  autonomousStabilizationActions: string[];
+  topologyDepth: {
+    nearFieldFocus: number;
+    midFieldContinuity: number;
+    farFieldTopology: number;
+    deepLineageBackground: number;
+  };
+  cinematography: {
+    pacing: number;
+    urgency: number;
+    calm: number;
+    friction: number;
+    readiness: number;
+    saturation: number;
+    compression: number;
+  };
+  memoryEvolution: {
+    continuityScars: number;
+    operationalResidue: number;
+    recurringInstability: number;
+    recoverySuccessMemory: number;
+    bottleneckMemory: number;
+  };
 };
 export type TemporalRailState = "active_now" | "recent" | "stale" | "archived" | "interrupted" | "resumed" | "escalating";
 
@@ -526,5 +560,63 @@ export function deriveProductionConsciousnessState(input: {
       `Attention economy prioritizes blocker pressure ${attentionEconomy.blockerPressure} versus stale telemetry decay ${attentionEconomy.staleTelemetryDecay}.`,
       `Creative coherence awareness is deterministic inverse drift from continuity risk ${creativeDrift.continuityCoherenceRisk} and rhythm drift ${creativeDrift.rhythmDisconnection}.`,
     ],
+  };
+}
+
+export function derivePersistentWorldState(input: {
+  ecosystem: EcosystemState;
+  cinematic: CinematicOrchestrationState;
+  continuityThreadCount: number;
+  blockerCount: number;
+  readyTaskCount: number;
+  minutesSinceUpdate: number;
+  interrupted: boolean;
+}): PersistentWorldState {
+  const operationalAging = clampScore((input.minutesSinceUpdate / 18) + (input.blockerCount * 8));
+  const continuityDecay = clampScore((input.minutesSinceUpdate / 20) + (input.interrupted ? 26 : 0) - (input.continuityThreadCount * 6));
+  const momentumAcceleration = clampScore((input.readyTaskCount * 24) + (input.cinematic.restorationMomentum * 0.3) - (input.blockerCount * 10));
+  const renderCooling = clampScore(72 - (input.blockerCount * 18) - (input.ecosystem.renderUrgency * 0.2));
+  const exportUrgencyGrowth = clampScore((input.ecosystem.exportReadinessPressure * 0.72) + (input.readyTaskCount * 12));
+  const recoveryHalfLife = clampScore((input.cinematic.continuityWarmth * 0.65) + (input.continuityThreadCount * 8) - (input.minutesSinceUpdate / 28));
+  const dormantRestorationWarmth = clampScore((input.continuityThreadCount * 12) + (input.interrupted ? 22 : 10));
+  const escalationWindow = clampScore((input.blockerCount * 26) + (input.ecosystem.interruptionPressure * 0.45));
+
+  return {
+    operationalAging,
+    continuityDecay,
+    momentumAcceleration,
+    renderCooling,
+    exportUrgencyGrowth,
+    recoveryHalfLife,
+    dormantRestorationWarmth,
+    escalationWindow,
+    autonomousStabilizationActions: [
+      input.ecosystem.telemetryDensityPressure > 58 ? "compress_stale_telemetry" : "retain_expanded_telemetry",
+      input.blockerCount > 0 ? "elevate_unstable_branches" : "cool_dormant_zones",
+      input.interrupted ? "restore_interrupted_workflow" : "preserve_continuity_anchors",
+      input.readyTaskCount > 0 ? "expand_export_pressure_region" : "maintain_publication_staging_region",
+    ],
+    topologyDepth: {
+      nearFieldFocus: clampScore((input.blockerCount * 22) + (input.ecosystem.renderUrgency * 0.38)),
+      midFieldContinuity: clampScore((input.continuityThreadCount * 18) + (input.cinematic.continuityWarmth * 0.3)),
+      farFieldTopology: clampScore((input.ecosystem.operationalSaturation * 0.62) + (operationalAging * 0.22)),
+      deepLineageBackground: clampScore((dormantRestorationWarmth * 0.55) + (recoveryHalfLife * 0.3)),
+    },
+    cinematography: {
+      pacing: clampScore(input.cinematic.atmosphericDensity * 0.72),
+      urgency: clampScore((input.blockerCount * 28) + (input.ecosystem.renderUrgency * 0.4)),
+      calm: clampScore((renderCooling * 0.5) + (input.cinematic.continuityWarmth * 0.3)),
+      friction: clampScore((input.blockerCount * 30) + (input.ecosystem.focusEntropy * 0.42)),
+      readiness: clampScore((input.readyTaskCount * 22) + (input.ecosystem.exportReadinessPressure * 0.45)),
+      saturation: input.ecosystem.operationalSaturation,
+      compression: clampScore(input.ecosystem.telemetryDensityPressure * 0.8),
+    },
+    memoryEvolution: {
+      continuityScars: clampScore((input.interrupted ? 54 : 18) + (input.blockerCount * 12)),
+      operationalResidue: clampScore((operationalAging * 0.58) + (input.ecosystem.focusEntropy * 0.3)),
+      recurringInstability: clampScore((input.blockerCount * 25) + (continuityDecay * 0.35)),
+      recoverySuccessMemory: clampScore((recoveryHalfLife * 0.55) + (input.readyTaskCount * 16)),
+      bottleneckMemory: clampScore((input.blockerCount * 30) + (input.ecosystem.renderUrgency * 0.3)),
+    },
   };
 }

@@ -46,6 +46,37 @@ export type OperationalGraph = {
   readinessPropagation: number;
   recoveryCandidates: string[];
   explainability: string[];
+  worldZones: WorldZone[];
+  gravityFields: ProductionGravityField[];
+};
+
+export type WorldZoneKind =
+  | "active_operational_zone"
+  | "dormant_zone"
+  | "unstable_branch"
+  | "escalating_chain"
+  | "continuity_fracture"
+  | "momentum_corridor"
+  | "recovery_region"
+  | "export_pressure_region"
+  | "publication_staging_region";
+
+export type WorldZone = {
+  id: string;
+  label: string;
+  kind: WorldZoneKind;
+  nodeIds: string[];
+  density: number;
+  momentum: number;
+  stability: number;
+};
+
+export type ProductionGravityField = {
+  id: string;
+  label: string;
+  trigger: string;
+  intensity: number;
+  focusNodeIds: string[];
 };
 
 export type CommandExecutionPlan = {
@@ -123,6 +154,17 @@ export function buildOperationalGraph(input: {
       "Lineage chain maps campaign → generation → variant → storyboard → scene → render → export → publication.",
       "Recovery lineage is anchored by continuity threads.",
     ],
+    worldZones: [
+      { id: "active-core", label: "Active operational core", kind: "active_operational_zone", nodeIds: [campaignId, generationId, `${generationId}-storyboard`], density: score(55 + input.pendingTaskCount * 7), momentum: score(60 + input.readyTaskCount * 10), stability: score(62 - input.blockerCount * 8) },
+      { id: "unstable-render", label: "Render instability valley", kind: input.blockerCount > 0 ? "unstable_branch" : "momentum_corridor", nodeIds: [`${generationId}-scene`, `${generationId}-render`], density: score(45 + input.blockerCount * 15), momentum: score(42 + input.readyTaskCount * 8), stability: score(78 - input.blockerCount * 20) },
+      { id: "recovery-ridge", label: "Recovery ridge", kind: input.interrupted ? "recovery_region" : "dormant_zone", nodeIds: [`${generationId}-continuity`, campaignId], density: score(35 + input.continuityThreadCount * 10), momentum: score(38 + (input.interrupted ? 26 : 6)), stability: score(84 - (input.interrupted ? 30 : 0)) },
+      { id: "export-front", label: "Export pressure front", kind: input.readyTaskCount > 0 ? "export_pressure_region" : "publication_staging_region", nodeIds: [`${generationId}-export`, `${generationId}-publication`], density: score(40 + input.readyTaskCount * 16), momentum: score(48 + input.readyTaskCount * 14), stability: score(66 - input.blockerCount * 8) },
+    ],
+    gravityFields: [
+      { id: "render-instability", label: "Render instability attraction", trigger: "blocked render chain", intensity: score(input.blockerCount * 28 + (input.interrupted ? 18 : 0)), focusNodeIds: [`${generationId}-render`, `${generationId}-scene`] },
+      { id: "continuity-fracture", label: "Continuity fracture density", trigger: "interrupted continuity", intensity: score((input.interrupted ? 55 : 15) + input.continuityThreadCount * 9), focusNodeIds: [`${generationId}-continuity`, `${generationId}-publication`] },
+      { id: "publication-momentum", label: "Publication momentum pull", trigger: "export/package readiness", intensity: score(input.readyTaskCount * 24 - input.blockerCount * 10), focusNodeIds: [`${generationId}-export`, `${generationId}-publication`] },
+    ],
   };
 }
 
@@ -146,6 +188,9 @@ export function planCommandExecution(command: string, graph: OperationalGraph, f
   if (/continue latest storyboard/.test(q)) return { intent, focusNodeId: storyboardNode?.id, targetRoute: routeFrom(storyboardNode), mode: "continue_latest_storyboard", explainability: ["Intent mapped to storyboard lineage." ] };
   if (/weak scene pacing/.test(q)) return { intent, focusNodeId: graph.nodes.find((n) => n.type === "scene")?.id, targetRoute: "/shopreel/editor", mode: "show_weak_scene_pacing", explainability: ["Intent mapped to scene + voiceover dependency."] };
   if (/blocked render chain/.test(q)) return { intent, focusNodeId: renderNode?.id, targetRoute: "/shopreel/render-queue", mode: "open_blocked_render_chain", explainability: ["Intent mapped to render dependency chain."] };
+  if (/stabilize unstable branch|isolate fractured lineage/.test(q)) return { intent, focusNodeId: renderNode?.id, targetRoute: "/shopreel/render-queue", mode: "open_render_blockers", explainability: ["Structural command mapped to unstable branch stabilization."] };
+  if (/restore export momentum|focus render pressure region/.test(q)) return { intent, focusNodeId: exportNode?.id, targetRoute: "/shopreel/exports", mode: "focus_export_ready_assets", explainability: ["Structural command mapped to export momentum field."] };
+  if (/reopen continuity corridor|elevate dormant recovery path|continue production frontier/.test(q)) return { intent, focusNodeId: continuityNode?.id, targetRoute: routeFrom(continuityNode), mode: "open_continuity_critical_paths", explainability: ["Structural command mapped to continuity terrain corridors."] };
 
   return { intent, targetRoute: fallbackRoute, mode: "default", explainability: ["Used default deterministic command plan."] };
 }
