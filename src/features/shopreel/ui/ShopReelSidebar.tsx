@@ -79,8 +79,8 @@ export default function ShopReelSidebar(props: {
       <aside
         className={cx(
           "fixed inset-y-3 left-3 z-50 rounded-3xl border border-white/15 bg-[radial-gradient(circle_at_20%_0%,rgba(120,86,255,0.28),transparent_46%),linear-gradient(180deg,rgba(7,10,28,0.94),rgba(5,8,20,0.98))] shadow-[0_30px_80px_rgba(4,6,20,0.6)] transition-all duration-300",
-          collapsed ? "w-[5.2rem]" : "w-64",
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          collapsed ? "w-[4.6rem] lg:w-[4.8rem]" : "w-[15.5rem] xl:w-64",
+          mobileOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0",
         )}
       >
         <div className="flex h-full flex-col px-3 py-4">

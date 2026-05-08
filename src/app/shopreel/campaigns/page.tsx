@@ -21,7 +21,7 @@ export default async function ShopReelCampaignsPage() {
         backLabel="Back to ShopReel"
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
           <ShopReelSurface title="Campaign command center" description="Generate, monitor, and advance campaigns without leaving the lifecycle workflow.">
             <div className="grid gap-2 text-sm text-white/80 md:grid-cols-3">

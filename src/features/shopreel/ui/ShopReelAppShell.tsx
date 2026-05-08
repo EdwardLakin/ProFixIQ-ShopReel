@@ -11,15 +11,24 @@ const SIDEBAR_STORAGE_KEY = "shopreel-sidebar-collapsed";
 export default function ShopReelAppShell(props: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px) and (max-width: 1279px)");
+    const apply = () => setIsTablet(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
-      setCollapsed(stored === "1");
+      setCollapsed(stored === "1" || isTablet);
     } catch {
-      setCollapsed(false);
+      setCollapsed(isTablet);
     }
-  }, []);
+  }, [isTablet]);
 
   useEffect(() => {
     try {
@@ -52,11 +61,11 @@ export default function ShopReelAppShell(props: { children: ReactNode }) {
         </button>
       </div>
 
-      <div className={cx("relative z-20 flex justify-end px-4 pt-3", collapsed ? "lg:pl-20" : "lg:pl-60")}>
+      <div className={cx("relative z-20 flex justify-end px-4 pt-3", collapsed ? "lg:pl-24" : "xl:pl-64 lg:pl-60")}>
         <ShopReelNotificationsBell />
       </div>
 
-      <main className={cx("relative transition-[padding] duration-300", collapsed ? "lg:pl-20" : "lg:pl-60")}>{props.children}</main>
+      <main className={cx("relative transition-[padding] duration-300", collapsed ? "lg:pl-24" : "xl:pl-64 lg:pl-60")}>{props.children}</main>
     </div>
   );
 }

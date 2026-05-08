@@ -216,7 +216,7 @@ export default async function ShopReelPublishCenterPage() {
     >
       <ShopReelNav />
 
-      <section className="grid gap-5 xl:grid-cols-2">
+      <section className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
         <GlassCard
           label="Needs Review"
           title="Review-ready backlog"
@@ -240,14 +240,14 @@ export default async function ShopReelPublishCenterPage() {
                 <div
                   key={generation.id}
                   className={cx(
-                    "rounded-2xl border p-4",
+                    "rounded-2xl border p-3.5 md:p-4",
                     glassTheme.border.softer,
                     glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      <div className={cx("text-sm md:text-base font-medium", glassTheme.text.primary)}>
                         {generationTitle(generation)}
                       </div>
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
@@ -257,7 +257,7 @@ export default async function ShopReelPublishCenterPage() {
                     <GlassBadge tone="default">{generation.status}</GlassBadge>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Link href={`/shopreel/generations/${generation.id}`}>
                       <GlassButton variant="ghost">Open draft/review</GlassButton>
                     </Link>
@@ -266,7 +266,7 @@ export default async function ShopReelPublishCenterPage() {
                     </Link>
                   </div>
 
-                  <div className="mt-3">
+                  <div className="mt-2.5">
                     <ReviewApprovalActions generationId={generation.id} compact />
                   </div>
                 </div>
@@ -298,14 +298,14 @@ export default async function ShopReelPublishCenterPage() {
                 <div
                   key={generation.id}
                   className={cx(
-                    "rounded-2xl border p-4",
+                    "rounded-2xl border p-3.5 md:p-4",
                     glassTheme.border.copper,
                     glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      <div className={cx("text-sm md:text-base font-medium", glassTheme.text.primary)}>
                         {generationTitle(generation)}
                       </div>
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
@@ -350,14 +350,14 @@ export default async function ShopReelPublishCenterPage() {
                 <div
                   key={generation.id}
                   className={cx(
-                    "rounded-2xl border p-4",
+                    "rounded-2xl border p-3.5 md:p-4",
                     glassTheme.border.copper,
                     glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      <div className={cx("text-sm md:text-base font-medium", glassTheme.text.primary)}>
                         {generationTitle(generation)}
                       </div>
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
@@ -367,7 +367,7 @@ export default async function ShopReelPublishCenterPage() {
                     <GlassBadge tone="copper">ready</GlassBadge>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Link href={`/shopreel/generations/${generation.id}`}>
                       <GlassButton variant="ghost">Open review</GlassButton>
                     </Link>
@@ -410,13 +410,13 @@ export default async function ShopReelPublishCenterPage() {
                 <div
                   key={generation.id}
                   className={cx(
-                    "rounded-2xl border p-4",
+                    "rounded-2xl border p-3.5 md:p-4",
                     glassTheme.border.copper,
                     glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="space-y-1">
-                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    <div className={cx("text-sm md:text-base font-medium", glassTheme.text.primary)}>
                       {generationTitle(generation)}
                     </div>
                     <div className={cx("text-sm", glassTheme.text.secondary)}>
@@ -428,7 +428,7 @@ export default async function ShopReelPublishCenterPage() {
                       </div>
                     ) : null}
                   </div>
-                  <div className="mt-3">
+                  <div className="mt-2.5">
                     <ReviewApprovalActions generationId={generation.id} compact />
                   </div>
                 </div>
@@ -460,20 +460,20 @@ export default async function ShopReelPublishCenterPage() {
                 <div
                   key={generation.id}
                   className={cx(
-                    "rounded-2xl border p-4",
+                    "rounded-2xl border p-3.5 md:p-4",
                     glassTheme.border.copper,
                     glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="space-y-1">
-                    <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                    <div className={cx("text-sm md:text-base font-medium", glassTheme.text.primary)}>
                       {generationTitle(generation)}
                     </div>
                     <div className={cx("text-sm", glassTheme.text.secondary)}>
                       Blocked: {reason.label}
                     </div>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <Link href={`/shopreel/generations/${generation.id}`}>
                       <GlassButton variant="ghost">Open review</GlassButton>
                     </Link>
@@ -507,14 +507,14 @@ export default async function ShopReelPublishCenterPage() {
                 <div
                   key={publication.id}
                   className={cx(
-                    "rounded-2xl border p-4",
+                    "rounded-2xl border p-3.5 md:p-4",
                     glassTheme.border.softer,
                     glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      <div className={cx("text-sm md:text-base font-medium", glassTheme.text.primary)}>
                         {publicationTitle(publication)}
                       </div>
                       <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
@@ -524,7 +524,7 @@ export default async function ShopReelPublishCenterPage() {
                     <GlassBadge tone="default">{publication.status}</GlassBadge>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {publication.content_piece_id ? (
                       <Link href={`/shopreel/content/${publication.content_piece_id}`}>
                         <GlassButton variant="ghost">Open scheduled item</GlassButton>
@@ -563,14 +563,14 @@ export default async function ShopReelPublishCenterPage() {
                 <div
                   key={publication.id}
                   className={cx(
-                    "rounded-2xl border p-4",
+                    "rounded-2xl border p-3.5 md:p-4",
                     glassTheme.border.softer,
                     glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      <div className={cx("text-sm md:text-base font-medium", glassTheme.text.primary)}>
                         {publicationTitle(publication)}
                       </div>
                       <div className={cx("text-sm", glassTheme.text.secondary)}>
@@ -579,7 +579,7 @@ export default async function ShopReelPublishCenterPage() {
                     </div>
                     <GlassBadge tone="copper">published</GlassBadge>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {publication.platform_post_url ? (
                       <a href={publication.platform_post_url} target="_blank" rel="noreferrer">
                         <GlassButton variant="ghost">View published output</GlassButton>
@@ -620,14 +620,14 @@ export default async function ShopReelPublishCenterPage() {
                 <div
                   key={publication.id}
                   className={cx(
-                    "rounded-2xl border p-4",
+                    "rounded-2xl border p-3.5 md:p-4",
                     glassTheme.border.copper,
                     glassTheme.glass.panelSoft,
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className={cx("text-base font-medium", glassTheme.text.primary)}>
+                      <div className={cx("text-sm md:text-base font-medium", glassTheme.text.primary)}>
                         {publicationTitle(publication)}
                       </div>
                       <div className={cx("mt-1 text-sm", glassTheme.text.secondary)}>
@@ -651,7 +651,7 @@ export default async function ShopReelPublishCenterPage() {
                     </GlassBadge>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {diagnostics.retryable ? <EnqueuePublicationButton publicationId={publication.id} /> : null}
                     <Link href={nextAction.href}>
                       <GlassButton variant="secondary">{nextAction.label}</GlassButton>
