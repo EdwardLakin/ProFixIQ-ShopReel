@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
+import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
 
 type SidebarItem = {
   label: string;
@@ -80,7 +81,7 @@ export default function ShopReelSidebar(props: {
         className={cx(
           "fixed inset-y-3 left-3 z-50 rounded-3xl border border-white/15 bg-[radial-gradient(circle_at_20%_0%,rgba(120,86,255,0.28),transparent_46%),linear-gradient(180deg,rgba(7,10,28,0.94),rgba(5,8,20,0.98))] shadow-[0_30px_80px_rgba(4,6,20,0.6)] transition-all duration-300",
           collapsed ? "w-[4.6rem] lg:w-[4.8rem]" : "w-[15.5rem] xl:w-64",
-          mobileOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         <div className="flex h-full flex-col px-3 py-4">
@@ -98,6 +99,7 @@ export default function ShopReelSidebar(props: {
 
           <nav className="space-y-4 overflow-y-auto pb-4">
             {renderItems(PRIMARY_ITEMS, true)}
+            <ShopReelNotificationsBell collapsed={collapsed} onClick={mobileOpen ? onCloseMobile : undefined} />
             {!collapsed ? <div className="px-2 text-[11px] uppercase tracking-[0.2em] text-white/45">Advanced / Operator</div> : null}
             {renderItems(SECONDARY_ITEMS, true)}
           </nav>
