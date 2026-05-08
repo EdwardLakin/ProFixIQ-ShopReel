@@ -1,58 +1,52 @@
+export function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
 export const glassTheme = {
-  bg: {
-    base: "bg-[#050816]",
-    overlay:
-      "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(37,99,235,0.10),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.10),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_22%,transparent_78%,rgba(255,255,255,0.03))] before:content-['']",
-    grid: "absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:18px_18px]",
+  page: "relative min-h-screen overflow-hidden text-white",
+
+  glass: {
+    panel:
+      "border border-slate-400/10 bg-white/[0.045] shadow-[0_18px_60px_rgba(0,0,0,.32)] backdrop-blur-2xl",
+    panelSoft:
+      "border border-slate-400/10 bg-white/[0.035] shadow-[0_12px_38px_rgba(0,0,0,.24)] backdrop-blur-xl",
+    panelStrong:
+      "border border-cyan-200/12 bg-white/[0.07] shadow-[0_22px_70px_rgba(0,0,0,.38)] backdrop-blur-2xl",
+    input:
+      "border border-slate-400/10 bg-black/24 shadow-inner backdrop-blur-xl",
+  },
+
+  border: {
+    softer: "border-slate-400/10",
+    soft: "border-cyan-200/12",
+    copper: "border-amber-300/28",
+    cyan: "border-cyan-300/28",
+    danger: "border-rose-300/28",
   },
 
   text: {
     primary: "text-white",
-    secondary: "text-white/72",
-    muted: "text-white/48",
-    copper: "text-sky-300/90",
-    copperSoft: "text-indigo-200/90",
+    secondary: "text-white/58",
+    muted: "text-white/42",
+    faint: "text-white/30",
+    copper: "text-amber-100",
+    copperSoft: "text-amber-200/72",
+    cyan: "text-cyan-100",
+    cyanSoft: "text-cyan-200/72",
+    danger: "text-rose-100",
   },
 
-  border: {
-    soft: "border-white/10",
-    softer: "border-white/8",
-    strong: "border-white/15",
-    copper: "border-sky-400/30",
-  },
-
-  glass: {
-    panel:
-      "bg-white/[0.045] backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.42)]",
-    panelStrong:
-      "bg-white/[0.06] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.52)]",
-    panelSoft:
-      "bg-white/[0.035] backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.34)]",
-    input:
-      "bg-white/[0.04] backdrop-blur-md border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
-  },
-
-  accent: {
-    copperBg: "bg-sky-400/12",
-    copperBgStrong: "bg-indigo-400/18",
-    copperLine: "bg-sky-400/40",
-    copperRing: "focus-visible:ring-sky-400/30",
-    copperBorder: "border-sky-400/35",
-  },
-
-  radius: {
-    xl: "rounded-3xl",
-    lg: "rounded-2xl",
-    md: "rounded-xl",
-  },
-
-  spacing: {
-    shell: "px-4 py-6 md:px-6 md:py-8 xl:px-8",
-    section: "space-y-6",
-    grid: "gap-4 md:gap-5 xl:gap-6",
-  },
+  surface:
+    "relative overflow-hidden rounded-[1.75rem] border border-slate-400/10 bg-white/[0.045] shadow-[0_18px_60px_rgba(0,0,0,.32)] backdrop-blur-2xl",
+  surfaceStrong:
+    "relative overflow-hidden rounded-[1.75rem] border border-cyan-200/12 bg-white/[0.07] shadow-[0_22px_70px_rgba(0,0,0,.38)] backdrop-blur-2xl",
+  mutedText: "text-white/58",
+  faintText: "text-white/42",
+  eyebrow:
+    "text-[10px] font-semibold uppercase tracking-[0.32em] text-cyan-200/62",
+  title: "font-semibold tracking-[-0.04em] text-white",
+  buttonPrimary:
+    "rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_44px_rgba(99,102,241,.36)] transition hover:-translate-y-0.5",
+  buttonSecondary:
+    "rounded-2xl border border-slate-400/10 bg-white/[0.055] px-4 py-2.5 text-sm font-semibold text-white/80 shadow-xl backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/[0.09]",
 } as const;
-
-export function cx(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
-}

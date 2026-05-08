@@ -239,3 +239,42 @@ a {
     animation: floatLightC 20s ease-in-out infinite;
   }
 }
+
+@keyframes shopreelOrbDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: .45; }
+  50% { transform: translate3d(4%, -3%, 0) scale(1.08); opacity: .72; }
+}
+
+.shopreel-orb {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(72px);
+  animation: shopreelOrbDrift 22s ease-in-out infinite;
+}
+
+.shopreel-orb-a {
+  top: -12rem;
+  left: 10%;
+  width: 34rem;
+  height: 34rem;
+  background: rgba(124, 58, 237, .26);
+}
+
+.shopreel-orb-b {
+  top: 8rem;
+  right: -8rem;
+  width: 30rem;
+  height: 30rem;
+  background: rgba(34, 211, 238, .16);
+  animation-delay: -7s;
+}
+
+.shopreel-orb-c {
+  bottom: -12rem;
+  left: 35%;
+  width: 32rem;
+  height: 32rem;
+  background: rgba(59, 130, 246, .14);
+  animation-delay: -13s;
+}

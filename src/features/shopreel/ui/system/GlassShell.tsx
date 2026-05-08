@@ -1,80 +1,69 @@
 import type { ReactNode } from "react";
-import { glassTheme, cx } from "./glassTheme";
+import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
 
-export default function GlassShell(props: {
+type GlassShellProps = {
   eyebrow?: string;
   title: string;
   subtitle?: string;
   actions?: ReactNode;
   children: ReactNode;
-  className?: string;
   hidePageIntro?: boolean;
-}) {
-  const { eyebrow, title, subtitle, actions, children, className, hidePageIntro = false } = props;
+  className?: string;
+};
 
+export default function GlassShell({
+  eyebrow = "ShopReel",
+  title,
+  subtitle,
+  actions,
+  children,
+  hidePageIntro = false,
+  className = "",
+}: GlassShellProps) {
   return (
-    <div
-      className={cx(
-        "relative min-h-screen overflow-hidden",
-        glassTheme.bg.base,
-        glassTheme.bg.overlay,
-      )}
-    >
-      <div className={glassTheme.bg.grid} />
-
-      <div className="shopreel-floating-light-a" />
-      <div className="shopreel-floating-light-b" />
-      <div className="shopreel-floating-light-c" />
-
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_20%,transparent_80%,rgba(255,255,255,0.02))]" />
-
-      <div className="relative mx-auto w-full max-w-[1380px]">
-        <div className={cx(glassTheme.spacing.shell, "space-y-4 md:space-y-5 lg:space-y-6 px-3 sm:px-4 md:px-5 lg:px-6 xl:px-7", className)}>
-          <header className="space-y-3">
-            {actions ? (
-              <div className="flex flex-wrap items-center justify-end gap-3">
-                <div className="flex flex-wrap items-center gap-3">{actions}</div>
-              </div>
-            ) : null}
-
-            {!hidePageIntro ? (
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div className="space-y-1.5">
-                  {eyebrow ? (
-                    <div
-                      className={cx(
-                        "text-[11px] font-medium uppercase tracking-[0.2em]",
-                        glassTheme.text.copper,
-                      )}
-                    >
-                      {eyebrow}
-                    </div>
-                  ) : null}
-
-                  <div className="space-y-2">
-                    <h1
-                      className={cx(
-                        "font-display text-2xl tracking-[0.01em] md:text-3xl font-semibold",
-                        glassTheme.text.primary,
-                      )}
-                    >
-                      {title}
-                    </h1>
-
-                    {subtitle ? (
-                      <p className={cx("max-w-3xl text-sm leading-5 md:text-[15px]", glassTheme.text.secondary)}>
-                        {subtitle}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </header>
-
-          {children}
-        </div>
+    <main className="relative min-h-screen overflow-hidden px-4 py-5 text-white sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="shopreel-orb shopreel-orb-a" />
+        <div className="shopreel-orb shopreel-orb-b" />
+        <div className="shopreel-orb shopreel-orb-c" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.12),transparent_28%),linear-gradient(180deg,rgba(5,8,18,0.55),rgba(2,4,12,0.92))]" />
+        <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:44px_44px]" />
       </div>
-    </div>
+
+      <div className={`relative z-10 mx-auto w-full max-w-[1540px] ${className}`}>
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="hidden rounded-full border border-slate-400/10 bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-white/55 shadow-2xl backdrop-blur md:block">
+            AI creative operating system
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {actions}
+            <ShopReelNotificationsBell />
+          </div>
+        </div>
+
+        {!hidePageIntro ? (
+          <section className="mb-6 overflow-hidden rounded-[2rem] border border-slate-400/10 bg-white/[0.055] p-5 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:p-7">
+            <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(139,92,246,.24),transparent_34%),radial-gradient(circle_at_95%_12%,rgba(34,211,238,.18),transparent_30%)]" />
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-200/75">
+              {eyebrow}
+            </p>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+                  {title}
+                </h1>
+                {subtitle ? (
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68 sm:text-base">
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <div className="pb-10">{children}</div>
+      </div>
+    </main>
   );
 }

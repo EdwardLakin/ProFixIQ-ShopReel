@@ -1,47 +1,48 @@
-import type { SelectHTMLAttributes } from "react";
-import { glassTheme, cx } from "./glassTheme";
+import type { SelectHTMLAttributes, ReactNode } from "react";
 
-export default function GlassSelect(
-  props: SelectHTMLAttributes<HTMLSelectElement> & {
-    label?: string;
-    hint?: string;
-    error?: string;
-    options: Array<{ value: string; label: string }>;
-  },
-) {
-  const { label, hint, error, className, id, options, ...rest } = props;
+type GlassSelectOption = {
+  value: string;
+  label: string;
+};
 
+type GlassSelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
+  label?: string;
+  hint?: string;
+  children?: ReactNode;
+  options?: GlassSelectOption[];
+};
+
+export default function GlassSelect({
+  label,
+  hint,
+  className = "",
+  children,
+  options,
+  ...props
+}: GlassSelectProps) {
   return (
     <label className="block space-y-2">
       {label ? (
-        <div className="flex items-center justify-between gap-3">
-          <span className={cx("text-sm font-medium", glassTheme.text.primary)}>
-            {label}
-          </span>
-          {hint ? <span className={cx("text-xs", glassTheme.text.muted)}>{hint}</span> : null}
-        </div>
+        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-white/46">
+          {label}
+        </span>
       ) : null}
-
       <select
-        id={id}
-        className={cx(
-          "w-full appearance-none rounded-2xl border px-4 py-3 text-sm outline-none transition",
-          glassTheme.text.primary,
-          glassTheme.glass.input,
-          glassTheme.border.softer,
-          "focus:border-[rgba(201,139,92,0.32)] focus:ring-2 focus:ring-[rgba(201,139,92,0.22)]",
+        className={[
+          "w-full rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-sm text-white shadow-inner outline-none backdrop-blur-xl transition",
+          "focus:border-cyan-300/38 focus:bg-white/[0.06] focus:ring-4 focus:ring-cyan-300/10",
           className,
-        )}
-        {...rest}
+        ].join(" ")}
+        {...props}
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value} className="bg-[#141414] text-[#f5eee7]">
+        {options?.map((option) => (
+          <option key={option.value} value={option.value} className="bg-[#050816] text-white">
             {option.label}
           </option>
         ))}
+        {children}
       </select>
-
-      {error ? <p className="text-xs text-[color:#d9a089]">{error}</p> : null}
+      {hint ? <span className="text-xs text-white/42">{hint}</span> : null}
     </label>
   );
 }

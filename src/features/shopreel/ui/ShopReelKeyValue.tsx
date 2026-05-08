@@ -1,18 +1,17 @@
-export default function ShopReelKeyValue(props: {
+type ShopReelKeyValueProps = {
   label: string;
   value: string | number | null | undefined;
-}) {
-  const display =
-    props.value === null || props.value === undefined || props.value === ""
-      ? "—"
-      : String(props.value);
+};
 
+export default function ShopReelKeyValue({ label, value }: ShopReelKeyValueProps) {
   return (
-    <div className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.022))] px-4 py-3 backdrop-blur-xl">
-      <div className="text-[11px] uppercase tracking-[0.24em] text-[#d6a17d]">
-        {props.label}
-      </div>
-      <div className="mt-2 break-words text-sm text-white/82">{display}</div>
+    <div className="rounded-2xl border border-white/10 bg-black/22 px-4 py-3 shadow-inner">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/38">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-semibold text-white/82">
+        {value ?? "—"}
+      </p>
     </div>
   );
 }

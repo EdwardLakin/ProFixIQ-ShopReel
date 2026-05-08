@@ -1,24 +1,36 @@
+"use client";
+
+import type { ButtonHTMLAttributes } from "react";
+
+type ToggleProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  checked?: boolean;
+};
+
 export default function Toggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean
-  onChange: (v: boolean) => void
-}) {
+  checked = false,
+  className = "",
+  type = "button",
+  ...props
+}: ToggleProps) {
   return (
     <button
-      onClick={() => onChange(!checked)}
-      className={`relative w-12 h-6 rounded-full transition ${
+      type={type}
+      aria-pressed={checked}
+      className={[
+        "relative h-7 w-12 rounded-full border transition duration-200",
         checked
-          ? "bg-[#c1663b]"
-          : "bg-white/10"
-      }`}
+          ? "border-cyan-300/35 bg-cyan-300/24 shadow-[0_0_24px_rgba(34,211,238,.18)]"
+          : "border-white/10 bg-white/[0.06]",
+        className,
+      ].join(" ")}
+      {...props}
     >
-      <div
-        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition ${
-          checked ? "translate-x-6" : ""
-        }`}
+      <span
+        className={[
+          "absolute top-1 h-5 w-5 rounded-full bg-white shadow-lg transition-transform duration-200",
+          checked ? "translate-x-5" : "translate-x-1",
+        ].join(" ")}
       />
     </button>
-  )
+  );
 }

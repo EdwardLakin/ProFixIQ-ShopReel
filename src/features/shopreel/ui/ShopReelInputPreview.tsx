@@ -1,20 +1,23 @@
-type Props = {
-  label: string;
+type ShopReelInputPreviewProps = {
+  title?: string;
   value?: string | null;
-  placeholder?: string;
+  emptyLabel?: string;
 };
 
 export default function ShopReelInputPreview({
-  label,
+  title = "Input",
   value,
-  placeholder = "Not set",
-}: Props) {
+  emptyLabel = "No input provided yet.",
+}: ShopReelInputPreviewProps) {
   return (
-    <div className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
-      <div className="text-[11px] uppercase tracking-[0.24em] text-white/42">
-        {label}
-      </div>
-      <div className="mt-2 text-sm text-white/80">{value?.trim() ? value : placeholder}</div>
+    <div className="relative overflow-hidden rounded-[1.45rem] border border-white/10 bg-black/24 p-4 shadow-[0_14px_42px_rgba(0,0,0,.24)] backdrop-blur-xl">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/20 to-transparent" />
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-200/60">
+        {title}
+      </p>
+      <p className="whitespace-pre-wrap text-sm leading-6 text-white/68">
+        {value && value.trim().length > 0 ? value : emptyLabel}
+      </p>
     </div>
   );
 }

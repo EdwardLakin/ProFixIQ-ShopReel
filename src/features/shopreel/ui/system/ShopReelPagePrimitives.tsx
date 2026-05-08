@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+import type { ReactNode } from "react";
 
 type HeroAction = {
   label: string;
@@ -7,49 +7,217 @@ type HeroAction = {
   primary?: boolean;
 };
 
-export function AIStatusPill(props: { label: string; tone?: "neutral" | "good" | "warn" }) {
-  const tone = props.tone ?? "neutral";
-  const toneClass = tone === "good" ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-100" : tone === "warn" ? "border-amber-300/30 bg-amber-400/15 text-amber-100" : "border-cyan-300/25 bg-cyan-400/10 text-cyan-100";
-  return <span className={cx("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium tracking-[0.12em] uppercase", toneClass)}><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />{props.label}</span>;
+export function ShopReelPageHero({
+  title,
+  subtitle,
+  eyebrow = "Command center",
+  actions = [],
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  eyebrow?: string;
+  actions?: HeroAction[];
+  children?: ReactNode;
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[2rem] border border-slate-400/10 bg-white/[0.06] p-5 shadow-[0_24px_80px_rgba(0,0,0,.38)] backdrop-blur-2xl sm:p-7">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_14%_0%,rgba(139,92,246,.26),transparent_32%),radial-gradient(circle_at_100%_0%,rgba(34,211,238,.18),transparent_34%)]" />
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-3xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-200/75">
+            {eyebrow}
+          </p>
+          <h1 className="text-3xl font-semibold tracking-[-0.045em] text-white sm:text-5xl">
+            {title}
+          </h1>
+          {subtitle ? <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68 sm:text-base">{subtitle}</p> : null}
+        </div>
+        {actions.length ? (
+          <div className="flex flex-wrap gap-2">
+            {actions.map((action) => (
+              <Link
+                key={`${action.href}-${action.label}`}
+                href={action.href}
+                className={
+                  action.primary
+                    ? "rounded-2xl bg-gradient-to-r from-violet-500 to-cyan-300 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_42px_rgba(99,102,241,.34)] transition hover:-translate-y-0.5"
+                    : "rounded-2xl border border-slate-400/10 bg-white/[0.055] px-4 py-2.5 text-sm font-semibold text-white/80 shadow-xl backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/[0.09]"
+                }
+              >
+                {action.label}
+              </Link>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {children ? <div className="mt-5">{children}</div> : null}
+    </section>
+  );
 }
 
-export function ShopReelPageHero(props: { title: string; subtitle: string; actions: HeroAction[]; }) {
+export function ShopReelSurface({
+  title,
+  description,
+  children,
+  actions,
+  className = "",
+}: {
+  title?: string;
+  description?: string;
+  children: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}) {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-violet-300/25 bg-[radial-gradient(circle_at_10%_0%,rgba(126,92,255,0.36),transparent_42%),radial-gradient(circle_at_96%_8%,rgba(53,194,255,0.28),transparent_40%),linear-gradient(160deg,rgba(6,10,26,0.96),rgba(7,11,25,0.88))] p-4 shadow-[0_24px_80px_rgba(10,12,28,0.5)] md:p-5">
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-      <AIStatusPill label="AI Orchestration Live" />
-      <h1 className="mt-2.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">{props.title}</h1>
-      <p className="mt-2 max-w-3xl text-sm text-white/75 md:text-base">{props.subtitle}</p>
-      <div className="mt-3.5 flex flex-wrap gap-2">
-        {props.actions.map((action) => (
-          <Link key={action.label} href={action.href} className={action.primary ? "rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_34px_rgba(83,87,255,0.45)]" : "rounded-xl border border-white/12 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.08]"}>
-            {action.label}
-          </Link>
-        ))}
+    <section className={`relative overflow-hidden rounded-[1.75rem] border border-slate-400/10 bg-white/[0.045] p-4 shadow-[0_18px_60px_rgba(0,0,0,.32)] backdrop-blur-2xl sm:p-5 ${className}`}>
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/18 to-transparent" />
+      {(title || description || actions) ? (
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            {title ? <h2 className="text-lg font-semibold tracking-[-0.025em] text-white">{title}</h2> : null}
+            {description ? <p className="mt-1 text-sm leading-6 text-white/58">{description}</p> : null}
+          </div>
+          {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
+        </div>
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
+export function ShopReelSectionHeader({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div>
+      {eyebrow ? (
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-cyan-200/70">
+          {eyebrow}
+        </p>
+      ) : null}
+      <h2 className="text-2xl font-semibold tracking-[-0.035em] text-white">{title}</h2>
+      {subtitle ? <p className="mt-2 max-w-2xl text-sm leading-6 text-white/58">{subtitle}</p> : null}
+    </div>
+  );
+}
+
+export function ShopReelActionRail({
+  title,
+  items,
+  children,
+}: {
+  title: string;
+  items?: string[];
+  children?: ReactNode;
+}) {
+  return (
+    <aside className="relative overflow-hidden rounded-[1.75rem] border border-slate-400/10 bg-white/[0.045] p-4 shadow-[0_18px_60px_rgba(0,0,0,.34)] backdrop-blur-2xl sm:p-5">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_90%_0%,rgba(34,211,238,.14),transparent_30%)]" />
+      <h3 className="text-base font-semibold tracking-[-0.02em] text-white">{title}</h3>
+      {items?.length ? (
+        <div className="mt-4 space-y-2">
+          {items.map((item) => (
+            <div key={item} className="rounded-2xl border border-slate-400/10 bg-black/20 px-3 py-2.5 text-sm text-white/68">
+              {item}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {children ? <div className="mt-4">{children}</div> : null}
+    </aside>
+  );
+}
+
+export function ShopReelEmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="rounded-[1.5rem] border border-dashed border-white/16 bg-black/20 p-5 text-white/72">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-400/10 bg-white/[0.06] text-lg">
+        ✦
+      </div>
+      <h3 className="text-base font-semibold text-white">{title}</h3>
+      {description ? <p className="mt-1 text-sm leading-6 text-white/56">{description}</p> : null}
+      {action ? <div className="mt-4">{action}</div> : null}
+    </div>
+  );
+}
+
+export function ShopReelMediaStage({
+  title = "Media stage",
+  description,
+  children,
+}: {
+  title?: string;
+  description?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <section className="relative min-h-[22rem] overflow-hidden rounded-[2rem] border border-slate-400/10 bg-[#02040c]/70 p-4 shadow-[0_24px_80px_rgba(0,0,0,.44)] backdrop-blur-2xl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_0%,rgba(124,58,237,.24),transparent_34%),radial-gradient(circle_at_86%_12%,rgba(34,211,238,.13),transparent_30%)]" />
+      <div className="relative z-10 flex h-full min-h-[20rem] flex-col">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-cyan-200/62">
+              Preview
+            </p>
+            <h2 className="mt-1 text-xl font-semibold tracking-[-0.035em] text-white">
+              {title}
+            </h2>
+            {description ? <p className="mt-1 text-sm leading-6 text-white/52">{description}</p> : null}
+          </div>
+          <div className="rounded-full border border-emerald-300/20 bg-emerald-300/[0.08] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
+            Live
+          </div>
+        </div>
+        <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-[1.35rem] border border-slate-400/10 bg-black/36">
+          <div className="absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.6)_1px,transparent_1px)] [background-size:32px_32px]" />
+          <div className="relative z-10 w-full">{children ?? <div className="p-8 text-center text-sm text-white/48">Media preview appears here.</div>}</div>
+        </div>
       </div>
     </section>
   );
 }
 
-export function ShopReelSurface(props: { title: string; description?: string; children: React.ReactNode; tier?: "primary" | "standard" | "quiet" }) {
-  const tier = props.tier ?? "standard";
-  return <section className={cx("group rounded-2xl border p-3.5 shadow-[0_16px_42px_rgba(6,8,22,0.34)] backdrop-blur-xl transition", tier === "primary" ? "border-violet-300/30 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03))]" : tier === "quiet" ? "border-white/8 bg-white/[0.02]" : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))]", "hover:border-white/20")}><h2 className="text-[15px] font-semibold tracking-tight text-white">{props.title}</h2>{props.description ? <p className="mt-0.5 text-sm text-white/68">{props.description}</p> : null}<div className="mt-2.5">{props.children}</div></section>;
-}
-
-export function ShopReelSectionHeader(props: { eyebrow?: string; title: string; subtitle?: string }) {
+export function ShopReelTimelineSurface({
+  title = "Timeline",
+  tracks = ["Hook", "Scene", "Caption", "Audio"],
+}: {
+  title?: string;
+  tracks?: string[];
+}) {
   return (
-    <header className="space-y-1.5">
-      {props.eyebrow ? <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">{props.eyebrow}</p> : null}
-      <h2 className="text-xl font-semibold tracking-tight text-white">{props.title}</h2>
-      {props.subtitle ? <p className="text-sm text-white/70">{props.subtitle}</p> : null}
-    </header>
+    <section className="relative overflow-hidden rounded-[1.75rem] border border-slate-400/10 bg-white/[0.04] p-4 shadow-[0_18px_60px_rgba(0,0,0,.3)] backdrop-blur-2xl">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-base font-semibold tracking-[-0.02em] text-white">{title}</h3>
+        <span className="text-xs text-white/42">00:00 — 00:30</span>
+      </div>
+      <div className="space-y-2">
+        {tracks.map((track, index) => (
+          <div key={track} className="grid grid-cols-[80px_minmax(0,1fr)] items-center gap-3">
+            <div className="text-xs font-medium text-white/46">{track}</div>
+            <div className="h-10 rounded-xl border border-slate-400/10 bg-black/25 p-1">
+              <div
+                className="h-full rounded-lg bg-gradient-to-r from-violet-400/35 via-cyan-300/20 to-transparent"
+                style={{ width: `${Math.max(28, 88 - index * 13)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
-}
-
-export function ShopReelEmptyState(props: { title: string; description: string; ctaLabel?: string; ctaHref?: string }) {
-  return <div className={cx("rounded-2xl border p-5", glassTheme.border.softer, glassTheme.glass.panelSoft)}><AIStatusPill label="Need input" tone="warn" /><div className="mt-3 text-lg font-semibold text-white">{props.title}</div><p className="mt-1 text-sm text-white/75">{props.description}</p>{props.ctaLabel && props.ctaHref ? <Link href={props.ctaHref} className="mt-4 inline-flex rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 px-3 py-2 text-sm font-medium text-white">{props.ctaLabel}</Link> : null}</div>;
-}
-
-export function ShopReelActionRail(props: { title: string; items: string[] }) {
-  return <aside className="rounded-2xl border border-white/10 bg-white/[0.025] p-3.5"><h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/65">{props.title}</h3><div className="mt-2.5 space-y-2">{props.items.map((item, index) => <div key={item} className="flex items-start gap-2 rounded-lg border border-white/10 bg-black/25 px-2.5 py-2 text-sm text-white/80"><span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.07] text-[11px]">{index + 1}</span><span>{item}</span></div>)}</div></aside>;
 }

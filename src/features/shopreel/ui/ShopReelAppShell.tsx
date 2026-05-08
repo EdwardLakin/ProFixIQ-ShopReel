@@ -1,66 +1,21 @@
-"use client";
-
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import ShopReelSidebar from "@/features/shopreel/ui/ShopReelSidebar";
 
-const SIDEBAR_STORAGE_KEY = "shopreel-sidebar-collapsed";
-
-export default function ShopReelAppShell(props: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 768px) and (max-width: 1279px)");
-    const apply = () => setIsTablet(media.matches);
-    apply();
-    media.addEventListener("change", apply);
-    return () => media.removeEventListener("change", apply);
-  }, []);
-
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
-      setCollapsed(stored === "1" || isTablet);
-    } catch {
-      setCollapsed(isTablet);
-    }
-  }, [isTablet]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? "1" : "0");
-    } catch {
-      // no-op when storage is unavailable
-    }
-  }, [collapsed]);
-
+export default function ShopReelAppShell({ children }: { children: ReactNode }) {
   return (
-    <div className={cx("min-h-screen bg-[#04081a]", glassTheme.bg.base)}>
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_25%_0%,rgba(105,80,255,0.2),transparent_36%),radial-gradient(circle_at_85%_10%,rgba(70,201,255,0.16),transparent_35%),linear-gradient(to_bottom,rgba(255,255,255,0.03),transparent_16%)]" />
-
-      <ShopReelSidebar
-        collapsed={collapsed}
-        onToggleCollapse={() => setCollapsed((current) => !current)}
-        mobileOpen={mobileOpen}
-        onCloseMobile={() => setMobileOpen(false)}
-      />
-
-      <div className={cx("sticky top-0 z-30 border-b px-4 py-3 backdrop-blur-xl lg:hidden", glassTheme.border.softer, "bg-slate-950/65")}>
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className={cx("inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm", glassTheme.border.softer, "bg-white/[0.04]", glassTheme.text.primary)}
-          aria-label="Open navigation"
-        >
-          <span aria-hidden>☰</span>
-          <span>Open studio nav</span>
-        </button>
+    <div className="min-h-screen bg-[#02040c] text-white">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(124,58,237,.18),transparent_30%),radial-gradient(circle_at_88%_8%,rgba(34,211,238,.14),transparent_32%),linear-gradient(180deg,#050816_0%,#02040c_62%,#01020a_100%)]" />
+        <div className="absolute inset-0 opacity-[0.04] [background-image:linear-gradient(rgba(255,255,255,.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:48px_48px]" />
       </div>
 
-      <main className={cx("relative transition-[padding] duration-300", collapsed ? "lg:pl-24" : "xl:pl-64 lg:pl-60")}>{props.children}</main>
+      <div className="relative flex min-h-screen">
+        <ShopReelSidebar />
+
+        <section className="relative min-w-0 flex-1 lg:pl-[17.5rem]">
+          <div className="min-h-screen">{children}</div>
+        </section>
+      </div>
     </div>
   );
 }

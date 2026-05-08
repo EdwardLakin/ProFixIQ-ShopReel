@@ -1,71 +1,64 @@
 import type { ReactNode } from "react";
-import { glassTheme, cx } from "./glassTheme";
 
-export default function GlassCard(props: {
+type GlassCardProps = {
+  children: ReactNode;
+  className?: string;
+  intensity?: "soft" | "strong";
+  strong?: boolean;
   label?: string;
   title?: string;
   description?: string;
-  children?: ReactNode;
   footer?: ReactNode;
-  className?: string;
-  strong?: boolean;
-  tier?: "primary" | "standard" | "quiet";
-}) {
-  const { label, title, description, children, footer, className, strong = false, tier = "standard" } = props;
+};
+
+export default function GlassCard({
+  children,
+  className = "",
+  intensity = "soft",
+  strong = false,
+  label,
+  title,
+  description,
+  footer,
+}: GlassCardProps) {
+  const isStrong = strong || intensity === "strong";
 
   return (
-    <section
-      className={cx(
-        "rounded-2xl border p-4 md:p-5",
-        strong ? glassTheme.border.strong : glassTheme.border.soft,
-        strong || tier === "primary"
-          ? glassTheme.glass.panelStrong
-          : tier === "quiet"
-            ? glassTheme.glass.panelSoft
-            : glassTheme.glass.panel,
-        tier === "primary" && "shadow-[0_24px_70px_rgba(8,10,30,0.5)]",
-        tier === "quiet" && "opacity-90",
+    <div
+      className={[
+        "relative overflow-hidden rounded-[1.65rem] border backdrop-blur-2xl transition duration-200",
+        isStrong
+          ? "border-cyan-200/12 bg-white/[0.07] shadow-[0_22px_70px_rgba(0,0,0,.38)]"
+          : "border-slate-400/10 bg-white/[0.045] shadow-[0_16px_52px_rgba(0,0,0,.28)]",
+        "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-cyan-100/18 before:to-transparent",
         className,
-      )}
+      ].join(" ")}
     >
-      {(label || title || description) && (
-        <header className="mb-4 space-y-1.5">
+      {(label || title || description) ? (
+        <div className="border-b border-slate-400/10 px-5 py-4">
           {label ? (
-            <div
-              className={cx(
-                "text-[11px] font-semibold uppercase tracking-[0.24em]",
-                glassTheme.text.copper,
-              )}
-            >
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.32em] text-cyan-200/62">
               {label}
-            </div>
-          ) : null}
-
-          {title ? (
-            <h2
-              className={cx(
-                "text-base tracking-[0.01em] md:text-lg font-semibold",
-                glassTheme.text.primary,
-              )}
-            >
-              {title}
-            </h2>
-          ) : null}
-
-          {description ? (
-            <p className={cx("text-sm leading-5", glassTheme.text.secondary)}>
-              {description}
             </p>
           ) : null}
-        </header>
-      )}
+          {title ? (
+            <h3 className="text-lg font-semibold tracking-[-0.03em] text-white">
+              {title}
+            </h3>
+          ) : null}
+          {description ? (
+            <p className="mt-1 text-sm leading-6 text-white/56">{description}</p>
+          ) : null}
+        </div>
+      ) : null}
 
-      {children ? <div className="space-y-3">{children}</div> : null}
+      <div className="p-5">{children}</div>
+
       {footer ? (
-        <div className="mt-4 border-t border-[rgba(255,255,255,0.06)] pt-3.5">
+        <div className="border-t border-slate-400/10 bg-black/16 px-5 py-4">
           {footer}
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }

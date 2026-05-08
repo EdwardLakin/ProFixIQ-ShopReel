@@ -1,27 +1,29 @@
-import type { ReactNode } from "react";
+type ShopReelBadgeProps = {
+  children: React.ReactNode;
+  tone?: "neutral" | "good" | "warn" | "danger" | "info";
+  className?: string;
+};
 
-type Tone = "neutral" | "copper" | "cyan" | "green" | "red";
+const toneClasses = {
+  neutral: "border-white/10 bg-white/[0.055] text-white/64",
+  good: "border-emerald-300/20 bg-emerald-300/[0.08] text-emerald-100",
+  warn: "border-amber-300/22 bg-amber-300/[0.09] text-amber-100",
+  danger: "border-rose-300/22 bg-rose-400/[0.10] text-rose-100",
+  info: "border-cyan-300/20 bg-cyan-300/[0.08] text-cyan-100",
+};
 
-export default function ShopReelBadge(props: {
-  children: ReactNode;
-  tone?: Tone;
-}) {
-  const { children, tone = "neutral" } = props;
-
-  const toneClass =
-    tone === "copper"
-      ? "border-[rgba(193,102,59,0.28)] bg-[linear-gradient(180deg,rgba(193,102,59,0.16),rgba(193,102,59,0.08))] text-[#efc19e]"
-      : tone === "cyan"
-        ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
-        : tone === "green"
-          ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-          : tone === "red"
-            ? "border-red-400/20 bg-red-400/10 text-red-200"
-            : "border-white/10 bg-white/[0.05] text-white/72";
-
+export default function ShopReelBadge({
+  children,
+  tone = "neutral",
+  className = "",
+}: ShopReelBadgeProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] backdrop-blur-xl ${toneClass}`}
+      className={[
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] backdrop-blur-xl",
+        toneClasses[tone],
+        className,
+      ].join(" ")}
     >
       {children}
     </span>

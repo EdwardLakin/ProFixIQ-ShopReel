@@ -1,5 +1,22 @@
 import type { ReactNode } from "react";
 
-export default function ShopReelSectionGrid(props: { children: ReactNode }) {
-  return <div className="grid gap-4">{props.children}</div>;
+type ShopReelSectionGridProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+export default function ShopReelSectionGrid({
+  children,
+  className = "",
+}: ShopReelSectionGridProps) {
+  return (
+    <div
+      className={[
+        "grid gap-4 md:grid-cols-2 xl:grid-cols-3",
+        className,
+      ].join(" ")}
+    >
+      {children}
+    </div>
+  );
 }

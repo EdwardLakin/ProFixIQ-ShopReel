@@ -1,30 +1,34 @@
 import type { ReactNode } from "react";
 
-export default function ShopReelListItem(props: {
+type ShopReelListItemProps = {
   title: string;
-  subtitle?: string;
-  right?: ReactNode;
+  description?: string;
+  meta?: ReactNode;
+  action?: ReactNode;
   children?: ReactNode;
-}) {
-  const { title, subtitle, right, children } = props;
+};
 
+export default function ShopReelListItem({
+  title,
+  description,
+  meta,
+  action,
+  children,
+}: ShopReelListItemProps) {
   return (
-    <div className="rounded-[26px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.024))] p-5 shadow-[0_12px_28px_rgba(0,0,0,0.12)] backdrop-blur-3xl">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="text-lg font-semibold tracking-tight text-white">
-            {title}
-          </div>
-
-          {subtitle ? (
-            <p className="mt-2 text-sm leading-6 text-white/64">{subtitle}</p>
+    <div className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-4 shadow-[0_12px_36px_rgba(0,0,0,.22)] backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/24 hover:bg-white/[0.06]">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent opacity-0 transition group-hover:opacity-100" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          {meta ? <div className="mb-2">{meta}</div> : null}
+          <h3 className="truncate text-sm font-semibold tracking-[-0.015em] text-white">{title}</h3>
+          {description ? (
+            <p className="mt-1 text-sm leading-6 text-white/56">{description}</p>
           ) : null}
         </div>
-
-        {right ? <div className="shrink-0">{right}</div> : null}
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-
-      {children ? <div className="mt-5">{children}</div> : null}
+      {children ? <div className="mt-4">{children}</div> : null}
     </div>
   );
 }

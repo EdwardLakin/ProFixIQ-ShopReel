@@ -1,62 +1,32 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { glassTheme, cx } from "./glassTheme";
 
-const NAV_ITEMS = [
-  { href: "/shopreel", label: "Overview" },
-  { href: "/shopreel/upload", label: "Upload" },
-  { href: "/shopreel/ideas", label: "Ideas" },
-  { href: "/shopreel/calendar", label: "Calendar" },
-  { href: "/shopreel/render-queue", label: "Render Queue" },
-  { href: "/shopreel/analytics", label: "Analytics" },
-  { href: "/shopreel/published", label: "Published" },
-  { href: "/shopreel/settings", label: "Settings" },
-];
+type GlassNavItem = {
+  label: string;
+  href: string;
+  active?: boolean;
+};
 
-export default function GlassNav() {
-  const pathname = usePathname();
+type GlassNavProps = {
+  items: GlassNavItem[];
+};
 
+export default function GlassNav({ items }: GlassNavProps) {
   return (
-    <nav
-      className={cx(
-        "flex flex-wrap gap-2 rounded-3xl border p-2 relative",
-        glassTheme.border.soft,
-        glassTheme.glass.panelSoft
-      )}
-      aria-label="ShopReel navigation"
-    >
-      {NAV_ITEMS.map((item) => {
-        const active = pathname === item.href;
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cx(
-              "relative overflow-hidden rounded-2xl px-4 py-2.5 text-sm font-medium transition-all duration-200",
-
-              active
-                ? "border border-sky-400/30 text-white bg-white/[0.04] shadow-[0_0_0_1px_rgba(255,255,255,0.04)_inset]"
-                : "border border-transparent text-white/70 hover:text-white hover:bg-white/[0.05]"
-            )}
-          >
-            {active && (
-              <span
-                className="
-                absolute inset-0 -z-10
-                bg-[linear-gradient(120deg,rgba(59,130,246,0.18),rgba(139,92,246,0.18),rgba(34,211,238,0.16))]
-                blur-xl opacity-70
-                animate-[navGlow_6s_linear_infinite]
-                "
-              />
-            )}
-
-            {item.label}
-          </Link>
-        );
-      })}
+    <nav className="flex flex-wrap gap-2 rounded-[1.35rem] border border-slate-400/10 bg-black/20 p-2 shadow-inner backdrop-blur-xl">
+      {items.map((item) => (
+        <Link
+          key={`${item.href}-${item.label}`}
+          href={item.href}
+          className={[
+            "rounded-2xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition duration-200",
+            item.active
+              ? "bg-white/[0.11] text-white shadow-[0_10px_28px_rgba(34,211,238,.14)]"
+              : "text-white/48 hover:bg-white/[0.06] hover:text-white",
+          ].join(" ")}
+        >
+          {item.label}
+        </Link>
+      ))}
     </nav>
   );
 }
