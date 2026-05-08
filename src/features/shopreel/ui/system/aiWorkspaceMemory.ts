@@ -22,7 +22,30 @@ export type WorkspaceMemory = {
   interruptedWorkflow?: AiIntent;
   adaptiveMode?: "render" | "campaign" | "packaging" | "scene" | "publish" | "variant" | "balanced";
   creativeContinuity?: CreativeContinuityMemory;
+  continuityThreads?: ContinuityThread[];
+  intentSignals?: CreativeIntentSignals;
   updatedAt: string;
+};
+
+export type ContinuityThreadKind = "active_workflow" | "recovery" | "render_continuation" | "scene_path" | "export_lineage" | "campaign_evolution";
+
+export type ContinuityThread = {
+  id: string;
+  kind: ContinuityThreadKind;
+  label: string;
+  route: string;
+  status: "active" | "interrupted" | "resolved";
+  priority: number;
+  updatedAt: string;
+};
+
+export type CreativeIntentSignals = {
+  pacingBias: "accelerated" | "balanced" | "cinematic";
+  ctaBias: "direct" | "story-led" | "community-led";
+  hookDensityBias: "high" | "moderate" | "low";
+  exportStyleBias: "speed" | "balanced" | "craft";
+  variantDirectionBias: "parallel" | "iterative" | "single";
+  explainability: string[];
 };
 
 export type CreativeContinuityMemory = {
@@ -94,4 +117,44 @@ export function buildPendingTasks(intent: AiIntent): WorkspaceTask[] {
     unknown: [],
   };
   return map[intent];
+}
+
+export function buildContinuityThreads(input: {
+  intent: AiIntent;
+  pendingTasks: WorkspaceTask[];
+  interruptedWorkflow?: AiIntent;
+  lastRoute: string;
+  generationId?: string;
+  campaignId?: string;
+}): ContinuityThread[] {
+  const now = new Date().toISOString();
+  const workflowRoute = input.generationId ? `/shopreel/generations/${input.generationId}` : input.lastRoute;
+  const campaignRoute = input.campaignId ? `/shopreel/campaigns/${input.campaignId}` : "/shopreel/campaigns";
+  return [
+    { id: "active-workflow", kind: "active_workflow", label: `Continue ${input.intent} workflow`, route: workflowRoute, status: "active", priority: 90, updatedAt: now },
+    { id: "render-cont", kind: "render_continuation", label: "Render continuation rail", route: "/shopreel/render-queue", status: input.intent === "render" ? "active" : "resolved", priority: input.intent === "render" ? 94 : 52, updatedAt: now },
+    { id: "export-lineage", kind: "export_lineage", label: "Export lineage thread", route: "/shopreel/exports", status: input.pendingTasks.some((x) => /package|export|publish/i.test(x.label)) ? "active" : "resolved", priority: 81, updatedAt: now },
+    { id: "campaign-evo", kind: "campaign_evolution", label: "Campaign evolution thread", route: campaignRoute, status: input.intent === "campaign" ? "active" : "resolved", priority: 73, updatedAt: now },
+    { id: "scene-path", kind: "scene_path", label: "Unresolved scene path", route: workflowRoute, status: input.pendingTasks.some((x) => /storyboard|review/i.test(x.label)) ? "active" : "resolved", priority: 76, updatedAt: now },
+    { id: "recovery", kind: "recovery", label: "Interrupted recovery", route: input.lastRoute, status: input.interruptedWorkflow ? "interrupted" : "resolved", priority: input.interruptedWorkflow ? 92 : 44, updatedAt: now },
+  ];
+}
+
+export function evolveCreativeIntentSignals(memory: CreativeContinuityMemory): CreativeIntentSignals {
+  const hookDensityBias: CreativeIntentSignals["hookDensityBias"] =
+    memory.pacingPreference === "high_energy" || memory.editingRhythm === "rapid" ? "high" : memory.editingRhythm === "longform" ? "low" : "moderate";
+  const exportStyleBias: CreativeIntentSignals["exportStyleBias"] =
+    memory.platformBias === "tiktok" ? "speed" : memory.tonePreference === "commercial_clean" ? "craft" : "balanced";
+  return {
+    pacingBias: memory.pacingPreference === "cinematic" ? "cinematic" : memory.pacingPreference === "steady" ? "balanced" : "accelerated",
+    ctaBias: memory.ctaStyle === "community" ? "community-led" : memory.ctaStyle === "soft" ? "story-led" : "direct",
+    hookDensityBias,
+    exportStyleBias,
+    variantDirectionBias: memory.variantPreference === "parallel_variants" ? "parallel" : memory.variantPreference === "iterative_branching" ? "iterative" : "single",
+    explainability: [
+      `Pacing inferred from ${memory.pacingPreference} + ${memory.editingRhythm}.`,
+      `CTA bias inferred from ${memory.ctaStyle}.`,
+      `Export bias inferred from ${memory.platformBias} + ${memory.tonePreference}.`,
+    ],
+  };
 }
