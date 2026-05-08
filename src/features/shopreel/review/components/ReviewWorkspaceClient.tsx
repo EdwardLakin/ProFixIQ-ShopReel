@@ -367,9 +367,22 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
   return (
 
-    <div className="space-y-5">
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-cyan-300/20 bg-[radial-gradient(circle_at_10%_20%,rgba(56,189,248,0.16),transparent_40%),radial-gradient(circle_at_85%_10%,rgba(168,85,247,0.2),transparent_45%),linear-gradient(160deg,rgba(2,6,23,0.9),rgba(15,23,42,0.92))] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.55)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-cyan-100/70">Review Control Room</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Approval + Revision Workspace</h2>
+            <p className="mt-1 text-sm text-white/70">Run operator review, refine copy, and hand off to render with confidence.</p>
+          </div>
+          <div className="flex gap-2">
+            <GlassBadge tone="default">Operator review required</GlassBadge>
+            <GlassBadge tone="copper">Render handoff ready</GlassBadge>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_360px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_380px]">
 
         <GlassCard label="Campaign brief" title="Ready-to-use social package" strong>
 
@@ -441,7 +454,7 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
         <GlassCard label="Actions" title="Copy or download">
 
-          <div className="space-y-3 text-sm text-white/80">
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm text-white/80">
 
             <p>Use this package for manual Facebook/Instagram posting. Rendering remains optional for video workflows.</p>
 
@@ -534,7 +547,7 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
           {draft.platformOutputs.map((output) => (
 
-            <article key={output.platformId} className="rounded-3xl border border-white/12 bg-white/[0.035] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.22)]">
+            <article key={output.platformId} className="rounded-3xl border border-violet-300/20 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.2),transparent_45%),rgba(15,23,42,0.62)] p-4 shadow-[0_24px_70px_rgba(15,23,42,0.42)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_90px_rgba(76,29,149,0.35)]">
 
               <div className="mb-4 flex items-start justify-between gap-3">
 
