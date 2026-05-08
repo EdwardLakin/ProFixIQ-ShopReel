@@ -16,11 +16,21 @@ export default async function ShopReelEditorHubPage() {
     .limit(12);
 
   const items = generations ?? [];
+  const readyCount = items.filter((item) => item.status === "ready").length;
+  const reviewCount = items.filter((item) => item.status === "review").length;
+  const renderingCount = items.filter((item) => item.status === "rendering").length;
 
   return (
     <GlassShell title="Editor" hidePageIntro>
-      <div className="space-y-4">
+      <div className="space-y-3">
         <ShopReelPageHero title="Editor" subtitle="Shape scenes, tighten storyboards, and move drafts to render-ready without leaving the workflow." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Open generations", href: "/shopreel/generations" }]} />
+        <ShopReelSurface title="Editor control tower" description="Live editor throughput from persisted generation lifecycle state.">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="rounded-xl border border-emerald-300/35 bg-emerald-500/10 px-3 py-2 text-sm text-white">Ready to edit <span className="ml-1 text-lg font-semibold">{readyCount}</span></div>
+            <div className="rounded-xl border border-violet-300/35 bg-violet-500/10 px-3 py-2 text-sm text-white">In review <span className="ml-1 text-lg font-semibold">{reviewCount}</span></div>
+            <div className="rounded-xl border border-cyan-300/35 bg-cyan-500/10 px-3 py-2 text-sm text-white">Rendering <span className="ml-1 text-lg font-semibold">{renderingCount}</span></div>
+          </div>
+        </ShopReelSurface>
 
         <EditorWorkspaceShell>
           <MediaPreviewStage title="Cinematic workspace" subtitle="Prepare edits, sequence scenes, and hand off to render with operator-controlled actions.">
@@ -43,10 +53,10 @@ export default async function ShopReelEditorHubPage() {
 
           <InspectorPanel title="Production inspector">
             <div className="space-y-2">
-              <EditorActionBar><span className="text-xs text-white/70">Manual publish prep</span><span className="text-xs text-white/70">Ready for handoff</span></EditorActionBar>
+              <EditorActionBar><span className="text-xs text-white/70">Manual publish prep</span><span className="text-xs text-white/70">Ready for handoff</span><span className="rounded-md bg-white/10 px-2 py-0.5 text-[11px] text-white/70">{items.length} sessions</span></EditorActionBar>
               <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/80">No clip selected. Pick a generation to inspect scene-level controls.</div>
               <div className="rounded-xl border border-white/10 bg-black/25 p-3 text-xs text-white/65">Render preview unavailable until first scene is created and queued.</div>
-              <div className="flex flex-wrap gap-2"><Link href="/shopreel/generations" className="rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-white/85">Open queue</Link><Link href="/shopreel/create" className="rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 px-2.5 py-1.5 text-xs font-semibold text-white">Generate storyboard</Link></div>
+              <div className="flex flex-wrap gap-2"><Link href="/shopreel/generations" className="rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-white/85">Open queue</Link><Link href="/shopreel/create" className="rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_10px_30px_rgba(96,76,255,0.45)]">Generate storyboard</Link></div>
             </div>
           </InspectorPanel>
         </EditorWorkspaceShell>
