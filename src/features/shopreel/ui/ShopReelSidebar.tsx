@@ -103,6 +103,21 @@ export default function ShopReelSidebar(props: {
             {!collapsed ? <div className="px-2 text-[11px] uppercase tracking-[0.2em] text-white/45">Advanced / Operator</div> : null}
             {renderItems(SECONDARY_ITEMS, true)}
           </nav>
+          <div className="mt-auto pt-3">
+            <form action="/auth/sign-out" method="post" onSubmit={mobileOpen ? onCloseMobile : undefined}>
+              <button
+                type="submit"
+                className={cx(
+                  "group w-full rounded-xl px-2.5 py-2 text-sm font-medium text-white/70 transition duration-200 hover:bg-white/[0.08] hover:text-white",
+                  collapsed ? "flex h-10 items-center justify-center" : "flex items-center gap-2.5",
+                )}
+                title={collapsed ? "Sign out" : undefined}
+              >
+                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-white/10 text-xs text-white/75">⇦</span>
+                {!collapsed ? <span>Sign out</span> : null}
+              </button>
+            </form>
+          </div>
         </div>
       </aside>
     </>

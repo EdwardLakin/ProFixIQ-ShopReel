@@ -31,26 +31,11 @@ export default function GlassShell(props: {
       <div className="relative mx-auto w-full max-w-[1380px]">
         <div className={cx(glassTheme.spacing.shell, "space-y-5 md:space-y-6 lg:space-y-7 px-3 sm:px-5 md:px-6 lg:px-7 xl:px-8", className)}>
           <header className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <form action="/auth/sign-out" method="post" className="ml-1">
-                <button
-                  type="submit"
-                  className={cx(
-                    "inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium transition hover:-translate-y-0.5",
-                    glassTheme.border.softer,
-                    glassTheme.glass.panelSoft,
-                    glassTheme.text.secondary,
-                    "hover:text-white hover:bg-white/[0.06]",
-                  )}
-                >
-                  Sign out
-                </button>
-              </form>
-
-              {actions ? (
+            {actions ? (
+              <div className="flex flex-wrap items-center justify-end gap-3">
                 <div className="flex flex-wrap items-center gap-3">{actions}</div>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
 
             {!hidePageIntro ? (
               <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
