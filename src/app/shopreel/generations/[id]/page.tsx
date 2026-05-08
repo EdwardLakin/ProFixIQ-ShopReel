@@ -162,7 +162,8 @@ export default async function ShopReelGenerationDetailPage(
         </>
       }
     >
-      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="space-y-5">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
         <GlassCard
           label="Story"
           title="Generation summary"
@@ -348,6 +349,7 @@ export default async function ShopReelGenerationDetailPage(
             ))}
           </div>
         </GlassCard>
+        </div>
       </section>
 
       <GenerationTimelineEditor

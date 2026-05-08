@@ -17,7 +17,8 @@ export default async function VideoGenerationDetailPage({ params }: { params: Pr
   ];
 
   return <GlassShell title="Generation job" subtitle="Lifecycle, output preview, and retry actions.">
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
       <GlassCard title={job.title ?? "Untitled video"} label="Hero" strong>
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-white/80">
           <div className="flex items-center gap-2"><span>Status</span><GlassBadge tone={status === "completed" ? "copper" : status === "failed" ? "muted" : "default"}>{status}</GlassBadge></div>
@@ -31,6 +32,7 @@ export default async function VideoGenerationDetailPage({ params }: { params: Pr
       </div>
       <GlassCard title="Output preview" label="Preview">{job.preview_url ? <video controls className="w-full rounded-2xl" src={job.preview_url} /> : <div className="text-sm text-white/70">No preview yet.</div>}</GlassCard>
       <GlassCard title="Advanced payload" label="Debug"><details><summary className="cursor-pointer text-xs text-white/80">Expand debug payload</summary><pre className="mt-2 overflow-auto rounded-xl border border-white/10 bg-black/35 p-2 text-[11px] text-white/70">{JSON.stringify(job.result_payload ?? {}, null, 2)}</pre></details></GlassCard>
+      </div>
       <div className="flex flex-wrap gap-2">
         <Link href="/shopreel/render-queue"><GlassButton variant="secondary">Back to queue</GlassButton></Link>
         <Link href="/shopreel/video-creation"><GlassButton variant="ghost">Retry render</GlassButton></Link>

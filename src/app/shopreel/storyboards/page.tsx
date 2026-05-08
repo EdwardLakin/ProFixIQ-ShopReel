@@ -42,8 +42,8 @@ export default async function ShopReelStoryboardsPage() {
       <ShopReelNav />
 
       <GlassCard
-        label="Recent"
-        title="Recent storyboards"
+        label="Planning board"
+        title="Cinematic sequence lanes"
         description="Structured storyboard planning before generation and editing."
         strong
       >
