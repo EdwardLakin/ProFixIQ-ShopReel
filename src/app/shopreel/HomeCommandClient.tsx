@@ -14,6 +14,7 @@ import {
   buildContinuityThreads,
   defaultCreativeContinuityMemory,
   evolveCreativeIntentSignals,
+  deriveEcosystemState,
   readWorkspaceMemory,
   writeWorkspaceMemory,
   type WorkspaceMemory,
@@ -67,6 +68,15 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
       }),
       intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
+      ecosystemState: deriveEcosystemState({
+        pendingTaskCount: buildPendingTasks(interpreted.intent).filter((task) => !task.done).length,
+        readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+        blockerCount: buildPendingTasks(interpreted.intent).filter((task) => /review|render|verify/i.test(task.label) && !task.done).length,
+        continuityThreadCount: 4,
+        interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+        adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
+        minutesSinceUpdate: context?.updatedAt ? Math.max(0, Math.floor((Date.now() - new Date(context.updatedAt).getTime()) / 60000)) : 0,
+      }),
       updatedAt: new Date().toISOString(),
     };
     writeWorkspaceMemory(next);
@@ -152,6 +162,11 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div>Pacing: {context.intentSignals.pacingBias} · CTA: {context.intentSignals.ctaBias}</div>
           <div>Hook density: {context.intentSignals.hookDensityBias} · Export style: {context.intentSignals.exportStyleBias}</div>
           <div>Variant direction: {context.intentSignals.variantDirectionBias}</div>
+        </div> : null}
+        {context?.ecosystemState ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
+          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Adaptive ecosystem state</div>
+          <div>Energy: {context.ecosystemState.environmentalEnergy.replaceAll("_", " ")} · Temporal: {context.ecosystemState.temporalRailState.replaceAll("_", " ")}</div>
+          <div>Saturation: {context.ecosystemState.operationalSaturation} · Entropy: {context.ecosystemState.focusEntropy} · Telemetry: {context.ecosystemState.telemetryDensityPressure}</div>
         </div> : null}
         {history.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Command history</div>
