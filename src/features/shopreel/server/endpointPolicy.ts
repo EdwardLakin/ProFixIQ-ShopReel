@@ -23,6 +23,31 @@ type ShopMembershipRow = {
   shop_id: string;
 };
 
+async function resolveShopIdFromStandaloneShopReelData(admin: unknown, userId: string): Promise<string | null> {
+  const db = admin as { from: (table: string) => any };
+
+  const { data: generationData } = await db
+    .from("shopreel_story_generations")
+    .select("shop_id")
+    .eq("created_by", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const generation = (generationData ?? null) as ShopMembershipRow | null;
+  if (generation?.shop_id) return generation.shop_id;
+
+  const { data: subscriptionData } = await db
+    .from("shopreel_subscriptions")
+    .select("shop_id")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const subscription = (subscriptionData ?? null) as ShopMembershipRow | null;
+  return subscription?.shop_id ?? null;
+}
+
 export async function requireUserActionTenantContext() {
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -35,24 +60,16 @@ export async function requireUserActionTenantContext() {
     throw new ShopReelEndpointError("Authentication required", 401, "AUTH_REQUIRED");
   }
 
-  const { data: membershipData } = await (admin as any)
-    .from("shop_users")
-    .select("shop_id")
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
+  const shopId = await resolveShopIdFromStandaloneShopReelData(admin, user.id);
 
-  const membership = (membershipData ?? null) as ShopMembershipRow | null;
-
-  if (!membership?.shop_id) {
-    throw new ShopReelEndpointError("Active shop membership is required", 403, "FORBIDDEN");
+  if (!shopId) {
+    throw new ShopReelEndpointError("Active ShopReel workspace is required", 403, "FORBIDDEN");
   }
 
   return {
     category: "user-action" as EndpointCategory,
     userId: user.id,
-    shopId: membership.shop_id,
+    shopId,
   };
 }
 
