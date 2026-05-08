@@ -12,7 +12,7 @@ export default function ShopReelAppShell({ children }: { children: ReactNode }) 
       <div className="relative flex min-h-screen">
         <ShopReelSidebar />
 
-        <section className="relative min-w-0 flex-1 lg:pl-[17.5rem]">
+        <section className="relative min-w-0 flex-1 pl-4 md:pl-6">
           <div className="min-h-screen">{children}</div>
         </section>
       </div>
