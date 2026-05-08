@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import ShopReelSidebar from "@/features/shopreel/ui/ShopReelSidebar";
-import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
 
 const SIDEBAR_STORAGE_KEY = "shopreel-sidebar-collapsed";
 
@@ -59,10 +58,6 @@ export default function ShopReelAppShell(props: { children: ReactNode }) {
           <span aria-hidden>☰</span>
           <span>Open studio nav</span>
         </button>
-      </div>
-
-      <div className={cx("relative z-20 flex justify-end px-4 pt-3", collapsed ? "lg:pl-24" : "xl:pl-64 lg:pl-60")}>
-        <ShopReelNotificationsBell />
       </div>
 
       <main className={cx("relative transition-[padding] duration-300", collapsed ? "lg:pl-24" : "xl:pl-64 lg:pl-60")}>{props.children}</main>
