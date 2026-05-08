@@ -372,7 +372,7 @@ export default function EditorClient(props: Props) {
   }, [draft, variants, saveState]);
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
       <div className="space-y-5">
         <GlassCard
           label="Scenes"

@@ -382,9 +382,9 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_380px]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
 
-        <GlassCard label="Campaign brief" title="Ready-to-use social package" strong>
+        <GlassCard label="Stage" title="Approval control room stage" strong>
 
           <div className="space-y-4">
 
@@ -452,7 +452,7 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
         </GlassCard>
 
-        <GlassCard label="Actions" title="Copy or download">
+        <GlassCard label="Inspector" title="Revision + handoff rail">
 
           <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-950/40 p-4 text-sm text-white/80">
 
