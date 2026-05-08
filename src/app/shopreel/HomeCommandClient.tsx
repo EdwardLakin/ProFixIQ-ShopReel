@@ -24,6 +24,7 @@ import {
 } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
 import { deriveEnvironmentReactivity } from "@/features/shopreel/ui/system/environmentReactivity";
+import { deriveEnvironmentalField } from "@/features/shopreel/ui/system/environmentField";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -197,6 +198,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
   }), [context, recent]);
 
+
+  const environmentalField = useMemo(() => deriveEnvironmentalField({
+    memory: context,
+    environment: environmentReactivity,
+    readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+  }), [context, environmentReactivity, recent]);
+
   const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
     ? "from-rose-500/20 via-amber-400/10 to-transparent"
     : environmentReactivity.operationalWeather.pattern === "export_surge"
@@ -227,12 +235,12 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     `Environmental coherence ${context?.operationalGraph?.environmentalInterpretation.environmentalCoherence ?? 0} · topology stress ${context?.operationalGraph?.environmentalInterpretation.topologyStress ?? 0}`,
   ];
 
-  const compressionClass = environmentReactivity.environmentalCompression > 68 ? "space-y-4" : "space-y-6";
-  const railDensityClass = environmentReactivity.atmosphericDensity > 62 ? "space-y-1.5" : "space-y-2";
+  const compressionClass = environmentalField.focusCompression > 58 ? "space-y-4" : environmentalField.pacing.breathingRhythm > 62 ? "space-y-7" : "space-y-6";
+  const railDensityClass = environmentalField.pacing.compressionRhythm > 58 ? "space-y-1.5" : environmentalField.pacing.recoveryRhythm > 62 ? "space-y-2.5" : "space-y-2";
 
   return <div className={`relative pb-6 ${compressionClass}`}>
     <div className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-gradient-to-br ${cinematicAuraClass} blur-3xl transition-all duration-700`} />
-    <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-5 shadow-[0_40px_90px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl md:p-7">
+    <section className={`relative overflow-hidden rounded-[2rem] bg-gradient-to-b p-5 shadow-[0_40px_90px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl md:p-7 ${environmentalField.escalationBias > 64 ? "from-white/[0.06] to-black/[0.18]" : environmentalField.recoveryStabilization > 60 ? "from-emerald-100/[0.08] to-white/[0.02]" : "from-white/[0.07] to-white/[0.02]"}`}>
       <div className="pointer-events-none absolute -right-12 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="pointer-events-none absolute -left-14 bottom-0 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
       <div className="relative">
@@ -241,6 +249,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">This workspace is orchestration-first. Spatial rails, minimap memory, and focus-aware compression drive every move.</p>
         <p className="mt-2 text-xs text-white/60">Cinematic state: {cinematicState.emotionalState.replaceAll("_", " ")} · pacing {cinematicState.motionPacing.replaceAll("_", " ")} · compression {cinematicState.compressionLevel.replaceAll("_", " ")}</p>
         <p className="mt-2 text-xs text-white/55">Operational weather: {environmentReactivity.operationalWeather.pattern.replaceAll("_", " ")} · intensity {environmentReactivity.operationalWeather.intensity} · continuity scarring {environmentReactivity.continuityScarring}</p>
+        <p className="mt-1 text-xs text-white/50">Field gravity {environmentalField.gravityWeighting} · export pull {environmentalField.exportPull} · continuity anchoring {environmentalField.continuityAnchoring} · breathing rhythm {environmentalField.pacing.breathingRhythm}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>
@@ -258,6 +267,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <p className="text-sm text-cyan-50/90">{assistantText}</p>
         <div className={`mt-4 ${railDensityClass}`}>{showRail ? activityStream.map((entry) => <div key={entry} className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/80">{entry}</div>) : <div className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/70">Compressed rail · {activityStream[0]}</div>}</div>
         <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">{environmentReactivity.operationalWeather.descriptor}</div>
+        <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Terrain ridges {environmentalField.topology.continuityRidges} · fracture valleys {environmentalField.topology.fractureValleys} · export fronts {environmentalField.topology.exportFronts} · instability zones {environmentalField.topology.instabilityZones}</div>
         <div className="mt-4 flex flex-wrap gap-2">
           {interpreted.nextActions.map((action) => (
             <AiIntentChip key={action.href + action.label} label={action.label} href={action.href} className="px-3 py-1.5 text-[11px]" />
@@ -281,6 +291,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div>Autonomous stabilization: {context?.worldState?.autonomousStabilizationActions?.[0]?.replaceAll("_", " ") ?? "none"}</div>
           <div>Atmospheric density: {environmentReactivity.atmosphericDensity} · focus pull: {environmentReactivity.focusPull} · dormant cooling: {environmentReactivity.dormantCooling}</div>
           <div>Recovery warmth: {environmentReactivity.recoveryWarmth} · temporal pressure: {environmentReactivity.temporalPressure} · environmental compression: {environmentReactivity.environmentalCompression}</div>
+          <div>Environmental memory: instability {environmentalField.environmentalMemory.recurringInstabilityMemory} · export residue {environmentalField.environmentalMemory.exportResidue} · continuity fatigue {environmentalField.environmentalMemory.continuityFatigue} · stabilization confidence {environmentalField.environmentalMemory.stabilizationConfidence}</div>
         </div>
         {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Pending tasks</div>
