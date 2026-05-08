@@ -31,8 +31,6 @@ export async function getCurrentShopId(): Promise<string> {
     if (membership?.shop_id) {
       return membership.shop_id;
     }
-
-    throw new ShopReelEndpointError("Active shop membership is required", 403, "FORBIDDEN");
   }
 
   const { data: settingsData } = await (admin as any)
@@ -46,6 +44,10 @@ export async function getCurrentShopId(): Promise<string> {
 
   if (settingsRow?.shop_id) {
     return settingsRow.shop_id;
+  }
+
+  if (user?.id) {
+    throw new ShopReelEndpointError("Active shop membership is required", 403, "FORBIDDEN");
   }
 
   throw new ShopReelEndpointError("Shop context required", 401, "SHOP_CONTEXT_REQUIRED");
