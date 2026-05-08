@@ -115,7 +115,13 @@ export default function VideoCreationAdvancedTools({
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-3">
+    <div className="space-y-5">
+      <div className="rounded-3xl border border-violet-300/20 bg-[radial-gradient(circle_at_15%_15%,rgba(59,130,246,0.16),transparent_45%),radial-gradient(circle_at_85%_15%,rgba(168,85,247,0.22),transparent_40%),rgba(2,6,23,0.9)] p-5">
+        <p className="text-xs uppercase tracking-[0.2em] text-cyan-100/70">Advanced Studio</p>
+        <h3 className="mt-2 text-2xl font-semibold text-white">AI Orchestration Console</h3>
+        <p className="mt-1 text-sm text-white/70">Storyboard planning, thumbnail staging, and prompt telemetry for production handoff.</p>
+      </div>
+      <div className="grid gap-5 xl:grid-cols-3">
       <GlassCard
         label="Storyboard"
         title="Storyboard mode"
@@ -127,7 +133,7 @@ export default function VideoCreationAdvancedTools({
             <div
               key={preset.id}
               className={cx(
-                "rounded-2xl border p-4",
+                "rounded-2xl border p-4 transition hover:-translate-y-0.5 bg-[radial-gradient(circle_at_0%_0%,rgba(56,189,248,0.12),transparent_45%)]",
                 glassTheme.border.softer,
                 glassTheme.glass.panelSoft
               )}
@@ -190,7 +196,7 @@ export default function VideoCreationAdvancedTools({
               <div
                 key={job.id}
                 className={cx(
-                  "rounded-2xl border p-4",
+                  "rounded-2xl border p-4 bg-[radial-gradient(circle_at_100%_0%,rgba(167,139,250,0.2),transparent_45%)]",
                   glassTheme.border.softer,
                   glassTheme.glass.panelSoft
                 )}
@@ -232,25 +238,25 @@ export default function VideoCreationAdvancedTools({
             onChange={(e) => setEnhancePrompt(e.target.value)}
             placeholder="Write a premium vertical video showing a modern repair shop brake inspection."
             rows={4}
-            className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
           />
           <input
             value={brandVoice}
             onChange={(e) => setBrandVoice(e.target.value)}
             placeholder="Brand voice"
-            className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
           />
           <input
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
             placeholder="Audience"
-            className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
           />
           <input
             value={objective}
             onChange={(e) => setObjective(e.target.value)}
             placeholder="Objective"
-            className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+            className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-white outline-none focus:border-cyan-300/40"
           />
           <GlassButton variant="secondary" onClick={runPromptEnhancer}>
             Enhance prompt
@@ -274,6 +280,7 @@ export default function VideoCreationAdvancedTools({
           ) : null}
         </div>
       </GlassCard>
+      </div>
     </div>
   );
 }

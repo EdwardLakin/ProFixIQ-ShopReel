@@ -74,7 +74,7 @@ export default function TimelineLane(props: Props) {
   return (
     <div
       className={cx(
-        "relative overflow-hidden rounded-2xl border",
+        "group relative overflow-hidden rounded-2xl border bg-[radial-gradient(circle_at_0%_0%,rgba(59,130,246,0.16),transparent_45%),radial-gradient(circle_at_100%_100%,rgba(147,51,234,0.2),transparent_50%)] backdrop-blur-xl transition hover:-translate-y-0.5",
         glassTheme.border.softer,
         glassTheme.glass.panelSoft,
       )}
@@ -90,8 +90,10 @@ export default function TimelineLane(props: Props) {
           {label}
         </div>
 
-        <div className="relative min-h-[72px] touch-none">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:28px_100%]" />
+        <div className="relative min-h-[84px] touch-none overflow-x-auto">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px)] bg-[length:28px_100%]" />
+          <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-slate-950/50 to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-slate-950/50 to-transparent" />
 
           {clips
             .filter((clip) => clip.lane === lane)
@@ -103,11 +105,11 @@ export default function TimelineLane(props: Props) {
                 <div
                   key={clip.id}
                   className={cx(
-                    "absolute top-3 h-[48px] rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+                    "absolute top-4 h-[52px] rounded-xl border shadow-[0_10px_32px_rgba(15,23,42,0.55),inset_0_1px_0_rgba(255,255,255,0.16)] transition",
                     clip.colorClass,
                     selectedClipId === clip.id
-                      ? "ring-2 ring-sky-300/35"
-                      : "hover:ring-1 hover:ring-white/15",
+                      ? "ring-2 ring-sky-300/50 shadow-[0_0_0_1px_rgba(125,211,252,0.4),0_0_24px_rgba(59,130,246,0.45)]"
+                      : "hover:ring-1 hover:ring-violet-200/35 hover:shadow-[0_0_20px_rgba(139,92,246,0.25)]",
                   )}
                   style={{
                     left: `${left}px`,
@@ -120,7 +122,8 @@ export default function TimelineLane(props: Props) {
                     onPointerDown={(e) => beginPointerAction(e, clip.sceneId, "drag")}
                     className="h-full w-full cursor-grab touch-none rounded-xl px-3 text-left active:cursor-grabbing"
                   >
-                    <div className="truncate text-xs font-medium text-white">{clip.label}</div>
+                    <div className="truncate text-xs font-semibold text-white">{clip.label}</div>
+                    <div className="mt-1 flex items-center gap-1 text-[10px] text-white/75"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300/90" />{Math.round((clip.endMs-clip.startMs)/1000)}s clip</div>
                   </button>
 
                   {onResizeScene ? (

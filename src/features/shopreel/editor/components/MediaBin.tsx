@@ -63,7 +63,7 @@ export default function MediaBin(props: Props) {
             <div
               key={item.id}
               className={cx(
-                "rounded-2xl border p-3",
+                "rounded-2xl border p-3 transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.45)] bg-[radial-gradient(circle_at_0%_0%,rgba(34,211,238,0.12),transparent_45%)]",
                 glassTheme.border.softer,
                 glassTheme.glass.panelSoft,
               )}
@@ -77,6 +77,10 @@ export default function MediaBin(props: Props) {
                 </div>
 
                 <GlassBadge tone="default">{item.type}</GlassBadge>
+              </div>
+
+              <div className="mt-3 aspect-video w-full rounded-xl border border-white/10 bg-gradient-to-br from-slate-950/70 via-slate-900/40 to-violet-950/30 p-3 text-xs text-white/60">
+                <div className="flex h-full items-end">Preview stage • {item.type.toUpperCase()}</div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
