@@ -20,7 +20,22 @@ export type WorkspaceMemory = {
   intentHistory: string[];
   pendingTasks: WorkspaceTask[];
   interruptedWorkflow?: AiIntent;
+  adaptiveMode?: "render" | "campaign" | "packaging" | "scene" | "publish" | "variant" | "balanced";
+  creativeContinuity?: CreativeContinuityMemory;
   updatedAt: string;
+};
+
+export type CreativeContinuityMemory = {
+  pacingPreference: "high_energy" | "steady" | "cinematic";
+  tonePreference: "founder_story" | "commercial_clean" | "direct_response";
+  hookStyle: "pattern_break" | "narrative" | "problem_first";
+  ctaStyle: "direct" | "soft" | "community";
+  visualEnergy: "kinetic" | "balanced" | "minimal";
+  editingRhythm: "rapid" | "mixed" | "longform";
+  captionDensity: "light" | "medium" | "dense";
+  platformBias: "tiktok" | "instagram" | "youtube_shorts";
+  variantPreference: "single_best" | "parallel_variants" | "iterative_branching";
+  structurePattern: "hook-proof-cta" | "problem-solution-cta" | "story-payoff-cta";
 };
 
 export const WORKSPACE_MEMORY_KEY = "shopreel-workspace-memory-v2";
@@ -37,6 +52,21 @@ export function readWorkspaceMemory(): WorkspaceMemory | null {
 
 export function writeWorkspaceMemory(memory: WorkspaceMemory): void {
   window.localStorage.setItem(WORKSPACE_MEMORY_KEY, JSON.stringify(memory));
+}
+
+export function defaultCreativeContinuityMemory(): CreativeContinuityMemory {
+  return {
+    pacingPreference: "high_energy",
+    tonePreference: "founder_story",
+    hookStyle: "pattern_break",
+    ctaStyle: "direct",
+    visualEnergy: "kinetic",
+    editingRhythm: "rapid",
+    captionDensity: "light",
+    platformBias: "tiktok",
+    variantPreference: "parallel_variants",
+    structurePattern: "hook-proof-cta",
+  };
 }
 
 export function buildPendingTasks(intent: AiIntent): WorkspaceTask[] {

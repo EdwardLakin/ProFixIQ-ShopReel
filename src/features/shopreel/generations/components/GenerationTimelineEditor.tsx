@@ -7,6 +7,7 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { buildProductionMediaGraph, deriveAssetAwareness, deriveSceneIntelligence } from "@/features/shopreel/production/mediaGraph";
+import { readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 
 type Scene = {
   id: string;
@@ -41,6 +42,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("orchestration");
   const [showTelemetry, setShowTelemetry] = useState(true);
   const [expandedRails, setExpandedRails] = useState<Record<string, boolean>>({ timeline: true, orchestration: true, map: true });
+  const [ambientMode, setAmbientMode] = useState<"render"|"campaign"|"packaging"|"scene"|"publish"|"variant"|"balanced">("balanced");
 
   const scenes = useMemo(() => draft.scenes ?? [], [draft.scenes]);
   const mediaGraph = useMemo(() => buildProductionMediaGraph({ generationId: props.generationId, hook: draft.hook, cta: draft.cta, caption: draft.caption, scenes }), [draft.caption, draft.cta, draft.hook, props.generationId, scenes]);
@@ -51,6 +53,20 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
   useEffect(() => {
     const timer = window.setInterval(() => setHeartbeatTick((current) => current + 1), 4000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const memory = readWorkspaceMemory();
+    if (!memory) return;
+    const restoredMode: FocusMode = memory.adaptiveMode === "balanced" || !memory.adaptiveMode ? "campaign" : memory.adaptiveMode;
+    setFocusMode(restoredMode);
+    setAmbientMode(memory.adaptiveMode ?? "balanced");
+    setShowTelemetry(memory.adaptiveMode === "render" || memory.adaptiveMode === "publish");
+    setExpandedRails((current) => ({
+      ...current,
+      timeline: memory.adaptiveMode !== "render",
+      map: memory.adaptiveMode !== "scene",
+    }));
   }, []);
 
   const heartbeat = useMemo(() => {
@@ -80,11 +96,29 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     { label: "Export path", state: heartbeat.renderState === "export_ready" ? "export_ready" : "packaging", status: heartbeat.renderState === "export_ready" ? "ready" : "active" },
   ], [blockers.length, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.renderState]);
 
+  const orchestrationGravity = useMemo(() => {
+    const renderNearReady = heartbeat.renderState === "packaging" || heartbeat.renderState === "export_ready";
+    return [
+      { key: "render-path", label: "Render-ready path", active: renderNearReady, weight: renderNearReady ? 95 : 42, reason: renderNearReady ? "Nearing complete render lifecycle." : "Render still stabilizing." },
+      { key: "blocked-workflow", label: "Blocked workflow", active: blockers.length > 0, weight: blockers.length > 0 ? 90 : 20, reason: blockers.length > 0 ? "Unresolved interruption remains anchored." : "No blockers detected." },
+      { key: "variant-lineage", label: "Variant lineage", active: heartbeat.executionState === "sequencing" || focusMode === "variant", weight: focusMode === "variant" ? 88 : 64, reason: "Active variants remain elevated for continuity." },
+      { key: "stale-telemetry", label: "Stale telemetry", active: !showTelemetry, weight: !showTelemetry ? 16 : 45, reason: !showTelemetry ? "Auto-compressed to reduce noise." : "Expanded while execution is active." },
+    ].sort((a, b) => b.weight - a.weight);
+  }, [blockers.length, focusMode, heartbeat.executionState, heartbeat.renderState, showTelemetry]);
+
   const timelineClusters = useMemo(() => scenes.map((scene, index) => ({ scene, index, lineage: scene.media?.length ? "Linked to media lineage" : "Awaiting media lineage" })), [scenes]);
 
   const compactMode = zoomLevel === "macro" || zoomLevel === "orchestration";
 
   function updateScene(sceneId: string, patch: Partial<Scene>) { setDraft((current) => ({ ...current, scenes: (current.scenes ?? []).map((scene) => scene.id === sceneId ? { ...scene, ...patch } : scene) })); }
+
+  function setAdaptiveFocus(mode: FocusMode) {
+    setFocusMode(mode);
+    const memory = readWorkspaceMemory();
+    if (!memory) return;
+    writeWorkspaceMemory({ ...memory, adaptiveMode: mode, updatedAt: new Date().toISOString() });
+    setAmbientMode(mode);
+  }
 
   async function saveDraft() {
     try {
@@ -107,9 +141,9 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
             {zoomLevels.map((level) => <button key={level} onClick={() => setZoomLevel(level)} className={cx("rounded-full px-3 py-1 text-xs transition", zoomLevel === level ? "bg-cyan-400/25 text-cyan-50" : "bg-white/5 text-white/70")}>{formatLabel(level)}</button>)}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {focusModes.map((mode) => <button key={mode} onClick={() => setFocusMode(mode)} className={cx("rounded-full px-3 py-1 text-xs transition", focusMode === mode ? "bg-violet-500/25 text-violet-50" : "bg-white/5 text-white/70")}>{formatLabel(mode)} focus</button>)}
+            {focusModes.map((mode) => <button key={mode} onClick={() => setAdaptiveFocus(mode)} className={cx("rounded-full px-3 py-1 text-xs transition", focusMode === mode ? "bg-violet-500/25 text-violet-50" : "bg-white/5 text-white/70")}>{formatLabel(mode)} focus</button>)}
           </div>
-          <div className="text-sm text-white/70">Spatial state: <span className="text-white">{formatLabel(zoomLevel)}</span> zoom · <span className="text-white">{formatLabel(focusMode)}</span> intent</div>
+          <div className="text-sm text-white/70">Spatial state: <span className="text-white">{formatLabel(zoomLevel)}</span> zoom · <span className="text-white">{formatLabel(focusMode)}</span> intent · <span className="text-white">{formatLabel(ambientMode)}</span> ambient mode</div>
         </div>
         <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
           <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Production minimap</div>
@@ -117,6 +151,15 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
             {orchestrationMap.map((item) => <div key={item.label} className="flex items-center justify-between rounded-xl bg-white/[0.04] px-3 py-2 text-xs text-white/80"><span>{item.label}</span><span>{formatLabel(item.status)} · {formatLabel(item.state)}</span></div>)}
           </div>
         </div>
+      </div>
+    </GlassCard>
+
+    <GlassCard label="Orchestration gravity" title="Adaptive prominence rail" description="Execution paths self-organize by readiness, blockers, and continuity risk without noisy alerts.">
+      <div className="grid gap-2">
+        {orchestrationGravity.map((signal) => <div key={signal.key} className={cx("rounded-xl px-3 py-2 text-xs transition", signal.active ? "bg-cyan-400/10 text-cyan-50" : "bg-white/[0.03] text-white/70")}>
+          <div className="flex items-center justify-between"><span>{signal.label}</span><span>{signal.weight}% gravity</span></div>
+          <div className="mt-1 text-[11px] text-white/60">{signal.reason}</div>
+        </div>)}
       </div>
     </GlassCard>
 
