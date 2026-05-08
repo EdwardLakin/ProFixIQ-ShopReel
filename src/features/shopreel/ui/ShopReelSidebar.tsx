@@ -78,17 +78,17 @@ export default function ShopReelSidebar(props: {
       <button type="button" className={cx("fixed inset-0 z-40 bg-black/55 transition lg:hidden", mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0")} onClick={onCloseMobile} />
       <aside
         className={cx(
-          "fixed inset-y-0 left-0 z-50 border-r border-white/10 bg-[radial-gradient(circle_at_30%_0%,rgba(110,76,255,0.22),transparent_45%),linear-gradient(180deg,rgba(8,11,29,0.96),rgba(4,7,18,0.98))] transition-all duration-300",
-          collapsed ? "w-20" : "w-60",
+          "fixed inset-y-3 left-3 z-50 rounded-3xl border border-white/15 bg-[radial-gradient(circle_at_20%_0%,rgba(120,86,255,0.28),transparent_46%),linear-gradient(180deg,rgba(7,10,28,0.94),rgba(5,8,20,0.98))] shadow-[0_30px_80px_rgba(4,6,20,0.6)] transition-all duration-300",
+          collapsed ? "w-[5.2rem]" : "w-64",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="flex h-full flex-col px-2.5 py-4">
+        <div className="flex h-full flex-col px-3 py-4">
           <div className={cx("mb-4 flex items-center", collapsed ? "justify-center" : "justify-between px-1")}>
             {!collapsed ? (
               <div>
-                <div className="text-[11px] tracking-[0.2em] text-cyan-200/75">SHOPREEL</div>
-                <div className="text-base font-semibold text-white">Content Engine</div>
+                <div className="text-[11px] tracking-[0.2em] text-cyan-200/75">SHOPREEL OS</div>
+                <div className="text-base font-semibold text-white">Creative Command</div>
               </div>
             ) : null}
             <button type="button" onClick={onToggleCollapse} className={cx("inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]", glassTheme.text.secondary)}>
