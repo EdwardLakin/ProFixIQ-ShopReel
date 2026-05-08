@@ -48,6 +48,14 @@ export type OperationalGraph = {
   explainability: string[];
   worldZones: WorldZone[];
   gravityFields: ProductionGravityField[];
+  dimensionalLayers: DimensionalLayer[];
+  continuityFlow: ContinuityFlowPhysics;
+  structuralReactivity: StructuralReactivityState;
+  memoryResidue: WorldMemoryResidue;
+  attentionOrchestration: AutonomousAttentionOrchestration;
+  temporalCinematography: TemporalCinematographyEngine;
+  operationalFields: OperationalField[];
+  multiFocusState: MultiFocusAwarenessState;
 };
 
 export type WorldZoneKind =
@@ -165,6 +173,27 @@ export function buildOperationalGraph(input: {
       { id: "continuity-fracture", label: "Continuity fracture density", trigger: "interrupted continuity", intensity: score((input.interrupted ? 55 : 15) + input.continuityThreadCount * 9), focusNodeIds: [`${generationId}-continuity`, `${generationId}-publication`] },
       { id: "publication-momentum", label: "Publication momentum pull", trigger: "export/package readiness", intensity: score(input.readyTaskCount * 24 - input.blockerCount * 10), focusNodeIds: [`${generationId}-export`, `${generationId}-publication`] },
     ],
+    dimensionalLayers: [
+      { key: "surface_layer", density: score(40 + input.pendingTaskCount * 8), compression: score(30 + input.blockerCount * 10), focus: score(58 + input.readyTaskCount * 8), motion: score(46 + input.readyTaskCount * 7), urgency: score(52 + input.blockerCount * 12), visibility: score(80 - input.blockerCount * 8), influence: "Operator-visible command surface." },
+      { key: "operational_layer", density: score(55 + input.pendingTaskCount * 10), compression: score(45 + input.blockerCount * 10), focus: score(64 + input.readyTaskCount * 8), motion: score(58 + input.pendingTaskCount * 6), urgency: score(62 + input.blockerCount * 10), visibility: score(74 - input.blockerCount * 6), influence: "Task pressure topology." },
+      { key: "continuity_layer", density: score(42 + input.continuityThreadCount * 11), compression: score(38 + (input.interrupted ? 20 : 0)), focus: score(72 + input.continuityThreadCount * 6), motion: score(56 + input.continuityThreadCount * 7), urgency: score(50 + (input.interrupted ? 20 : 0)), visibility: score(70 + input.continuityThreadCount * 4), influence: "Continuity current rails." },
+      { key: "memory_layer", density: score(30 + input.pendingTaskCount * 7), compression: score(40 + input.blockerCount * 12), focus: score(54 + input.blockerCount * 8), motion: score(32 + input.readyTaskCount * 6), urgency: score(44 + input.blockerCount * 9), visibility: score(60), influence: "Operational residue and imprint." },
+      { key: "lineage_layer", density: score(50 + input.readyTaskCount * 7), compression: score(34 + input.pendingTaskCount * 8), focus: score(66 + input.readyTaskCount * 9), motion: score(44 + input.readyTaskCount * 7), urgency: score(48 + input.blockerCount * 8), visibility: score(68), influence: "Derivation and ancestry structure." },
+      { key: "recovery_layer", density: score(36 + input.continuityThreadCount * 9), compression: score(26 + (input.interrupted ? 28 : 8)), focus: score(64 + (input.interrupted ? 20 : 0)), motion: score(40 + input.continuityThreadCount * 6), urgency: score(46 + (input.interrupted ? 25 : 0)), visibility: score(76 - input.blockerCount * 4), influence: "Stabilization and restoration corridors." },
+      { key: "cinematic_layer", density: score(48 + input.blockerCount * 9), compression: score(42 + input.pendingTaskCount * 8), focus: score(70 + input.readyTaskCount * 7), motion: score(60 + input.readyTaskCount * 8), urgency: score(58 + input.blockerCount * 11), visibility: score(72), influence: "Pacing and atmospheric focus." },
+    ],
+    continuityFlow: { continuityCurrent: score(50 + input.continuityThreadCount * 11), momentumStream: score(48 + input.readyTaskCount * 14), instabilityTurbulence: score(22 + input.blockerCount * 23), recoveryDrift: score(30 + (input.interrupted ? 40 : 8)), exportFlowPressure: score(40 + input.readyTaskCount * 18), publicationAcceleration: score(36 + input.readyTaskCount * 16), dormantStagnation: score(34 + input.pendingTaskCount * 10 - input.readyTaskCount * 6), renderTurbulence: score(26 + input.blockerCount * 21), explainability: ["Continuity flows deterministically from continuity threads and blockers.", "Export and publication acceleration are local readiness gradients."] },
+    structuralReactivity: { environmentalDensity: score(44 + input.blockerCount * 16 + input.pendingTaskCount * 9), topologyDistortion: score(24 + input.blockerCount * 24), pacingIntensity: score(42 + input.readyTaskCount * 13 + input.blockerCount * 9), dormantCooling: score(64 + input.pendingTaskCount * 4 - input.readyTaskCount * 8), recoveryGradient: score(40 + (input.interrupted ? 28 : 8) + input.continuityThreadCount * 6), coherenceIntegrity: score(84 - input.blockerCount * 16 + input.readyTaskCount * 6), explainability: ["Reactivity mirrors true blockers and readiness propagation."] },
+    memoryResidue: { continuityScars: score(20 + input.continuityThreadCount * 12 + (input.interrupted ? 18 : 0)), instabilityEchoes: score(18 + input.blockerCount * 20), recoveryWarmth: score(30 + input.readyTaskCount * 14), dormantSediment: score(28 + input.pendingTaskCount * 10), bottleneckTrails: score(26 + input.blockerCount * 18), operationalErosion: score(24 + input.pendingTaskCount * 11 + input.blockerCount * 9), frictionResidue: score(18 + input.blockerCount * 24), momentumImprint: score(34 + input.readyTaskCount * 16), explainability: ["Residue encodes prior operational events in reversible local memory."] },
+    attentionOrchestration: { instabilityPull: score(30 + input.blockerCount * 22), staleZoneDimming: score(34 + input.pendingTaskCount * 10 - input.readyTaskCount * 5), continuityAnchorPreservation: score(56 + input.continuityThreadCount * 8), pressureCorridorWidth: score(40 + input.pendingTaskCount * 12), dormantBranchNarrowing: score(38 + input.pendingTaskCount * 10 - input.readyTaskCount * 6), activeFrontElevation: score(46 + input.readyTaskCount * 14), stableRegionSoftening: score(62 + input.readyTaskCount * 9 - input.blockerCount * 8), explainability: ["Attention orchestration reshapes environment without alerts or assistants."] },
+    temporalCinematography: { pacingAcceleration: score(38 + input.readyTaskCount * 14 + input.blockerCount * 10), breathingCycle: score(72 - input.blockerCount * 12), tensionBuildup: score(34 + input.blockerCount * 21), recoveryCooling: score(40 + (input.interrupted ? 25 : 8)), restorationWarmth: score(44 + input.continuityThreadCount * 10 + input.readyTaskCount * 7), saturationCollapse: score(28 + input.pendingTaskCount * 12), escalationSurge: score(30 + input.blockerCount * 20), exportUrgencyCrescendo: score(38 + input.readyTaskCount * 18), explainability: ["Temporal atmosphere evolves from deterministic lifecycle metrics."] },
+    operationalFields: [
+      { id: "continuity", kind: "continuity_field", strength: score(48 + input.continuityThreadCount * 12), affectedNodeIds: [`${generationId}-continuity`, `${generationId}-scene`], explainability: "Maintains continuity openness across active rails." },
+      { id: "momentum", kind: "momentum_field", strength: score(46 + input.readyTaskCount * 14), affectedNodeIds: [`${generationId}-render`, `${generationId}-export`], explainability: "Pushes ready branches toward packaging." },
+      { id: "readiness", kind: "readiness_field", strength: score(40 + input.readyTaskCount * 16 - input.blockerCount * 8), affectedNodeIds: [`${generationId}-asset`, `${generationId}-publication`], explainability: "Readiness pressure for publication frontier." },
+      { id: "export-inevitability", kind: "export_inevitability_field", strength: score(34 + input.readyTaskCount * 18), affectedNodeIds: [`${generationId}-export`, `${generationId}-publication`], explainability: "Export inevitability ramps with completion." },
+    ],
+    multiFocusState: { activeRenderFront: score(38 + input.blockerCount * 18 + input.readyTaskCount * 8), exportEscalationRegion: score(40 + input.readyTaskCount * 16), continuityRecoveryCorridor: score(44 + input.continuityThreadCount * 12 + (input.interrupted ? 12 : 0)), dormantCampaignBasin: score(42 + input.pendingTaskCount * 10 - input.readyTaskCount * 6), publicationStagingFrontier: score(36 + input.readyTaskCount * 15), balanceIndex: score(70 - input.blockerCount * 12 + input.readyTaskCount * 7), explainability: ["Multi-focus awareness balances simultaneous operational fronts."] },
   };
 }
 
@@ -194,3 +223,14 @@ export function planCommandExecution(command: string, graph: OperationalGraph, f
 
   return { intent, targetRoute: fallbackRoute, mode: "default", explainability: ["Used default deterministic command plan."] };
 }
+
+
+export type DimensionalLayerKey = "surface_layer"|"operational_layer"|"continuity_layer"|"memory_layer"|"lineage_layer"|"recovery_layer"|"cinematic_layer";
+export type DimensionalLayer = { key: DimensionalLayerKey; density:number; compression:number; focus:number; motion:number; urgency:number; visibility:number; influence:string; };
+export type ContinuityFlowPhysics = { continuityCurrent:number; momentumStream:number; instabilityTurbulence:number; recoveryDrift:number; exportFlowPressure:number; publicationAcceleration:number; dormantStagnation:number; renderTurbulence:number; explainability:string[]; };
+export type StructuralReactivityState = { environmentalDensity:number; topologyDistortion:number; pacingIntensity:number; dormantCooling:number; recoveryGradient:number; coherenceIntegrity:number; explainability:string[]; };
+export type WorldMemoryResidue = { continuityScars:number; instabilityEchoes:number; recoveryWarmth:number; dormantSediment:number; bottleneckTrails:number; operationalErosion:number; frictionResidue:number; momentumImprint:number; explainability:string[]; };
+export type AutonomousAttentionOrchestration = { instabilityPull:number; staleZoneDimming:number; continuityAnchorPreservation:number; pressureCorridorWidth:number; dormantBranchNarrowing:number; activeFrontElevation:number; stableRegionSoftening:number; explainability:string[]; };
+export type TemporalCinematographyEngine = { pacingAcceleration:number; breathingCycle:number; tensionBuildup:number; recoveryCooling:number; restorationWarmth:number; saturationCollapse:number; escalationSurge:number; exportUrgencyCrescendo:number; explainability:string[]; };
+export type OperationalField = { id:string; kind:"continuity_field"|"momentum_field"|"readiness_field"|"export_inevitability_field"|"render_turbulence_field"|"recovery_harmonics"|"cinematic_pull_field"|"topology_stabilization_field"; strength:number; affectedNodeIds:string[]; explainability:string; };
+export type MultiFocusAwarenessState = { activeRenderFront:number; exportEscalationRegion:number; continuityRecoveryCorridor:number; dormantCampaignBasin:number; publicationStagingFrontier:number; balanceIndex:number; explainability:string[]; };
