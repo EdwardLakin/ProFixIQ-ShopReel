@@ -24,7 +24,24 @@ export type WorkspaceMemory = {
   creativeContinuity?: CreativeContinuityMemory;
   continuityThreads?: ContinuityThread[];
   intentSignals?: CreativeIntentSignals;
+  ecosystemState?: EcosystemState;
   updatedAt: string;
+};
+export type TemporalRailState = "active_now" | "recent" | "stale" | "archived" | "interrupted" | "resumed" | "escalating";
+
+export type EcosystemState = {
+  operationalSaturation: number;
+  interruptionPressure: number;
+  continuityImportance: number;
+  activeProductionLoad: number;
+  exportReadinessPressure: number;
+  renderUrgency: number;
+  unresolvedBlockerWeight: number;
+  focusEntropy: number;
+  telemetryDensityPressure: number;
+  temporalRailState: TemporalRailState;
+  environmentalEnergy: "calm_idle" | "active_production" | "render_tension" | "export_momentum" | "blocker_friction" | "campaign_intensity";
+  explainability: string[];
 };
 
 export type ContinuityThreadKind = "active_workflow" | "recovery" | "render_continuation" | "scene_path" | "export_lineage" | "campaign_evolution";
@@ -155,6 +172,60 @@ export function evolveCreativeIntentSignals(memory: CreativeContinuityMemory): C
       `Pacing inferred from ${memory.pacingPreference} + ${memory.editingRhythm}.`,
       `CTA bias inferred from ${memory.ctaStyle}.`,
       `Export bias inferred from ${memory.platformBias} + ${memory.tonePreference}.`,
+    ],
+  };
+}
+
+function clampScore(input: number): number {
+  return Math.max(0, Math.min(100, Math.round(input)));
+}
+
+export function deriveEcosystemState(input: {
+  pendingTaskCount: number;
+  readyTaskCount: number;
+  blockerCount: number;
+  continuityThreadCount: number;
+  interruptedWorkflow?: AiIntent;
+  adaptiveMode?: WorkspaceMemory["adaptiveMode"];
+  minutesSinceUpdate: number;
+}): EcosystemState {
+  const operationalSaturation = clampScore((input.pendingTaskCount * 15) + (input.blockerCount * 20));
+  const interruptionPressure = clampScore((input.interruptedWorkflow ? 58 : 18) + (input.blockerCount * 16));
+  const continuityImportance = clampScore(45 + (input.continuityThreadCount * 8) + (input.interruptedWorkflow ? 22 : 0));
+  const activeProductionLoad = clampScore((input.pendingTaskCount * 10) + (input.readyTaskCount * 8));
+  const exportReadinessPressure = clampScore((input.readyTaskCount * 24) + (input.adaptiveMode === "publish" || input.adaptiveMode === "packaging" ? 18 : 0));
+  const renderUrgency = clampScore((input.adaptiveMode === "render" ? 45 : 20) + (input.blockerCount * 12));
+  const unresolvedBlockerWeight = clampScore(input.blockerCount * 30);
+  const focusEntropy = clampScore((input.pendingTaskCount * 9) + (input.blockerCount * 14) - (input.readyTaskCount * 8));
+  const telemetryDensityPressure = clampScore((input.pendingTaskCount * 11) + (input.minutesSinceUpdate > 180 ? 24 : 8) - (input.readyTaskCount * 5));
+  const temporalRailState: TemporalRailState =
+    input.interruptedWorkflow ? "interrupted" :
+    input.blockerCount > 1 ? "escalating" :
+    input.minutesSinceUpdate <= 10 ? "active_now" :
+    input.minutesSinceUpdate <= 120 ? "recent" :
+    input.minutesSinceUpdate <= 720 ? "stale" : "archived";
+  const environmentalEnergy: EcosystemState["environmentalEnergy"] =
+    input.blockerCount > 0 ? "blocker_friction" :
+    input.adaptiveMode === "render" ? "render_tension" :
+    input.adaptiveMode === "publish" || input.adaptiveMode === "packaging" ? "export_momentum" :
+    input.adaptiveMode === "campaign" ? "campaign_intensity" :
+    input.pendingTaskCount > 2 ? "active_production" : "calm_idle";
+  return {
+    operationalSaturation,
+    interruptionPressure,
+    continuityImportance,
+    activeProductionLoad,
+    exportReadinessPressure,
+    renderUrgency,
+    unresolvedBlockerWeight,
+    focusEntropy,
+    telemetryDensityPressure,
+    temporalRailState,
+    environmentalEnergy,
+    explainability: [
+      `Saturation derives from ${input.pendingTaskCount} pending tasks and ${input.blockerCount} blockers.`,
+      `Temporal rail is ${temporalRailState.replaceAll("_", " ")} from ${input.minutesSinceUpdate} minute recency.`,
+      `Energy is ${environmentalEnergy.replaceAll("_", " ")} due to adaptive mode ${input.adaptiveMode ?? "balanced"}.`,
     ],
   };
 }

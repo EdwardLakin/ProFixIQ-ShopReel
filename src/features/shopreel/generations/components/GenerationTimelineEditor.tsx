@@ -7,7 +7,7 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { buildProductionMediaGraph, deriveAssetAwareness, deriveSceneIntelligence } from "@/features/shopreel/production/mediaGraph";
-import { readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { deriveEcosystemState, readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 
 type Scene = {
   id: string;
@@ -166,9 +166,19 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     ];
   }, [blockers.length, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.renderState]);
 
+  const ecosystemState = useMemo(() => deriveEcosystemState({
+    pendingTaskCount: heartbeat.pendingScenes,
+    readyTaskCount: heartbeat.readyScenes,
+    blockerCount: blockers.length,
+    continuityThreadCount: 3 + (focusMode === "variant" ? 1 : 0),
+    interruptedWorkflow: heartbeat.executionState === "interrupted" ? "editor" : undefined,
+    adaptiveMode: ambientMode,
+    minutesSinceUpdate: heartbeatTick * 4,
+  }), [ambientMode, blockers.length, focusMode, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.readyScenes, heartbeatTick]);
+
   useEffect(() => {
     const actions: AutonomousAction[] = [];
-    if (!showTelemetry) {
+    if (!showTelemetry || ecosystemState.telemetryDensityPressure < 35) {
       actions.push({ id: `compress-${heartbeatTick}`, type: "compress_telemetry", label: "Compressed resolved telemetry", rationale: "Compressed because telemetry rail is not needed for current execution focus.", reversible: true, appliedAt: new Date().toISOString() });
     }
     if (heartbeat.renderState === "packaging" || heartbeat.renderState === "export_ready") {
@@ -187,7 +197,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     actions.push({ id: `export-elevate-${heartbeatTick}`, type: "elevate_export", label: "Elevated publish-ready outputs", rationale: heartbeat.renderState === "export_ready" ? "Elevated due to export readiness." : "Maintained at normal weight until export readiness is reached.", reversible: true, appliedAt: new Date().toISOString() });
 
     setAutoActions(actions.slice(0, 8));
-  }, [blockers.length, focusMode, heartbeat.executionState, heartbeat.renderState, heartbeatTick, showTelemetry]);
+  }, [blockers.length, ecosystemState.telemetryDensityPressure, focusMode, heartbeat.executionState, heartbeat.renderState, heartbeatTick, showTelemetry]);
 
   const timelineClusters = useMemo(() => scenes.map((scene, index) => ({ scene, index, lineage: scene.media?.length ? "Linked to media lineage" : "Awaiting media lineage" })), [scenes]);
 
@@ -225,7 +235,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     } finally { setSaving(false); }
   }
 
-  const atmosphereClass = heartbeat.renderState === "rendering" ? "from-fuchsia-500/20 via-cyan-400/10 to-transparent" : heartbeat.renderState === "export_ready" ? "from-emerald-400/20 via-cyan-400/10 to-transparent" : blockers.length > 0 ? "from-amber-500/20 via-rose-400/10 to-transparent" : "from-violet-500/20 via-cyan-500/10 to-transparent";
+  const atmosphereClass = ecosystemState.environmentalEnergy === "render_tension" ? "from-fuchsia-500/20 via-cyan-400/10 to-transparent" : ecosystemState.environmentalEnergy === "export_momentum" ? "from-emerald-400/20 via-cyan-400/10 to-transparent" : ecosystemState.environmentalEnergy === "blocker_friction" ? "from-amber-500/20 via-rose-400/10 to-transparent" : ecosystemState.environmentalEnergy === "campaign_intensity" ? "from-indigo-500/20 via-violet-400/10 to-transparent" : "from-violet-500/20 via-cyan-500/10 to-transparent";
 
   return <div className={cx("relative grid gap-5 overflow-hidden rounded-[2rem] p-1", "before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-br", atmosphereClass)}>
     <GlassCard label="Spatial production workspace" title="Navigate production depth" description="Foreground editing, orchestration rails, and background telemetry now share one navigable workspace." strong>
@@ -254,6 +264,25 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
           <div className="flex items-center justify-between"><span>{signal.label}</span><span>{signal.weight}% gravity</span></div>
           <div className="mt-1 text-[11px] text-white/60">{signal.reason}</div>
         </div>)}
+      </div>
+    </GlassCard>
+
+    <GlassCard label="Ecosystem state engine" title="Continuous adaptive balancing" description="Client-side deterministic state computes saturation, entropy, continuity pressure, and temporal adaptation.">
+      <div className="grid gap-2 md:grid-cols-2">
+        {[
+          ["Operational saturation", ecosystemState.operationalSaturation],
+          ["Interruption pressure", ecosystemState.interruptionPressure],
+          ["Continuity importance", ecosystemState.continuityImportance],
+          ["Production load", ecosystemState.activeProductionLoad],
+          ["Export readiness", ecosystemState.exportReadinessPressure],
+          ["Render urgency", ecosystemState.renderUrgency],
+          ["Blocker weight", ecosystemState.unresolvedBlockerWeight],
+          ["Focus entropy", ecosystemState.focusEntropy],
+          ["Telemetry pressure", ecosystemState.telemetryDensityPressure],
+        ].map(([label, score]) => <div key={label} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/80"><div className="flex items-center justify-between"><span>{label}</span><span>{score}</span></div></div>)}
+      </div>
+      <div className="mt-3 rounded-xl border border-cyan-300/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50">
+        Temporal state: {formatLabel(ecosystemState.temporalRailState)} · Environmental energy: {formatLabel(ecosystemState.environmentalEnergy)}
       </div>
     </GlassCard>
 
