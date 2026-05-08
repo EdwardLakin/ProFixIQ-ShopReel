@@ -9,20 +9,27 @@ export default function GlassCard(props: {
   footer?: ReactNode;
   className?: string;
   strong?: boolean;
+  tier?: "primary" | "standard" | "quiet";
 }) {
-  const { label, title, description, children, footer, className, strong = false } = props;
+  const { label, title, description, children, footer, className, strong = false, tier = "standard" } = props;
 
   return (
     <section
       className={cx(
-        "rounded-3xl border p-5 md:p-6",
+        "rounded-2xl border p-4 md:p-5",
         strong ? glassTheme.border.strong : glassTheme.border.soft,
-        strong ? glassTheme.glass.panelStrong : glassTheme.glass.panel,
+        strong || tier === "primary"
+          ? glassTheme.glass.panelStrong
+          : tier === "quiet"
+            ? glassTheme.glass.panelSoft
+            : glassTheme.glass.panel,
+        tier === "primary" && "shadow-[0_24px_70px_rgba(8,10,30,0.5)]",
+        tier === "quiet" && "opacity-90",
         className,
       )}
     >
       {(label || title || description) && (
-        <header className="mb-5 space-y-2">
+        <header className="mb-4 space-y-1.5">
           {label ? (
             <div
               className={cx(
@@ -37,7 +44,7 @@ export default function GlassCard(props: {
           {title ? (
             <h2
               className={cx(
-                "text-lg tracking-[0.01em] md:text-xl font-semibold",
+                "text-base tracking-[0.01em] md:text-lg font-semibold",
                 glassTheme.text.primary,
               )}
             >
@@ -46,16 +53,16 @@ export default function GlassCard(props: {
           ) : null}
 
           {description ? (
-            <p className={cx("text-sm leading-6", glassTheme.text.secondary)}>
+            <p className={cx("text-sm leading-5", glassTheme.text.secondary)}>
               {description}
             </p>
           ) : null}
         </header>
       )}
 
-      {children ? <div className="space-y-4">{children}</div> : null}
+      {children ? <div className="space-y-3">{children}</div> : null}
       {footer ? (
-        <div className="mt-5 border-t border-[rgba(255,255,255,0.06)] pt-4">
+        <div className="mt-4 border-t border-[rgba(255,255,255,0.06)] pt-3.5">
           {footer}
         </div>
       ) : null}
