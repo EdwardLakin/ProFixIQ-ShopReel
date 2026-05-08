@@ -21,6 +21,7 @@ import {
   writeWorkspaceMemory,
   type WorkspaceMemory,
 } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -78,6 +79,18 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
     });
 
+    const operationalGraph = buildOperationalGraph({
+      generationId: recent[0]?.id,
+      campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+      pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
+      blockerCount,
+      readyTaskCount,
+      interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
+      continuityThreadCount: continuityThreads.length,
+      lastRoute: route,
+    });
+    const executionPlan = planCommandExecution(command, operationalGraph, route, interpreted.intent);
+
     const next: WorkspaceMemory = {
       lastWorkflow: interpreted.intent,
       lastCampaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
@@ -112,6 +125,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
         intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
       }),
+      operationalGraph,
+      lastExecutionPlan: executionPlan,
       updatedAt: new Date().toISOString(),
     };
     writeWorkspaceMemory(next);
@@ -121,13 +136,24 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
   const runCommand = () => {
     const fallbackLatest = recent[0] ? `/shopreel/generations/${recent[0].id}` : "/shopreel/generations";
-    const target =
-      interpreted.intent === "latest" && /continue/.test(command.toLowerCase())
-        ? context?.lastRoute ?? fallbackLatest
-        : interpreted.href ?? "/shopreel";
+    const inferredTarget = interpreted.intent === "latest" && /continue/.test(command.toLowerCase())
+      ? context?.lastRoute ?? fallbackLatest
+      : interpreted.href ?? "/shopreel";
+    const graph = context?.operationalGraph ?? buildOperationalGraph({
+      generationId: recent[0]?.id,
+      campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+      pendingTaskCount: context?.pendingTasks.filter((task) => !task.done).length ?? 0,
+      blockerCount: context?.pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length ?? 0,
+      readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+      interrupted: Boolean(context?.interruptedWorkflow),
+      continuityThreadCount: context?.continuityThreads?.length ?? 0,
+      lastRoute: inferredTarget,
+    });
+    const executionPlan = planCommandExecution(command, graph, inferredTarget, interpreted.intent);
+    const target = executionPlan.targetRoute;
 
     const countText = recent.length > 0 ? `I found ${recent.length} recent drafts. The newest reel was touched moments ago.` : "I couldn't find persisted activity yet, so I'll start from your command home.";
-    setAssistantText(`${interpreted.summary} ${countText}`);
+    setAssistantText(`${interpreted.summary} ${countText} Operating mode: ${executionPlan.mode.replaceAll("_", " ")}.`);
     persistContext(target);
     router.push(target);
   };
@@ -237,6 +263,12 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Adaptive ecosystem state</div>
           <div>Energy: {context.ecosystemState.environmentalEnergy.replaceAll("_", " ")} · Temporal: {context.ecosystemState.temporalRailState.replaceAll("_", " ")}</div>
           <div>Saturation: {context.ecosystemState.operationalSaturation} · Entropy: {context.ecosystemState.focusEntropy} · Telemetry: {context.ecosystemState.telemetryDensityPressure}</div>
+        </div> : null}
+        {context?.operationalGraph ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
+          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Operational graph</div>
+          <div>Active chain depth: {context.operationalGraph.activeChain.length} · continuity pressure: {context.operationalGraph.continuityPressure} · readiness propagation: {context.operationalGraph.readinessPropagation}</div>
+          <div>Recovery candidates: {context.operationalGraph.recoveryCandidates.join(", ")}</div>
+          <div>Last execution mode: {context.lastExecutionPlan?.mode?.replaceAll("_", " ") ?? "default"}</div>
         </div> : null}
         {context?.productionConsciousness ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
           <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Production consciousness</div>
