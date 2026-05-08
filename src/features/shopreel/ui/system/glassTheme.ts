@@ -1,53 +1,53 @@
 export const glassTheme = {
   bg: {
-    base: "bg-[#050816]",
+    base: "bg-[#02040d]",
     overlay:
-      "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(37,99,235,0.10),transparent_24%),radial-gradient(circle_at_bottom,rgba(34,211,238,0.10),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_22%,transparent_78%,rgba(255,255,255,0.03))] before:content-['']",
-    grid: "absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.045)_1px,transparent_1px)] [background-size:18px_18px]",
+      "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_18%_0%,rgba(124,58,237,0.28),transparent_34%),radial-gradient(circle_at_86%_8%,rgba(34,211,238,0.20),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(59,130,246,0.12),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_18%,transparent_72%,rgba(255,255,255,0.025))] before:content-['']",
+    grid: "absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] [background-size:32px_32px]",
   },
 
   text: {
     primary: "text-white",
-    secondary: "text-white/72",
-    muted: "text-white/48",
-    copper: "text-sky-300/90",
-    copperSoft: "text-indigo-200/90",
+    secondary: "text-white/74",
+    muted: "text-white/46",
+    copper: "text-cyan-200/95",
+    copperSoft: "text-violet-100/90",
   },
 
   border: {
     soft: "border-white/10",
     softer: "border-white/8",
-    strong: "border-white/15",
-    copper: "border-sky-400/30",
+    strong: "border-white/16",
+    copper: "border-cyan-300/35",
   },
 
   glass: {
     panel:
-      "bg-white/[0.045] backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.42)]",
+      "bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.026))] backdrop-blur-2xl shadow-[0_22px_70px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.08)]",
     panelStrong:
-      "bg-white/[0.06] backdrop-blur-2xl shadow-[0_18px_60px_rgba(0,0,0,0.52)]",
+      "bg-[radial-gradient(circle_at_12%_0%,rgba(124,58,237,0.20),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))] backdrop-blur-2xl shadow-[0_34px_110px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.10)]",
     panelSoft:
-      "bg-white/[0.035] backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.34)]",
+      "bg-[linear-gradient(180deg,rgba(255,255,255,0.052),rgba(255,255,255,0.024))] backdrop-blur-xl shadow-[0_16px_50px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.06)]",
     input:
-      "bg-white/[0.04] backdrop-blur-md border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+      "bg-[#070b18]/78 backdrop-blur-xl border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_26px_rgba(0,0,0,0.22)]",
   },
 
   accent: {
-    copperBg: "bg-sky-400/12",
-    copperBgStrong: "bg-indigo-400/18",
-    copperLine: "bg-sky-400/40",
-    copperRing: "focus-visible:ring-sky-400/30",
-    copperBorder: "border-sky-400/35",
+    copperBg: "bg-cyan-400/12",
+    copperBgStrong: "bg-violet-400/18",
+    copperLine: "bg-cyan-300/45",
+    copperRing: "focus-visible:ring-cyan-300/30",
+    copperBorder: "border-cyan-300/35",
   },
 
   radius: {
-    xl: "rounded-3xl",
-    lg: "rounded-2xl",
-    md: "rounded-xl",
+    xl: "rounded-[30px]",
+    lg: "rounded-3xl",
+    md: "rounded-2xl",
   },
 
   spacing: {
-    shell: "px-4 py-6 md:px-6 md:py-8 xl:px-8",
+    shell: "px-4 py-6 md:px-7 md:py-9 xl:px-10",
     section: "space-y-6",
     grid: "gap-4 md:gap-5 xl:gap-6",
   },
