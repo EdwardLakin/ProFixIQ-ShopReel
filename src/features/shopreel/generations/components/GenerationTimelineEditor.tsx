@@ -6,6 +6,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+import { buildProductionMediaGraph, deriveAssetAwareness, deriveSceneIntelligence } from "@/features/shopreel/production/mediaGraph";
 
 type Scene = {
   id: string;
@@ -47,6 +48,9 @@ export default function GenerationTimelineEditor(props: {
   const [error, setError] = useState<string | null>(null);
 
   const scenes = useMemo(() => draft.scenes ?? [], [draft.scenes]);
+  const mediaGraph = useMemo(() => buildProductionMediaGraph({ generationId: props.generationId, hook: draft.hook, cta: draft.cta, caption: draft.caption, scenes }), [draft.caption, draft.cta, draft.hook, props.generationId, scenes]);
+  const sceneIntelligence = useMemo(() => deriveSceneIntelligence({ generationId: props.generationId, hook: draft.hook, cta: draft.cta, caption: draft.caption, scenes }), [draft.caption, draft.cta, draft.hook, props.generationId, scenes]);
+  const assetAwareness = useMemo(() => deriveAssetAwareness(scenes), [scenes]);
 
   function updateScene(sceneId: string, patch: Partial<Scene>) {
     setDraft((current) => ({
@@ -132,6 +136,35 @@ export default function GenerationTimelineEditor(props: {
               className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
             />
           </label>
+        </div>
+      </GlassCard>
+
+
+      <GlassCard
+        label="Production graph"
+        title="Live media graph"
+        description="Deterministic graph of how scenes, assets, and variants relate before render + export."
+        strong
+      >
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Graph nodes</div>
+            <div className="mt-3 space-y-2">{mediaGraph.nodes.slice(0, 12).map((node) => <div key={node.id} className="rounded-xl bg-black/30 px-3 py-2 text-xs text-white/80">{node.kind} · {node.label}</div>)}</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Scene intelligence</div>
+            <div className="mt-3 space-y-2">{sceneIntelligence.map((note) => <div key={note} className="rounded-xl bg-black/30 px-3 py-2 text-xs text-white/80">{note}</div>)}</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Asset awareness</div>
+            <div className="mt-3 space-y-2">{assetAwareness.map((note) => <div key={note} className="rounded-xl bg-black/30 px-3 py-2 text-xs text-white/80">{note}</div>)}</div>
+          </div>
+        </div>
+      </GlassCard>
+
+      <GlassCard label="Variant rail" title="Variant orchestration" description="Plan derivative cuts without leaving the generation timeline.">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {["Instagram core", "TikTok fast hook", "Aggressive CTA", "Founder story", "Product-only cut", "Short hook A/B"].map((variant, index) => <div key={variant} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/80"><div className="font-medium text-white">{variant}</div><div className="mt-1 text-white/60">Derived from base storyboard · v{index + 1}</div></div>)}
         </div>
       </GlassCard>
 
