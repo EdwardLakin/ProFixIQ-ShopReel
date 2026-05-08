@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import ShopReelSidebar from "@/features/shopreel/ui/ShopReelSidebar";
+import GlobalCommandLauncher from "@/features/shopreel/ui/GlobalCommandLauncher";
 
 export default function ShopReelAppShell({ children }: { children: ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function ShopReelAppShell({ children }: { children: ReactNode }) 
 
       <div className="relative flex min-h-screen">
         <ShopReelSidebar />
+        <GlobalCommandLauncher />
 
         <section className="relative min-w-0 flex-1 pl-4 md:pl-6">
           <div className="min-h-screen">{children}</div>

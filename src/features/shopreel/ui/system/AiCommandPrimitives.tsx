@@ -5,18 +5,25 @@ import { useMemo, useState, type ReactNode } from "react";
 
 export type AiIntent = "latest" | "create" | "campaign" | "render" | "library" | "publish" | "ideas" | "editor" | "unknown";
 
-export function interpretCommand(input: string): { intent: AiIntent; href?: string } {
+export type CommandRouteResult = {
+  intent: AiIntent;
+  href?: string;
+  summary: string;
+  nextActions: Array<{ label: string; href: string }>;
+};
+
+export function interpretCommand(input: string): CommandRouteResult {
   const q = input.toLowerCase().trim();
-  if (!q) return { intent: "unknown" };
-  if (/(latest|recent|show me latest|latest work|recent projects)/.test(q)) return { intent: "latest", href: "/shopreel/generations" };
-  if (/(create|make reel|new video|upload)/.test(q)) return { intent: "create", href: "/shopreel/create" };
-  if (/(campaign|campaign data)/.test(q)) return { intent: "campaign", href: "/shopreel/campaigns" };
-  if (/(render|failed render|processing)/.test(q)) return { intent: "render", href: "/shopreel/render-queue" };
-  if (/(library|assets|uploads)/.test(q)) return { intent: "library", href: "/shopreel/library" };
-  if (/(publish|export|package)/.test(q)) return { intent: "publish", href: "/shopreel/exports" };
-  if (/(ideas|brainstorm)/.test(q)) return { intent: "ideas", href: "/shopreel/ideas" };
-  if (/(editor|edit draft)/.test(q)) return { intent: "editor", href: "/shopreel/editor" };
-  return { intent: "unknown" };
+  if (!q) return { intent: "unknown", summary: "Waiting for your command.", nextActions: [] };
+  if (/(continue|continue latest|what we were working on|latest|recent|show me latest|latest work|recent projects)/.test(q)) return { intent: "latest", href: "/shopreel/generations", summary: "I understood you want to continue recent work.", nextActions: [{ label: "Open latest generation", href: "/shopreel/generations" }, { label: "Open library uploads", href: "/shopreel/library" }] };
+  if (/(create|make reel|new video|upload|from these uploads)/.test(q)) return { intent: "create", href: "/shopreel/create", summary: "I understood you want to create a new reel draft.", nextActions: [{ label: "Open create workspace", href: "/shopreel/create" }, { label: "Review uploads", href: "/shopreel/library" }] };
+  if (/(campaign|campaign data|payproof)/.test(q)) return { intent: "campaign", href: "/shopreel/campaigns", summary: "I understood you want campaign intelligence and workflow.", nextActions: [{ label: "Open campaigns", href: "/shopreel/campaigns" }, { label: "Open analytics", href: "/shopreel/analytics" }] };
+  if (/(render|failed render|processing|need attention)/.test(q)) return { intent: "render", href: "/shopreel/render-queue", summary: "I understood you want render status and exceptions.", nextActions: [{ label: "Open render queue", href: "/shopreel/render-queue" }, { label: "Open render jobs", href: "/shopreel/render-jobs" }] };
+  if (/(library|assets|uploads)/.test(q)) return { intent: "library", href: "/shopreel/library", summary: "I understood you need asset/library access.", nextActions: [{ label: "Open library", href: "/shopreel/library" }, { label: "Open content", href: "/shopreel/content" }] };
+  if (/(publish|export|package|ready assets)/.test(q)) return { intent: "publish", href: "/shopreel/exports", summary: "I understood you want to package and publish ready assets.", nextActions: [{ label: "Open exports", href: "/shopreel/exports" }, { label: "Open publish queue", href: "/shopreel/publish-queue" }] };
+  if (/(ideas|brainstorm)/.test(q)) return { intent: "ideas", href: "/shopreel/ideas", summary: "I understood you want ideation support.", nextActions: [{ label: "Open ideas", href: "/shopreel/ideas" }, { label: "Open opportunities", href: "/shopreel/opportunities" }] };
+  if (/(editor|edit draft)/.test(q)) return { intent: "editor", href: "/shopreel/editor", summary: "I understood you want editor access.", nextActions: [{ label: "Open editor", href: "/shopreel/editor" }, { label: "Open generations", href: "/shopreel/generations" }] };
+  return { intent: "unknown", summary: "I couldn't confidently map that yet, but I can route you to core workspaces.", nextActions: [{ label: "Open command home", href: "/shopreel" }, { label: "Open generations", href: "/shopreel/generations" }] };
 }
 
 export function AiCommandInput(props: { value: string; placeholder?: string; onChange?: (value: string) => void; readOnly?: boolean }) {
