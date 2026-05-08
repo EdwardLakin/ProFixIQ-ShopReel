@@ -5,8 +5,6 @@ import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSet
 import { upsertBrandBrainProfile } from "@/features/shopreel/brain/repository";
 import type { ShopReelPlatform } from "@/features/shopreel/settings/getShopReelSettings";
 
-const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
-
 async function resolveShopId() {
   const supabase = await createClient();
 
@@ -14,17 +12,13 @@ async function resolveShopId() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return DEFAULT_SHOP_ID;
-  }
+  if (!user) return null;
 
   const { data: shopIdData, error: shopIdError } = await supabase.rpc(
     "current_tenant_shop_id",
   );
 
-  if (shopIdError || !shopIdData) {
-    return DEFAULT_SHOP_ID;
-  }
+  if (shopIdError || !shopIdData) return null;
 
   return String(shopIdData);
 }
@@ -32,6 +26,9 @@ async function resolveShopId() {
 export async function GET() {
   try {
     const shopId = await resolveShopId();
+    if (!shopId) {
+      return NextResponse.json({ ok: false, error: "SHOP_CONTEXT_REQUIRED" }, { status: 401 });
+    }
     const bundle = await getShopReelSettings(shopId);
     return NextResponse.json(bundle);
   } catch (error) {
@@ -42,6 +39,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const shopId = await resolveShopId();
+    if (!shopId) {
+      return NextResponse.json({ ok: false, error: "SHOP_CONTEXT_REQUIRED" }, { status: 401 });
+    }
 
     const body = (await req.json().catch(() => ({}))) as {
       publishMode?: "manual" | "approval_required" | "autopilot";
