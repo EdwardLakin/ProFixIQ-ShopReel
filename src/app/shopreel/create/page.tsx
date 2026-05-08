@@ -151,7 +151,7 @@ export default function ShopReelCreatePage() {
 
   return (
     <GlassShell eyebrow="Create" title="Create your next piece of content" subtitle="Guided studio flow: choose format, upload media, brief AI, select channels, then generate draft.">
-      <div className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3"><div className="grid gap-2 sm:grid-cols-4"><div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">01 · Format</div><div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">02 · Source</div><div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">03 · Brief</div><div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">04 · Channels</div></div></div><div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"><div className="grid gap-2 sm:grid-cols-4"><div className="rounded-xl border border-cyan-300/25 bg-cyan-500/10 px-3 py-2 text-xs text-white/85">01 · Format</div><div className="rounded-xl border border-violet-300/25 bg-violet-500/10 px-3 py-2 text-xs text-white/85">02 · Source</div><div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">03 · Brief</div><div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">04 · Channels</div></div></div><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="space-y-4">
           {prefillNotice ? (
             <div className="rounded-2xl border border-cyan-300/25 bg-cyan-400/[0.07] px-4 py-3 text-sm text-cyan-50">
@@ -217,13 +217,13 @@ export default function ShopReelCreatePage() {
               })}
             </div>
             {error ? <div className="mt-4 rounded-xl border border-rose-300/35 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
-            <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="mt-4 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_35px_rgba(99,82,255,0.4)] disabled:opacity-70">{isSubmitting ? "Generating draft..." : "Generate draft"}</button>
+            <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="mt-3 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_45px_rgba(99,82,255,0.45)] disabled:opacity-70">{isSubmitting ? "Generating draft..." : "Generate draft"}</button>
           </section>
         </section>
 
         <aside className="space-y-3 xl:sticky xl:top-6 xl:self-start">
           <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-4 backdrop-blur">
-            <div className="text-sm font-semibold text-white">Brief summary</div>
+            <div className="text-sm font-semibold text-white">Execution summary</div>
             <div className="mt-3 space-y-2 text-sm text-white/75">
               <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Format: {selectedContentType}</div>
               <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Files: {files.length}</div>
@@ -233,7 +233,7 @@ export default function ShopReelCreatePage() {
             </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-4 backdrop-blur">
-            <div className="text-sm font-semibold text-white">Tips for stronger output</div>
+            <div className="text-sm font-semibold text-white">Operator guidance</div>
             <div className="mt-3 space-y-2 text-sm text-white/70">
               <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Lead with one clear outcome and one CTA.</div>
               <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2">Use creator-style pacing cues (hook, proof, close).</div>
