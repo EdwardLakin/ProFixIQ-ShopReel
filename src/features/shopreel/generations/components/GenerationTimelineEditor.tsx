@@ -25,6 +25,14 @@ type RenderLifecycleState = "queued" | "staging" | "rendering" | "packaging" | "
 type FocusMode = "campaign" | "render" | "scene" | "variant" | "packaging" | "publish";
 type ZoomLevel = "macro" | "orchestration" | "scene" | "asset";
 
+
+type EnvironmentalWeight = {
+  key: string;
+  label: string;
+  score: number;
+  reason: string;
+};
+
 const focusModes: FocusMode[] = ["campaign", "render", "scene", "variant", "packaging", "publish"];
 const zoomLevels: ZoomLevel[] = ["macro", "orchestration", "scene", "asset"];
 
@@ -96,6 +104,25 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     { label: "Export path", state: heartbeat.renderState === "export_ready" ? "export_ready" : "packaging", status: heartbeat.renderState === "export_ready" ? "ready" : "active" },
   ], [blockers.length, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.renderState]);
 
+  const environmentalWeights = useMemo<EnvironmentalWeight[]>(() => {
+    const urgency = blockers.length > 0 ? 92 : heartbeat.pendingScenes > 0 ? 70 : 40;
+    const readiness = heartbeat.progress;
+    const interruptionRisk = blockers.length > 0 ? 88 : 24;
+    const renderConfidence = heartbeat.renderState === "blocked" ? 34 : heartbeat.renderState === "rendering" ? 78 : heartbeat.renderState === "export_ready" ? 96 : 62;
+    const reviewBlockage = blockers.length > 0 ? 86 : 22;
+    const exportMaturity = heartbeat.renderState === "export_ready" ? 94 : heartbeat.renderState === "packaging" ? 76 : 30;
+    const continuityImportance = focusMode === "scene" || focusMode === "variant" ? 90 : 68;
+    return [
+      { key: "urgency", label: "Urgency", score: urgency, reason: blockers.length > 0 ? "Blockers are unresolved and spatially persistent." : "No active hard blockers." },
+      { key: "readiness", label: "Readiness", score: readiness, reason: "Derived from scene coverage and voiceover completeness." },
+      { key: "interruption", label: "Interruption risk", score: interruptionRisk, reason: blockers.length > 0 ? "Interrupted path requires foreground recovery." : "No interrupted focus path detected." },
+      { key: "render-confidence", label: "Render confidence", score: renderConfidence, reason: `Render lifecycle currently ${formatLabel(heartbeat.renderState)}.` },
+      { key: "review-blockage", label: "Review blockage", score: reviewBlockage, reason: blockers.length > 0 ? "Review cannot progress until media/voiceover recovery." : "Review path is unblocked." },
+      { key: "export-maturity", label: "Export maturity", score: exportMaturity, reason: "Export branch weighting follows packaging lifecycle." },
+      { key: "continuity", label: "Continuity importance", score: continuityImportance, reason: "Continuity rails persist under scene/variant focus." },
+    ];
+  }, [blockers.length, focusMode, heartbeat.pendingScenes, heartbeat.progress, heartbeat.renderState]);
+
   const orchestrationGravity = useMemo(() => {
     const renderNearReady = heartbeat.renderState === "packaging" || heartbeat.renderState === "export_ready";
     return [
@@ -133,7 +160,9 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     } finally { setSaving(false); }
   }
 
-  return <div className="grid gap-5">
+  const atmosphereClass = heartbeat.renderState === "rendering" ? "from-fuchsia-500/20 via-cyan-400/10 to-transparent" : heartbeat.renderState === "export_ready" ? "from-emerald-400/20 via-cyan-400/10 to-transparent" : blockers.length > 0 ? "from-amber-500/20 via-rose-400/10 to-transparent" : "from-violet-500/20 via-cyan-500/10 to-transparent";
+
+  return <div className={cx("relative grid gap-5 overflow-hidden rounded-[2rem] p-1", "before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-br", atmosphereClass)}>
     <GlassCard label="Spatial production workspace" title="Navigate production depth" description="Foreground editing, orchestration rails, and background telemetry now share one navigable workspace." strong>
       <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
@@ -166,6 +195,15 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     <GlassCard label="Execution stream" title="Compressed telemetry rail" description="Telemetry can collapse to preserve focus while keeping heartbeat continuity visible.">
       <div className="mb-3 flex items-center justify-between"><GlassBadge tone="default">{showTelemetry ? "Expanded" : "Compressed"}</GlassBadge><button onClick={() => setShowTelemetry((c) => !c)} className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/80">{showTelemetry ? "Collapse telemetry" : "Expand telemetry"}</button></div>
       {showTelemetry ? <div className="grid gap-2">{executionStream.map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">{item.entry}</div>)}</div> : <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70">Heartbeat {formatLabel(heartbeat.executionState)} · Render {formatLabel(heartbeat.renderState)} · {heartbeat.progress}% ready</div>}
+    </GlassCard>
+
+    <GlassCard label="Environmental priority system" title="Dynamic weighting engine" description="Visibility, persistence, and compression adapt from deterministic operational weighting.">
+      <div className="grid gap-2 md:grid-cols-2">
+        {environmentalWeights.map((weight) => <div key={weight.key} className={cx("rounded-xl border px-3 py-2 text-xs", weight.score >= 80 ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-50" : weight.score >= 55 ? "border-violet-300/20 bg-violet-400/10 text-violet-50" : "border-white/10 bg-white/[0.03] text-white/75")}>
+          <div className="flex items-center justify-between"><span>{weight.label}</span><span>{weight.score}</span></div>
+          <div className="mt-1 text-[11px] text-white/60">{weight.reason}</div>
+        </div>)}
+      </div>
     </GlassCard>
 
     <GlassCard label="Spatial timeline" title="Horizontal production terrain" description="Timeline clusters expose scene lineage with touch-first horizontal traversal.">

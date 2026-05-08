@@ -11,7 +11,9 @@ import {
 } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 import {
   buildPendingTasks,
+  buildContinuityThreads,
   defaultCreativeContinuityMemory,
+  evolveCreativeIntentSignals,
   readWorkspaceMemory,
   writeWorkspaceMemory,
   type WorkspaceMemory,
@@ -56,6 +58,15 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
       adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
       creativeContinuity: context?.creativeContinuity ?? defaultCreativeContinuityMemory(),
+      continuityThreads: buildContinuityThreads({
+        intent: interpreted.intent,
+        pendingTasks: buildPendingTasks(interpreted.intent),
+        interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+        lastRoute: route,
+        generationId: recent[0]?.id,
+        campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+      }),
+      intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
       updatedAt: new Date().toISOString(),
     };
     writeWorkspaceMemory(next);
@@ -131,6 +142,16 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Pending tasks</div>
           <div className="space-y-2">{context.pendingTasks.map((task) => <Link key={task.id} href={task.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{task.label}</span><span className="text-cyan-100/70">{task.done ? "done" : "next"}</span></Link>)}</div>
+        </div> : null}
+        {context?.continuityThreads?.length ? <div className="mt-4">
+          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Continuity threads</div>
+          <div className="space-y-2">{context.continuityThreads.slice(0, 4).map((thread) => <Link key={thread.id} href={thread.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{thread.label}</span><span className="text-cyan-100/70">{thread.status} · {thread.priority}</span></Link>)}</div>
+        </div> : null}
+        {context?.intentSignals ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
+          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Creative intent evolution</div>
+          <div>Pacing: {context.intentSignals.pacingBias} · CTA: {context.intentSignals.ctaBias}</div>
+          <div>Hook density: {context.intentSignals.hookDensityBias} · Export style: {context.intentSignals.exportStyleBias}</div>
+          <div>Variant direction: {context.intentSignals.variantDirectionBias}</div>
         </div> : null}
         {history.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Command history</div>
