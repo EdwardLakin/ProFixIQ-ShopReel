@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import InternalGrowthAgentPanel from "@/features/internal-growth/components/InternalGrowthAgentPanel";

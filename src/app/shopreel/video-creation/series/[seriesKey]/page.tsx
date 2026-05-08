@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import SeriesDetailClient from "@/features/shopreel/video-creation/components/SeriesDetailClient";

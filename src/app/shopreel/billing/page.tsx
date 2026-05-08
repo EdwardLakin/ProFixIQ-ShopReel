@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import BillingPageClient from "@/features/billing/components/BillingPageClient";
 import { ShopReelPageHero } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";

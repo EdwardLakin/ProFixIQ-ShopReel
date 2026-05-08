@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import VideoBriefWizard from "@/features/shopreel/video-creation/components/VideoBriefWizard";
 import { listRecentMediaGenerationJobs } from "@/features/shopreel/video-creation/lib/server";

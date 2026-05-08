@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import { Suspense } from "react";
 import ShopReelSettingsClient from "@/features/shopreel/ui/ShopReelSettingsClient";

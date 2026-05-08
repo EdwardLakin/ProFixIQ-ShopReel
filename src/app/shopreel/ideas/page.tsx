@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import IdeasChatClient from "@/features/shopreel/ideas/components/IdeasChatClient";
 import { ShopReelPageHero } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
