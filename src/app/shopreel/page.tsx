@@ -1,256 +1,65 @@
 export const dynamic = "force-dynamic";
-
 import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import ShopReelTemplateCard from "@/features/shopreel/ui/ShopReelTemplateCard";
-import { ShopReelSectionHeader } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+import { AiCommandInput, AiIntentChip, AiPanel } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 
-const SOURCE_LABELS: Record<string, string> = {
-  idea: "Ideas",
-  ideas: "Ideas",
-  library: "Library",
-  review: "Review",
-  manual: "Manual Create",
-  manual_create: "Manual Create",
-};
-
-type StoryDraft = { title?: unknown; caption?: unknown; prompt?: unknown; hook?: unknown; concept?: unknown };
-type GenerationMetadata = { platformIds?: unknown; source?: unknown; sourceType?: unknown; createdFrom?: unknown };
-type RecentGenerationRow = {
-  id: string;
-  status: string | null;
-  created_at: string;
-  updated_at: string | null;
-  story_draft: StoryDraft | null;
-  generation_metadata: GenerationMetadata | null;
-};
-
-
-const PROMPT_CHIPS = ["Product launch reel", "Founder video", "Social media campaign", "Blog post", "How-to video"];
-const READINESS = ["Upload at least one source video", "Define your preferred tone in prompt", "Connect channels before publishing"];
-
-const START_TEMPLATES = [
-  { title: "Short-form video", description: "Reels, TikToks, and Shorts with hook-first pacing.", icon: "▶", tone: "from-violet-500/40 to-blue-400/20" },
-  { title: "Social post", description: "Visual + caption concepts tuned for conversions.", icon: "✦", tone: "from-fuchsia-500/40 to-rose-400/20" },
-  { title: "Blog post", description: "Long-form narratives from clips, notes, or interviews.", icon: "✎", tone: "from-emerald-500/30 to-cyan-400/20" },
-  { title: "Repurpose content", description: "Turn one upload into cross-channel assets.", icon: "↻", tone: "from-amber-500/35 to-orange-400/20" },
-  { title: "Campaign bundle", description: "Generate a campaign set from one brief.", icon: "◈", tone: "from-sky-500/40 to-indigo-400/20" },
-  { title: "Product promo", description: "Benefit-led promo sequences with clear CTA.", icon: "⚑", tone: "from-purple-500/40 to-cyan-300/20" },
-  { title: "Influencer content", description: "Creator-native scripts and cut directions.", icon: "☼", tone: "from-pink-500/35 to-violet-400/20" },
-];
-
-const PIPELINE_STEPS: Array<{ label: string; key: "drafts" | "review" | "processing" | "ready"; hint: string }> = [
-  { label: "Drafts", key: "drafts", hint: "Ideas forming" },
-  { label: "In Review", key: "review", hint: "Awaiting edits" },
-  { label: "Processing", key: "processing", hint: "Rendering now" },
-  { label: "Ready", key: "ready", hint: "Prepared output" },
-];
-
-
-function formatRelativeDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown time";
-  const elapsedMs = Date.now() - date.getTime();
-  const minute = 60_000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  if (elapsedMs < hour) return `${Math.max(1, Math.floor(elapsedMs / minute))}m ago`;
-  if (elapsedMs < day) return `${Math.floor(elapsedMs / hour)}h ago`;
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date);
-}
-
-function formatAbsoluteDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown date";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
-}
-
-function toPlatformLabels(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string" && item.length > 0);
-}
-
-function getSourceLabel(metadata: GenerationMetadata | null): string | null {
-  const rawSource = metadata?.source ?? metadata?.sourceType ?? metadata?.createdFrom;
-  if (typeof rawSource !== "string") return null;
-  return SOURCE_LABELS[rawSource.toLowerCase().trim()] ?? "Manual Create";
-}
-
-function trimText(value: unknown, limit = 52): string | null {
-  if (typeof value !== "string") return null;
-  const normalized = value.replace(/\s+/g, " ").trim();
-  if (!normalized) return null;
-  return normalized.length > limit ? `${normalized.slice(0, limit - 1)}…` : normalized;
-}
-
-function isGenericTitle(value: string): boolean {
-  const normalized = value.toLowerCase();
-  return normalized === "untitled" || normalized === "untitled project" || normalized.startsWith("project ");
-}
-
-function getDisplayTitle(item: RecentGenerationRow): string {
-  const title = trimText(item.story_draft?.title, 58);
-  const fallback = trimText(item.story_draft?.prompt) ?? trimText(item.story_draft?.caption) ?? trimText(item.story_draft?.hook) ?? trimText(item.story_draft?.concept);
-  const shortId = item.id.slice(0, 8);
-  if (!title && !fallback) return `Project ${shortId}`;
-  if (title && !isGenericTitle(title)) return title;
-  return `${(fallback ?? title)!} · ${shortId}`;
-}
+type StoryDraft = { title?: unknown; prompt?: unknown };
+type RecentGenerationRow = { id: string; status: string | null; created_at: string; story_draft: StoryDraft | null };
+const INTENTS = [
+  ["Create reel", "/shopreel/create?template=Create%20reel"],
+  ["Plan campaign", "/shopreel/create?template=Plan%20campaign"],
+  ["Edit draft", "/shopreel/editor"],
+  ["Check renders", "/shopreel/render-queue"],
+  ["Package for publish", "/shopreel/exports"],
+  ["Generate ideas", "/shopreel/ideas"],
+] as const;
 
 export default async function ShopReelPage() {
   const shopId = await getCurrentShopId();
   const supabase = createAdminClient();
-
   const [{ count: drafts = 0 }, { count: review = 0 }, { count: rendering = 0 }, { count: ready = 0 }, { data: recentData }] = await Promise.all([
     supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).in("status", ["draft", "queued"]),
     supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "review"),
     supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "rendering"),
     supabase.from("shopreel_story_generations").select("id", { count: "exact", head: true }).eq("shop_id", shopId).eq("status", "ready"),
-    supabase.from("shopreel_story_generations").select("id, status, created_at, updated_at, story_draft, generation_metadata").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(6),
+    supabase.from("shopreel_story_generations").select("id,status,created_at,story_draft").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(8),
   ]);
+  const recent: RecentGenerationRow[] = (recentData ?? []).map((row) => ({ id: row.id, status: row.status, created_at: row.created_at, story_draft: row.story_draft && typeof row.story_draft === "object" && !Array.isArray(row.story_draft) ? (row.story_draft as StoryDraft) : null }));
 
-  const recent: RecentGenerationRow[] = (recentData ?? []).map((row) => ({
-    id: row.id,
-    status: row.status,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    story_draft: row.story_draft && typeof row.story_draft === "object" && !Array.isArray(row.story_draft) ? (row.story_draft as StoryDraft) : null,
-    generation_metadata: row.generation_metadata && typeof row.generation_metadata === "object" && !Array.isArray(row.generation_metadata) ? (row.generation_metadata as GenerationMetadata) : null,
-  }));
-  const pipelineValues = { drafts, review, processing: rendering, ready };
-
-  return (
-    <GlassShell
-      title="Home"
-      hidePageIntro
-      className="space-y-4 md:space-y-5"
-    >
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-3">
-          <section className="relative overflow-hidden rounded-[30px] border border-violet-300/30 bg-[radial-gradient(circle_at_15%_0%,rgba(127,92,255,0.4),transparent_44%),radial-gradient(circle_at_92%_0%,rgba(66,198,255,0.25),transparent_40%),linear-gradient(145deg,rgba(7,10,25,0.98),rgba(5,8,20,0.88))] p-5 shadow-[0_40px_130px_rgba(12,10,35,0.55)] md:p-6">
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-3xl font-semibold text-white md:text-4xl">Your AI content engine</h2>
-                <p className="mt-2 max-w-3xl text-sm text-white/75">Upload media, describe the outcome, and generate videos, posts, blogs, captions, and campaigns — all in one place.</p>
-              </div>
-              <div className="rounded-3xl border border-white/20 bg-black/30 p-3.5 backdrop-blur-2xl md:p-4">
-                <div className="rounded-2xl border border-violet-300/25 bg-slate-950/80 px-4 py-4 text-sm text-white/70">Describe what you want. Example: Create a 30-second product launch reel for Instagram with upbeat pacing, captions, social cutdowns, and one clear CTA.</div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link href="/shopreel/upload" className="rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-sm font-medium text-white hover:bg-white/[0.14]">Upload media</Link>
-                  <Link href="/shopreel/create?template=Enhance%20my%20draft" className="rounded-xl border border-white/15 bg-black/35 px-4 py-2.5 text-sm font-medium text-white/85 hover:bg-white/[0.08]">Enhance</Link>
-                  <Link href="/shopreel/create" className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_35px_rgba(108,85,255,0.45)]">Create new content</Link>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {PROMPT_CHIPS.map((chip) => (
-                  <Link key={chip} href={`/shopreel/create?template=${encodeURIComponent(chip)}`} className="rounded-full border border-white/15 bg-gradient-to-r from-white/[0.12] to-white/[0.04] px-4 py-2 text-xs font-medium text-white/85 transition hover:-translate-y-0.5 hover:bg-white/[0.15]">
-                    {chip}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
-            <div className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-white/60">Your content pipeline</div>
-            <div className="mb-2 text-xs text-white/60">Create content, review it, prepare renders, export packages, then publish manually.</div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-              {PIPELINE_STEPS.map((step) => (
-                <div key={step.key} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
-                  <div className="text-xs text-white/55">{step.label}</div>
-                  <div className="mt-0.5 text-lg font-semibold text-white">{pipelineValues[step.key]}</div>
-                  <div className="text-[11px] text-white/45">{step.hint}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-          <section className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-3 text-xs text-amber-100">
-            Published-channel totals are not connected in this MVP surface yet. Use Export and manual publishing workflows.
-          </section>
-
-          <section>
-            <ShopReelSectionHeader eyebrow="Creation studio" title="Start creating" subtitle="Choose a format and move directly into the guided creation workflow." />
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-              {START_TEMPLATES.map((template) => (
-                <ShopReelTemplateCard key={template.title} {...template} />
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
-            <div className="text-base font-semibold text-white">Recent projects</div>
-            {recent.length === 0 ? (
-              <div className="mt-2.5 rounded-xl border border-white/10 bg-black/25 p-3">
-                <div className="text-base font-semibold text-white">Your first project starts here.</div>
-                <div className="mt-1 text-sm text-white/70">Upload media or start with an idea and ShopReel will generate your first draft.</div>
-                <div className="mt-2.5"><Link href="/shopreel/create" className="rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 px-3.5 py-2 text-sm font-semibold text-white">Create content</Link></div>
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {recent.map((item) => {
-                  const displayTitle = getDisplayTitle(item);
-                  const relativeCreated = formatRelativeDateTime(item.created_at);
-                  const absoluteCreated = formatAbsoluteDateTime(item.created_at);
-                  const relativeUpdated = item.updated_at ? formatRelativeDateTime(item.updated_at) : null;
-                  const absoluteUpdated = item.updated_at ? formatAbsoluteDateTime(item.updated_at) : null;
-                  const platforms = toPlatformLabels(item.generation_metadata?.platformIds);
-                  const sourceLabel = getSourceLabel(item.generation_metadata);
-
-                  return (
-                    <Link key={item.id} href={`/shopreel/generations/${item.id}`} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/85 hover:bg-white/[0.06]">
-                      <div className="line-clamp-2 font-medium text-white">{displayTitle}</div>
-                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/60">
-                        <span className="capitalize">Status: {item.status ?? "unknown"}</span>
-                        {sourceLabel ? <span>Source: {sourceLabel}</span> : null}
-                        {platforms.length > 0 ? <span>Platforms: {platforms.join(", ")}</span> : null}
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/50">
-                        <span title={absoluteCreated}>Created {relativeCreated}</span>
-                        {relativeUpdated && absoluteUpdated ? <span title={absoluteUpdated}>Updated {relativeUpdated}</span> : null}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </section>
-
-        <aside className="hidden space-y-3 xl:block">
-          <div className="rounded-2xl border border-violet-300/20 bg-[linear-gradient(150deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-3.5">
-            <div className="text-xs tracking-[0.18em] text-cyan-100/75">LIVE OPERATIONS</div>
-            <div className="mt-2 text-base font-semibold text-white">Command rail</div>
-            <div className="mt-2 grid gap-2">
-              <div className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/75">Active drafts: <span className="font-semibold text-white">{drafts}</span></div>
-              <div className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/75">In review: <span className="font-semibold text-white">{review}</span></div>
-              <div className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/75">Rendering: <span className="font-semibold text-white">{rendering}</span></div>
-              <div className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/75">Ready outputs: <span className="font-semibold text-white">{ready}</span></div>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
-            <div className="text-sm font-semibold text-white">Recent AI activity</div>
-            <div className="mt-2.5 space-y-2">
-              {recent.slice(0, 4).map((item) => (
-                <div key={item.id} className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2 text-xs text-white/78">
-                  <div className="line-clamp-1 font-medium text-white">{getDisplayTitle(item)}</div>
-                  <div className="mt-0.5 text-white/58">Status: {item.status ?? "unknown"} • {formatRelativeDateTime(item.updated_at ?? item.created_at)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="text-sm font-semibold text-white">Readiness checks</div>
-              <Link href="/settings" className="text-xs font-medium text-cyan-200 hover:text-cyan-100">Settings</Link>
-            </div>
-            <div className="mt-2 text-sm text-white/70">Keep tone clear, confident, and customer-focused. Lead with outcomes, concise hooks, and one CTA per output.</div>
-            <div className="mt-2.5 space-y-2">{READINESS.map((item) => <div key={item} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs text-white/75">{item}</div>)}</div>
-          </div>
-        </aside>
+  return <GlassShell title="Command OS" hidePageIntro className="space-y-4">
+    <div className="grid gap-4 xl:grid-cols-[210px_minmax(0,1fr)_290px]">
+      <AiPanel title="Routes">
+        <div className="space-y-2 text-sm">{[["Create","/shopreel/create"],["Editor","/shopreel/editor"],["Render Queue","/shopreel/render-queue"],["Library","/shopreel/library"]].map(([l,h]) => <Link key={h} href={h} className="block rounded-xl bg-white/5 px-3 py-2 text-white/75 hover:text-white">{l}</Link>)}</div>
+      </AiPanel>
+      <div className="space-y-4">
+        <AiPanel title="AI Command Center">
+          <h1 className="text-3xl font-semibold text-white">Hi, what are we working on today?</h1>
+          <p className="mt-2 text-sm text-white/65">Describe intent in natural language. ShopReel routes you to the next best workspace.</p>
+          <div className="mt-4"><AiCommandInput readOnly placeholder="Create a high-converting launch reel and prep captions for Instagram + Facebook." /></div>
+          <div className="mt-4 flex flex-wrap gap-2">{INTENTS.map(([l,h]) => <AiIntentChip key={l} label={l} href={h} />)}</div>
+        </AiPanel>
+        <AiPanel title="Dynamic Workspace Stage">
+          <div className="grid gap-3 md:grid-cols-3 text-sm">{[
+            ["Interpreted intent","Create content"],
+            ["Next question","What asset or prompt should seed this draft?"],
+            ["Required action","Manual review before render/publish"],
+          ].map(([k,v]) => <div key={k} className="rounded-2xl bg-black/30 p-3 text-white/80"><div className="text-xs text-cyan-100/60">{k}</div><div className="mt-1">{v}</div></div>)}</div>
+        </AiPanel>
+        <AiPanel title="Production Timeline">
+          <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-6">{["Idea","Assets","Storyboard","Render","Review","Export"].map((s) => <div key={s} className="rounded-xl bg-white/5 px-3 py-2 text-center text-white/75">{s}</div>)}</div>
+        </AiPanel>
       </div>
-    </GlassShell>
-  );
+      <AiPanel title="AI Activity Rail">
+        <div className="space-y-2 text-sm text-white/80">
+          <div className="rounded-xl bg-white/5 p-2.5">Drafts: <span className="font-semibold">{drafts}</span></div>
+          <div className="rounded-xl bg-white/5 p-2.5">Review: <span className="font-semibold">{review}</span></div>
+          <div className="rounded-xl bg-white/5 p-2.5">Rendering: <span className="font-semibold">{rendering}</span></div>
+          <div className="rounded-xl bg-white/5 p-2.5">Ready: <span className="font-semibold">{ready}</span></div>
+        </div>
+        <div className="mt-4 space-y-2">{recent.slice(0,5).map((item) => <Link key={item.id} href={`/shopreel/generations/${item.id}`} className="block rounded-xl bg-black/35 p-2 text-xs text-white/75">{typeof item.story_draft?.title === "string" ? item.story_draft.title : "Untitled generation"} · {item.status ?? "unknown"}</Link>)}</div>
+      </AiPanel>
+    </div>
+  </GlassShell>;
 }
