@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
+import { readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -24,6 +25,12 @@ export default function GlobalCommandLauncher() {
   }, [pathname]);
 
   useEffect(() => {
+    const memory = readWorkspaceMemory();
+    if (!memory) return;
+    setHistory(memory.intentHistory);
+  }, []);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -37,10 +44,25 @@ export default function GlobalCommandLauncher() {
 
   const run = () => {
     if (!interpreted.href) return;
-    setHistory((prev) => [value, ...prev].filter((x) => x.trim()).slice(0, 6));
+    const nextHistory = [value, ...history].filter((x) => x.trim()).slice(0, 8);
+    setHistory(nextHistory);
+    const existing = readWorkspaceMemory();
+    if (existing) {
+      writeWorkspaceMemory({
+        ...existing,
+        lastCommand: value,
+        lastRoute: interpreted.href,
+        lastWorkflow: interpreted.intent,
+        intentHistory: nextHistory,
+        recentIntents: [interpreted.intent, ...existing.recentIntents].slice(0, 8),
+        updatedAt: new Date().toISOString(),
+      });
+    }
     router.push(interpreted.href);
     setOpen(false);
   };
+
+  const proactiveHint = history.length > 0 ? `Resume: ${history[0]}` : "No command memory yet. Start with a workflow instruction.";
 
   return (
     <>
@@ -52,6 +74,7 @@ export default function GlobalCommandLauncher() {
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-cyan-100/70">Global command mode · {pathname}</div>
           <AiCommandInput value={value} onChange={setValue} placeholder="Type a command..." className="min-h-24 text-lg" />
           <div className="mt-3 text-sm text-cyan-50/90">{interpreted.summary}</div>
+          <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
           <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>

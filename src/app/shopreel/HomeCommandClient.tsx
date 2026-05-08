@@ -8,47 +8,53 @@ import {
   AiIntentChip,
   AiWorkspaceStage,
   interpretCommand,
-  type AiIntent,
 } from "@/features/shopreel/ui/system/AiCommandPrimitives";
+import {
+  buildPendingTasks,
+  readWorkspaceMemory,
+  writeWorkspaceMemory,
+  type WorkspaceMemory,
+} from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 
 type RecentItem = { id: string; title: string; status: string };
-
-type WorkingContext = {
-  lastCommand: string;
-  lastIntent: AiIntent;
-  lastRoute: string;
-  lastGenerationId?: string;
-};
-
-const STORAGE_KEY = "shopreel-working-context-v1";
 
 export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
   const router = useRouter();
   const [command, setCommand] = useState("");
   const [assistantText, setAssistantText] = useState("Continuing session standby. Give me the next instruction and I will orchestrate the workspace.");
-  const [context, setContext] = useState<WorkingContext | null>(null);
+  const [context, setContext] = useState<WorkspaceMemory | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as WorkingContext;
+    const parsed = readWorkspaceMemory();
+    if (!parsed) return;
     setContext(parsed);
     setCommand(parsed.lastCommand);
+    setHistory(parsed.intentHistory);
   }, []);
 
   const interpreted = useMemo(() => interpretCommand(command), [command]);
 
   const persistContext = (route: string) => {
-    const next: WorkingContext = {
-      lastCommand: command,
-      lastIntent: interpreted.intent,
-      lastRoute: route,
+    const nextHistory = [command, ...(context?.intentHistory ?? [])].filter((x) => x.trim()).slice(0, 8);
+    const nextIntents = [interpreted.intent, ...(context?.recentIntents ?? [])].slice(0, 8);
+    const next: WorkspaceMemory = {
+      lastWorkflow: interpreted.intent,
+      lastCampaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+      lastRenderContextRoute: interpreted.intent === "render" ? route : context?.lastRenderContextRoute,
       lastGenerationId: recent[0]?.id,
+      lastCommand: command,
+      lastRoute: route,
+      recentIntents: nextIntents,
+      intentHistory: nextHistory,
+      pendingTasks: buildPendingTasks(interpreted.intent),
+      interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+      updatedAt: new Date().toISOString(),
     };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    writeWorkspaceMemory(next);
     setContext(next);
+    setHistory(nextHistory);
   };
 
   const runCommand = () => {
@@ -60,16 +66,17 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
     const countText = recent.length > 0 ? `I found ${recent.length} recent drafts. The newest reel was touched moments ago.` : "I couldn't find persisted activity yet, so I'll start from your command home.";
     setAssistantText(`${interpreted.summary} ${countText}`);
-    setHistory((prev) => [command, ...prev].filter((x) => x.trim()).slice(0, 8));
     persistContext(target);
     router.push(target);
   };
 
   const activityStream = [
-    `Continuing ${context?.lastIntent ?? "new"} session`,
+    `Continuing ${context?.lastWorkflow ?? "new"} session`,
     recent[0] ? `Latest draft located: ${recent[0].title}` : "No latest draft persisted yet",
     `${recent.filter((item) => /ready|complete|published/i.test(item.status)).length} outputs ready for packaging`,
     `Last active workspace: ${context?.lastRoute ?? "Command Home"}`,
+    context?.pendingTasks[0] ? `Next checkpoint: ${context.pendingTasks[0].label}` : "No pending checkpoints detected",
+    context?.interruptedWorkflow ? `Interrupted flow detected: ${context.interruptedWorkflow}` : "No interrupted workflow",
     `Recent instruction interpreted as: ${interpreted.intent}`,
   ];
 
@@ -107,9 +114,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className="space-y-2 text-sm text-white/75">
           <div>AI routing: deterministic local interpreter</div>
           <div>Current intent: {interpreted.intent}</div>
-          <div>Last intent: {context?.lastIntent ?? "none"}</div>
+          <div>Last workflow: {context?.lastWorkflow ?? "none"}</div>
           <div>Last route: {context?.lastRoute ?? "none"}</div>
         </div>
+        {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">
+          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Pending tasks</div>
+          <div className="space-y-2">{context.pendingTasks.map((task) => <Link key={task.id} href={task.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{task.label}</span><span className="text-cyan-100/70">{task.done ? "done" : "next"}</span></Link>)}</div>
+        </div> : null}
         {history.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Command history</div>
           <div className="flex flex-wrap gap-2">{history.map((item) => <button key={item} onClick={() => setCommand(item)} className="rounded-full bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-50 hover:bg-cyan-400/20">{item}</button>)}</div>
