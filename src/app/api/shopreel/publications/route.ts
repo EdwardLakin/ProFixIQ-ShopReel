@@ -1,43 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { createPublication } from "@/features/shopreel/publishing/lib/createPublication";
 import { enqueuePublishJob } from "@/features/shopreel/publishing/lib/enqueuePublishJob";
 import { withCanonicalApiHeaders } from "@/features/shopreel/server/apiOwnership";
-
-type ShopUserLite = {
-  shop_id: string;
-};
-
-const DEFAULT_SHOP_ID = "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
-
-async function resolveContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { shopId: DEFAULT_SHOP_ID, userId: null as string | null };
-  }
-
-  const admin = createAdminClient();
-  const { data: membership } = await (admin as any)
-    .from("shop_users")
-    .select("shop_id")
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  return {
-    shopId: (membership as ShopUserLite | null)?.shop_id ?? DEFAULT_SHOP_ID,
-    userId: user.id,
-  };
-}
+import { requireUserActionTenantContext, toEndpointErrorResponse } from "@/features/shopreel/server/endpointPolicy";
 
 export async function GET() {
   try {
-    const { shopId } = await resolveContext();
+    const { shopId } = await requireUserActionTenantContext();
     const supabase = createAdminClient();
 
     const { data, error } = await supabase
@@ -59,19 +29,13 @@ export async function GET() {
       items: data ?? [],
     }));
   } catch (error) {
-    return withCanonicalApiHeaders(NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 },
-    ));
+    return withCanonicalApiHeaders(toEndpointErrorResponse(error, "Failed to load publications"));
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { shopId, userId } = await resolveContext();
+    const { shopId, userId } = await requireUserActionTenantContext();
     const body = (await req.json().catch(() => ({}))) as {
       contentEventId?: string;
       contentPieceId?: string | null;
@@ -132,12 +96,6 @@ export async function POST(req: NextRequest) {
       job,
     }));
   } catch (error) {
-    return withCanonicalApiHeaders(NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : "Unexpected error",
-      },
-      { status: 500 },
-    ));
+    return withCanonicalApiHeaders(toEndpointErrorResponse(error, "Failed to create publication"));
   }
 }

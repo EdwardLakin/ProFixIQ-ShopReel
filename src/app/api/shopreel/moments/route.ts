@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { toEndpointErrorResponse } from "@/features/shopreel/server/endpointPolicy";
 import { detectViralMoments } from "@/features/shopreel/moments/detectViralMoments";
 
 type MomentsBody = {
@@ -20,17 +22,18 @@ async function safeReadJson(req: NextRequest): Promise<MomentsBody> {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await safeReadJson(req);
-
-  const shopId =
-    typeof body.shopId === "string" && body.shopId.length > 0
-      ? body.shopId
-      : "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
-
-  const result = await detectViralMoments(shopId);
-
-  return NextResponse.json({
-    ok: true,
-    result,
-  });
+  try {
+    const body = await safeReadJson(req);
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
+    const result = await detectViralMoments(shopId);
+    return NextResponse.json({
+      ok: true,
+      result,
+    });
+  } catch (error) {
+    return toEndpointErrorResponse(error, "Failed to detect viral moments");
+  }
 }
