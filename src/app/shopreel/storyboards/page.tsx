@@ -2,10 +2,10 @@ import Link from "next/link";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
-import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { listRecentStoryboards } from "@/features/shopreel/video-creation/lib/storyboards";
+import { StoryboardGrid, SceneCard } from "@/features/shopreel/editor/components/EditorStudioPrimitives";
 import type { Database } from "@/types/supabase";
 
 type StoryboardRow = Database["public"]["Tables"]["shopreel_storyboards"]["Row"];
@@ -32,7 +32,7 @@ export default async function ShopReelStoryboardsPage() {
     <GlassShell
       eyebrow="ShopReel"
       title="Storyboards"
-      subtitle="Scene planning, visual direction, and pre-production structure for advanced media creation."
+      subtitle="Scene planning, visual direction, and manual publish prep sequencing for advanced media creation."
       actions={
         <Link href="/shopreel/video-creation">
           <GlassButton variant="primary">Open Video Creation</GlassButton>
@@ -59,17 +59,9 @@ export default async function ShopReelStoryboardsPage() {
             No storyboards yet.
           </div>
         ) : (
-          <div className="grid gap-3">
+          <StoryboardGrid>
             {storyboards.map((storyboard) => (
-              <div
-                key={storyboard.id}
-                className={cx(
-                  "rounded-2xl border p-4",
-                  glassTheme.border.softer,
-                  glassTheme.glass.panelSoft
-                )}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <SceneCard key={storyboard.id} title={storyboard.title} chips={[storyboard.aspect_ratio, storyboard.style || "base style", storyboard.visual_mode || "standard"]}><div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className={cx("text-base font-medium", glassTheme.text.primary)}>
                       {storyboard.title}
@@ -77,15 +69,7 @@ export default async function ShopReelStoryboardsPage() {
                     <div className={cx("text-sm", glassTheme.text.secondary)}>
                       {timeAgoLabel(storyboard.created_at)}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <GlassBadge tone="default">{storyboard.aspect_ratio}</GlassBadge>
-                      {storyboard.style ? (
-                        <GlassBadge tone="muted">{storyboard.style}</GlassBadge>
-                      ) : null}
-                      {storyboard.visual_mode ? (
-                        <GlassBadge tone="muted">{storyboard.visual_mode}</GlassBadge>
-                      ) : null}
-                    </div>
+
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -93,10 +77,9 @@ export default async function ShopReelStoryboardsPage() {
                       <GlassButton variant="ghost">Open Studio</GlassButton>
                     </Link>
                   </div>
-                </div>
-              </div>
+                </div></SceneCard>
             ))}
-          </div>
+          </StoryboardGrid>
         )}
       </GlassCard>
     </GlassShell>
