@@ -24,11 +24,11 @@ export default function GlassTextarea(
       <textarea
         id={id}
         className={cx(
-          "min-h-[120px] w-full rounded-2xl border px-4 py-3 text-sm outline-none transition placeholder:text-white/32 hover:border-white/15",
+          "min-h-[120px] w-full rounded-2xl border px-4 py-3 text-sm outline-none transition placeholder:text-[rgba(245,238,231,0.34)]",
           glassTheme.text.primary,
           glassTheme.glass.input,
           glassTheme.border.softer,
-          "focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/18",
+          "focus:border-[rgba(201,139,92,0.32)] focus:ring-2 focus:ring-[rgba(201,139,92,0.22)]",
           className,
         )}
         {...rest}

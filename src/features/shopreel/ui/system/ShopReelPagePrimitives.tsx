@@ -32,7 +32,7 @@ export function ShopReelPageHero(props: { title: string; subtitle: string; actio
 }
 
 export function ShopReelSurface(props: { title: string; description?: string; children: React.ReactNode }) {
-  return <section className="group relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_10%_0%,rgba(124,58,237,0.12),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.065),rgba(255,255,255,0.024))] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-200/20"><div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" /><h2 className="relative text-base font-semibold tracking-tight text-white">{props.title}</h2>{props.description ? <p className="relative mt-1 text-sm text-white/70">{props.description}</p> : null}<div className="relative mt-4">{props.children}</div></section>;
+  return <section className="group rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-4 shadow-[0_20px_60px_rgba(6,8,22,0.4)] backdrop-blur-xl transition hover:border-white/20"><h2 className="text-base font-semibold tracking-tight text-white">{props.title}</h2>{props.description ? <p className="mt-1 text-sm text-white/70">{props.description}</p> : null}<div className="mt-3">{props.children}</div></section>;
 }
 
 export function ShopReelSectionHeader(props: { eyebrow?: string; title: string; subtitle?: string }) {
