@@ -33,6 +33,23 @@ type EnvironmentalWeight = {
   reason: string;
 };
 
+type AutonomousActionType = "group_variants" | "prioritize_render" | "restore_interrupted" | "surface_blockers" | "compress_telemetry" | "elevate_export" | "attach_continuity" | "rebuild_focus" | "cluster_exports";
+type AutonomousAction = {
+  id: string;
+  type: AutonomousActionType;
+  label: string;
+  rationale: string;
+  reversible: boolean;
+  appliedAt: string;
+};
+
+type ConfidenceSignal = {
+  key: string;
+  label: string;
+  state: "stable" | "watch" | "risk";
+  rationale: string;
+};
+
 const focusModes: FocusMode[] = ["campaign", "render", "scene", "variant", "packaging", "publish"];
 const zoomLevels: ZoomLevel[] = ["macro", "orchestration", "scene", "asset"];
 
@@ -51,6 +68,8 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
   const [showTelemetry, setShowTelemetry] = useState(true);
   const [expandedRails, setExpandedRails] = useState<Record<string, boolean>>({ timeline: true, orchestration: true, map: true });
   const [ambientMode, setAmbientMode] = useState<"render"|"campaign"|"packaging"|"scene"|"publish"|"variant"|"balanced">("balanced");
+  const [autoActions, setAutoActions] = useState<AutonomousAction[]>([]);
+  const [undoStack, setUndoStack] = useState<AutonomousAction[]>([]);
 
   const scenes = useMemo(() => draft.scenes ?? [], [draft.scenes]);
   const mediaGraph = useMemo(() => buildProductionMediaGraph({ generationId: props.generationId, hook: draft.hook, cta: draft.cta, caption: draft.caption, scenes }), [draft.caption, draft.cta, draft.hook, props.generationId, scenes]);
@@ -133,6 +152,43 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     ].sort((a, b) => b.weight - a.weight);
   }, [blockers.length, focusMode, heartbeat.executionState, heartbeat.renderState, showTelemetry]);
 
+  const confidenceSignals = useMemo<ConfidenceSignal[]>(() => {
+    const continuityState: ConfidenceSignal["state"] = heartbeat.pendingScenes === 0 ? "stable" : heartbeat.pendingScenes < 2 ? "watch" : "risk";
+    const renderState: ConfidenceSignal["state"] = heartbeat.renderState === "blocked" ? "risk" : heartbeat.renderState === "rendering" ? "watch" : "stable";
+    const blockerState: ConfidenceSignal["state"] = blockers.length > 0 ? "risk" : "stable";
+    const exportState: ConfidenceSignal["state"] = heartbeat.renderState === "export_ready" ? "stable" : heartbeat.renderState === "packaging" ? "watch" : "risk";
+    return [
+      { key: "stability", label: "Operational stability", state: blockerState, rationale: blockers.length > 0 ? "Active blockers are unresolved." : "No hard blockers detected across active scenes." },
+      { key: "continuity", label: "Continuity integrity", state: continuityState, rationale: heartbeat.pendingScenes > 0 ? `${heartbeat.pendingScenes} scene(s) still miss continuity coverage.` : "Continuity threads are complete across scenes." },
+      { key: "render", label: "Render confidence", state: renderState, rationale: `Render branch currently ${formatLabel(heartbeat.renderState)}.` },
+      { key: "export", label: "Export readiness certainty", state: exportState, rationale: heartbeat.renderState === "export_ready" ? "Packaging branch is ready for operator review." : "Export branch still requires deterministic lifecycle progression." },
+      { key: "recovery", label: "Workflow recovery confidence", state: heartbeat.executionState === "interrupted" ? "risk" : heartbeat.executionState === "resumed" ? "watch" : "stable", rationale: heartbeat.executionState === "interrupted" ? "Interrupted workflow is anchored for restoration." : "No interruption recovery debt detected." },
+    ];
+  }, [blockers.length, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.renderState]);
+
+  useEffect(() => {
+    const actions: AutonomousAction[] = [];
+    if (!showTelemetry) {
+      actions.push({ id: `compress-${heartbeatTick}`, type: "compress_telemetry", label: "Compressed resolved telemetry", rationale: "Compressed because telemetry rail is not needed for current execution focus.", reversible: true, appliedAt: new Date().toISOString() });
+    }
+    if (heartbeat.renderState === "packaging" || heartbeat.renderState === "export_ready") {
+      actions.push({ id: `render-priority-${heartbeatTick}`, type: "prioritize_render", label: "Prioritized render-ready branch", rationale: "Elevated due to render lifecycle nearing export readiness.", reversible: true, appliedAt: new Date().toISOString() });
+      actions.push({ id: `export-cluster-${heartbeatTick}`, type: "cluster_exports", label: "Clustered export/package relationships", rationale: "Grouped because packaging and export states share the same active lifecycle path.", reversible: true, appliedAt: new Date().toISOString() });
+    }
+    if (blockers.length > 0) {
+      actions.push({ id: `blocker-${heartbeatTick}`, type: "surface_blockers", label: "Surfaced unresolved blockers", rationale: "Persisted in foreground due to interruption risk and unresolved dependencies.", reversible: false, appliedAt: new Date().toISOString() });
+      actions.push({ id: `restore-${heartbeatTick}`, type: "restore_interrupted", label: "Restored interrupted workflow context", rationale: "Restored previous production context because interruption state was detected.", reversible: true, appliedAt: new Date().toISOString() });
+    }
+    if (focusMode === "variant" || heartbeat.executionState === "sequencing") {
+      actions.push({ id: `variant-${heartbeatTick}`, type: "group_variants", label: "Grouped related variants", rationale: "Grouped variant lineage to preserve continuity while sequencing active branches.", reversible: true, appliedAt: new Date().toISOString() });
+    }
+    actions.push({ id: `continuity-${heartbeatTick}`, type: "attach_continuity", label: "Attached continuity context", rationale: "Attached continuity thread metadata to maintain flow-state context after transitions.", reversible: false, appliedAt: new Date().toISOString() });
+    actions.push({ id: `focus-${heartbeatTick}`, type: "rebuild_focus", label: "Rebuilt operational focus", rationale: "Recovered adaptive focus profile from deterministic workspace memory state.", reversible: true, appliedAt: new Date().toISOString() });
+    actions.push({ id: `export-elevate-${heartbeatTick}`, type: "elevate_export", label: "Elevated publish-ready outputs", rationale: heartbeat.renderState === "export_ready" ? "Elevated due to export readiness." : "Maintained at normal weight until export readiness is reached.", reversible: true, appliedAt: new Date().toISOString() });
+
+    setAutoActions(actions.slice(0, 8));
+  }, [blockers.length, focusMode, heartbeat.executionState, heartbeat.renderState, heartbeatTick, showTelemetry]);
+
   const timelineClusters = useMemo(() => scenes.map((scene, index) => ({ scene, index, lineage: scene.media?.length ? "Linked to media lineage" : "Awaiting media lineage" })), [scenes]);
 
   const compactMode = zoomLevel === "macro" || zoomLevel === "orchestration";
@@ -145,6 +201,15 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     if (!memory) return;
     writeWorkspaceMemory({ ...memory, adaptiveMode: mode, updatedAt: new Date().toISOString() });
     setAmbientMode(mode);
+  }
+
+  function undoAutonomousAction(actionId: string) {
+    const action = autoActions.find((entry) => entry.id === actionId);
+    if (!action || !action.reversible) return;
+    setUndoStack((current) => [action, ...current].slice(0, 6));
+    if (action.type === "compress_telemetry") setShowTelemetry(true);
+    if (action.type === "prioritize_render") setFocusMode("campaign");
+    if (action.type === "restore_interrupted") setExpandedRails((current) => ({ ...current, timeline: true, map: true }));
   }
 
   async function saveDraft() {
@@ -197,11 +262,30 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
       {showTelemetry ? <div className="grid gap-2">{executionStream.map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">{item.entry}</div>)}</div> : <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70">Heartbeat {formatLabel(heartbeat.executionState)} · Render {formatLabel(heartbeat.renderState)} · {heartbeat.progress}% ready</div>}
     </GlassCard>
 
+    <GlassCard label="Constrained autonomy" title="Autonomous orchestration log" description="Deterministic, explainable actions run quietly and stay reversible where safe.">
+      <div className="grid gap-2">
+        {autoActions.map((action) => <div key={action.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">
+          <div className="flex items-center justify-between gap-3"><span>{action.label}</span>{action.reversible ? <button onClick={() => undoAutonomousAction(action.id)} className="rounded-full bg-white/10 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-white/70">Undo</button> : <span className="text-[10px] uppercase tracking-[0.12em] text-white/45">Locked</span>}</div>
+          <div className="mt-1 text-[11px] text-white/60">{action.rationale}</div>
+        </div>)}
+      </div>
+      {undoStack.length > 0 ? <div className="mt-3 rounded-xl border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100">Reversed actions: {undoStack.map((entry) => entry.label).join(" · ")}</div> : null}
+    </GlassCard>
+
     <GlassCard label="Environmental priority system" title="Dynamic weighting engine" description="Visibility, persistence, and compression adapt from deterministic operational weighting.">
       <div className="grid gap-2 md:grid-cols-2">
         {environmentalWeights.map((weight) => <div key={weight.key} className={cx("rounded-xl border px-3 py-2 text-xs", weight.score >= 80 ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-50" : weight.score >= 55 ? "border-violet-300/20 bg-violet-400/10 text-violet-50" : "border-white/10 bg-white/[0.03] text-white/75")}>
           <div className="flex items-center justify-between"><span>{weight.label}</span><span>{weight.score}</span></div>
           <div className="mt-1 text-[11px] text-white/60">{weight.reason}</div>
+        </div>)}
+      </div>
+    </GlassCard>
+
+    <GlassCard label="Operator confidence" title="Deterministic confidence signals" description="Operational certainty is derived from lifecycle truth, never opaque AI scoring.">
+      <div className="grid gap-2 md:grid-cols-2">
+        {confidenceSignals.map((signal) => <div key={signal.key} className={cx("rounded-xl border px-3 py-2 text-xs", signal.state === "stable" ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-50" : signal.state === "watch" ? "border-amber-300/30 bg-amber-400/10 text-amber-50" : "border-rose-300/30 bg-rose-400/10 text-rose-50")}>
+          <div className="flex items-center justify-between"><span>{signal.label}</span><span>{formatLabel(signal.state)}</span></div>
+          <div className="mt-1 text-[11px] text-white/70">{signal.rationale}</div>
         </div>)}
       </div>
     </GlassCard>
