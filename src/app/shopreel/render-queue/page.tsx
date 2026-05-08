@@ -5,7 +5,7 @@ import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import ShopReelNav from "@/features/shopreel/ui/ShopReelNav";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { createAdminClient } from "@/lib/supabase/server";
-import { ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+import { ShopReelActionRail, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import StatusBadge from "@/features/shopreel/components/StatusBadge";
 import { deriveLifecycleStage, deriveNextBestAction } from "@/features/shopreel/publish/lifecycleReadModel";
 
@@ -24,12 +24,15 @@ export default async function ShopReelRenderQueuePage() {
   const jobs = data ?? [];
 
   return (
-    <GlassShell title="Render Queue" subtitle="Live orchestration surface for rendering lifecycle and retries." actions={<div className="flex gap-2"><Link href="/shopreel/generations"><GlassButton variant="ghost">Open Generations</GlassButton></Link><GlassButton variant="secondary">Refresh queue</GlassButton></div>}>
+    <GlassShell title="Render Queue" hidePageIntro actions={<div className="flex gap-2"><Link href="/shopreel/generations"><GlassButton variant="ghost">Open Generations</GlassButton></Link><GlassButton variant="secondary">Refresh queue</GlassButton></div>}>
       <ShopReelNav />
+      <div className="space-y-4">
+      <ShopReelPageHero title="Render Queue" subtitle="Production board for active render lifecycle, failures, and next actions." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Open generations", href: "/shopreel/generations" }]} />
       <section className="sticky top-4 z-10 rounded-2xl border border-white/10 bg-slate-950/80 p-3 backdrop-blur">
         <div className="grid gap-2 sm:grid-cols-5">{GROUPS.map((s)=><div key={s} className="rounded-xl border border-white/10 bg-black/30 p-2 text-center"><p className="text-[11px] uppercase tracking-wide text-white/60">{s}</p><p className="text-lg font-semibold text-white">{jobs.filter((j:any)=>j.status===s).length}</p></div>)}</div>
       </section>
-      <div className="mt-4 grid gap-4 xl:grid-cols-5">
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
+        <div className="grid gap-4 2xl:grid-cols-5">
         {GROUPS.map((status) => {
           const inGroup = jobs.filter((job: any) => job.status === status);
           return (
@@ -61,6 +64,8 @@ export default async function ShopReelRenderQueuePage() {
             </ShopReelSurface>
           );
         })}
+      </div></div>
+      <ShopReelActionRail title="Operator rail" items={["Prioritize blocked and failed lanes first","Confirm provider and duration values before retry","Use lifecycle next action to route ownership","Move ready renders into export packaging"]} />
       </div>
     </GlassShell>
   );

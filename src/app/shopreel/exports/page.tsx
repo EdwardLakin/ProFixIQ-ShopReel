@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { requireShopId } from "@/features/shopreel/server/requireShopId";
 import { mapExportPackage } from "@/features/shopreel/export/exportPackage";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import { ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+import { ShopReelActionRail, ShopReelEmptyState, ShopReelPageHero, ShopReelSectionHeader, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import { computePublishReadiness } from "@/features/shopreel/publish/lifecycle";
 
 export default async function ShopReelDownloadsPage() {
@@ -46,10 +46,16 @@ export default async function ShopReelDownloadsPage() {
   return <GlassShell title="Publish / Export" hidePageIntro>
     <div className="space-y-4">
       <ShopReelPageHero title="Publish workspace" subtitle="Package completed render outputs with deterministic readiness before export." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Open render queue", href: "/shopreel/render-queue" }]} />
-      <ShopReelSurface title="Ready to package">{renderList(groups.readyToPackage)}</ShopReelSurface>
-      <ShopReelSurface title="Needs review">{renderList(groups.needsReview)}</ShopReelSurface>
-      <ShopReelSurface title="Draft packages">{renderList(groups.draft)}</ShopReelSurface>
-      <ShopReelSurface title="Exported packages">{renderList(groups.exported)}</ShopReelSurface>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
+        <div className="space-y-4">
+          <ShopReelSectionHeader eyebrow="Package board" title="Export command center" subtitle="Validate readiness, open package details, and run manual publishing workflows." />
+          <ShopReelSurface title="Ready to package">{renderList(groups.readyToPackage)}</ShopReelSurface>
+          <ShopReelSurface title="Needs review">{renderList(groups.needsReview)}</ShopReelSurface>
+          <ShopReelSurface title="Draft packages">{renderList(groups.draft)}</ShopReelSurface>
+          <ShopReelSurface title="Exported packages">{renderList(groups.exported)}</ShopReelSurface>
+        </div>
+        <ShopReelActionRail title="Publish rail" items={["Start with packages that are readiness=ready","Resolve blockers before downloading deliverables","Use package detail before copying captions/hashtags","Exported and posted statuses reflect persisted package state"]} />
+      </div>
     </div>
   </GlassShell>;
 }

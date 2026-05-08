@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import CampaignDetailClient from "@/features/shopreel/campaigns/components/CampaignDetailClient";
 import { listCampaignItemsWithMediaJobs } from "@/features/shopreel/campaigns/lib/server";
+import { ShopReelActionRail } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -189,6 +190,7 @@ export default async function ShopReelCampaignDetailPage(
           }}
         />
       </section>
+      <ShopReelActionRail title="Production rail" items={["Confirm campaign summary inputs before generation","Prioritize failed scenes before premium assembly","Track completed items vs total items for delivery confidence","Use synced outputs before moving to exports"]} />
     </CampaignFlowShell>
   );
 }
