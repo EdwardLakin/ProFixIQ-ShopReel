@@ -45,15 +45,32 @@ export async function requireUserActionTenantContext() {
 
   const membership = (membershipData ?? null) as ShopMembershipRow | null;
 
-  if (!membership?.shop_id) {
-    throw new ShopReelEndpointError("Active shop membership is required", 403, "FORBIDDEN");
+  if (membership?.shop_id) {
+    return {
+      category: "user-action" as EndpointCategory,
+      userId: user.id,
+      shopId: membership.shop_id,
+    };
   }
 
-  return {
-    category: "user-action" as EndpointCategory,
-    userId: user.id,
-    shopId: membership.shop_id,
-  };
+  const { data: settingsData } = await (admin as any)
+    .from("shop_reel_settings")
+    .select("shop_id")
+    .order("shop_id", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const settingsRow = (settingsData ?? null) as { shop_id: string } | null;
+
+  if (settingsRow?.shop_id) {
+    return {
+      category: "user-action" as EndpointCategory,
+      userId: user.id,
+      shopId: settingsRow.shop_id,
+    };
+  }
+
+  throw new ShopReelEndpointError("Active shop membership is required", 403, "FORBIDDEN");
 }
 
 function getBearerToken(authHeader: string | null) {
