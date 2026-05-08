@@ -86,7 +86,7 @@ export default function CampaignDetailClient({
   const [campaignBrain, setCampaignBrain] = useState({ campaignObjective: "", targetAudience: "", channelPriorities: "", contentPillars: "" });
   const [agentRuns, setAgentRuns] = useState<Array<{ id: string; agent_type: string; status: string; confidence: number | null; requires_approval: boolean; updated_at: string }>>([]);
   const [runTasks, setRunTasks] = useState<Record<string, Array<{ id: string; status: string; title: string; details: string | null; confidence: number | null; requires_approval: boolean }>>>({});
-  const [taskExecutions, setTaskExecutions] = useState<Record<string, { id: string; status: string; execution_type: string; generation_id: string | null; render_job_id: string | null; publication_id: string | null }>>({});
+  const [taskExecutions, setTaskExecutions] = useState<Record<string, { id: string; status: string; execution_type: string; generation_id: string | null; render_job_id: string | null; publication_id: string | null; latest_event?: string | null; readiness?: string | null }>>({});
 
   const nextAction = useMemo(() => getNextAction(progress), [progress]);
 
@@ -230,6 +230,10 @@ export default function CampaignDetailClient({
           <span className="text-xs text-white/60">Read-only plans. Approval required before any execution.</span>
         </div>
         <div className="mt-2 text-xs text-amber-200/90">Execution preparation creates internal orchestration records only. No render jobs or social publishing are automatically executed.</div>
+        <div className="mt-2 text-xs text-white/70">
+          <Link href="/dashboard/shopreel/operations" className="underline">View Operations</Link>
+        </div>
+
         <div className="mt-3 grid gap-2">
           {agentRuns.length === 0 ? <div className="text-sm text-white/60">No planning runs yet.</div> : agentRuns.slice(0, 6).map((run) => (
             <div key={run.id} className="rounded-xl border border-white/10 bg-black/25 p-3 text-sm text-white/80">
@@ -257,6 +261,9 @@ export default function CampaignDetailClient({
                           <div className="font-medium">Execution prepared · {execution.status}</div>
                           <div>Type: {execution.execution_type}</div>
                           <div>Generation: {execution.generation_id ?? "none"} · Render: {execution.render_job_id ?? "none"} · Publication: {execution.publication_id ?? "none"}</div>
+                          <div>Operational state: {execution.status}</div>
+                          <div>Readiness: {execution.readiness ?? (task.status === "approved" ? "ready" : "blocked")}</div>
+                          <div>Latest event: {execution.latest_event ?? "pending"}</div>
                         </div>
                       ) : null}
                     </div>
