@@ -1,6 +1,7 @@
 "use client";
 
 import type { AiIntent } from "@/features/shopreel/ui/system/AiCommandPrimitives";
+import type { CommandExecutionPlan, OperationalGraph } from "@/features/shopreel/ui/system/operationalGraph";
 
 export type WorkspaceTask = {
   id: string;
@@ -26,6 +27,8 @@ export type WorkspaceMemory = {
   intentSignals?: CreativeIntentSignals;
   ecosystemState?: EcosystemState;
   productionConsciousness?: ProductionConsciousnessState;
+  operationalGraph?: OperationalGraph;
+  lastExecutionPlan?: CommandExecutionPlan;
   updatedAt: string;
 };
 export type TemporalRailState = "active_now" | "recent" | "stale" | "archived" | "interrupted" | "resumed" | "escalating";
