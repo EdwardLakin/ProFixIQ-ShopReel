@@ -25,6 +25,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const [context, setContext] = useState<WorkspaceMemory | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  const [showRail, setShowRail] = useState(true);
 
   useEffect(() => {
     const parsed = readWorkspaceMemory();
@@ -87,12 +88,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       <div className="relative">
         <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Live command session</div>
         <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">What should the AI operating system run next?</h1>
-        <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">This workspace is orchestration-first. Routes stay available, but workflow and context drive every move.</p>
+        <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">This workspace is orchestration-first. Spatial rails, minimap memory, and focus-aware compression drive every move.</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>
         <div className="mt-3 flex flex-wrap gap-2">{["show me my latest", "continue what we were working on", "review + package", "show failed renders", "generate campaign variations"].map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Compress activity rail" : "Expand activity rail"}</button>
           <button onClick={runCommand} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-5 py-3 text-sm font-medium text-white">Run orchestration</button>
           <span className="text-xs text-white/60">AI command is primary · Manual navigation is fallback</span>
         </div>
@@ -102,7 +104,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
       <AiWorkspaceStage title="Assistant stream" className="border-0 bg-white/[0.02] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
         <p className="text-sm text-cyan-50/90">{assistantText}</p>
-        <div className="mt-4 space-y-2">{activityStream.map((entry) => <div key={entry} className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/80">{entry}</div>)}</div>
+        <div className="mt-4 space-y-2">{showRail ? activityStream.map((entry) => <div key={entry} className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/80">{entry}</div>) : <div className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/70">Compressed rail · {activityStream[0]}</div>}</div>
         <div className="mt-4 flex flex-wrap gap-2">
           {interpreted.nextActions.map((action) => (
             <AiIntentChip key={action.href + action.label} label={action.label} href={action.href} className="px-3 py-1.5 text-[11px]" />
