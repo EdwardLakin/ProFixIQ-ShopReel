@@ -16,6 +16,7 @@ import {
   evolveCreativeIntentSignals,
   deriveCinematicOrchestrationState,
   deriveEcosystemState,
+  deriveProductionConsciousnessState,
   readWorkspaceMemory,
   writeWorkspaceMemory,
   type WorkspaceMemory,
@@ -47,6 +48,36 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const persistContext = (route: string) => {
     const nextHistory = [command, ...(context?.intentHistory ?? [])].filter((x) => x.trim()).slice(0, 8);
     const nextIntents = [interpreted.intent, ...(context?.recentIntents ?? [])].slice(0, 8);
+    const pendingTasks = buildPendingTasks(interpreted.intent);
+    const blockerCount = pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length;
+    const readyTaskCount = recent.filter((item) => /ready|complete|published/i.test(item.status)).length;
+    const minutesSinceUpdate = context?.updatedAt ? Math.max(0, Math.floor((Date.now() - new Date(context.updatedAt).getTime()) / 60000)) : 0;
+    const continuityThreads = buildContinuityThreads({
+      intent: interpreted.intent,
+      pendingTasks,
+      interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+      lastRoute: route,
+      generationId: recent[0]?.id,
+      campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+    });
+    const ecosystemState = deriveEcosystemState({
+      pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
+      readyTaskCount,
+      blockerCount,
+      continuityThreadCount: continuityThreads.length,
+      interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+      adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
+      minutesSinceUpdate,
+    });
+    const cinematicState = deriveCinematicOrchestrationState({
+      ecosystem: ecosystemState,
+      minutesSinceUpdate,
+      continuityThreadCount: continuityThreads.length,
+      blockerCount,
+      exportReadyCount: readyTaskCount,
+      interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
+    });
+
     const next: WorkspaceMemory = {
       lastWorkflow: interpreted.intent,
       lastCampaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
@@ -56,27 +87,30 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       lastRoute: route,
       recentIntents: nextIntents,
       intentHistory: nextHistory,
-      pendingTasks: buildPendingTasks(interpreted.intent),
+      pendingTasks,
       interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
       adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
       creativeContinuity: context?.creativeContinuity ?? defaultCreativeContinuityMemory(),
       continuityThreads: buildContinuityThreads({
         intent: interpreted.intent,
-        pendingTasks: buildPendingTasks(interpreted.intent),
+        pendingTasks,
         interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
         lastRoute: route,
         generationId: recent[0]?.id,
         campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
       }),
       intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
-      ecosystemState: deriveEcosystemState({
-        pendingTaskCount: buildPendingTasks(interpreted.intent).filter((task) => !task.done).length,
-        readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
-        blockerCount: buildPendingTasks(interpreted.intent).filter((task) => /review|render|verify/i.test(task.label) && !task.done).length,
-        continuityThreadCount: 4,
-        interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
-        adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
-        minutesSinceUpdate: context?.updatedAt ? Math.max(0, Math.floor((Date.now() - new Date(context.updatedAt).getTime()) / 60000)) : 0,
+      ecosystemState,
+      productionConsciousness: deriveProductionConsciousnessState({
+        ecosystem: ecosystemState,
+        cinematic: cinematicState,
+        continuityThreadCount: continuityThreads.length,
+        pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
+        readyTaskCount,
+        blockerCount,
+        minutesSinceUpdate,
+        interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
+        intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
       }),
       updatedAt: new Date().toISOString(),
     };
@@ -203,6 +237,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Adaptive ecosystem state</div>
           <div>Energy: {context.ecosystemState.environmentalEnergy.replaceAll("_", " ")} · Temporal: {context.ecosystemState.temporalRailState.replaceAll("_", " ")}</div>
           <div>Saturation: {context.ecosystemState.operationalSaturation} · Entropy: {context.ecosystemState.focusEntropy} · Telemetry: {context.ecosystemState.telemetryDensityPressure}</div>
+        </div> : null}
+        {context?.productionConsciousness ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
+          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Production consciousness</div>
+          <div>Awareness: ops {context.productionConsciousness.operationalAwareness} · momentum {context.productionConsciousness.momentumAwareness} · friction {context.productionConsciousness.frictionAwareness}</div>
+          <div>Attention economy: blocker {context.productionConsciousness.attentionEconomy.blockerPressure} · telemetry decay {context.productionConsciousness.attentionEconomy.staleTelemetryDecay} · export focus {context.productionConsciousness.attentionEconomy.exportFocusShare}</div>
+          <div>Topology: breathing {context.productionConsciousness.selfSteeringTopology.activeBreathingRoom} · compression {context.productionConsciousness.selfSteeringTopology.inactiveCompression} · stabilization {context.productionConsciousness.selfSteeringTopology.exportStabilization}</div>
+          <div>Drift/recovery: coherence {context.productionConsciousness.creativeCoherenceAwareness} · recovery {context.productionConsciousness.recoveryProbability} · interruption sensitivity {context.productionConsciousness.interruptionSensitivity}</div>
         </div> : null}
         {history.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Command history</div>

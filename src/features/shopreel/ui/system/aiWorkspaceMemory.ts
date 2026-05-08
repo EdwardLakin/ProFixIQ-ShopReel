@@ -25,6 +25,7 @@ export type WorkspaceMemory = {
   continuityThreads?: ContinuityThread[];
   intentSignals?: CreativeIntentSignals;
   ecosystemState?: EcosystemState;
+  productionConsciousness?: ProductionConsciousnessState;
   updatedAt: string;
 };
 export type TemporalRailState = "active_now" | "recent" | "stale" | "archived" | "interrupted" | "resumed" | "escalating";
@@ -92,6 +93,99 @@ export type CinematicOrchestrationState = {
   restorationMomentum: number;
   continuityWarmth: number;
   explainability: string[];
+};
+
+
+
+export type ProductionConsciousnessState = {
+  operationalAwareness: number;
+  continuityAwareness: number;
+  momentumAwareness: number;
+  frictionAwareness: number;
+  creativeCoherenceAwareness: number;
+  stagingConfidence: number;
+  recoveryProbability: number;
+  interruptionSensitivity: number;
+  productionSaturation: number;
+  exportGravity: number;
+  renderVolatility: number;
+  attentionEconomy: AttentionEconomyState;
+  creativeDrift: CreativeDriftSignals;
+  recoveryIntelligence: RecoveryIntelligenceState;
+  operationalTension: OperationalTensionState;
+  momentumField: MomentumFieldState;
+  memoryDepth: EnvironmentalMemoryDepthState;
+  cinematicPrioritization: CinematicPrioritizationState;
+  selfSteeringTopology: SelfSteeringTopologyState;
+  explainability: string[];
+};
+
+export type AttentionEconomyState = {
+  continuityRailResistance: number;
+  staleTelemetryDecay: number;
+  blockerPressure: number;
+  renderLuminancePreservation: number;
+  exportFocusShare: number;
+  recedingNoisePressure: number;
+};
+
+export type CreativeDriftSignals = {
+  pacingInconsistency: number;
+  variantInstability: number;
+  rhythmDisconnection: number;
+  ctaDensityRisk: number;
+  continuityCoherenceRisk: number;
+  exportMismatchRisk: number;
+  tonalInstability: number;
+};
+
+export type RecoveryIntelligenceState = {
+  interruptionWarmth: number;
+  branchRestorationCues: number;
+  dormantExportGravity: number;
+  blockedRenderMemory: number;
+  continuityCooling: number;
+};
+
+export type OperationalTensionState = {
+  blockerClusterDensity: number;
+  renderFailureFriction: number;
+  deadlineMomentumIntensity: number;
+  topologyRestraint: number;
+  atmosphereInstability: number;
+};
+
+export type MomentumFieldState = {
+  exportPropagation: number;
+  renderChainUrgency: number;
+  recoveryCalmTransfer: number;
+  continuityOpenness: number;
+  productionEnergyWave: number;
+};
+
+export type EnvironmentalMemoryDepthState = {
+  interruptionResidue: number;
+  blockerRecurrenceMemory: number;
+  stabilityCalmBias: number;
+  exportSuccessConfidenceBias: number;
+  continuityWarmthHalfLife: number;
+};
+
+export type CinematicPrioritizationState = {
+  anchorStrength: number;
+  edgeDriftPressure: number;
+  continuityFocusRetention: number;
+  noiseCompression: number;
+  exportInevitability: number;
+  blockedRenderTension: number;
+};
+
+export type SelfSteeringTopologyState = {
+  inactiveCompression: number;
+  activeBreathingRoom: number;
+  recoveryMotionCalm: number;
+  orchestrationTopologyEmphasis: number;
+  exportStabilization: number;
 };
 
 export const WORKSPACE_MEMORY_KEY = "shopreel-workspace-memory-v2";
@@ -316,6 +410,118 @@ export function deriveCinematicOrchestrationState(input: {
       `Emotion is ${emotionalState.replaceAll("_", " ")} from blockers=${input.blockerCount}, interrupted=${input.interrupted}.`,
       `Motion pacing is ${motionPacing.replaceAll("_", " ")} from atmospheric density ${atmosphericDensity}.`,
       `Compression level ${compressionLevel.replaceAll("_", " ")} from telemetry pressure ${input.ecosystem.telemetryDensityPressure}.`,
+    ],
+  };
+}
+
+
+export function deriveProductionConsciousnessState(input: {
+  ecosystem: EcosystemState;
+  cinematic: CinematicOrchestrationState;
+  continuityThreadCount: number;
+  pendingTaskCount: number;
+  readyTaskCount: number;
+  blockerCount: number;
+  minutesSinceUpdate: number;
+  interrupted: boolean;
+  intentSignals?: CreativeIntentSignals;
+}): ProductionConsciousnessState {
+  const staleFactor = clampScore((input.minutesSinceUpdate / 360) * 100);
+  const activeFactor = clampScore((input.pendingTaskCount * 16) + (input.readyTaskCount * 12) - (input.blockerCount * 8));
+  const awarenessBase = clampScore((input.ecosystem.activeProductionLoad * 0.55) + (input.continuityThreadCount * 10));
+
+  const attentionEconomy: AttentionEconomyState = {
+    continuityRailResistance: clampScore((input.continuityThreadCount * 18) + (input.interrupted ? 18 : 0)),
+    staleTelemetryDecay: staleFactor,
+    blockerPressure: clampScore(input.blockerCount * 32),
+    renderLuminancePreservation: clampScore((input.ecosystem.renderUrgency * 0.68) + (input.readyTaskCount * 12)),
+    exportFocusShare: clampScore((input.ecosystem.exportReadinessPressure * 0.7) + (input.readyTaskCount * 14)),
+    recedingNoisePressure: clampScore((input.ecosystem.telemetryDensityPressure * 0.75) - (input.continuityThreadCount * 4)),
+  };
+
+  const creativeDrift: CreativeDriftSignals = {
+    pacingInconsistency: clampScore((input.intentSignals?.pacingBias === "accelerated" ? 62 : input.intentSignals?.pacingBias === "cinematic" ? 28 : 44) + (input.blockerCount * 8) - (input.readyTaskCount * 5)),
+    variantInstability: clampScore((input.intentSignals?.variantDirectionBias === "parallel" ? 58 : input.intentSignals?.variantDirectionBias === "iterative" ? 46 : 30) + (input.pendingTaskCount * 6)),
+    rhythmDisconnection: clampScore((staleFactor * 0.5) + (input.blockerCount * 14)),
+    ctaDensityRisk: clampScore((input.intentSignals?.ctaBias === "direct" ? 62 : 38) + (input.pendingTaskCount * 4) - (input.readyTaskCount * 4)),
+    continuityCoherenceRisk: clampScore(65 - (input.continuityThreadCount * 9) + (input.interrupted ? 16 : 0)),
+    exportMismatchRisk: clampScore((input.ecosystem.exportReadinessPressure * 0.52) - (input.readyTaskCount * 10) + (input.blockerCount * 10)),
+    tonalInstability: clampScore((input.intentSignals?.exportStyleBias === "speed" ? 56 : 36) + (input.blockerCount * 7) + (staleFactor * 0.25)),
+  };
+
+  const recoveryIntelligence: RecoveryIntelligenceState = {
+    interruptionWarmth: clampScore((input.interrupted ? 78 : 26) + (input.continuityThreadCount * 6)),
+    branchRestorationCues: clampScore((input.continuityThreadCount * 15) + (input.blockerCount * 8)),
+    dormantExportGravity: clampScore((input.ecosystem.exportReadinessPressure * 0.62) + (staleFactor * 0.24)),
+    blockedRenderMemory: clampScore((input.blockerCount * 28) + (input.ecosystem.renderUrgency * 0.35)),
+    continuityCooling: clampScore(staleFactor - (input.continuityThreadCount * 5)),
+  };
+
+  const operationalTension: OperationalTensionState = {
+    blockerClusterDensity: clampScore((input.blockerCount * 34) + (input.pendingTaskCount * 8)),
+    renderFailureFriction: clampScore((input.ecosystem.renderUrgency * 0.72) + (input.blockerCount * 14)),
+    deadlineMomentumIntensity: clampScore((input.ecosystem.exportReadinessPressure * 0.78) + (input.readyTaskCount * 10)),
+    topologyRestraint: clampScore((input.ecosystem.focusEntropy * 0.66) + (input.blockerCount * 12)),
+    atmosphereInstability: clampScore((input.cinematic.atmosphericDensity * 0.7) + (input.blockerCount * 12) - (input.readyTaskCount * 6)),
+  };
+
+  const momentumField: MomentumFieldState = {
+    exportPropagation: clampScore((input.readyTaskCount * 22) + (input.ecosystem.exportReadinessPressure * 0.5)),
+    renderChainUrgency: clampScore((input.ecosystem.renderUrgency * 0.74) + (input.pendingTaskCount * 8)),
+    recoveryCalmTransfer: clampScore((input.cinematic.restorationMomentum * 0.7) - (input.blockerCount * 6)),
+    continuityOpenness: clampScore((input.cinematic.continuityWarmth * 0.75) - (input.blockerCount * 8)),
+    productionEnergyWave: clampScore((activeFactor * 0.65) + (input.cinematic.atmosphericDensity * 0.22)),
+  };
+
+  const memoryDepth: EnvironmentalMemoryDepthState = {
+    interruptionResidue: clampScore((input.interrupted ? 76 : 22) + (input.blockerCount * 10)),
+    blockerRecurrenceMemory: clampScore((input.blockerCount * 30) + (staleFactor * 0.28)),
+    stabilityCalmBias: clampScore((input.readyTaskCount * 18) + (input.continuityThreadCount * 10) - (input.blockerCount * 9)),
+    exportSuccessConfidenceBias: clampScore((input.readyTaskCount * 24) + (input.ecosystem.exportReadinessPressure * 0.42)),
+    continuityWarmthHalfLife: clampScore((input.cinematic.continuityWarmth * 0.72) - (staleFactor * 0.24)),
+  };
+
+  const cinematicPrioritization: CinematicPrioritizationState = {
+    anchorStrength: clampScore((input.ecosystem.exportReadinessPressure * 0.45) + (input.cinematic.restorationMomentum * 0.4)),
+    edgeDriftPressure: clampScore((input.ecosystem.focusEntropy * 0.8) + (input.blockerCount * 10)),
+    continuityFocusRetention: clampScore((input.continuityThreadCount * 18) + (input.interrupted ? 20 : 0)),
+    noiseCompression: clampScore((input.ecosystem.telemetryDensityPressure * 0.85) - (input.readyTaskCount * 6)),
+    exportInevitability: clampScore((input.readyTaskCount * 26) + (input.ecosystem.exportReadinessPressure * 0.48)),
+    blockedRenderTension: clampScore((input.blockerCount * 32) + (input.ecosystem.renderUrgency * 0.38)),
+  };
+
+  const selfSteeringTopology: SelfSteeringTopologyState = {
+    inactiveCompression: clampScore((input.ecosystem.telemetryDensityPressure * 0.8) + (staleFactor * 0.25)),
+    activeBreathingRoom: clampScore((activeFactor * 0.72) - (input.ecosystem.focusEntropy * 0.4)),
+    recoveryMotionCalm: clampScore((recoveryIntelligence.interruptionWarmth * 0.6) + (input.cinematic.restorationMomentum * 0.35)),
+    orchestrationTopologyEmphasis: clampScore((input.cinematic.atmosphericDensity * 0.62) + (input.continuityThreadCount * 9)),
+    exportStabilization: clampScore((input.ecosystem.exportReadinessPressure * 0.75) + (input.readyTaskCount * 10)),
+  };
+
+  return {
+    operationalAwareness: awarenessBase,
+    continuityAwareness: clampScore((input.continuityThreadCount * 20) + (input.cinematic.continuityWarmth * 0.34)),
+    momentumAwareness: clampScore((momentumField.productionEnergyWave * 0.7) + (momentumField.exportPropagation * 0.2)),
+    frictionAwareness: clampScore((operationalTension.blockerClusterDensity * 0.6) + (operationalTension.renderFailureFriction * 0.25)),
+    creativeCoherenceAwareness: clampScore(100 - ((creativeDrift.continuityCoherenceRisk * 0.45) + (creativeDrift.rhythmDisconnection * 0.3))),
+    stagingConfidence: clampScore((input.readyTaskCount * 20) + (input.cinematic.continuityWarmth * 0.35) - (input.blockerCount * 10)),
+    recoveryProbability: clampScore((recoveryIntelligence.branchRestorationCues * 0.55) + (input.cinematic.restorationMomentum * 0.35) - (staleFactor * 0.2)),
+    interruptionSensitivity: clampScore((input.interrupted ? 68 : 22) + (input.blockerCount * 14)),
+    productionSaturation: input.ecosystem.operationalSaturation,
+    exportGravity: clampScore((attentionEconomy.exportFocusShare * 0.6) + (cinematicPrioritization.exportInevitability * 0.35)),
+    renderVolatility: clampScore((input.ecosystem.renderUrgency * 0.68) + (operationalTension.renderFailureFriction * 0.24)),
+    attentionEconomy,
+    creativeDrift,
+    recoveryIntelligence,
+    operationalTension,
+    momentumField,
+    memoryDepth,
+    cinematicPrioritization,
+    selfSteeringTopology,
+    explainability: [
+      `Operational awareness derives from production load ${input.ecosystem.activeProductionLoad} and ${input.continuityThreadCount} continuity threads.`,
+      `Attention economy prioritizes blocker pressure ${attentionEconomy.blockerPressure} versus stale telemetry decay ${attentionEconomy.staleTelemetryDecay}.`,
+      `Creative coherence awareness is deterministic inverse drift from continuity risk ${creativeDrift.continuityCoherenceRisk} and rhythm drift ${creativeDrift.rhythmDisconnection}.`,
     ],
   };
 }
