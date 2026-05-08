@@ -180,7 +180,7 @@ export default function CampaignGenerator({
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4 lg:gap-5">
       <GlassCard
         label="Campaign Brief"
         title="Start with the campaign idea"
@@ -197,7 +197,7 @@ export default function CampaignGenerator({
           </div>
         ) : null}
 
-        <div className="grid gap-4">
+        <div className="grid gap-3.5">
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
               Campaign Title
@@ -205,7 +205,7 @@ export default function CampaignGenerator({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+              className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
             />
           </label>
 
@@ -216,8 +216,8 @@ export default function CampaignGenerator({
             <textarea
               value={coreIdea}
               onChange={(e) => setCoreIdea(e.target.value)}
-              rows={5}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+              rows={4}
+              className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
             />
           </label>
 
@@ -229,7 +229,7 @@ export default function CampaignGenerator({
               <input
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+                className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
               />
             </label>
 
@@ -240,7 +240,7 @@ export default function CampaignGenerator({
               <input
                 value={offer}
                 onChange={(e) => setOffer(e.target.value)}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+                className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
               />
             </label>
           </div>
@@ -252,12 +252,12 @@ export default function CampaignGenerator({
             <input
               value={campaignGoal}
               onChange={(e) => setCampaignGoal(e.target.value)}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none"
+              className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
             />
           </label>
 
           <div className="flex flex-wrap gap-3">
-            <GlassButton variant="primary" onClick={() => void create()} disabled={submitting}>
+            <GlassButton className="min-w-[220px] shadow-[0_14px_34px_rgba(88,99,255,0.38)]" variant="primary" onClick={() => void create()} disabled={submitting}>
               {submitting ? "Creating..." : "Create campaign workspace"}
             </GlassButton>
           </div>
@@ -360,4 +360,3 @@ export default function CampaignGenerator({
     </div>
   );
 }
-

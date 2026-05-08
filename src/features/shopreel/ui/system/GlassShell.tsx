@@ -28,8 +28,8 @@ export default function GlassShell(props: {
 
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_20%,transparent_80%,rgba(255,255,255,0.02))]" />
 
-      <div className="relative mx-auto max-w-[1500px]">
-        <div className={cx(glassTheme.spacing.shell, "space-y-6 md:space-y-8 lg:pl-2", className)}>
+      <div className="relative mx-auto w-full max-w-[1380px]">
+        <div className={cx(glassTheme.spacing.shell, "space-y-5 md:space-y-6 lg:space-y-7 px-3 sm:px-5 md:px-6 lg:px-7 xl:px-8", className)}>
           <header className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <form action="/auth/sign-out" method="post" className="ml-1">
