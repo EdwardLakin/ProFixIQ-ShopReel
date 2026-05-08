@@ -211,6 +211,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     context?.interruptedWorkflow ? `Interrupted flow detected: ${context.interruptedWorkflow}` : "No interrupted workflow",
     `Recent instruction interpreted as: ${interpreted.intent}`,
     `Adaptive mode: ${context?.adaptiveMode ?? "balanced"}`,
+    `Continuity weather: ${context?.operationalGraph?.continuityWeather.pattern?.replaceAll("_", " ") ?? "calm operational atmosphere"} · intensity ${context?.operationalGraph?.continuityWeather.intensity ?? 0}`,
+    `Environmental coherence ${context?.operationalGraph?.environmentalInterpretation.environmentalCoherence ?? 0} · topology stress ${context?.operationalGraph?.environmentalInterpretation.topologyStress ?? 0}`,
   ];
 
   return <div className="relative space-y-6 pb-6">
@@ -255,6 +257,10 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div>Creative pattern: {context?.creativeContinuity?.structurePattern ?? "hook-proof-cta"}</div>
           <div>Caption density bias: {context?.creativeContinuity?.captionDensity ?? "light"}</div>
           <div>World aging: {context?.worldState?.operationalAging ?? 0} · momentum: {context?.worldState?.momentumAcceleration ?? 0}</div>
+          <div>Environmental harmony: {context?.operationalGraph?.environmentalInterpretation.operationalHarmony ?? 0} · execution confidence: {context?.operationalGraph?.environmentalInterpretation.executionConfidence ?? 0}</div>
+          <div>Weather: {context?.operationalGraph?.continuityWeather.pattern?.replaceAll("_", " ") ?? "unknown"} · recovery window {context?.operationalGraph?.continuityWeather.recoveryWindow ?? 0}</div>
+          <div>Rebalancing: focus shift {context?.operationalGraph?.adaptiveRebalancing.focusDensityShift ?? 0} · recovery corridor {context?.operationalGraph?.adaptiveRebalancing.recoveryCorridorWidth ?? 0}</div>
+          <div>Reality blend integrity: {context?.operationalGraph?.multiRealityDepth.blendIntegrity ?? 0} · escalation reality {context?.operationalGraph?.multiRealityDepth.escalationReality ?? 0}</div>
           <div>Autonomous stabilization: {context?.worldState?.autonomousStabilizationActions?.[0]?.replaceAll("_", " ") ?? "none"}</div>
         </div>
         {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">

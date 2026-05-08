@@ -56,6 +56,62 @@ export type OperationalGraph = {
   temporalCinematography: TemporalCinematographyEngine;
   operationalFields: OperationalField[];
   multiFocusState: MultiFocusAwarenessState;
+  environmentalInterpretation: EnvironmentalInterpretationState;
+  adaptiveRebalancing: AdaptiveWorldRebalancingState;
+  continuityWeather: ContinuityWeatherState;
+  multiRealityDepth: MultiRealityDepthState;
+};
+
+export type EnvironmentalInterpretationState = {
+  environmentalCoherence: number;
+  operationalHarmony: number;
+  instabilityPressureIndex: number;
+  continuityResilience: number;
+  productionFatigue: number;
+  executionConfidence: number;
+  recoveryOptimism: number;
+  exportInevitability: number;
+  topologyStress: number;
+  pacingVolatility: number;
+  explainability: string[];
+};
+
+export type AdaptiveWorldRebalancingState = {
+  focusDensityShift: number;
+  dormantFadeDepth: number;
+  recoveryCorridorWidth: number;
+  publicationFrontPull: number;
+  peripheralTelemetryCompression: number;
+  environmentalCalmRestoration: number;
+  explainability: string[];
+};
+
+export type ContinuityWeatherState = {
+  pattern:
+    | "calm_operational_atmosphere"
+    | "escalating_turbulence"
+    | "continuity_storm"
+    | "export_pressure_front"
+    | "recovery_clearing"
+    | "dormant_haze"
+    | "cinematic_calm_window"
+    | "operational_tension_surge";
+  intensity: number;
+  pressure: number;
+  recoveryWindow: number;
+  explainability: string[];
+};
+
+export type MultiRealityDepthState = {
+  renderReality: number;
+  exportReality: number;
+  continuityReality: number;
+  recoveryReality: number;
+  cinematicReality: number;
+  dormantReality: number;
+  escalationReality: number;
+  blendIntegrity: number;
+  explainability: string[];
 };
 
 export type WorldZoneKind =
@@ -150,6 +206,27 @@ export function buildOperationalGraph(input: {
     { from: `${generationId}-asset`, to: `${generationId}-render`, type: "readiness", explainability: "Asset readiness propagates to render readiness." },
   ];
 
+  const instabilityPressureIndex = score((input.blockerCount * 24) + (input.interrupted ? 16 : 0) + (input.pendingTaskCount * 7));
+  const continuityResilience = score((input.continuityThreadCount * 14) + (input.readyTaskCount * 10) - (input.blockerCount * 12));
+  const exportInevitability = score((input.readyTaskCount * 22) + (input.pendingTaskCount * 5) - (input.blockerCount * 10));
+  const productionFatigue = score((input.pendingTaskCount * 12) + (input.blockerCount * 14) - (input.readyTaskCount * 6));
+  const topologyStress = score((input.blockerCount * 26) + (input.pendingTaskCount * 8));
+  const pacingVolatility = score((input.blockerCount * 21) + (input.interrupted ? 18 : 0) + (input.readyTaskCount * 5));
+  const environmentalCoherence = score(90 - instabilityPressureIndex * 0.55 + continuityResilience * 0.25);
+  const operationalHarmony = score((continuityResilience * 0.6) + (exportInevitability * 0.3) - (topologyStress * 0.25));
+  const executionConfidence = score((input.readyTaskCount * 23) + (continuityResilience * 0.35) - (input.blockerCount * 15));
+  const recoveryOptimism = score((continuityResilience * 0.58) + ((input.interrupted ? 28 : 42)) - (productionFatigue * 0.2));
+
+  const weatherPattern: ContinuityWeatherState["pattern"] =
+    instabilityPressureIndex >= 78 ? "continuity_storm"
+      : exportInevitability >= 72 ? "export_pressure_front"
+        : input.interrupted && continuityResilience >= 58 ? "recovery_clearing"
+          : pacingVolatility >= 70 ? "operational_tension_surge"
+            : productionFatigue >= 64 ? "dormant_haze"
+              : environmentalCoherence >= 72 ? "cinematic_calm_window"
+                : instabilityPressureIndex >= 55 ? "escalating_turbulence"
+                  : "calm_operational_atmosphere";
+
   return {
     nodes,
     edges,
@@ -194,6 +271,46 @@ export function buildOperationalGraph(input: {
       { id: "export-inevitability", kind: "export_inevitability_field", strength: score(34 + input.readyTaskCount * 18), affectedNodeIds: [`${generationId}-export`, `${generationId}-publication`], explainability: "Export inevitability ramps with completion." },
     ],
     multiFocusState: { activeRenderFront: score(38 + input.blockerCount * 18 + input.readyTaskCount * 8), exportEscalationRegion: score(40 + input.readyTaskCount * 16), continuityRecoveryCorridor: score(44 + input.continuityThreadCount * 12 + (input.interrupted ? 12 : 0)), dormantCampaignBasin: score(42 + input.pendingTaskCount * 10 - input.readyTaskCount * 6), publicationStagingFrontier: score(36 + input.readyTaskCount * 15), balanceIndex: score(70 - input.blockerCount * 12 + input.readyTaskCount * 7), explainability: ["Multi-focus awareness balances simultaneous operational fronts."] },
+    environmentalInterpretation: {
+      environmentalCoherence,
+      operationalHarmony,
+      instabilityPressureIndex,
+      continuityResilience,
+      productionFatigue,
+      executionConfidence,
+      recoveryOptimism,
+      exportInevitability,
+      topologyStress,
+      pacingVolatility,
+      explainability: ["Environmental interpretation is derived from blockers, continuity rails, readiness, and pending load."],
+    },
+    adaptiveRebalancing: {
+      focusDensityShift: score((instabilityPressureIndex * 0.72) + (input.readyTaskCount * 8)),
+      dormantFadeDepth: score((productionFatigue * 0.52) + (input.pendingTaskCount * 10) - (input.readyTaskCount * 6)),
+      recoveryCorridorWidth: score((continuityResilience * 0.7) + (input.interrupted ? 14 : 0)),
+      publicationFrontPull: score((exportInevitability * 0.78) + (input.readyTaskCount * 8)),
+      peripheralTelemetryCompression: score((topologyStress * 0.65) + (input.pendingTaskCount * 7)),
+      environmentalCalmRestoration: score((environmentalCoherence * 0.72) + (recoveryOptimism * 0.18)),
+      explainability: ["World rebalancing prioritizes unstable fronts while preserving continuity anchors and recoveries."],
+    },
+    continuityWeather: {
+      pattern: weatherPattern,
+      intensity: score((instabilityPressureIndex * 0.62) + (pacingVolatility * 0.24)),
+      pressure: score((topologyStress * 0.64) + (input.blockerCount * 12)),
+      recoveryWindow: score((recoveryOptimism * 0.68) + (continuityResilience * 0.2) - (instabilityPressureIndex * 0.15)),
+      explainability: ["Production weather is deterministic and local-first; no backend prediction or simulation."],
+    },
+    multiRealityDepth: {
+      renderReality: score((input.blockerCount * 20) + (input.readyTaskCount * 8)),
+      exportReality: score((exportInevitability * 0.76) + (input.readyTaskCount * 10)),
+      continuityReality: score((continuityResilience * 0.74) + (input.continuityThreadCount * 8)),
+      recoveryReality: score((recoveryOptimism * 0.72) + (input.interrupted ? 10 : 0)),
+      cinematicReality: score((100 - pacingVolatility) * 0.34 + (input.readyTaskCount * 16)),
+      dormantReality: score((productionFatigue * 0.64) + (input.pendingTaskCount * 8) - (input.readyTaskCount * 4)),
+      escalationReality: score((instabilityPressureIndex * 0.78) + (topologyStress * 0.2)),
+      blendIntegrity: score((environmentalCoherence * 0.58) + (operationalHarmony * 0.42)),
+      explainability: ["Multiple operational realities blend through weighted deterministic derivation."],
+    },
   };
 }
 
