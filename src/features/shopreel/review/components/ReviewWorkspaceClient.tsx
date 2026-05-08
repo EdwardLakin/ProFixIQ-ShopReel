@@ -309,7 +309,7 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
 
       if (!res.ok || !json.ok) throw new Error(json.error ?? "Failed to start render");
 
-      router.push(json.renderJobsUrl ?? "/shopreel/render-jobs");
+      router.push(json.renderJobsUrl ?? "/shopreel/render-queue");
 
     } catch (error) {
 
@@ -779,4 +779,3 @@ export default function ReviewWorkspaceClient({ draft }: Props) {
   );
 
 }
-

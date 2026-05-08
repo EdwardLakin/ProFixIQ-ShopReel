@@ -5,11 +5,17 @@ export type EndpointCategory = "user-action" | "internal-worker" | "webhook";
 
 export class ShopReelEndpointError extends Error {
   status: number;
+  code: "SHOP_CONTEXT_REQUIRED" | "AUTH_REQUIRED" | "FORBIDDEN" | null;
 
-  constructor(message: string, status = 400) {
+  constructor(
+    message: string,
+    status = 400,
+    code: "SHOP_CONTEXT_REQUIRED" | "AUTH_REQUIRED" | "FORBIDDEN" | null = null,
+  ) {
     super(message);
     this.name = "ShopReelEndpointError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -26,7 +32,7 @@ export async function requireUserActionTenantContext() {
   } = await supabase.auth.getUser();
 
   if (!user?.id) {
-    throw new ShopReelEndpointError("Authentication required", 401);
+    throw new ShopReelEndpointError("Authentication required", 401, "AUTH_REQUIRED");
   }
 
   const { data: membershipData } = await (admin as any)
@@ -40,7 +46,7 @@ export async function requireUserActionTenantContext() {
   const membership = (membershipData ?? null) as ShopMembershipRow | null;
 
   if (!membership?.shop_id) {
-    throw new ShopReelEndpointError("Active shop membership is required", 403);
+    throw new ShopReelEndpointError("Active shop membership is required", 403, "FORBIDDEN");
   }
 
   return {
@@ -95,7 +101,7 @@ export function toEndpointErrorResponse(error: unknown, fallbackMessage: string)
     return NextResponse.json(
       {
         ok: false,
-        error: error.message,
+        error: error.code ?? error.message,
       },
       { status: error.status },
     );

@@ -1,8 +1,5 @@
-export const dynamic = "force-dynamic";
-import Link from "next/link";
-import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import { createAdminClient } from "@/lib/supabase/server";
-import { requireShopId } from "@/features/shopreel/server/requireShopId";
-import { mapRenderJob } from "@/features/shopreel/render/renderJob";
-import { ShopReelActionRail, ShopReelEmptyState, ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
-export default async function ShopReelRenderJobsPage(){const shopId=await requireShopId();const supabase=createAdminClient();const {data:jobsData}=await supabase.from("reel_render_jobs").select("id, status, content_piece_id, render_payload, render_url, thumbnail_url, error_message, attempt_count, created_at, updated_at").eq("shop_id",shopId).order("created_at",{ascending:false}).limit(100);const mapped=(jobsData??[]).map((job)=>mapRenderJob({row:job}));const summary={queued:mapped.filter((j)=>j.status==="queued").length,processing:mapped.filter((j)=>j.status==="processing").length,ready:mapped.filter((j)=>j.status==="ready").length,failed:mapped.filter((j)=>j.status==="failed").length};return <GlassShell title="Processing" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Processing" subtitle="Track drafts as they render, package, and become ready for download." actions={[{label:"Create content",href:"/shopreel/create",primary:true}]}/><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="Status summary"><div className="grid gap-2 sm:grid-cols-4">{Object.entries(summary).map(([k,v])=><div key={k} className="rounded-xl border border-white/10 bg-black/25 p-3"><div className="text-xs text-white/60">{k}</div><div className="text-lg font-semibold text-white">{v}</div></div>)}</div></ShopReelSurface><ShopReelSurface title="Recent processing activity">{mapped.length===0?<ShopReelEmptyState title="Nothing processing right now" description="Create or approve a draft to start processing."/>:<div className="grid gap-2">{mapped.slice(0,12).map((job)=><div key={job.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/80">{job.title ?? "Render job"} · {job.status}</div>)}</div>}</ShopReelSurface></div><ShopReelActionRail title="What happens here" items={["Drafts enter rendering and packaging","Assets are prepared for export delivery","Ready items appear in Downloads","Failed runs can be retried from project review"]}/></div></div></GlassShell>}
+import { redirect } from "next/navigation";
+
+export default function ShopReelRenderJobsCompatPage() {
+  redirect("/shopreel/render-queue");
+}

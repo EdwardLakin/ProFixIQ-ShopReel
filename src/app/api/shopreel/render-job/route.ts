@@ -3,6 +3,8 @@ import { buildAutoEditPlan } from "@/features/shopreel/editing/buildAutoEditPlan
 import { selectMediaForReel } from "@/features/shopreel/media/selectMediaForReel";
 import { createRenderJob } from "@/features/shopreel/render/createRenderJob";
 import { withDeprecatedApiHeaders } from "@/features/shopreel/server/apiOwnership";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { toEndpointErrorResponse } from "@/features/shopreel/server/endpointPolicy";
 
 type RenderJobBody = {
   shopId?: string;
@@ -33,12 +35,13 @@ async function safeReadJson(req: NextRequest): Promise<RenderJobBody> {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await safeReadJson(req);
+  try {
+    const body = await safeReadJson(req);
 
-  const shopId =
-    typeof body.shopId === "string" && body.shopId.length > 0
-      ? body.shopId
-      : "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+    const shopId =
+      typeof body.shopId === "string" && body.shopId.length > 0
+        ? body.shopId
+        : await getCurrentShopId();
 
   const title =
     typeof body.title === "string" && body.title.length > 0
@@ -101,10 +104,13 @@ export async function POST(req: NextRequest) {
     renderPayload: plan.renderPayload,
   });
 
-  return withDeprecatedApiHeaders(NextResponse.json({
-    ok: true,
-    job,
-    plan,
-    mediaCount: visualUrls.length,
-  }), "/api/shopreel/render-jobs", "Use /render-jobs as the canonical render API family.");
+    return withDeprecatedApiHeaders(NextResponse.json({
+      ok: true,
+      job,
+      plan,
+      mediaCount: visualUrls.length,
+    }), "/api/shopreel/render-jobs", "Use /render-jobs as the canonical render API family.");
+  } catch (error) {
+    return withDeprecatedApiHeaders(toEndpointErrorResponse(error, "Failed to create render job"), "/api/shopreel/render-jobs");
+  }
 }

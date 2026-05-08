@@ -1,7 +1,5 @@
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-
-const DEFAULT_SHOP_ID =
-  process.env.DEFAULT_SHOP_ID ?? "e4d23a6d-9418-49a5-8a1b-6a2640615b5b";
+import { ShopReelEndpointError } from "@/features/shopreel/server/endpointPolicy";
 
 type ShopUserRow = {
   shop_id: string;
@@ -33,6 +31,8 @@ export async function getCurrentShopId(): Promise<string> {
     if (membership?.shop_id) {
       return membership.shop_id;
     }
+
+    throw new ShopReelEndpointError("Active shop membership is required", 403, "FORBIDDEN");
   }
 
   const { data: settingsData } = await (admin as any)
@@ -48,5 +48,5 @@ export async function getCurrentShopId(): Promise<string> {
     return settingsRow.shop_id;
   }
 
-  return DEFAULT_SHOP_ID;
+  throw new ShopReelEndpointError("Shop context required", 401, "SHOP_CONTEXT_REQUIRED");
 }
