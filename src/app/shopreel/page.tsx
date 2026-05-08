@@ -39,12 +39,11 @@ const START_TEMPLATES = [
   { title: "Influencer content", description: "Creator-native scripts and cut directions.", icon: "☼", tone: "from-pink-500/35 to-violet-400/20" },
 ];
 
-const PIPELINE_STEPS: Array<{ label: string; key: "drafts" | "review" | "processing" | "ready" | "published"; hint: string }> = [
+const PIPELINE_STEPS: Array<{ label: string; key: "drafts" | "review" | "processing" | "ready"; hint: string }> = [
   { label: "Drafts", key: "drafts", hint: "Ideas forming" },
   { label: "In Review", key: "review", hint: "Awaiting edits" },
   { label: "Processing", key: "processing", hint: "Rendering now" },
   { label: "Ready", key: "ready", hint: "Prepared output" },
-  { label: "Published", key: "published", hint: "Live channels" },
 ];
 
 
@@ -118,7 +117,7 @@ export default async function ShopReelPage() {
     story_draft: row.story_draft && typeof row.story_draft === "object" && !Array.isArray(row.story_draft) ? (row.story_draft as StoryDraft) : null,
     generation_metadata: row.generation_metadata && typeof row.generation_metadata === "object" && !Array.isArray(row.generation_metadata) ? (row.generation_metadata as GenerationMetadata) : null,
   }));
-  const pipelineValues = { drafts, review, processing: rendering, ready, published: 0 };
+  const pipelineValues = { drafts, review, processing: rendering, ready };
 
   return (
     <GlassShell
@@ -165,6 +164,7 @@ export default async function ShopReelPage() {
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
             <div className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-white/60">Your content pipeline</div>
+            <div className="mb-2 text-xs text-white/60">Create content, review it, prepare renders, export packages, then publish manually.</div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               {PIPELINE_STEPS.map((step) => (
                 <div key={step.key} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2.5">
@@ -174,6 +174,9 @@ export default async function ShopReelPage() {
                 </div>
               ))}
             </div>
+          </section>
+          <section className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+            Published-channel totals are not connected in this MVP surface yet. Use Export and manual publishing workflows.
           </section>
 
           <section>

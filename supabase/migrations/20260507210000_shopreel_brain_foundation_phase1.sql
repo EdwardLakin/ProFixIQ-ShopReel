@@ -1,6 +1,6 @@
 create table if not exists public.shopreel_brand_brain_profiles (
   id uuid primary key default gen_random_uuid(),
-  shop_id uuid not null references public.shops(id) on delete cascade,
+  shop_id uuid not null references public.tenant_shops(id) on delete cascade,
   status text not null default 'active' check (status in ('active','archived')),
   positioning text null,
   brand_voice_rules text null,
@@ -18,7 +18,7 @@ create table if not exists public.shopreel_brand_brain_profiles (
 
 create table if not exists public.shopreel_campaign_brains (
   id uuid primary key default gen_random_uuid(),
-  shop_id uuid not null references public.shops(id) on delete cascade,
+  shop_id uuid not null references public.tenant_shops(id) on delete cascade,
   campaign_id uuid not null references public.shopreel_campaigns(id) on delete cascade,
   status text not null default 'active' check (status in ('active','archived')),
   campaign_objective text null,

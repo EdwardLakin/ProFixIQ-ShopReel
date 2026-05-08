@@ -226,12 +226,19 @@ export default function CampaignDetailClient({
 
       <GlassCard title="AI Planning" strong>
         <div className="flex items-center gap-2">
-          <GlassButton variant="secondary" onClick={() => runAction("plan", `/api/shopreel/agents/plan`)}>{busy === "plan" ? "Generating…" : "Generate planning draft"}</GlassButton>
-          <span className="text-xs text-white/60">Read-only plans. Approval required before any execution.</span>
+          <GlassBadge>Advanced</GlassBadge>
+          <GlassBadge>Approval-only</GlassBadge>
+          <GlassBadge>Preparation only</GlassBadge>
+          <GlassBadge>No autonomous posting</GlassBadge>
         </div>
-        <div className="mt-2 text-xs text-amber-200/90">Execution preparation creates internal orchestration records only. No render jobs or social publishing are automatically executed.</div>
+        <div className="mt-2 flex items-center gap-2">
+          <GlassButton variant="secondary" onClick={() => runAction("plan", `/api/shopreel/agents/plan`)}>{busy === "plan" ? "Generating…" : "Generate planning draft"}</GlassButton>
+          <span className="text-xs text-white/60">AI planning creates recommendations only. Approval is required and records intent only.</span>
+        </div>
+        <div className="mt-2 text-xs text-amber-200/90">Execution preparation creates internal orchestration records only. No render jobs are run automatically, and no social posts are published automatically.</div>
+        <div className="mt-2 text-xs text-amber-200/90">Autonomous posting is disabled in this release and will require explicit future enablement.</div>
         <div className="mt-2 text-xs text-white/70">
-          <Link href="/dashboard/shopreel/operations" className="underline">View Operations</Link>
+          <Link href="/shopreel/operations" className="underline">View Operations</Link>
         </div>
 
         <div className="mt-3 grid gap-2">

@@ -14,19 +14,19 @@ type SidebarItem = {
 const PRIMARY_ITEMS: SidebarItem[] = [
   { label: "Home", compactLabel: "HM", href: "/shopreel", icon: "⌂" },
   { label: "Create", compactLabel: "CR", href: "/shopreel/create", icon: "✦" },
-  { label: "Generations", compactLabel: "GN", href: "/shopreel/generations", icon: "▣" },
+  { label: "Review / Generations", compactLabel: "RV", href: "/shopreel/generations", icon: "▣" },
   { label: "Render Queue", compactLabel: "RQ", href: "/shopreel/render-queue", icon: "◌" },
-  { label: "Content Library", compactLabel: "LB", href: "/shopreel/library", icon: "◫" },
-  { label: "Publish / Export", compactLabel: "PX", href: "/shopreel/exports", icon: "⇩" },
+  { label: "Exports", compactLabel: "EX", href: "/shopreel/exports", icon: "⇩" },
+  { label: "Library", compactLabel: "LB", href: "/shopreel/library", icon: "◫" },
   { label: "Settings", compactLabel: "ST", href: "/shopreel/settings", icon: "⚙" },
 ];
 
 const SECONDARY_ITEMS: SidebarItem[] = [
+  { label: "Campaigns (Advanced)", compactLabel: "CP", href: "/shopreel/campaigns", icon: "◈" },
+  { label: "Operations (Operator)", compactLabel: "OP", href: "/shopreel/operations", icon: "⌘" },
+  { label: "Publish Center (Advanced)", compactLabel: "PB", href: "/shopreel/publish-center", icon: "⇪" },
+  { label: "Publish Queue (Advanced)", compactLabel: "PQ", href: "/shopreel/publish-queue", icon: "☰" },
   { label: "Video Studio (Advanced)", compactLabel: "VS", href: "/shopreel/video-creation/advanced", icon: "◍" },
-  { label: "Ideas", compactLabel: "ID", href: "/shopreel/ideas", icon: "◈" },
-  { label: "Editor", compactLabel: "ED", href: "/shopreel/editor", icon: "✎" },
-  { label: "Billing", compactLabel: "BL", href: "/shopreel/billing", icon: "◍" },
-  { label: "Notifications", compactLabel: "NT", href: "/shopreel/notifications", icon: "🔔" },
 ];
 
 function normalizePathname(pathname: string): string {
@@ -98,7 +98,7 @@ export default function ShopReelSidebar(props: {
 
           <nav className="space-y-4 overflow-y-auto pb-4">
             {renderItems(PRIMARY_ITEMS, true)}
-            {!collapsed ? <div className="px-2 text-[11px] uppercase tracking-[0.2em] text-white/45">More</div> : null}
+            {!collapsed ? <div className="px-2 text-[11px] uppercase tracking-[0.2em] text-white/45">Advanced / Operator</div> : null}
             {renderItems(SECONDARY_ITEMS, true)}
           </nav>
         </div>
