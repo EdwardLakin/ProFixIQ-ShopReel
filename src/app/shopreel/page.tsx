@@ -3,6 +3,7 @@ import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import ShopReelTemplateCard from "@/features/shopreel/ui/ShopReelTemplateCard";
+import { ShopReelSectionHeader } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 
 const SOURCE_LABELS: Record<string, string> = {
   idea: "Ideas",
@@ -180,7 +181,7 @@ export default async function ShopReelPage() {
           </section>
 
           <section>
-            <div className="mb-2 text-lg font-semibold text-white">Start creating</div>
+            <ShopReelSectionHeader eyebrow="Creation studio" title="Start creating" subtitle="Choose a format and move directly into the guided creation workflow." />
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {START_TEMPLATES.map((template) => (
                 <ShopReelTemplateCard key={template.title} {...template} />

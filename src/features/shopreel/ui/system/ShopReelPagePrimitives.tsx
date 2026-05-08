@@ -35,6 +35,16 @@ export function ShopReelSurface(props: { title: string; description?: string; ch
   return <section className="group rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-4 shadow-[0_20px_60px_rgba(6,8,22,0.4)] backdrop-blur-xl transition hover:border-white/20"><h2 className="text-base font-semibold tracking-tight text-white">{props.title}</h2>{props.description ? <p className="mt-1 text-sm text-white/70">{props.description}</p> : null}<div className="mt-3">{props.children}</div></section>;
 }
 
+export function ShopReelSectionHeader(props: { eyebrow?: string; title: string; subtitle?: string }) {
+  return (
+    <header className="space-y-1.5">
+      {props.eyebrow ? <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">{props.eyebrow}</p> : null}
+      <h2 className="text-xl font-semibold tracking-tight text-white">{props.title}</h2>
+      {props.subtitle ? <p className="text-sm text-white/70">{props.subtitle}</p> : null}
+    </header>
+  );
+}
+
 export function ShopReelEmptyState(props: { title: string; description: string; ctaLabel?: string; ctaHref?: string }) {
   return <div className={cx("rounded-2xl border p-5", glassTheme.border.softer, glassTheme.glass.panelSoft)}><AIStatusPill label="Need input" tone="warn" /><div className="mt-3 text-lg font-semibold text-white">{props.title}</div><p className="mt-1 text-sm text-white/75">{props.description}</p>{props.ctaLabel && props.ctaHref ? <Link href={props.ctaHref} className="mt-4 inline-flex rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 px-3 py-2 text-sm font-medium text-white">{props.ctaLabel}</Link> : null}</div>;
 }
