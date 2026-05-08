@@ -49,7 +49,7 @@ export default function ShopReelSidebar(props: {
   const pathname = usePathname() ?? "";
 
   const renderItems = (items: SidebarItem[], closeAfterNavigate = false) => (
-    <div className="grid gap-1.5">
+    <div className="grid gap-1">
       {items.map((item) => {
         const active = isActive(pathname, item.href);
         return (
@@ -59,7 +59,7 @@ export default function ShopReelSidebar(props: {
             onClick={closeAfterNavigate ? onCloseMobile : undefined}
             className={cx(
               "group rounded-xl px-2.5 py-2 text-sm font-medium transition duration-200",
-              collapsed ? "flex h-10 items-center justify-center" : "flex items-center gap-2.5",
+              collapsed ? "flex h-11 items-center justify-center" : "flex min-h-11 items-center gap-2.5",
               active
                 ? "bg-gradient-to-r from-violet-500/30 to-cyan-400/20 text-white shadow-[0_10px_30px_rgba(82,68,255,0.3)]"
                 : cx("text-white/70 hover:bg-white/[0.08] hover:text-white"),
@@ -80,11 +80,11 @@ export default function ShopReelSidebar(props: {
       <aside
         className={cx(
           "fixed inset-y-3 left-3 z-50 rounded-3xl border border-white/15 bg-[radial-gradient(circle_at_20%_0%,rgba(120,86,255,0.28),transparent_46%),linear-gradient(180deg,rgba(7,10,28,0.94),rgba(5,8,20,0.98))] shadow-[0_30px_80px_rgba(4,6,20,0.6)] transition-all duration-300",
-          collapsed ? "w-[4.6rem] lg:w-[4.8rem]" : "w-[15.5rem] xl:w-64",
+          collapsed ? "w-[4.75rem] lg:w-[5rem]" : "w-[14.75rem] xl:w-[15.5rem]",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="flex h-full flex-col px-3 py-4">
+        <div className="flex h-full flex-col px-2.5 py-3.5">
           <div className={cx("mb-4 flex items-center", collapsed ? "justify-center" : "justify-between px-1")}>
             {!collapsed ? (
               <div>

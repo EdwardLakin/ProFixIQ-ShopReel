@@ -29,7 +29,6 @@ type RecentGenerationRow = {
 
 
 const PROMPT_CHIPS = ["Product launch reel", "Founder video", "Social media campaign", "Blog post", "How-to video"];
-const IDEAS = ["Q2 launch narrative with founder-led hooks", "Before/after transformation carousel with short captions", "Repurpose one product demo into a week of channel content"];
 const READINESS = ["Upload at least one source video", "Define your preferred tone in prompt", "Connect channels before publishing"];
 
 const START_TEMPLATES = [
@@ -221,22 +220,30 @@ export default async function ShopReelPage() {
         </section>
 
         <aside className="hidden space-y-3 xl:block">
-          <div className="rounded-2xl border border-white/10 bg-[linear-gradient(150deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-3.5">
-            <div className="text-xs tracking-[0.18em] text-cyan-100/75">FEATURED PREVIEW</div>
-            <div className="mt-2 text-lg font-semibold text-white">What you can create</div>
-            <div className="mt-2.5 rounded-xl border border-white/10 bg-black/30 p-3 text-sm text-white/75">Launch reels, platform-ready posts, product explainers, campaign packs, and blog drafts from a single brief.</div>
+          <div className="rounded-2xl border border-violet-300/20 bg-[linear-gradient(150deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-3.5">
+            <div className="text-xs tracking-[0.18em] text-cyan-100/75">LIVE OPERATIONS</div>
+            <div className="mt-2 text-base font-semibold text-white">Command rail</div>
+            <div className="mt-2 grid gap-2">
+              <div className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/75">Active drafts: <span className="font-semibold text-white">{drafts}</span></div>
+              <div className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/75">In review: <span className="font-semibold text-white">{review}</span></div>
+              <div className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/75">Rendering: <span className="font-semibold text-white">{rendering}</span></div>
+              <div className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/75">Ready outputs: <span className="font-semibold text-white">{ready}</span></div>
+            </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
-            <div className="text-sm font-semibold text-white">AI content ideas</div>
-            <div className="mt-3 space-y-2.5">{IDEAS.map((idea) => <div key={idea} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white/80">{idea}</div>)}</div>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
-            <div className="text-sm font-semibold text-white">Brand voice summary</div>
-            <p className="mt-2 text-sm text-white/70">Keep tone clear, confident, and customer-focused. Lead with outcomes, keep hooks concise, and anchor every output to one CTA.</p>
+            <div className="text-sm font-semibold text-white">Recent AI activity</div>
+            <div className="mt-2.5 space-y-2">
+              {recent.slice(0, 4).map((item) => (
+                <div key={item.id} className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2 text-xs text-white/78">
+                  <div className="line-clamp-1 font-medium text-white">{getDisplayTitle(item)}</div>
+                  <div className="mt-0.5 text-white/58">Status: {item.status ?? "unknown"} • {formatRelativeDateTime(item.updated_at ?? item.created_at)}</div>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-sm font-semibold text-white">Brand voice setup</div>
+              <div className="text-sm font-semibold text-white">Readiness checks</div>
               <Link href="/settings" className="text-xs font-medium text-cyan-200 hover:text-cyan-100">Settings</Link>
             </div>
             <div className="mt-2 text-sm text-white/70">Keep tone clear, confident, and customer-focused. Lead with outcomes, concise hooks, and one CTA per output.</div>
