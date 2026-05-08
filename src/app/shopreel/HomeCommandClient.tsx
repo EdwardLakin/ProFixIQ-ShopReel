@@ -14,6 +14,7 @@ import {
   buildContinuityThreads,
   defaultCreativeContinuityMemory,
   evolveCreativeIntentSignals,
+  deriveCinematicOrchestrationState,
   deriveEcosystemState,
   readWorkspaceMemory,
   writeWorkspaceMemory,
@@ -97,6 +98,39 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     router.push(target);
   };
 
+
+
+  const cinematicState = useMemo(() => {
+    const minutesSinceUpdate = context?.updatedAt ? Math.max(0, Math.floor((Date.now() - new Date(context.updatedAt).getTime()) / 60000)) : 0;
+    const ecosystem = context?.ecosystemState ?? deriveEcosystemState({
+      pendingTaskCount: context?.pendingTasks.filter((task) => !task.done).length ?? 0,
+      readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+      blockerCount: context?.pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length ?? 0,
+      continuityThreadCount: context?.continuityThreads?.length ?? 0,
+      interruptedWorkflow: context?.interruptedWorkflow,
+      adaptiveMode: context?.adaptiveMode,
+      minutesSinceUpdate,
+    });
+    return deriveCinematicOrchestrationState({
+      ecosystem,
+      minutesSinceUpdate,
+      continuityThreadCount: context?.continuityThreads?.length ?? 0,
+      blockerCount: context?.pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length ?? 0,
+      exportReadyCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+      interrupted: Boolean(context?.interruptedWorkflow),
+    });
+  }, [context, recent]);
+
+  const cinematicAuraClass = cinematicState.emotionalState === "blocker_friction"
+    ? "from-rose-500/20 via-amber-400/10 to-transparent"
+    : cinematicState.emotionalState === "export_anticipation"
+      ? "from-emerald-400/20 via-cyan-400/10 to-transparent"
+      : cinematicState.emotionalState === "render_momentum"
+        ? "from-fuchsia-500/20 via-cyan-500/10 to-transparent"
+        : cinematicState.emotionalState === "calm_continuity"
+          ? "from-sky-500/15 via-indigo-500/10 to-transparent"
+          : "from-violet-500/20 via-cyan-500/10 to-transparent";
+
   const activityStream = [
     `Continuing ${context?.lastWorkflow ?? "new"} session`,
     ambientCheckpoint,
@@ -110,6 +144,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   ];
 
   return <div className="relative space-y-6 pb-6">
+    <div className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-gradient-to-br ${cinematicAuraClass} blur-3xl transition-all duration-700`} />
     <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-5 shadow-[0_40px_90px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl md:p-7">
       <div className="pointer-events-none absolute -right-12 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="pointer-events-none absolute -left-14 bottom-0 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
@@ -117,6 +152,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Live command session</div>
         <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">What should the AI operating system run next?</h1>
         <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">This workspace is orchestration-first. Spatial rails, minimap memory, and focus-aware compression drive every move.</p>
+        <p className="mt-2 text-xs text-white/60">Cinematic state: {cinematicState.emotionalState.replaceAll("_", " ")} · pacing {cinematicState.motionPacing.replaceAll("_", " ")} · compression {cinematicState.compressionLevel.replaceAll("_", " ")}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>

@@ -78,6 +78,22 @@ export type CreativeContinuityMemory = {
   structurePattern: "hook-proof-cta" | "problem-solution-cta" | "story-payoff-cta";
 };
 
+
+
+export type ProductionEmotionalState = "calm_continuity" | "orchestration_tension" | "render_momentum" | "export_anticipation" | "blocker_friction" | "recovery_stabilization" | "active_production_energy";
+
+export type CinematicOrchestrationState = {
+  emotionalState: ProductionEmotionalState;
+  atmosphericDensity: number;
+  motionPacing: "slow_breathing" | "steady" | "momentum" | "surge";
+  luminanceBias: "cool" | "neutral" | "warm" | "high_contrast";
+  depthFocus: "background" | "balanced" | "foreground";
+  compressionLevel: "open" | "balanced" | "focused" | "compressed";
+  restorationMomentum: number;
+  continuityWarmth: number;
+  explainability: string[];
+};
+
 export const WORKSPACE_MEMORY_KEY = "shopreel-workspace-memory-v2";
 
 export function readWorkspaceMemory(): WorkspaceMemory | null {
@@ -226,6 +242,80 @@ export function deriveEcosystemState(input: {
       `Saturation derives from ${input.pendingTaskCount} pending tasks and ${input.blockerCount} blockers.`,
       `Temporal rail is ${temporalRailState.replaceAll("_", " ")} from ${input.minutesSinceUpdate} minute recency.`,
       `Energy is ${environmentalEnergy.replaceAll("_", " ")} due to adaptive mode ${input.adaptiveMode ?? "balanced"}.`,
+    ],
+  };
+}
+
+
+export function deriveCinematicOrchestrationState(input: {
+  ecosystem: EcosystemState;
+  minutesSinceUpdate: number;
+  continuityThreadCount: number;
+  blockerCount: number;
+  exportReadyCount: number;
+  interrupted: boolean;
+}): CinematicOrchestrationState {
+  const emotionalState: ProductionEmotionalState = input.blockerCount > 0
+    ? "blocker_friction"
+    : input.interrupted
+      ? "recovery_stabilization"
+      : input.ecosystem.environmentalEnergy === "render_tension"
+        ? "render_momentum"
+        : input.ecosystem.environmentalEnergy === "export_momentum"
+          ? "export_anticipation"
+          : input.ecosystem.environmentalEnergy === "campaign_intensity"
+            ? "active_production_energy"
+            : input.minutesSinceUpdate > 240
+              ? "calm_continuity"
+              : "orchestration_tension";
+
+  const atmosphericDensity = clampScore((input.ecosystem.operationalSaturation * 0.35) + (input.blockerCount * 22) + (input.ecosystem.focusEntropy * 0.2));
+  const restorationMomentum = clampScore((input.continuityThreadCount * 14) + (input.interrupted ? 24 : 4) - (input.minutesSinceUpdate > 180 ? 12 : 0));
+  const continuityWarmth = clampScore((input.continuityThreadCount * 16) + (input.exportReadyCount * 12) - (input.blockerCount * 10));
+
+  const motionPacing: CinematicOrchestrationState["motionPacing"] = atmosphericDensity >= 82
+    ? "surge"
+    : atmosphericDensity >= 60
+      ? "momentum"
+      : input.minutesSinceUpdate > 180
+        ? "slow_breathing"
+        : "steady";
+
+  const luminanceBias: CinematicOrchestrationState["luminanceBias"] = emotionalState === "blocker_friction"
+    ? "high_contrast"
+    : emotionalState === "export_anticipation"
+      ? "warm"
+      : emotionalState === "calm_continuity"
+        ? "cool"
+        : "neutral";
+
+  const depthFocus: CinematicOrchestrationState["depthFocus"] = input.blockerCount > 0 || input.exportReadyCount > 0
+    ? "foreground"
+    : input.minutesSinceUpdate > 180
+      ? "background"
+      : "balanced";
+
+  const compressionLevel: CinematicOrchestrationState["compressionLevel"] = input.ecosystem.telemetryDensityPressure >= 75
+    ? "compressed"
+    : input.ecosystem.telemetryDensityPressure >= 55
+      ? "focused"
+      : input.ecosystem.telemetryDensityPressure <= 28
+        ? "open"
+        : "balanced";
+
+  return {
+    emotionalState,
+    atmosphericDensity,
+    motionPacing,
+    luminanceBias,
+    depthFocus,
+    compressionLevel,
+    restorationMomentum,
+    continuityWarmth,
+    explainability: [
+      `Emotion is ${emotionalState.replaceAll("_", " ")} from blockers=${input.blockerCount}, interrupted=${input.interrupted}.`,
+      `Motion pacing is ${motionPacing.replaceAll("_", " ")} from atmospheric density ${atmosphericDensity}.`,
+      `Compression level ${compressionLevel.replaceAll("_", " ")} from telemetry pressure ${input.ecosystem.telemetryDensityPressure}.`,
     ],
   };
 }

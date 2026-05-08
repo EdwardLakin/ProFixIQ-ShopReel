@@ -7,7 +7,7 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { buildProductionMediaGraph, deriveAssetAwareness, deriveSceneIntelligence } from "@/features/shopreel/production/mediaGraph";
-import { deriveEcosystemState, readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { deriveCinematicOrchestrationState, deriveEcosystemState, readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 
 type Scene = {
   id: string;
@@ -176,6 +176,15 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     minutesSinceUpdate: heartbeatTick * 4,
   }), [ambientMode, blockers.length, focusMode, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.readyScenes, heartbeatTick]);
 
+  const cinematicState = useMemo(() => deriveCinematicOrchestrationState({
+    ecosystem: ecosystemState,
+    minutesSinceUpdate: heartbeatTick * 4,
+    continuityThreadCount: 3 + (focusMode === "variant" ? 1 : 0),
+    blockerCount: blockers.length,
+    exportReadyCount: heartbeat.renderState === "export_ready" ? 1 : 0,
+    interrupted: heartbeat.executionState === "interrupted",
+  }), [blockers.length, ecosystemState, focusMode, heartbeat.executionState, heartbeat.renderState, heartbeatTick]);
+
   useEffect(() => {
     const actions: AutonomousAction[] = [];
     if (!showTelemetry || ecosystemState.telemetryDensityPressure < 35) {
@@ -235,7 +244,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     } finally { setSaving(false); }
   }
 
-  const atmosphereClass = ecosystemState.environmentalEnergy === "render_tension" ? "from-fuchsia-500/20 via-cyan-400/10 to-transparent" : ecosystemState.environmentalEnergy === "export_momentum" ? "from-emerald-400/20 via-cyan-400/10 to-transparent" : ecosystemState.environmentalEnergy === "blocker_friction" ? "from-amber-500/20 via-rose-400/10 to-transparent" : ecosystemState.environmentalEnergy === "campaign_intensity" ? "from-indigo-500/20 via-violet-400/10 to-transparent" : "from-violet-500/20 via-cyan-500/10 to-transparent";
+  const atmosphereClass = cinematicState.emotionalState === "render_momentum" ? "from-fuchsia-500/20 via-cyan-400/10 to-transparent" : cinematicState.emotionalState === "export_anticipation" ? "from-emerald-400/20 via-cyan-400/10 to-transparent" : cinematicState.emotionalState === "blocker_friction" ? "from-amber-500/20 via-rose-400/10 to-transparent" : cinematicState.emotionalState === "active_production_energy" ? "from-indigo-500/20 via-violet-400/10 to-transparent" : cinematicState.emotionalState === "calm_continuity" ? "from-sky-500/15 via-indigo-500/10 to-transparent" : "from-violet-500/20 via-cyan-500/10 to-transparent";
 
   return <div className={cx("relative grid gap-5 overflow-hidden rounded-[2rem] p-1", "before:pointer-events-none before:absolute before:inset-0 before:bg-gradient-to-br", atmosphereClass)}>
     <GlassCard label="Spatial production workspace" title="Navigate production depth" description="Foreground editing, orchestration rails, and background telemetry now share one navigable workspace." strong>
@@ -248,6 +257,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
             {focusModes.map((mode) => <button key={mode} onClick={() => setAdaptiveFocus(mode)} className={cx("rounded-full px-3 py-1 text-xs transition", focusMode === mode ? "bg-violet-500/25 text-violet-50" : "bg-white/5 text-white/70")}>{formatLabel(mode)} focus</button>)}
           </div>
           <div className="text-sm text-white/70">Spatial state: <span className="text-white">{formatLabel(zoomLevel)}</span> zoom · <span className="text-white">{formatLabel(focusMode)}</span> intent · <span className="text-white">{formatLabel(ambientMode)}</span> ambient mode</div>
+          <div className="text-xs text-white/55">Cinematic orchestration: {formatLabel(cinematicState.emotionalState)} · {formatLabel(cinematicState.motionPacing)} pacing · {formatLabel(cinematicState.depthFocus)} focus pull · {formatLabel(cinematicState.compressionLevel)} compression</div>
         </div>
         <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
           <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Production minimap</div>
