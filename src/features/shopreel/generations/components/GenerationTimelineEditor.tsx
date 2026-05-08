@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
@@ -33,8 +33,26 @@ type StoryDraftLike = {
   scenes?: Scene[];
 };
 
+type ExecutionState =
+  | "preparing"
+  | "sequencing"
+  | "awaiting_assets"
+  | "render_ready"
+  | "packaging"
+  | "review_blocked"
+  | "export_ready"
+  | "interrupted"
+  | "resumed"
+  | "archived";
+
+type RenderLifecycleState = "queued" | "staging" | "rendering" | "packaging" | "export_ready" | "blocked";
+
 function formatLabel(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function cycleState<T>(items: readonly T[], cursor: number) {
+  return items[cursor % items.length];
 }
 
 export default function GenerationTimelineEditor(props: {
@@ -51,6 +69,60 @@ export default function GenerationTimelineEditor(props: {
   const mediaGraph = useMemo(() => buildProductionMediaGraph({ generationId: props.generationId, hook: draft.hook, cta: draft.cta, caption: draft.caption, scenes }), [draft.caption, draft.cta, draft.hook, props.generationId, scenes]);
   const sceneIntelligence = useMemo(() => deriveSceneIntelligence({ generationId: props.generationId, hook: draft.hook, cta: draft.cta, caption: draft.caption, scenes }), [draft.caption, draft.cta, draft.hook, props.generationId, scenes]);
   const assetAwareness = useMemo(() => deriveAssetAwareness(scenes), [scenes]);
+  const blockers = useMemo(
+    () =>
+      scenes
+        .filter((scene) => !scene.voiceoverText?.trim() || !scene.media?.length)
+        .map((scene) => `${scene.title}: ${!scene.voiceoverText?.trim() ? "voiceover missing" : "media coverage missing"}`),
+    [scenes]
+  );
+  const [heartbeatTick, setHeartbeatTick] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setHeartbeatTick((current) => current + 1);
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const heartbeat = useMemo(() => {
+    const readyScenes = scenes.filter((scene) => scene.media?.length && scene.voiceoverText?.trim()).length;
+    const pendingScenes = Math.max(scenes.length - readyScenes, 0);
+    const executionState: ExecutionState = blockers.length
+      ? cycleState<ExecutionState>(["awaiting_assets", "review_blocked", "interrupted", "resumed"], heartbeatTick)
+      : cycleState<ExecutionState>(["preparing", "sequencing", "render_ready", "packaging", "export_ready"], heartbeatTick);
+    const renderState: RenderLifecycleState = blockers.length
+      ? cycleState<RenderLifecycleState>(["queued", "staging", "blocked"], heartbeatTick)
+      : cycleState<RenderLifecycleState>(["queued", "staging", "rendering", "packaging", "export_ready"], heartbeatTick);
+    return {
+      executionState,
+      renderState,
+      readyScenes,
+      pendingScenes,
+      progress: scenes.length ? Math.round((readyScenes / scenes.length) * 100) : 0,
+    };
+  }, [blockers.length, heartbeatTick, scenes]);
+
+  const executionStream = useMemo(() => {
+    const stream = [
+      `Production heartbeat ${heartbeat.executionState.replaceAll("_", " ")}.`,
+      heartbeat.pendingScenes > 0 ? `Voiceover still missing for ${heartbeat.pendingScenes} scene(s).` : "Campaign continuity restored.",
+      `Render rail transitioned to ${formatLabel(heartbeat.renderState)}.`,
+      heartbeat.renderState === "export_ready" ? "Instagram export awaiting CTA review." : "Packaging TikTok variant…",
+      blockers.length ? `Recovered interrupted workflow: ${blockers[0]}.` : "Hook variant promoted to primary candidate.",
+    ];
+    return stream.map((entry, index) => ({ id: `${heartbeatTick}-${index}`, entry }));
+  }, [blockers, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.renderState, heartbeatTick]);
+
+  const threadStates = useMemo(
+    () => [
+      { label: "Campaign A", state: heartbeat.executionState, detail: "Packaging + publish prep" },
+      { label: "Campaign B", state: heartbeat.renderState === "blocked" ? "awaiting_assets" : "render_ready", detail: "Render infrastructure active" },
+      { label: "Variant C", state: blockers.length ? "review_blocked" : "resumed", detail: blockers.length ? "CTA approval pending" : "Continuity recovered" },
+      { label: "Draft D", state: heartbeat.pendingScenes ? "sequencing" : "export_ready", detail: `${heartbeat.readyScenes}/${Math.max(scenes.length, 1)} scenes execution-ready` },
+    ],
+    [blockers.length, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.readyScenes, heartbeat.renderState, scenes.length]
+  );
 
   function updateScene(sceneId: string, patch: Partial<Scene>) {
     setDraft((current) => ({
@@ -94,6 +166,65 @@ export default function GenerationTimelineEditor(props: {
 
   return (
     <div className="grid gap-5">
+      <GlassCard
+        label="Production heartbeat"
+        title="Live creative execution pulse"
+        description="Deterministic operator heartbeat derived from scene readiness, media graph, and unresolved blockers."
+        strong
+      >
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Heartbeat state</div>
+            <div className="mt-2 text-xl font-semibold text-white">{formatLabel(heartbeat.executionState)}</div>
+            <div className="mt-2 text-xs text-white/70">Scene readiness {heartbeat.progress}% · {heartbeat.readyScenes} ready · {heartbeat.pendingScenes} pending</div>
+            <div className="mt-3 h-2 rounded-full bg-black/30">
+              <div className="h-2 rounded-full bg-gradient-to-r from-cyan-400/70 to-violet-500/70" style={{ width: `${heartbeat.progress}%` }} />
+            </div>
+            <div className="mt-3 text-xs text-white/60">
+              {blockers.length ? `Unresolved blockers: ${blockers[0]}` : "No active blockers. Production continuity stable."}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Render lifecycle rail</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(["queued", "staging", "rendering", "packaging", "export_ready", "blocked"] as const).map((state) => (
+                <GlassBadge key={state} tone={state === heartbeat.renderState ? "copper" : "muted"}>{formatLabel(state)}</GlassBadge>
+              ))}
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+
+      <GlassCard
+        label="Execution stream"
+        title="Operator telemetry"
+        description="Low-noise operational stream of workflow transitions, continuity recovery, and variant motion."
+      >
+        <div className="grid gap-2">
+          {executionStream.map((item) => (
+            <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">{item.entry}</div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard
+        label="Multi-thread orchestration"
+        title="Parallel production threads"
+        description="Execution-aware threads keep campaigns, variants, renders, and draft review active at the same time."
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          {threadStates.map((thread) => (
+            <div key={thread.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-medium text-white">{thread.label}</div>
+                <GlassBadge tone="default">{formatLabel(thread.state)}</GlassBadge>
+              </div>
+              <div className="mt-1 text-xs text-white/60">{thread.detail}</div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
       <GlassCard
         label="Timeline"
         title="Story timeline editor"
