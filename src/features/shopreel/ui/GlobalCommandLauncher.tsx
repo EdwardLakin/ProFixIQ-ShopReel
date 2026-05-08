@@ -1,24 +1,65 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
+
+const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
+  { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
+  { test: (path) => path.startsWith("/shopreel/campaign"), examples: ["show PayProof performance", "continue this campaign", "generate variations"] },
+  { test: (path) => path.startsWith("/shopreel/library"), examples: ["open latest upload", "start a draft from these assets", "find campaign-ready clips"] },
+];
 
 export default function GlobalCommandLauncher() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+  const pathname = usePathname();
   const router = useRouter();
   const interpreted = interpretCommand(value);
 
+  const contextualExamples = useMemo(() => {
+    const routeMatch = routeCommandSuggestions.find((x) => x.test(pathname));
+    return routeMatch?.examples ?? ["continue what we were working on", "open latest draft", "review render status"];
+  }, [pathname]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen((v) => !v);
+      }
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const run = () => {
+    if (!interpreted.href) return;
+    setHistory((prev) => [value, ...prev].filter((x) => x.trim()).slice(0, 6));
+    router.push(interpreted.href);
+    setOpen(false);
+  };
+
   return (
     <>
-      <button onClick={() => setOpen(true)} className="fixed right-3 top-3 z-40 rounded-full bg-cyan-400/15 px-3 py-2 text-xs text-cyan-50 backdrop-blur">AI Command</button>
-      {open ? <div className="fixed inset-0 z-50 bg-black/70 p-4" onClick={() => setOpen(false)}>
-        <div className="mx-auto mt-16 w-full max-w-2xl rounded-3xl bg-[#060b19] p-4" onClick={(e) => e.stopPropagation()}>
-          <div className="mb-2 text-sm text-white/70">Command ShopReel from any page</div>
-          <AiCommandInput value={value} onChange={setValue} placeholder="Type a command..." />
+      <button onClick={() => setOpen(true)} className="fixed right-3 top-3 z-40 rounded-full bg-cyan-400/15 px-3 py-2 text-xs text-cyan-50 backdrop-blur">
+        AI Command ⌘K
+      </button>
+      {open ? <div className="fixed inset-0 z-50 bg-[radial-gradient(circle_at_50%_18%,rgba(45,212,191,0.15),transparent_42%),rgba(2,4,11,0.82)] p-3 backdrop-blur-xl sm:p-6" onClick={() => setOpen(false)}>
+        <div className="mx-auto mt-10 w-full max-w-3xl rounded-[2rem] bg-[#060b19]/92 p-4 shadow-[0_40px_120px_rgba(0,0,0,0.7)] ring-1 ring-white/10 transition-all sm:p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-cyan-100/70">Global command mode · {pathname}</div>
+          <AiCommandInput value={value} onChange={setValue} placeholder="Type a command..." className="min-h-24 text-lg" />
           <div className="mt-3 text-sm text-cyan-50/90">{interpreted.summary}</div>
-          <button disabled={!interpreted.href} onClick={() => interpreted.href && router.push(interpreted.href)} className="mt-3 rounded-xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-4 py-2 text-sm text-white disabled:opacity-40">Execute</button>
+          <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
+          {history.length > 0 ? <div className="mt-4">
+            <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
+            <div className="flex flex-wrap gap-2">{history.map((item) => <button key={item} onClick={() => setValue(item)} className="rounded-full bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-50 hover:bg-cyan-400/20">{item}</button>)}</div>
+          </div> : null}
+          <button disabled={!interpreted.href} onClick={run} className="mt-5 w-full rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-4 py-3 text-sm text-white disabled:opacity-40">
+            Execute command
+          </button>
         </div>
       </div> : null}
     </>

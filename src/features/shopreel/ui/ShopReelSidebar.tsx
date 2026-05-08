@@ -7,16 +7,16 @@ import { useEffect, useState } from "react";
 type NavItem = { label: string; href: string; icon: string; section?: "main" | "studio" | "system" };
 
 const navItems: NavItem[] = [
-  { label: "Home", href: "/shopreel", icon: "⌂", section: "main" },
-  { label: "Create", href: "/shopreel/create", icon: "✦", section: "main" },
-  { label: "Generations", href: "/shopreel/generations", icon: "▣", section: "main" },
-  { label: "Render Queue", href: "/shopreel/render-queue", icon: "◌", section: "main" },
-  { label: "Content Library", href: "/shopreel/library", icon: "◫", section: "main" },
-  { label: "Publish / Export", href: "/shopreel/exports", icon: "↥", section: "main" },
+  { label: "Continue work", href: "/shopreel", icon: "⌂", section: "main" },
+  { label: "Create content", href: "/shopreel/create", icon: "✦", section: "main" },
+  { label: "Latest drafts", href: "/shopreel/generations", icon: "▣", section: "main" },
+  { label: "Review outputs", href: "/shopreel/render-queue", icon: "◌", section: "main" },
+  { label: "Asset library", href: "/shopreel/library", icon: "◫", section: "main" },
+  { label: "Package & publish", href: "/shopreel/exports", icon: "↥", section: "main" },
   { label: "Video Studio", href: "/shopreel/video-creation/advanced", icon: "◉", section: "studio" },
   { label: "Ideas", href: "/shopreel/ideas", icon: "◇", section: "studio" },
   { label: "Editor", href: "/shopreel/editor", icon: "✎", section: "studio" },
-  { label: "Campaigns", href: "/shopreel/campaigns", icon: "◎", section: "studio" },
+  { label: "Monitor campaigns", href: "/shopreel/campaigns", icon: "◎", section: "studio" },
   { label: "Settings", href: "/shopreel/settings", icon: "⚙", section: "system" },
 ];
 
@@ -53,13 +53,13 @@ export default function ShopReelSidebar() {
         onClick={() => setOpen((v) => !v)}
         className="fixed left-2 bottom-4 sm:bottom-auto sm:top-6 z-50 flex h-12 min-w-[74px] items-center justify-center gap-2 rounded-full border border-white/15 bg-[#090f21]/85 px-3 text-xs font-medium tracking-[0.08em] text-cyan-50/90 shadow-[0_8px_30px_rgba(0,0,0,.42),0_0_24px_rgba(56,189,248,.2)] backdrop-blur-xl"
       >
-        <span className="text-sm leading-none">☰</span><span>Menu</span>
+        <span className="text-sm leading-none">☰</span><span>Launch</span>
       </button>
 
       {open ? <button type="button" aria-label="Close navigation menu" className="fixed inset-0 z-40 bg-[#02040b]/65 backdrop-blur-[1px]" onClick={() => setOpen(false)} /> : null}
 
       <aside className={`fixed inset-y-0 left-0 z-50 w-[min(24rem,94vw)] transform overflow-x-hidden border-r border-cyan-100/10 bg-[#040812]/96 p-5 shadow-[30px_0_90px_rgba(0,0,0,.66)] backdrop-blur-2xl transition duration-300 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="mb-5 text-xs uppercase tracking-[0.22em] text-cyan-100/70">Manual Navigation</div>
+        <div className="mb-5 text-xs uppercase tracking-[0.22em] text-cyan-100/70">Workflow launcher</div>
         <nav className="h-[calc(100vh-6.25rem)] space-y-2 overflow-y-auto pr-1">
           {navItems.map((item) => {
             const active = isActivePath(pathname, item.href);
