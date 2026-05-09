@@ -31,6 +31,8 @@ import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBeh
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggestionsByRhythm } from "@/features/shopreel/ui/system/operatorRhythm";
+import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
+import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/system/productionExecutionIntelligence";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -241,14 +243,24 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const ecosystemSnapshot = deriveEcosystemStateSnapshot(context);
   const operatorAdaptation = deriveOperatorAdaptation(readOperatorBehaviorMemory());
   const intuition = deriveProductionIntuition({ operator: readOperatorBehaviorMemory(), continuity, evolution: continuity.continuousEvolution, memory: context, routePathname: context?.lastRoute ?? "/shopreel" });
-  const quickCommands = intuition.likelyNextMove === "package_or_publish" || intuition.likelyNextMove === "prepare_export"
-    ? ["open publish queue", "review + package", "schedule latest export"]
-    : intuition.likelyNextMove === "inspect_render_queue" || intuition.likelyNextMove === "resolve_render_blocker"
-      ? ["show failed renders", "show render queue blockers", "stabilize render continuity"]
-      : intuition.likelyNextMove === "continue_campaign"
-        ? ["continue active campaign", "generate campaign variations", "review campaign readiness"]
-        : ["show me my latest", "continue what we were working on", "review + package"];
   const rhythm = deriveOperatorRhythmSnapshot();
+  const strategic = deriveStrategicAdaptation({ workspace: context, operator: readOperatorBehaviorMemory(), continuity, strategicMemory: readStrategicOperationalMemory() });
+  const execution = deriveProductionExecutionIntelligence({
+    ecosystem: ecosystemSnapshot,
+    continuity,
+    rhythm,
+    intuition,
+    strategic,
+    routePath: context?.lastRoute ?? "/shopreel",
+  });
+  const surfaceCommandMap: Record<string, string[]> = {
+    "/shopreel/exports": ["open publish queue", "review + package", "schedule latest export"],
+    "/shopreel/render-queue": ["show failed renders", "show render queue blockers", "stabilize render continuity"],
+    "/shopreel/campaigns": ["continue active campaign", "generate campaign variations", "review campaign readiness"],
+    "/shopreel/review": ["restore continuity and recover interrupted flow", "review blockers", "continue what we were working on"],
+    "/shopreel/create": ["create next draft", "open create flow", "continue what we were working on"],
+  };
+  const quickCommands = surfaceCommandMap[execution.recommendedSurface] ?? ["show me my latest", "continue what we were working on", "review + package"];
   const rhythmCommands = reorderSuggestionsByRhythm(quickCommands, rhythm);
 
   const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
@@ -295,7 +307,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">One world, one next move. Blockers stay visible, ready outputs rise, dormant noise cools.</p>
         <p className="mt-2 text-xs text-white/60">Ecosystem state: {ecosystemSnapshot.ecosystemMode} · production pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
         <p className="mt-2 text-xs text-white/55">Next move: {ecosystemSnapshot.suggestedSurfaceAction} · recovery path {ecosystemSnapshot.recoveryPriority}</p>
-        <p className="mt-1 text-xs text-cyan-100/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</p>
+        <p className="mt-1 text-xs text-cyan-100/80">Likely next: {execution.nextOperationalMove} → {execution.recommendedSurface}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>
