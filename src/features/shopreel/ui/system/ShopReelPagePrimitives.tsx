@@ -61,16 +61,26 @@ export function ShopReelSurface({
   description,
   children,
   actions,
+  prominence = "normal",
+  density = "balanced",
   className = "",
 }: {
   title?: string;
   description?: string;
   children: ReactNode;
   actions?: ReactNode;
+  prominence?: "normal" | "elevated" | "recessed";
+  density?: "comfortable" | "balanced" | "compact";
   className?: string;
 }) {
+  const prominenceTone = prominence === "elevated"
+    ? "border-cyan-300/24 bg-cyan-300/[0.07] shadow-[0_24px_76px_rgba(8,145,178,.22)]"
+    : prominence === "recessed"
+      ? "border-slate-400/8 bg-white/[0.03] opacity-90"
+      : "border-slate-400/10 bg-white/[0.045] shadow-[0_18px_60px_rgba(0,0,0,.32)]";
+  const densityTone = density === "compact" ? "p-3 sm:p-4" : density === "comfortable" ? "p-5 sm:p-6" : "p-4 sm:p-5";
   return (
-    <section className={`relative overflow-hidden rounded-[1.75rem] border border-slate-400/10 bg-white/[0.045] p-4 shadow-[0_18px_60px_rgba(0,0,0,.32)] backdrop-blur-2xl sm:p-5 ${className}`}>
+    <section className={`relative overflow-hidden rounded-[1.75rem] border backdrop-blur-2xl transition-all duration-300 ${prominenceTone} ${densityTone} ${className}`}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/18 to-transparent" />
       {(title || description || actions) ? (
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -132,6 +142,20 @@ export function ShopReelActionRail({
       ) : null}
       {children ? <div className="mt-4">{children}</div> : null}
     </aside>
+  );
+}
+
+export function ShopReelOperationalLanes({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`shopreel-rail-scroll overflow-x-auto pb-1 ${className}`}>
+      <div className="flex min-w-full gap-3">{children}</div>
+    </div>
   );
 }
 

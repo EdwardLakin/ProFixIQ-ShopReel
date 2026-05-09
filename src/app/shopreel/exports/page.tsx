@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { requireShopId } from "@/features/shopreel/server/requireShopId";
 import { mapExportPackage } from "@/features/shopreel/export/exportPackage";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
-import { ShopReelActionRail, ShopReelEmptyState, ShopReelPageHero, ShopReelSectionHeader, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+import { ShopReelActionRail, ShopReelEmptyState, ShopReelOperationalLanes, ShopReelPageHero, ShopReelSectionHeader, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import EcosystemStateRail from "@/features/shopreel/ui/system/EcosystemStateRail";
 import SurfaceExecutionHint from "@/features/shopreel/ui/system/SurfaceExecutionHint";
 import { computePublishReadiness } from "@/features/shopreel/publish/lifecycle";
@@ -53,10 +53,12 @@ export default async function ShopReelDownloadsPage() {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
         <div className="space-y-4">
           <ShopReelSectionHeader eyebrow="Package board" title="Export command center" subtitle="Validate readiness, open package details, and run manual publishing workflows." />
-          <ShopReelSurface title="Ready to package">{renderList(groups.readyToPackage)}</ShopReelSurface>
-          <ShopReelSurface title="Needs review">{renderList(groups.needsReview)}</ShopReelSurface>
-          <ShopReelSurface title="Draft packages">{renderList(groups.draft)}</ShopReelSurface>
-          <ShopReelSurface title="Exported packages">{renderList(groups.exported)}</ShopReelSurface>
+          <ShopReelOperationalLanes>
+            <div className="min-w-[min(100%,25rem)] flex-1"><ShopReelSurface title="Ready to package" prominence={groups.readyToPackage.length ? "elevated" : "normal"}>{renderList(groups.readyToPackage)}</ShopReelSurface></div>
+            <div className="min-w-[min(100%,25rem)] flex-1"><ShopReelSurface title="Needs review" prominence={groups.needsReview.length ? "elevated" : "normal"} density={groups.needsReview.length > 5 ? "compact" : "balanced"}>{renderList(groups.needsReview)}</ShopReelSurface></div>
+            <div className="min-w-[min(100%,25rem)] flex-1"><ShopReelSurface title="Draft packages" density="compact">{renderList(groups.draft)}</ShopReelSurface></div>
+            <div className="min-w-[min(100%,25rem)] flex-1"><ShopReelSurface title="Exported packages" prominence={groups.exported.length ? "recessed" : "normal"} density="compact">{renderList(groups.exported)}</ShopReelSurface></div>
+          </ShopReelOperationalLanes>
         </div>
         <ShopReelActionRail title="Publish rail" items={["Start with packages that are readiness=ready","Resolve blockers before downloading deliverables","Use package detail before copying captions/hashtags","Exported and posted statuses reflect persisted package state"]} />
       </div>
