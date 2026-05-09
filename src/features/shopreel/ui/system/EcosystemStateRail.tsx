@@ -9,6 +9,7 @@ import { deriveProductionIntuition } from "@/features/shopreel/ui/system/product
 import { deriveOperatorRhythmSnapshot } from "@/features/shopreel/ui/system/operatorRhythm";
 import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
 import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/system/productionExecutionIntelligence";
+import { deriveWorkflowEmbodimentSnapshot } from "@/features/shopreel/ui/system/workflowEmbodiment";
 
 const SURFACE_HINT: Record<EcosystemSurface, string> = {
   home: "Ecosystem state",
@@ -55,27 +56,28 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
     strategic,
     routePath: continuity.routeTransitionMemory.currentRoute,
   }), [continuity, intuition, rhythm, snapshot, strategic]);
-  const surfaceLead = useMemo(() => `${SURFACE_HINT[surface]} · ${snapshot.atmosphericLabel}`, [snapshot.atmosphericLabel, surface]);
-  const nextMove = execution.nextOperationalMove || intuition.suggestedCommand || snapshot.suggestedSurfaceAction;
+  const embodiment = useMemo(() => deriveWorkflowEmbodimentSnapshot({ surface, ecosystem: snapshot, continuity, rhythm, intuition, strategic, execution }), [continuity, execution, intuition, rhythm, snapshot, strategic, surface]);
+  const surfaceLead = useMemo(() => `${SURFACE_HINT[surface]} · ${embodiment.nextWorkflowPosture}`, [embodiment.nextWorkflowPosture, surface]);
+  const nextMove = embodiment.nextWorkflowPosture;
 
   return (
     <div className="rounded-2xl border border-cyan-300/25 bg-cyan-500/10 px-3 py-2.5 text-xs text-cyan-50/95">
       <div className="uppercase tracking-[0.16em] text-cyan-100/75">{surfaceLead}</div>
       <div className="mt-1.5 grid gap-1 text-cyan-50/90 sm:grid-cols-2">
-        <span>Production pressure {snapshot.operationalPressure}</span>
-        <span>Continuity {snapshot.continuityHealth}</span>
-        <span>Render readiness {Math.max(0, 100 - snapshot.renderPressure)}</span>
-        <span>Export momentum {snapshot.exportMomentum}</span>
+        <span>Continuity weight {embodiment.continuityWeight}</span>
+        <span>Render pressure {embodiment.renderPressure}</span>
+        <span>Export pull {embodiment.exportPull}</span>
+        <span>Review urgency {embodiment.reviewUrgency}</span>
       </div>
-      <div className="mt-2 rounded-lg bg-black/20 px-2.5 py-1.5 text-cyan-100/90">Next move: {nextMove} → {intuition.suggestedSurface}</div>
+      <div className="mt-2 rounded-lg bg-black/20 px-2.5 py-1.5 text-cyan-100/90">Posture: {nextMove} · {embodiment.embodiedSurface.replace("/shopreel/", "")}</div>
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-cyan-100/75">
         <span>Recovery path {continuity.recoveryCorridor}</span>
         <span>Rhythm {rhythm.cadence}</span>
         <span>Bias {operator.priorityBias}</span>
       </div>
       <div className="mt-1 text-cyan-100/65">{continuity.continuousEvolution?.explanation ?? continuity.explainability[0]}</div>
-      <div className="mt-1 text-cyan-100/70">Execution: {execution.explanation[0]}</div>
-      <div className="mt-1 text-cyan-100/70">Continuity trail: {continuity.routeTransitionMemory.previousRoute} → {continuity.routeTransitionMemory.currentRoute}</div>
+      <div className="mt-1 text-cyan-100/70">Workflow mode: {embodiment.primaryWorkMode.replaceAll("_", " ")} · Compression {embodiment.recommendedCompression}</div>
+      <div className="mt-1 text-cyan-100/70">Carryover: {embodiment.routeTransitionCarryover}</div>
     </div>
   );
 }
