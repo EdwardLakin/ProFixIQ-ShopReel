@@ -64,7 +64,7 @@ export default function PricingSection() {
             glassTheme.text.primary,
           )}
         >
-          Plans built for every content rhythm.
+          Operational tiers for AI-native content systems.
         </h2>
 
         <p
@@ -73,8 +73,8 @@ export default function PricingSection() {
             glassTheme.text.secondary,
           )}
         >
-          Every plan includes ShopReel’s core AI creation flow. Scale up when you need
-          more output, video creation, asset learning, and automation.
+          Every plan includes ShopReel’s core operating workflow. Scale when you need
+          more campaigns, video creation, asset learning, automation, and publishing volume.
         </p>
       </div>
 
