@@ -37,7 +37,7 @@ type RecentItem = { id: string; title: string; status: string };
 export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
   const router = useRouter();
   const [command, setCommand] = useState("");
-  const [assistantText, setAssistantText] = useState("Continuing session standby. Give me the next instruction and I will orchestrate the workspace.");
+  const [assistantText, setAssistantText] = useState("Command ready. Continue, recover, render, package, or publish.");
   const [context, setContext] = useState<WorkspaceMemory | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
@@ -291,17 +291,15 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       <div className="pointer-events-none absolute -left-14 bottom-0 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
       <div className="relative">
         <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Live command session</div>
-        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">What should the AI operating system run next?</h1>
-        <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">This workspace is orchestration-first. Spatial rails, minimap memory, and focus-aware compression drive every move.</p>
+        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Command production. Keep momentum.</h1>
+        <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">One world, one next move. Blockers stay visible, ready outputs rise, dormant noise cools.</p>
         <p className="mt-2 text-xs text-white/60">Ecosystem state: {ecosystemSnapshot.ecosystemMode} · production pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
-        <p className="mt-2 text-xs text-white/55">Operational weather: {environmentReactivity.operationalWeather.pattern.replaceAll("_", " ")} · intensity {environmentReactivity.operationalWeather.intensity} · continuity scarring {environmentReactivity.continuityScarring}</p>
-        <p className="mt-1 text-xs text-white/50">Operator pattern: {operatorAdaptation.priorityBias} · workspace bias {operatorAdaptation.operatorMode.replaceAll("_", " ")} · continuity preference {operatorAdaptation.continuitySensitivity}</p>
-        <p className="mt-1 text-xs text-white/50">Render readiness {Math.max(0, 100 - ecosystemSnapshot.renderPressure)} · export momentum {ecosystemSnapshot.exportMomentum} · recovery path {ecosystemSnapshot.recoveryPriority} · next operational move {ecosystemSnapshot.suggestedSurfaceAction}</p>
-        <p className="mt-1 text-xs text-cyan-100/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface} ({intuition.confidence}% confidence)</p>
+        <p className="mt-2 text-xs text-white/55">Next move: {ecosystemSnapshot.suggestedSurfaceAction} · recovery path {ecosystemSnapshot.recoveryPriority}</p>
+        <p className="mt-1 text-xs text-cyan-100/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>
-        <div className="mt-2 text-xs text-cyan-100/80">Operator rhythm: {rhythm.workingMode.replaceAll("_", " ")} · {rhythm.cadence} · bias {rhythm.commandSuggestionBias}</div>
+        <div className="mt-2 text-xs text-cyan-100/80">Rhythm {rhythm.cadence} · strategy {operatorAdaptation.priorityBias} · continuity {ecosystemSnapshot.continuityHealth}</div>
         <div className="mt-3 flex flex-wrap gap-2">{rhythmCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Compress activity rail" : "Expand activity rail"}</button>
@@ -324,9 +322,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         </div>
       </AiWorkspaceStage>
 
-      <AiWorkspaceStage title="Session + creative memory" className={`border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${environmentReactivity.structuralInstability > 65 ? "ring-1 ring-rose-300/20" : environmentReactivity.recoveryWarmth > 65 ? "ring-1 ring-emerald-300/20" : ""}`}>
+      <AiWorkspaceStage title="Session memory" className={`border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${environmentReactivity.structuralInstability > 65 ? "ring-1 ring-rose-300/20" : environmentReactivity.recoveryWarmth > 65 ? "ring-1 ring-emerald-300/20" : ""}`}>
         <div className="space-y-2 text-sm text-white/75">
-          <div>AI routing: deterministic local interpreter</div>
           <div>Current intent: {interpreted.intent}</div>
           <div>Last workflow: {context?.lastWorkflow ?? "none"}</div>
           <div>Last route: {context?.lastRoute ?? "none"}</div>

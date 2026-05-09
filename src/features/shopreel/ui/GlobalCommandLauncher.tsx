@@ -21,8 +21,8 @@ export default function GlobalCommandLauncher() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [history, setHistory] = useState<string[]>([]);
-  const [focusLine, setFocusLine] = useState<string>("Focus: align next command with active production flow");
-  const [ecosystemHint, setEcosystemHint] = useState<string>("Ecosystem state: calm continuity");
+  const [focusLine, setFocusLine] = useState<string>("Next move: continue active production");
+  const [ecosystemHint, setEcosystemHint] = useState<string>("Production pressure: stable");
   const pathname = usePathname();
   const router = useRouter();
   const interpreted = interpretCommand(value);
@@ -64,8 +64,8 @@ export default function GlobalCommandLauncher() {
     if (!memory) return;
     setHistory(memory.intentHistory);
     const snapshot = deriveEcosystemStateSnapshot(memory);
-    setEcosystemHint(`Ecosystem state: ${snapshot.atmosphericLabel} · Next operational move: ${snapshot.suggestedSurfaceAction}`);
-    setFocusLine(`Focus: ${continuity.adaptiveAtmosphere?.activeFocusLabel ?? "continue active workflow checkpoints"}`);
+    setEcosystemHint(`Production pressure: ${snapshot.operationalPressure} · Continuity: ${snapshot.continuityHealth}`);
+    setFocusLine(`Next move: ${snapshot.suggestedSurfaceAction}`);
   }, [open, continuity.adaptiveAtmosphere?.activeFocusLabel]);
 
   useEffect(() => {
@@ -108,9 +108,9 @@ export default function GlobalCommandLauncher() {
     setOpen(false);
   };
 
-  const proactiveHint = history.length > 0 ? `Resume: ${history[0]}` : "No command memory yet. Start with a workflow instruction.";
+  const proactiveHint = history.length > 0 ? `Continue: ${history[0]}` : "Start with a command: continue, render, package, or publish.";
   const prominenceClass = continuity.adaptiveAtmosphere?.hierarchy === "urgent" ? "ring-2 ring-rose-300/45" : continuity.adaptiveAtmosphere?.hierarchy === "sharp" ? "ring-2 ring-cyan-300/40" : "";
-  const modePlaceholder = `Operator mode: ${operatorAdaptation.operatorMode.replaceAll("_", " ")} · type a command...`;
+  const modePlaceholder = `Command the next move… (${operatorAdaptation.operatorMode.replaceAll("_", " ")})`;
 
   return (
     <>
@@ -119,17 +119,14 @@ export default function GlobalCommandLauncher() {
       </button>
       {open ? <div className="fixed inset-0 z-50 bg-[radial-gradient(circle_at_50%_18%,rgba(45,212,191,0.15),transparent_42%),rgba(2,4,11,0.82)] p-3 backdrop-blur-xl sm:p-6" onClick={() => setOpen(false)}>
         <div className="mx-auto mt-10 w-full max-w-3xl rounded-[2rem] bg-[#060b19]/92 p-4 shadow-[0_40px_120px_rgba(0,0,0,0.7)] ring-1 ring-white/10 transition-all sm:p-6" onClick={(e) => e.stopPropagation()}>
-          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-cyan-100/70">Global command mode · {pathname}</div>
+          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-cyan-100/70">Command center · {pathname}</div>
           <AiCommandInput value={value} onChange={setValue} placeholder={modePlaceholder} className="min-h-24 text-lg" />
           <div className="mt-3 text-sm text-cyan-50/90">{interpreted.summary}</div>
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{ecosystemHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
-          <div className="mt-1 text-xs text-cyan-200/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</div>
-          <div className="mt-1 text-xs text-cyan-200/75">{`Workspace bias: ${operatorAdaptation.priorityBias} · continuity preference ${operatorAdaptation.continuitySensitivity} · ${operatorAdaptation.environmentalAdjustment}`}</div>
-          <div className="mt-1 text-xs text-cyan-100/80">Operator rhythm: {rhythm.workingMode.replaceAll("_", " ")} · {rhythm.cadence} cadence · prefers {rhythm.preferredSurface}</div>
-          <div className="mt-1 text-xs text-cyan-100/80">Strategic personality: {strategic.operationalPersonality.replaceAll("_", " ")} · command bias {strategic.commandOrderingBias} · continuity routing {strategic.continuityVisibilityBias}</div>
-          <div className="mt-1 text-xs text-cyan-100/70">{strategic.explanation[0]}</div>
+          <div className="mt-1 text-xs text-cyan-100/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</div>
+          <div className="mt-1 text-xs text-cyan-100/70">Rhythm: {rhythm.cadence} · Strategy: {strategic.commandOrderingBias} · Bias: {operatorAdaptation.priorityBias}</div>
           <div className="mt-3 flex flex-wrap gap-2">{strategyExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>

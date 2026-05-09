@@ -40,23 +40,24 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
     routePathname: continuity.routeTransitionMemory.currentRoute,
   }), [continuity]);
   const surfaceLead = useMemo(() => `${SURFACE_HINT[surface]} · ${snapshot.atmosphericLabel}`, [snapshot.atmosphericLabel, surface]);
+  const nextMove = intuition.suggestedCommand || snapshot.suggestedSurfaceAction;
 
   return (
     <div className="rounded-2xl border border-cyan-300/25 bg-cyan-500/10 px-3 py-2.5 text-xs text-cyan-50/95">
       <div className="uppercase tracking-[0.16em] text-cyan-100/75">{surfaceLead}</div>
-      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-cyan-50/90">
+      <div className="mt-1.5 grid gap-1 text-cyan-50/90 sm:grid-cols-2">
         <span>Production pressure {snapshot.operationalPressure}</span>
         <span>Continuity {snapshot.continuityHealth}</span>
         <span>Render readiness {Math.max(0, 100 - snapshot.renderPressure)}</span>
         <span>Export momentum {snapshot.exportMomentum}</span>
       </div>
-      <div className="mt-1 text-cyan-100/80">World {continuity.continuousEvolution?.productionWorldMode ?? "stable"} · atmosphere {continuity.adaptiveAtmosphere?.mode ?? "calm"} · escalation {continuity.escalationState}</div>
-      <div className="mt-1 text-cyan-100/80">Momentum {continuity.continuousEvolution?.exportMomentumPersistence ?? continuity.exportMomentum} · recovery {continuity.recoveryCorridor} · nav cooling {continuity.continuousEvolution?.dormantNavigationCooling ?? continuity.dormantInfluence}</div>
-      <div className="mt-1 text-cyan-100/80">Operator bias: {operator.priorityBias === "export" ? "export momentum" : operator.priorityBias === "recovery" ? "recovery-first" : operator.priorityBias === "campaign" ? "campaign strategy" : operator.priorityBias === "continuity" ? "continuity restoration" : `${operator.priorityBias} rhythm`}</div>
-      <div className="mt-1 text-cyan-100/80">Operator rhythm: {rhythm.workingMode.replaceAll("_", " ")} · {rhythm.cadence} · nav {rhythm.navigationDensity}</div>
-      <div className="mt-1 text-cyan-100/85">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</div>
-      <div className="mt-1 text-cyan-100/80">Next environmental adjustment: density {continuity.continuousEvolution?.globalDensityBias ?? "neutral"}, hierarchy {continuity.continuousEvolution?.globalHierarchyBias ?? "neutral"}</div>
-      <div className="mt-1 text-cyan-100/70">{continuity.continuousEvolution?.explanation ?? continuity.explainability[0]}</div>
+      <div className="mt-2 rounded-lg bg-black/20 px-2.5 py-1.5 text-cyan-100/90">Next move: {nextMove} → {intuition.suggestedSurface}</div>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-cyan-100/75">
+        <span>Recovery path {continuity.recoveryCorridor}</span>
+        <span>Rhythm {rhythm.cadence}</span>
+        <span>Bias {operator.priorityBias}</span>
+      </div>
+      <div className="mt-1 text-cyan-100/65">{continuity.continuousEvolution?.explanation ?? continuity.explainability[0]}</div>
     </div>
   );
 }
