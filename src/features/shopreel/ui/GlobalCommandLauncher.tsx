@@ -8,6 +8,7 @@ import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecos
 import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
+import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggestionsByRhythm } from "@/features/shopreel/ui/system/operatorRhythm";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -34,6 +35,7 @@ export default function GlobalCommandLauncher() {
     routePathname: pathname,
   }), [continuity, pathname]);
   const mode = continuity.adaptiveAtmosphere?.mode;
+  const rhythm = useMemo(() => deriveOperatorRhythmSnapshot(), [open, pathname, history.length]);
 
   const contextualExamples = useMemo(() => {
     if (intuition.likelyNextMove === "package_or_publish" || intuition.likelyNextMove === "prepare_export") return ["package ready assets", "open publish queue", "schedule latest export"];
@@ -52,6 +54,7 @@ export default function GlobalCommandLauncher() {
     const routeMatch = routeCommandSuggestions.find((x) => x.test(pathname));
     return routeMatch?.examples ?? ["continue what we were working on", "open latest draft", "review render status"];
   }, [mode, pathname, operatorAdaptation.priorityBias, intuition.likelyNextMove]);
+  const rhythmExamples = useMemo(() => reorderSuggestionsByRhythm(contextualExamples, rhythm), [contextualExamples, rhythm]);
 
   useEffect(() => {
     const memory = readWorkspaceMemory();
@@ -77,6 +80,11 @@ export default function GlobalCommandLauncher() {
   const run = () => {
     if (!interpreted.href) return;
     recordOperatorBehaviorEvent({ type: "command_submitted", route: interpreted.href, intent: interpreted.intent });
+    recordOperatorRhythmEvent({ type: "command_submitted", route: interpreted.href });
+    if (/(continue|resume)/i.test(value)) recordOperatorRhythmEvent({ type: "workflow_continued", route: interpreted.href });
+    if (interpreted.intent === "render") recordOperatorRhythmEvent({ type: "render_checked", route: interpreted.href });
+    if (interpreted.intent === "publish") recordOperatorRhythmEvent({ type: "export_opened", route: interpreted.href });
+    if (interpreted.intent === "campaign") recordOperatorRhythmEvent({ type: "campaign_opened", route: interpreted.href });
     const nextHistory = [value, ...history].filter((x) => x.trim()).slice(0, 8);
     setHistory(nextHistory);
     const existing = readWorkspaceMemory();
@@ -114,7 +122,8 @@ export default function GlobalCommandLauncher() {
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
           <div className="mt-1 text-xs text-cyan-200/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</div>
           <div className="mt-1 text-xs text-cyan-200/75">{`Workspace bias: ${operatorAdaptation.priorityBias} · continuity preference ${operatorAdaptation.continuitySensitivity} · ${operatorAdaptation.environmentalAdjustment}`}</div>
-          <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
+          <div className="mt-1 text-xs text-cyan-100/80">Operator rhythm: {rhythm.workingMode.replaceAll("_", " ")} · {rhythm.cadence} cadence · prefers {rhythm.preferredSurface}</div>
+          <div className="mt-3 flex flex-wrap gap-2">{rhythmExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
             <div className="flex flex-wrap gap-2">{history.map((item) => <button key={item} onClick={() => setValue(item)} className="rounded-full bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-50 hover:bg-cyan-400/20">{item}</button>)}</div>

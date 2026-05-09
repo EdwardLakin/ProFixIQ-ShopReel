@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect } from "react";
 import ShopReelSidebar from "@/features/shopreel/ui/ShopReelSidebar";
 import GlobalCommandLauncher from "@/features/shopreel/ui/GlobalCommandLauncher";
 import { GlobalEnvironmentAmbientLine, GlobalEnvironmentContinuityProvider, useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
@@ -8,17 +9,19 @@ import { deriveOperatorAdaptation, readOperatorBehaviorMemory } from "@/features
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { usePathname } from "next/navigation";
+import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent } from "@/features/shopreel/ui/system/operatorRhythm";
 
 function ShellScaffold({ children }: { children: ReactNode }) {
   const continuity = useGlobalEnvironmentContinuity();
   const pathname = usePathname();
+  const rhythm = deriveOperatorRhythmSnapshot();
   const atmosphere = continuity.adaptiveAtmosphere;
   const evolution = continuity.continuousEvolution;
   const densityClass = atmosphere?.friction === "high" ? "opacity-[0.07]" : atmosphere?.friction === "visible" ? "opacity-[0.06]" : atmosphere?.friction === "subtle" ? "opacity-[0.04]" : "opacity-[0.02]";
   const energyOpacity = atmosphere?.mode === "recovery" ? "0.12" : atmosphere?.mode === "export_momentum" ? "0.23" : atmosphere?.mode === "render_pressure" || atmosphere?.mode === "fractured" ? "0.26" : "0.18";
-  const shellPadding = evolution?.globalDensityBias === "elevated" || atmosphere?.density === "compressed" ? "pl-2 md:pl-4" : evolution?.globalDensityBias === "reduced" ? "pl-4 md:pl-7" : atmosphere?.density === "compact" ? "pl-3 md:pl-5" : "pl-4 md:pl-6";
+  const shellPadding = rhythm.navigationDensity === "dense" ? "pl-2 md:pl-4" : rhythm.navigationDensity === "sparse" ? "pl-5 md:pl-7" : evolution?.globalDensityBias === "elevated" || atmosphere?.density === "compressed" ? "pl-2 md:pl-4" : evolution?.globalDensityBias === "reduced" ? "pl-4 md:pl-7" : atmosphere?.density === "compact" ? "pl-3 md:pl-5" : "pl-4 md:pl-6";
   const typography = evolution?.globalHierarchyBias === "elevated" || atmosphere?.hierarchy === "urgent" ? "text-white" : atmosphere?.hierarchy === "sharp" ? "text-slate-50" : "text-slate-100";
-  const navProminence = evolution?.globalNavigationBias === "reduced" || atmosphere?.mode === "dormant" ? "opacity-80" : "opacity-100";
+  const navProminence = rhythm.workingMode === "exploratory" ? "opacity-100" : evolution?.globalNavigationBias === "reduced" || atmosphere?.mode === "dormant" ? "opacity-80" : "opacity-100";
   const railEmphasis = evolution?.globalFrictionBias === "elevated" || atmosphere?.mode === "render_pressure" ? "ring-1 ring-rose-300/30" : atmosphere?.mode === "export_momentum" ? "ring-1 ring-cyan-300/25" : "";
   const operator = deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity);
   const navModeClass = operator.densityPreference === "compressed" ? "[&_a]:py-1.5" : operator.densityPreference === "spacious" ? "[&_a]:py-3" : "[&_a]:py-2";
@@ -33,6 +36,9 @@ function ShellScaffold({ children }: { children: ReactNode }) {
         : intuition.suggestedSurface.includes("/review")
           ? "[&_a[data-nav=review]]:underline"
           : "";
+  useEffect(() => {
+    recordOperatorRhythmEvent({ type: "route_changed", route: pathname });
+  }, [pathname]);
 
   return (
     <div className={`min-h-screen bg-[#02040c] ${typography}`}>

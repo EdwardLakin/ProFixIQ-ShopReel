@@ -6,6 +6,7 @@ import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMe
 import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
+import { deriveOperatorRhythmSnapshot } from "@/features/shopreel/ui/system/operatorRhythm";
 
 const SURFACE_HINT: Record<EcosystemSurface, string> = {
   home: "Ecosystem state",
@@ -30,6 +31,7 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
   }, []);
 
   const operator = useMemo(() => deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity), [continuity]);
+  const rhythm = useMemo(() => deriveOperatorRhythmSnapshot(), [continuity.routeTransitionMemory.currentRoute, continuity.routeTransitionMemory.transitionCount]);
   const intuition = useMemo(() => deriveProductionIntuition({
     operator: readOperatorBehaviorMemory(),
     continuity,
@@ -51,6 +53,7 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
       <div className="mt-1 text-cyan-100/80">World {continuity.continuousEvolution?.productionWorldMode ?? "stable"} · atmosphere {continuity.adaptiveAtmosphere?.mode ?? "calm"} · escalation {continuity.escalationState}</div>
       <div className="mt-1 text-cyan-100/80">Momentum {continuity.continuousEvolution?.exportMomentumPersistence ?? continuity.exportMomentum} · recovery {continuity.recoveryCorridor} · nav cooling {continuity.continuousEvolution?.dormantNavigationCooling ?? continuity.dormantInfluence}</div>
       <div className="mt-1 text-cyan-100/80">Operator bias: {operator.priorityBias === "export" ? "export momentum" : operator.priorityBias === "recovery" ? "recovery-first" : operator.priorityBias === "campaign" ? "campaign strategy" : operator.priorityBias === "continuity" ? "continuity restoration" : `${operator.priorityBias} rhythm`}</div>
+      <div className="mt-1 text-cyan-100/80">Operator rhythm: {rhythm.workingMode.replaceAll("_", " ")} · {rhythm.cadence} · nav {rhythm.navigationDensity}</div>
       <div className="mt-1 text-cyan-100/85">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</div>
       <div className="mt-1 text-cyan-100/80">Next environmental adjustment: density {continuity.continuousEvolution?.globalDensityBias ?? "neutral"}, hierarchy {continuity.continuousEvolution?.globalHierarchyBias ?? "neutral"}</div>
       <div className="mt-1 text-cyan-100/70">{continuity.continuousEvolution?.explanation ?? continuity.explainability[0]}</div>
