@@ -288,10 +288,10 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     context?.pendingTasks[0] ? `Next checkpoint: ${context.pendingTasks[0].label}` : "No pending checkpoints detected",
     context?.interruptedWorkflow ? `Interrupted flow detected: ${context.interruptedWorkflow}` : "No interrupted workflow",
     `Recent instruction interpreted as: ${interpreted.intent}`,
-    `Adaptive mode: ${context?.adaptiveMode ?? "balanced"}`,
-    `Continuity weather: ${context?.operationalGraph?.continuityWeather.pattern?.replaceAll("_", " ") ?? "calm operational atmosphere"} · intensity ${context?.operationalGraph?.continuityWeather.intensity ?? 0}`,
-    `Environmental coherence ${context?.operationalGraph?.environmentalInterpretation.environmentalCoherence ?? 0} · topology stress ${context?.operationalGraph?.environmentalInterpretation.topologyStress ?? 0}`,
+    `Workspace rhythm: ${context?.adaptiveMode ?? "balanced"}`,
+    `Continuity: ${context?.operationalGraph?.continuityWeather.pattern?.replaceAll("_", " ") ?? "calm"} · intensity ${context?.operationalGraph?.continuityWeather.intensity ?? 0}`,
   ];
+  const calmMode = environmentReactivity.operationalWeather.pattern === "cinematic_stabilization" || environmentReactivity.dormantCooling > 62;
 
   const compressionClass = environmentalField.focusCompression > 58 ? "space-y-4" : environmentalField.pacing.breathingRhythm > 62 ? "space-y-7" : "space-y-6";
   const railDensityClass = environmentalField.pacing.compressionRhythm > 58 ? "space-y-1.5" : environmentalField.pacing.recoveryRhythm > 62 ? "space-y-2.5" : "space-y-2";
@@ -303,9 +303,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       <div className="pointer-events-none absolute -left-14 bottom-0 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
       <div className="relative">
         <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Live command session</div>
-        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Command production. Keep momentum.</h1>
+        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Production workspace. Keep momentum.</h1>
         <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">One world, one next move. Blockers stay visible, ready outputs rise, dormant noise cools.</p>
-        <p className="mt-2 text-xs text-white/60">Ecosystem state: {ecosystemSnapshot.ecosystemMode} · production pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
+        <p className="mt-2 text-xs text-white/60">Active path: {ecosystemSnapshot.ecosystemMode} · render pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
         <p className="mt-2 text-xs text-white/55">Next move: {ecosystemSnapshot.suggestedSurfaceAction} · recovery path {ecosystemSnapshot.recoveryPriority}</p>
         <p className="mt-1 text-xs text-cyan-100/80">Likely next: {execution.nextOperationalMove} → {execution.recommendedSurface}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
@@ -315,18 +315,18 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className="mt-3 flex flex-wrap gap-2">{rhythmCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Compress activity rail" : "Expand activity rail"}</button>
-          <button onClick={runCommand} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-5 py-3 text-sm font-medium text-white">Run orchestration</button>
+          <button onClick={runCommand} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-5 py-3 text-sm font-medium text-white">Run next move</button>
           <span className="text-xs text-white/60">AI command is primary · Manual navigation is fallback</span>
         </div>
       </div>
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-      <AiWorkspaceStage title="Ambient orchestration stream" className="border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+      <AiWorkspaceStage title="Continuity rail" className="border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
         <p className="text-sm text-cyan-50/90">{assistantText}</p>
         <div className={`mt-4 ${railDensityClass}`}>{showRail ? activityStream.map((entry) => <div key={entry} className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/80">{entry}</div>) : <div className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/70">Compressed rail · {activityStream[0]}</div>}</div>
         <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">{environmentReactivity.operationalWeather.descriptor}</div>
-        <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Terrain ridges {environmentalField.topology.continuityRidges} · fracture valleys {environmentalField.topology.fractureValleys} · export fronts {environmentalField.topology.exportFronts} · instability zones {environmentalField.topology.instabilityZones}</div>
+        {!calmMode ? <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Continuity ridges {environmentalField.topology.continuityRidges} · export fronts {environmentalField.topology.exportFronts} · instability zones {environmentalField.topology.instabilityZones}</div> : null}
         <div className="mt-4 flex flex-wrap gap-2">
           {interpreted.nextActions.map((action) => (
             <AiIntentChip key={action.href + action.label} label={action.label} href={action.href} className="px-3 py-1.5 text-[11px]" />
