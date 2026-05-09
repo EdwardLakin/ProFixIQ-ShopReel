@@ -23,22 +23,26 @@ export default function GlobalCommandLauncher() {
   const router = useRouter();
   const interpreted = interpretCommand(value);
   const continuity = useGlobalEnvironmentContinuity();
+  const mode = continuity.adaptiveAtmosphere?.mode;
 
   const contextualExamples = useMemo(() => {
+    if (mode === "export_momentum") return ["package ready assets", "open publish queue", "schedule latest export"];
+    if (mode === "render_pressure") return ["show render queue blockers", "open failed renders", "prioritize recovery lane"];
+    if (mode === "recovery") return ["continue recovery corridor", "resume interrupted workflow", "confirm continuity restored"];
+    if (mode === "dormant") return ["resume latest work", "open most recent draft", "wake continuity threads"];
+    if (mode === "fractured") return ["stabilize continuity", "restore previous route", "audit unresolved blockers"];
     const routeMatch = routeCommandSuggestions.find((x) => x.test(pathname));
     return routeMatch?.examples ?? ["continue what we were working on", "open latest draft", "review render status"];
-  }, [pathname]);
+  }, [mode, pathname]);
 
   useEffect(() => {
     const memory = readWorkspaceMemory();
     if (!memory) return;
     setHistory(memory.intentHistory);
-    const pending = memory.pendingTasks.filter((task) => !task.done).length;
-    const blockers = memory.pendingTasks.filter((task) => !task.done && /render|review|verify/i.test(task.label)).length;
     const snapshot = deriveEcosystemStateSnapshot(memory);
     setEcosystemHint(`Ecosystem state: ${snapshot.atmosphericLabel} · Next operational move: ${snapshot.suggestedSurfaceAction}`);
-    setFocusLine(blockers > 0 ? "Focus: recover render blockers" : pending === 0 ? "Focus: export-ready packaging" : "Focus: continue active workflow checkpoints");
-  }, [open]);
+    setFocusLine(`Focus: ${continuity.adaptiveAtmosphere?.activeFocusLabel ?? "continue active workflow checkpoints"}`);
+  }, [open, continuity.adaptiveAtmosphere?.activeFocusLabel]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -49,9 +53,7 @@ export default function GlobalCommandLauncher() {
       if (event.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
-    const prominenceClass = continuity.escalationState === "critical" || continuity.renderInstability >= 70 ? "ring-2 ring-cyan-300/40" : "";
-
-  return () => window.removeEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   const run = () => {
@@ -75,8 +77,8 @@ export default function GlobalCommandLauncher() {
   };
 
   const proactiveHint = history.length > 0 ? `Resume: ${history[0]}` : "No command memory yet. Start with a workflow instruction.";
-
-  const prominenceClass = continuity.escalationState === "critical" || continuity.renderInstability >= 70 ? "ring-2 ring-cyan-300/40" : "";
+  const prominenceClass = continuity.adaptiveAtmosphere?.hierarchy === "urgent" ? "ring-2 ring-rose-300/45" : continuity.adaptiveAtmosphere?.hierarchy === "sharp" ? "ring-2 ring-cyan-300/40" : "";
+  const modePlaceholder = mode ? `Type a ${mode.replace("_", " ")} command...` : "Type a command...";
 
   return (
     <>
@@ -86,12 +88,12 @@ export default function GlobalCommandLauncher() {
       {open ? <div className="fixed inset-0 z-50 bg-[radial-gradient(circle_at_50%_18%,rgba(45,212,191,0.15),transparent_42%),rgba(2,4,11,0.82)] p-3 backdrop-blur-xl sm:p-6" onClick={() => setOpen(false)}>
         <div className="mx-auto mt-10 w-full max-w-3xl rounded-[2rem] bg-[#060b19]/92 p-4 shadow-[0_40px_120px_rgba(0,0,0,0.7)] ring-1 ring-white/10 transition-all sm:p-6" onClick={(e) => e.stopPropagation()}>
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-cyan-100/70">Global command mode · {pathname}</div>
-          <AiCommandInput value={value} onChange={setValue} placeholder="Type a command..." className="min-h-24 text-lg" />
+          <AiCommandInput value={value} onChange={setValue} placeholder={modePlaceholder} className="min-h-24 text-lg" />
           <div className="mt-3 text-sm text-cyan-50/90">{interpreted.summary}</div>
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{ecosystemHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
-          <div className="mt-1 text-xs text-cyan-200/75">{continuity.explainability[1]}</div>
+          <div className="mt-1 text-xs text-cyan-200/75">{continuity.adaptiveAtmosphere?.conciseExplainability[0] ?? continuity.explainability[1]}</div>
           <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>

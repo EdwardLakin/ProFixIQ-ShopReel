@@ -1,9 +1,20 @@
 import type { EcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
+import type { AdaptiveAtmosphereMode, AdaptiveAtmosphereRhythm, AdaptiveAtmosphereDensity, AdaptiveProductionAtmosphereState } from "@/features/shopreel/ui/system/adaptiveProductionAtmosphere";
 import { readWorkspaceMemory, writeWorkspaceMemory, type WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 
 export type EscalationState = "calm" | "steady" | "elevated" | "critical";
 export type RecoveryCorridor = "none" | "forming" | "stable";
 export type GlobalEnvironmentTone = "calm_continuity" | "operational_tension" | "export_drive" | "recovery_stabilization";
+
+export type RouteTransitionMemory = {
+  previousRoute: string;
+  currentRoute: string;
+  transitionCount: number;
+  lastMode: AdaptiveAtmosphereMode;
+  lastDensity: AdaptiveAtmosphereDensity;
+  lastRhythm: AdaptiveAtmosphereRhythm;
+  lastFocus: string;
+};
 
 export type GlobalEnvironmentContinuitySnapshot = {
   atmosphericContinuity: string;
@@ -13,7 +24,8 @@ export type GlobalEnvironmentContinuitySnapshot = {
   renderInstability: number;
   dormantInfluence: number;
   recoveryCorridor: RecoveryCorridor;
-  routeTransitionMemory: string;
+  routeTransitionMemory: RouteTransitionMemory;
+  adaptiveAtmosphere: AdaptiveProductionAtmosphereState | null;
   globalEnvironmentTone: GlobalEnvironmentTone;
   explainability: string[];
 };
@@ -24,6 +36,11 @@ export type PersistedGlobalEnvironmentMemory = {
   lastExportMomentum: number;
   lastRecoveryState: RecoveryCorridor;
   lastRouteContext: string;
+  transitionCount: number;
+  lastMode: AdaptiveAtmosphereMode;
+  lastDensity: AdaptiveAtmosphereDensity;
+  lastRhythm: AdaptiveAtmosphereRhythm;
+  lastFocus: string;
   updatedAt: string;
 };
 
@@ -37,6 +54,11 @@ const EMPTY_PERSISTED: PersistedGlobalEnvironmentMemory = {
   lastExportMomentum: 24,
   lastRecoveryState: "stable",
   lastRouteContext: "/shopreel",
+  transitionCount: 0,
+  lastMode: "calm",
+  lastDensity: "open",
+  lastRhythm: "breathing",
+  lastFocus: "shopreel workflow focus",
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -83,7 +105,15 @@ export function deriveGlobalEnvironmentContinuity(args: {
         : "calm_continuity";
 
   const atmosphericContinuity = args.ecosystem.atmosphericLabel || persisted.lastAtmosphere;
-  const routeTransitionMemory = `${persisted.lastRouteContext} → ${args.routeContext}`;
+  const routeTransitionMemory: RouteTransitionMemory = {
+    previousRoute: persisted.lastRouteContext,
+    currentRoute: args.routeContext,
+    transitionCount: persisted.transitionCount + (persisted.lastRouteContext === args.routeContext ? 0 : 1),
+    lastMode: persisted.lastMode,
+    lastDensity: persisted.lastDensity,
+    lastRhythm: persisted.lastRhythm,
+    lastFocus: persisted.lastFocus,
+  };
   return {
     atmosphericContinuity,
     escalationState,
@@ -93,6 +123,7 @@ export function deriveGlobalEnvironmentContinuity(args: {
     dormantInfluence,
     recoveryCorridor,
     routeTransitionMemory,
+    adaptiveAtmosphere: null,
     globalEnvironmentTone,
     explainability: [
       `Render instability ${renderInstability} from render pressure ${args.ecosystem.renderPressure} with ${blockers} blocker lanes.`,
@@ -114,6 +145,11 @@ export function persistGlobalEnvironmentContinuity(snapshot: GlobalEnvironmentCo
     lastExportMomentum: snapshot.exportMomentum,
     lastRecoveryState: snapshot.recoveryCorridor,
     lastRouteContext: routeContext,
+    transitionCount: snapshot.routeTransitionMemory.transitionCount,
+    lastMode: snapshot.adaptiveAtmosphere?.mode ?? snapshot.routeTransitionMemory.lastMode,
+    lastDensity: snapshot.adaptiveAtmosphere?.density ?? snapshot.routeTransitionMemory.lastDensity,
+    lastRhythm: snapshot.adaptiveAtmosphere?.rhythm ?? snapshot.routeTransitionMemory.lastRhythm,
+    lastFocus: snapshot.adaptiveAtmosphere?.activeFocusLabel ?? snapshot.routeTransitionMemory.lastFocus,
     updatedAt: new Date().toISOString(),
   };
   window.localStorage.setItem(CONTINUITY_KEY, JSON.stringify(nextMemory));

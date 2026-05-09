@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
 import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { deriveGlobalEnvironmentContinuity, persistGlobalEnvironmentContinuity, type GlobalEnvironmentContinuitySnapshot } from "@/features/shopreel/ui/system/globalEnvironmentContinuity";
+import { deriveAdaptiveProductionAtmosphere } from "@/features/shopreel/ui/system/adaptiveProductionAtmosphere";
 
 const fallbackSnapshot: GlobalEnvironmentContinuitySnapshot = {
   atmosphericContinuity: "calm continuity",
@@ -14,7 +15,8 @@ const fallbackSnapshot: GlobalEnvironmentContinuitySnapshot = {
   renderInstability: 18,
   dormantInfluence: 28,
   recoveryCorridor: "stable",
-  routeTransitionMemory: "/shopreel → /shopreel",
+  routeTransitionMemory: { previousRoute: "/shopreel", currentRoute: "/shopreel", transitionCount: 0, lastMode: "calm", lastDensity: "open", lastRhythm: "breathing", lastFocus: "shopreel workflow focus" },
+  adaptiveAtmosphere: null,
   globalEnvironmentTone: "calm_continuity",
   explainability: ["No workspace memory yet, running safe deterministic defaults."],
 };
@@ -28,7 +30,9 @@ export function GlobalEnvironmentContinuityProvider({ children }: { children: Re
   useEffect(() => {
     const memory = readWorkspaceMemory();
     const ecosystem = deriveEcosystemStateSnapshot(memory);
-    const nextSnapshot = deriveGlobalEnvironmentContinuity({ memory, ecosystem, routeContext: pathname });
+    const continuitySnapshot = deriveGlobalEnvironmentContinuity({ memory, ecosystem, routeContext: pathname });
+    const adaptiveAtmosphere = deriveAdaptiveProductionAtmosphere({ continuity: continuitySnapshot, ecosystem, memory, routeContext: pathname, previous: snapshot.adaptiveAtmosphere });
+    const nextSnapshot = { ...continuitySnapshot, adaptiveAtmosphere, routeTransitionMemory: { ...continuitySnapshot.routeTransitionMemory, lastMode: adaptiveAtmosphere.mode, lastDensity: adaptiveAtmosphere.density, lastRhythm: adaptiveAtmosphere.rhythm, lastFocus: adaptiveAtmosphere.activeFocusLabel } };
     setSnapshot(nextSnapshot);
     persistGlobalEnvironmentContinuity(nextSnapshot, pathname);
   }, [pathname]);
@@ -46,7 +50,7 @@ export function GlobalEnvironmentAmbientLine() {
   return (
     <div className="pointer-events-none fixed left-3 right-3 top-14 z-30 md:left-[290px]">
       <div className="rounded-full border border-cyan-300/20 bg-slate-900/55 px-3 py-1 text-[11px] text-cyan-100/75 backdrop-blur">
-        Production atmosphere: {continuity.exportMomentum >= 60 ? "export momentum rising" : continuity.atmosphericContinuity} · Continuity corridor {continuity.recoveryCorridor}
+        {continuity.adaptiveAtmosphere ? `${continuity.adaptiveAtmosphere.mode.replace("_", " ")} · ${continuity.adaptiveAtmosphere.activeFocusLabel} · ${continuity.adaptiveAtmosphere.density} spacing` : `Production atmosphere: ${continuity.atmosphericContinuity}`}
       </div>
     </div>
   );
