@@ -7,6 +7,7 @@ import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMe
 import { deriveGlobalEnvironmentContinuity, persistGlobalEnvironmentContinuity, type GlobalEnvironmentContinuitySnapshot } from "@/features/shopreel/ui/system/globalEnvironmentContinuity";
 import { deriveAdaptiveProductionAtmosphere } from "@/features/shopreel/ui/system/adaptiveProductionAtmosphere";
 import { deriveContinuousEcosystemEvolution, persistContinuousEcosystemRouteMemory } from "@/features/shopreel/ui/system/continuousEcosystemEvolution";
+import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 
 const fallbackSnapshot: GlobalEnvironmentContinuitySnapshot = {
   atmosphericContinuity: "calm continuity",
@@ -33,9 +34,17 @@ export function GlobalEnvironmentContinuityProvider({ children }: { children: Re
     const memory = readWorkspaceMemory();
     const ecosystem = deriveEcosystemStateSnapshot(memory);
     const continuitySnapshot = deriveGlobalEnvironmentContinuity({ memory, ecosystem, routeContext: pathname });
+    const behaviorMemory = readOperatorBehaviorMemory();
+    const hadPriorActivity = behaviorMemory.recentEvents.length > 0;
+    const dormantHours = hadPriorActivity ? (Date.now() - new Date(behaviorMemory.lastActiveAt).getTime()) / 3600000 : 0;
+    if (hadPriorActivity && dormantHours > 18) {
+      recordOperatorBehaviorEvent({ type: "dormant_return", route: pathname });
+    }
+    recordOperatorBehaviorEvent({ type: "route_changed", route: pathname });
+    const operatorAdaptation = deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuitySnapshot);
     const adaptiveAtmosphere = deriveAdaptiveProductionAtmosphere({ continuity: continuitySnapshot, ecosystem, memory, routeContext: pathname, previous: snapshot.adaptiveAtmosphere });
     const evolved = deriveContinuousEcosystemEvolution({ continuity: continuitySnapshot, ecosystem, atmosphere: adaptiveAtmosphere, memory, routeContext: pathname });
-    const nextSnapshot = { ...continuitySnapshot, adaptiveAtmosphere, continuousEvolution: evolved.state, routeTransitionMemory: { ...continuitySnapshot.routeTransitionMemory, lastMode: adaptiveAtmosphere.mode, lastDensity: adaptiveAtmosphere.density, lastRhythm: adaptiveAtmosphere.rhythm, lastFocus: adaptiveAtmosphere.activeFocusLabel } };
+    const nextSnapshot = { ...continuitySnapshot, adaptiveAtmosphere, continuousEvolution: evolved.state, routeTransitionMemory: { ...continuitySnapshot.routeTransitionMemory, lastMode: adaptiveAtmosphere.mode, lastDensity: adaptiveAtmosphere.density, lastRhythm: adaptiveAtmosphere.rhythm, lastFocus: `${adaptiveAtmosphere.activeFocusLabel} · ${operatorAdaptation.operatorMode.replace("_", " ")}` }, explainability: [...continuitySnapshot.explainability, ...operatorAdaptation.explanation].slice(0, 6) };
     setSnapshot(nextSnapshot);
     persistGlobalEnvironmentContinuity(nextSnapshot, pathname);
     persistContinuousEcosystemRouteMemory(evolved.routeMemory);

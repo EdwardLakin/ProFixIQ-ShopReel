@@ -6,6 +6,7 @@ import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/
 import { readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
 import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
+import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -23,9 +24,14 @@ export default function GlobalCommandLauncher() {
   const router = useRouter();
   const interpreted = interpretCommand(value);
   const continuity = useGlobalEnvironmentContinuity();
+  const operatorAdaptation = useMemo(() => deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity), [continuity]);
   const mode = continuity.adaptiveAtmosphere?.mode;
 
   const contextualExamples = useMemo(() => {
+    if (operatorAdaptation.priorityBias === "export") return ["package ready assets", "open publish queue", "review export blockers"];
+    if (operatorAdaptation.priorityBias === "render") return ["show render queue blockers", "open failed renders", "stabilize render continuity"];
+    if (operatorAdaptation.priorityBias === "campaign") return ["open active campaign", "continue campaign sequencing", "review campaign readiness"];
+
     if (mode === "export_momentum") return ["package ready assets", "open publish queue", "schedule latest export"];
     if (mode === "render_pressure") return ["show render queue blockers", "open failed renders", "prioritize recovery lane"];
     if (mode === "recovery") return ["continue recovery corridor", "resume interrupted workflow", "confirm continuity restored"];
@@ -33,7 +39,7 @@ export default function GlobalCommandLauncher() {
     if (mode === "fractured") return ["stabilize continuity", "restore previous route", "audit unresolved blockers"];
     const routeMatch = routeCommandSuggestions.find((x) => x.test(pathname));
     return routeMatch?.examples ?? ["continue what we were working on", "open latest draft", "review render status"];
-  }, [mode, pathname]);
+  }, [mode, pathname, operatorAdaptation.priorityBias]);
 
   useEffect(() => {
     const memory = readWorkspaceMemory();
@@ -58,6 +64,7 @@ export default function GlobalCommandLauncher() {
 
   const run = () => {
     if (!interpreted.href) return;
+    recordOperatorBehaviorEvent({ type: "command_submitted", route: interpreted.href, intent: interpreted.intent });
     const nextHistory = [value, ...history].filter((x) => x.trim()).slice(0, 8);
     setHistory(nextHistory);
     const existing = readWorkspaceMemory();
@@ -78,7 +85,7 @@ export default function GlobalCommandLauncher() {
 
   const proactiveHint = history.length > 0 ? `Resume: ${history[0]}` : "No command memory yet. Start with a workflow instruction.";
   const prominenceClass = continuity.adaptiveAtmosphere?.hierarchy === "urgent" ? "ring-2 ring-rose-300/45" : continuity.adaptiveAtmosphere?.hierarchy === "sharp" ? "ring-2 ring-cyan-300/40" : "";
-  const modePlaceholder = mode ? `Type a ${mode.replace("_", " ")} command...` : "Type a command...";
+  const modePlaceholder = `Operator mode: ${operatorAdaptation.operatorMode.replaceAll("_", " ")} · type a command...`;
 
   return (
     <>
@@ -93,7 +100,7 @@ export default function GlobalCommandLauncher() {
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{ecosystemHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
-          <div className="mt-1 text-xs text-cyan-200/75">{continuity.continuousEvolution ? `World ${continuity.continuousEvolution.productionWorldMode} · export momentum ${continuity.continuousEvolution.exportMomentumPersistence} · recovery ${continuity.recoveryCorridor}` : continuity.adaptiveAtmosphere?.conciseExplainability[0] ?? continuity.explainability[1]}</div>
+          <div className="mt-1 text-xs text-cyan-200/75">{`Workspace bias: ${operatorAdaptation.priorityBias} · continuity preference ${operatorAdaptation.continuitySensitivity} · ${operatorAdaptation.environmentalAdjustment}`}</div>
           <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>

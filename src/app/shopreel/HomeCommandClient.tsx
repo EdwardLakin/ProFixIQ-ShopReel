@@ -27,6 +27,7 @@ import { deriveEnvironmentReactivity } from "@/features/shopreel/ui/system/envir
 import { deriveEnvironmentalField } from "@/features/shopreel/ui/system/environmentField";
 import { deriveCognitiveState } from "@/features/shopreel/ui/system/cognitiveState";
 import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
+import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -168,6 +169,11 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
     const countText = recent.length > 0 ? `I found ${recent.length} recent drafts. The newest reel was touched moments ago.` : "I couldn't find persisted activity yet, so I'll start from your command home.";
     setAssistantText(`${interpreted.summary} ${countText} Operating mode: ${executionPlan.mode.replaceAll("_", " ")}.`);
+    recordOperatorBehaviorEvent({ type: "command_submitted", route: target, intent: interpreted.intent });
+    if (interpreted.intent === "campaign") recordOperatorBehaviorEvent({ type: "campaign_opened", route: target, intent: interpreted.intent });
+    if (interpreted.intent === "publish") recordOperatorBehaviorEvent({ type: "export_opened", route: target, intent: interpreted.intent });
+    if (interpreted.intent === "render") recordOperatorBehaviorEvent({ type: "render_checked", route: target, intent: interpreted.intent });
+    if (/(continue|resume)/i.test(command)) recordOperatorBehaviorEvent({ type: "workflow_continued", route: target, intent: interpreted.intent });
     persistContext(target);
     router.push(target);
   };
@@ -224,6 +230,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         ? "Focus: stabilize continuity and continue execution"
         : "Focus: advance active production tasks";
   const ecosystemSnapshot = deriveEcosystemStateSnapshot(context);
+  const operatorAdaptation = deriveOperatorAdaptation(readOperatorBehaviorMemory());
 
   const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
     ? "from-rose-500/20 via-amber-400/10 to-transparent"
@@ -269,6 +276,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">This workspace is orchestration-first. Spatial rails, minimap memory, and focus-aware compression drive every move.</p>
         <p className="mt-2 text-xs text-white/60">Ecosystem state: {ecosystemSnapshot.ecosystemMode} · production pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
         <p className="mt-2 text-xs text-white/55">Operational weather: {environmentReactivity.operationalWeather.pattern.replaceAll("_", " ")} · intensity {environmentReactivity.operationalWeather.intensity} · continuity scarring {environmentReactivity.continuityScarring}</p>
+        <p className="mt-1 text-xs text-white/50">Operator pattern: {operatorAdaptation.priorityBias} · workspace bias {operatorAdaptation.operatorMode.replaceAll("_", " ")} · continuity preference {operatorAdaptation.continuitySensitivity}</p>
         <p className="mt-1 text-xs text-white/50">Render readiness {Math.max(0, 100 - ecosystemSnapshot.renderPressure)} · export momentum {ecosystemSnapshot.exportMomentum} · recovery path {ecosystemSnapshot.recoveryPriority} · next operational move {ecosystemSnapshot.suggestedSurfaceAction}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
