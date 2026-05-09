@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
+import type { CognitiveState } from "@/features/shopreel/ui/system/cognitiveState";
+import { deriveCognitiveShellDynamics } from "@/features/shopreel/ui/system/cognitiveState";
 
 type GlassShellProps = {
   eyebrow?: string;
@@ -9,6 +11,7 @@ type GlassShellProps = {
   children: ReactNode;
   hidePageIntro?: boolean;
   className?: string;
+  cognitiveState?: CognitiveState | null;
 };
 
 export default function GlassShell({
@@ -19,15 +22,17 @@ export default function GlassShell({
   children,
   hidePageIntro = false,
   className = "",
+  cognitiveState = null,
 }: GlassShellProps) {
+  const dynamics = deriveCognitiveShellDynamics(cognitiveState);
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 py-5 text-white sm:px-6 lg:px-8">
+    <main className="relative min-h-screen overflow-hidden px-4 py-5 text-white sm:px-6 lg:px-8" style={{ letterSpacing: `${(dynamics.gravity - 50) * 0.0012}em` }}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="shopreel-orb shopreel-orb-a" />
         <div className="shopreel-orb shopreel-orb-b" />
         <div className="shopreel-orb shopreel-orb-c" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.12),transparent_28%),linear-gradient(180deg,rgba(5,8,18,0.55),rgba(2,4,12,0.92))]" />
-        <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:44px_44px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.12),transparent_28%),linear-gradient(180deg,rgba(5,8,18,0.55),rgba(2,4,12,0.92))]" style={{ opacity: 0.72 + dynamics.shellDensity / 400 }} />
+        <div className="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:44px_44px]" style={{ opacity: 0.015 + dynamics.quieting / 2600 }} />
       </div>
 
       <div className={`relative z-10 mx-auto w-full max-w-[1540px] ${className}`}>
