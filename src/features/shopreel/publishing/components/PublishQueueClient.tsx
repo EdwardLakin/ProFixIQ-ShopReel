@@ -165,8 +165,8 @@ export default function PublishQueueClient(props: {
   return (
     <GlassCard
       label="Queue"
-      title="Outbound publishing jobs"
-      description="This is the worker/job view behind publishing activity."
+      title="Publish queue"
+      description="Track what is queued, blocked, and ready to retry."
       strong
       footer={
         <div className="flex flex-wrap gap-2">
@@ -212,7 +212,7 @@ export default function PublishQueueClient(props: {
             glassTheme.text.secondary
           )}
         >
-          No publish jobs yet.
+          Nothing waiting. Create or package the next asset.
         </div>
       ) : (
         <div className="grid gap-3">
@@ -230,7 +230,7 @@ export default function PublishQueueClient(props: {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className={cx("text-base font-medium", glassTheme.text.primary)}>
-                    Publish Job
+                    Queue item
                   </div>
                   <div className={cx("text-sm", glassTheme.text.secondary)}>
                     Publication: {job.publication_id}
@@ -277,7 +277,7 @@ export default function PublishQueueClient(props: {
                     {publication.platform ?? "platform"} • queued {timeAgoLabel(publication.created_at)}
                   </div>
                   <div className={cx("text-xs", glassTheme.text.muted)}>
-                    Publication exists but no publish job is attached yet.
+                    Ready to publish, but still needs a queue job.
                   </div>
                 </div>
 
@@ -312,7 +312,7 @@ export default function PublishQueueClient(props: {
               glassTheme.text.secondary
             )}
           >
-            No publication diagnostics available.
+            No publish issues right now.
           </div>
         ) : (
           <div className="grid gap-3">

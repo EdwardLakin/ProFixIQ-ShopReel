@@ -33,7 +33,7 @@ function ShellScaffold({ children }: { children: ReactNode }) {
   const execution = deriveProductionExecutionIntelligence({ ecosystem, continuity, rhythm, intuition, strategic, routePath: pathname });
   const workflow = deriveWorkflowEmbodimentSnapshot({ surface: pathname.includes("/render") ? "render" : pathname.includes("/publish") || pathname.includes("/export") ? "publish" : pathname.includes("/review") ? "review" : pathname.includes("/campaign") ? "campaigns" : pathname.includes("/library") ? "library" : pathname.includes("/editor") ? "editor" : pathname.includes("/create") ? "create" : "home", ecosystem, continuity, rhythm, intuition, strategic, execution });
   const embodiment = deriveEnvironmentalEmbodimentSnapshot({ continuity, ecosystem, atmosphere, rhythm, strategic, execution, workflow, routeContext: pathname });
-  const shellPadding = embodiment.shellDensity === "compact" ? "pl-2 md:pl-4" : embodiment.shellDensity === "spacious" ? "pl-5 md:pl-8" : rhythm.navigationDensity === "dense" ? "pl-2 md:pl-4" : rhythm.navigationDensity === "sparse" ? "pl-5 md:pl-7" : evolution?.globalDensityBias === "elevated" || atmosphere?.density === "compressed" ? "pl-2 md:pl-4" : evolution?.globalDensityBias === "reduced" ? "pl-4 md:pl-7" : atmosphere?.density === "compact" ? "pl-3 md:pl-5" : "pl-4 md:pl-6";
+  const shellPadding = embodiment.shellDensity === "compact" ? "px-2 md:pl-4 md:pr-5" : embodiment.shellDensity === "spacious" ? "px-3 md:pl-8 md:pr-8" : rhythm.navigationDensity === "dense" ? "px-2 md:pl-4 md:pr-5" : rhythm.navigationDensity === "sparse" ? "px-3 md:pl-7 md:pr-7" : evolution?.globalDensityBias === "elevated" || atmosphere?.density === "compressed" ? "px-2 md:pl-4 md:pr-5" : evolution?.globalDensityBias === "reduced" ? "px-3 md:pl-7 md:pr-7" : atmosphere?.density === "compact" ? "px-2.5 md:pl-5 md:pr-6" : "px-3 md:pl-6 md:pr-6";
   const navProminence = embodiment.navGravity === "forward" ? "opacity-95" : embodiment.navGravity === "light" ? "opacity-65" : rhythm.workingMode === "exploratory" ? "opacity-95" : evolution?.globalNavigationBias === "reduced" || atmosphere?.mode === "dormant" ? "opacity-70" : "opacity-90";
   const railEmphasis = embodiment.surfaceWeight === "high" ? "ring-1 ring-cyan-300/24" : embodiment.renderTurbulence === "elevated" ? "ring-1 ring-rose-300/22" : embodiment.dormantRecession === "recessed" ? "ring-1 ring-slate-400/12" : strategic.continuityVisibilityBias === "elevated" ? "ring-1 ring-cyan-300/26" : evolution?.globalFrictionBias === "elevated" || atmosphere?.mode === "render_pressure" ? "ring-1 ring-rose-300/24" : atmosphere?.mode === "export_momentum" ? "ring-1 ring-cyan-300/20" : "";
   const operator = deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity);
@@ -64,12 +64,12 @@ function ShellScaffold({ children }: { children: ReactNode }) {
         <div className={`absolute inset-0 ${densityClass} [background-image:linear-gradient(rgba(255,255,255,.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:48px_48px]`} />
       </div>
 
-      <div className={`relative flex min-h-screen ${railEmphasis} ${embodiment.unstableCompression === "active" ? "gap-1" : embodiment.calmExpansion === "expanded" ? "gap-3" : "gap-2"}`}>
+      <div className={`relative flex min-h-screen ${railEmphasis} ${embodiment.unstableCompression === "active" ? "gap-1" : embodiment.calmExpansion === "expanded" ? "gap-3" : "gap-2"} transition-[gap] duration-300`}>
         <div className={`${navProminence} ${navModeClass} ${navBiasClass} ${intuitionNavBias} ${routePull} transition-all duration-300 ${embodiment.continuityPresence === "anchored" ? "sticky top-0" : ""}`}><ShopReelSidebar /></div>
         <GlobalCommandLauncher />
         <GlobalEnvironmentAmbientLine />
 
-        <section className={`relative min-w-0 flex-1 ${shellPadding} ${embodiment.recoveryBreathingRoom === "wide" ? "pt-3 pb-5" : embodiment.unstableCompression === "active" ? "pt-1 pb-3" : "py-4"} ${embodiment.transitionPosture === "cooled" ? "opacity-[0.94]" : "opacity-100"} transition-[padding,opacity] duration-300`}>
+        <section className={`relative min-w-0 flex-1 ${shellPadding} ${embodiment.recoveryBreathingRoom === "wide" ? "pt-3 pb-5" : embodiment.unstableCompression === "active" ? "pt-1 pb-3" : "py-4"} ${embodiment.transitionPosture === "cooled" ? "opacity-[0.94]" : "opacity-100"} transition-[padding,opacity,transform] duration-300`}>
           <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}>{children}</div>
         </section>
       </div>
