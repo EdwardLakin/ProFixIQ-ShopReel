@@ -93,7 +93,7 @@ export default function GlobalCommandLauncher() {
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{ecosystemHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
-          <div className="mt-1 text-xs text-cyan-200/75">{continuity.adaptiveAtmosphere?.conciseExplainability[0] ?? continuity.explainability[1]}</div>
+          <div className="mt-1 text-xs text-cyan-200/75">{continuity.continuousEvolution ? `World ${continuity.continuousEvolution.productionWorldMode} · export momentum ${continuity.continuousEvolution.exportMomentumPersistence} · recovery ${continuity.recoveryCorridor}` : continuity.adaptiveAtmosphere?.conciseExplainability[0] ?? continuity.explainability[1]}</div>
           <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
