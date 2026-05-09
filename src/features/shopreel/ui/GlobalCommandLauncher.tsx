@@ -7,6 +7,7 @@ import { readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/u
 import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
 import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
+import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -25,9 +26,20 @@ export default function GlobalCommandLauncher() {
   const interpreted = interpretCommand(value);
   const continuity = useGlobalEnvironmentContinuity();
   const operatorAdaptation = useMemo(() => deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity), [continuity]);
+  const intuition = useMemo(() => deriveProductionIntuition({
+    operator: readOperatorBehaviorMemory(),
+    continuity,
+    evolution: continuity.continuousEvolution,
+    memory: readWorkspaceMemory(),
+    routePathname: pathname,
+  }), [continuity, pathname]);
   const mode = continuity.adaptiveAtmosphere?.mode;
 
   const contextualExamples = useMemo(() => {
+    if (intuition.likelyNextMove === "package_or_publish" || intuition.likelyNextMove === "prepare_export") return ["package ready assets", "open publish queue", "schedule latest export"];
+    if (intuition.likelyNextMove === "inspect_render_queue" || intuition.likelyNextMove === "resolve_render_blocker") return ["show render queue blockers", "open failed renders", "stabilize render continuity"];
+    if (intuition.likelyNextMove === "continue_campaign") return ["open active campaign", "continue campaign sequencing", "review campaign readiness"];
+    if (intuition.likelyNextMove === "restore_continuity" || intuition.likelyNextMove === "resume_previous_work") return ["restore previous route", "resume interrupted workflow", "continue latest thread"];
     if (operatorAdaptation.priorityBias === "export") return ["package ready assets", "open publish queue", "review export blockers"];
     if (operatorAdaptation.priorityBias === "render") return ["show render queue blockers", "open failed renders", "stabilize render continuity"];
     if (operatorAdaptation.priorityBias === "campaign") return ["open active campaign", "continue campaign sequencing", "review campaign readiness"];
@@ -39,7 +51,7 @@ export default function GlobalCommandLauncher() {
     if (mode === "fractured") return ["stabilize continuity", "restore previous route", "audit unresolved blockers"];
     const routeMatch = routeCommandSuggestions.find((x) => x.test(pathname));
     return routeMatch?.examples ?? ["continue what we were working on", "open latest draft", "review render status"];
-  }, [mode, pathname, operatorAdaptation.priorityBias]);
+  }, [mode, pathname, operatorAdaptation.priorityBias, intuition.likelyNextMove]);
 
   useEffect(() => {
     const memory = readWorkspaceMemory();
@@ -100,6 +112,7 @@ export default function GlobalCommandLauncher() {
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{ecosystemHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
+          <div className="mt-1 text-xs text-cyan-200/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</div>
           <div className="mt-1 text-xs text-cyan-200/75">{`Workspace bias: ${operatorAdaptation.priorityBias} · continuity preference ${operatorAdaptation.continuitySensitivity} · ${operatorAdaptation.environmentalAdjustment}`}</div>
           <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
