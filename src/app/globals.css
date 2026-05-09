@@ -278,3 +278,39 @@ a {
   background: rgba(59, 130, 246, .14);
   animation-delay: -13s;
 }
+
+.shopreel-route-shell {
+  animation: shellContinuityFade 280ms ease-out;
+}
+
+.shopreel-rail-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.38) transparent;
+}
+
+.shopreel-rail-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.shopreel-rail-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.34);
+  border-radius: 9999px;
+}
+
+@keyframes shellContinuityFade {
+  from {
+    opacity: 0.97;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shopreel-route-shell {
+    animation: none;
+  }
+}

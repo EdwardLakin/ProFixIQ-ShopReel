@@ -60,10 +60,15 @@ export function useGlobalEnvironmentContinuity(): GlobalEnvironmentContinuitySna
 
 export function GlobalEnvironmentAmbientLine() {
   const continuity = useGlobalEnvironmentContinuity();
+  const compactLine = continuity.continuousEvolution
+    ? `${continuity.continuousEvolution.productionWorldMode.replaceAll("_", " ")} · ${continuity.adaptiveAtmosphere?.mode.replaceAll("_", " ") ?? "calm"}`
+    : continuity.adaptiveAtmosphere
+      ? `${continuity.adaptiveAtmosphere.mode.replaceAll("_", " ")} · ${continuity.adaptiveAtmosphere.activeFocusLabel}`
+      : `Production atmosphere · ${continuity.atmosphericContinuity}`;
   return (
-    <div className="pointer-events-none fixed left-3 right-3 top-14 z-30 md:left-[290px]">
-      <div className="rounded-full border border-cyan-300/20 bg-slate-900/55 px-3 py-1 text-[11px] text-cyan-100/75 backdrop-blur">
-        {continuity.continuousEvolution ? `World ${continuity.continuousEvolution.productionWorldMode} · atmosphere ${continuity.adaptiveAtmosphere?.mode.replace("_", " ") ?? "calm"} · escalation ${continuity.escalationState} · export ${continuity.continuousEvolution.exportMomentumPersistence}` : continuity.adaptiveAtmosphere ? `${continuity.adaptiveAtmosphere.mode.replace("_", " ")} · ${continuity.adaptiveAtmosphere.activeFocusLabel} · ${continuity.adaptiveAtmosphere.density} spacing` : `Production atmosphere: ${continuity.atmosphericContinuity}`}
+    <div className="pointer-events-none fixed left-3 right-3 top-14 z-30 md:left-[290px] md:right-6">
+      <div className="rounded-full border border-cyan-300/15 bg-slate-900/42 px-3 py-1 text-[11px] text-cyan-100/70 backdrop-blur-md transition-all duration-300">
+        {compactLine}
       </div>
     </div>
   );
