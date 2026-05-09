@@ -68,7 +68,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
   const [heartbeatTick, setHeartbeatTick] = useState(0);
   const [focusMode, setFocusMode] = useState<FocusMode>("campaign");
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>("orchestration");
-  const [showTelemetry, setShowTelemetry] = useState(true);
+  const [showTelemetry, setShowTelemetry] = useState(false);
   const [expandedRails, setExpandedRails] = useState<Record<string, boolean>>({ timeline: true, orchestration: true, map: true });
   const [ambientMode, setAmbientMode] = useState<"render"|"campaign"|"packaging"|"scene"|"publish"|"variant"|"balanced">("balanced");
   const [autoActions, setAutoActions] = useState<AutonomousAction[]>([]);
@@ -232,6 +232,8 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
   const timelineClusters = useMemo(() => scenes.map((scene, index) => ({ scene, index, lineage: scene.media?.length ? "Linked to media lineage" : "Awaiting media lineage" })), [scenes]);
 
   const compactMode = zoomLevel === "macro" || zoomLevel === "orchestration" || cognitiveState.productionRhythm.railCompactness > 62;
+  const prioritizeBlockers = blockers.length > 0;
+  const exportProminent = heartbeat.renderState === "packaging" || heartbeat.renderState === "export_ready";
 
   function updateScene(sceneId: string, patch: Partial<Scene>) { setDraft((current) => ({ ...current, scenes: (current.scenes ?? []).map((scene) => scene.id === sceneId ? { ...scene, ...patch } : scene) })); }
 
@@ -299,7 +301,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
       </div>
     </GlassCard>
 
-    <GlassCard label="Ecosystem state engine" title="Continuous adaptive balancing" description="Client-side deterministic state computes saturation, entropy, continuity pressure, and temporal adaptation.">
+    {!compactMode ? <GlassCard label="Ecosystem state engine" title="Continuous adaptive balancing" description="Client-side deterministic state computes saturation, entropy, continuity pressure, and temporal adaptation.">
       <div className="grid gap-2 md:grid-cols-2">
         {[
           ["Operational saturation", ecosystemState.operationalSaturation],
@@ -316,11 +318,12 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
       <div className="mt-3 rounded-xl border border-cyan-300/20 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50">
         Temporal state: {formatLabel(ecosystemState.temporalRailState)} · Environmental energy: {formatLabel(ecosystemState.environmentalEnergy)}
       </div>
-    </GlassCard>
+    </GlassCard> : null}
 
     <GlassCard label="Execution stream" title="Compressed telemetry rail" description="Telemetry can collapse to preserve focus while keeping heartbeat continuity visible.">
       <div className="mb-3 flex items-center justify-between"><GlassBadge tone="default">{showTelemetry ? "Expanded" : "Compressed"}</GlassBadge><button onClick={() => setShowTelemetry((c) => !c)} className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/80">{showTelemetry ? "Collapse telemetry" : "Expand telemetry"}</button></div>
-      {showTelemetry ? <div className={cx("grid", cognitiveState.productionRhythm.railCompactness > 60 ? "gap-1.5" : "gap-2")}>{executionStream.map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">{item.entry}</div>)}</div> : <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70">Heartbeat {formatLabel(heartbeat.executionState)} · Render {formatLabel(heartbeat.renderState)} · {heartbeat.progress}% ready</div>}
+      {showTelemetry ? <div className={cx("grid", cognitiveState.productionRhythm.railCompactness > 60 ? "gap-1.5" : "gap-2")}>{executionStream.slice(0,3).map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">{item.entry}</div>)}</div> : <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70">Heartbeat {formatLabel(heartbeat.executionState)} · Render {formatLabel(heartbeat.renderState)} · {heartbeat.progress}% ready</div>}
+      <div className="mt-2 text-xs text-white/60">{prioritizeBlockers ? "Next action: recover blockers before render." : exportProminent ? "Next action: package and publish." : "Next action: continue scene coverage."}</div>
     </GlassCard>
 
     <GlassCard label="Constrained autonomy" title="Autonomous orchestration log" description="Deterministic, explainable actions run quietly and stay reversible where safe.">
