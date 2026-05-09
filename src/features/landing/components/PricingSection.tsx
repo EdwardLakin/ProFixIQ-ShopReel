@@ -45,8 +45,15 @@ export default function PricingSection() {
   }
 
   return (
-    <section id="pricing" className="relative mx-auto w-full max-w-7xl px-6 py-24">
-      <div className="pointer-events-none absolute inset-x-0 top-8 mx-auto h-72 max-w-4xl rounded-full bg-cyan-400/10 blur-3xl" />
+    <section id="pricing" className="relative mx-auto w-full max-w-7xl px-6 py-20">
+      <div className="pointer-events-none absolute inset-x-0 top-8 mx-auto h-72 max-w-4xl rounded-full bg-cyan-400/8 blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/35 to-transparent" />
+
+      <div className="mx-auto mb-6 max-w-5xl rounded-2xl border border-cyan-300/20 bg-cyan-500/[0.08] px-4 py-2.5 text-[11px] uppercase tracking-[0.22em] text-cyan-100/88">
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <span>Scale rail online</span><span>Solo layer active</span><span>Production coordination ready</span><span>Continuous media infrastructure available</span>
+        </div>
+      </div>
 
       <div className="relative mx-auto max-w-3xl text-center">
         <div
@@ -84,7 +91,7 @@ export default function PricingSection() {
         </div>
       ) : null}
 
-      <div className="mx-auto mt-8 max-w-5xl rounded-2xl border border-cyan-300/20 bg-cyan-400/5 px-4 py-3 text-center text-sm text-cyan-100/90">Scale path: Solo operating layer → Multi-channel production system → Continuous media infrastructure</div>
+      <div className="mx-auto mt-8 max-w-5xl rounded-2xl border border-cyan-300/20 bg-cyan-400/5 px-4 py-3 text-center text-sm text-cyan-100/90">Scale path: Solo operating layer → Production coordination system → Continuous media infrastructure</div>
 
       <div className="relative mt-8 grid gap-5 lg:grid-cols-3">
         {PLAN_ORDER.map((planKey) => {
