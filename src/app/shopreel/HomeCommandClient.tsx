@@ -30,6 +30,7 @@ import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecos
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
+import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggestionsByRhythm } from "@/features/shopreel/ui/system/operatorRhythm";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -173,10 +174,15 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     const countText = recent.length > 0 ? `I found ${recent.length} recent drafts. The newest reel was touched moments ago.` : "I couldn't find persisted activity yet, so I'll start from your command home.";
     setAssistantText(`${interpreted.summary} ${countText} Operating mode: ${executionPlan.mode.replaceAll("_", " ")}.`);
     recordOperatorBehaviorEvent({ type: "command_submitted", route: target, intent: interpreted.intent });
+    recordOperatorRhythmEvent({ type: "command_submitted", route: target });
     if (interpreted.intent === "campaign") recordOperatorBehaviorEvent({ type: "campaign_opened", route: target, intent: interpreted.intent });
+    if (interpreted.intent === "campaign") recordOperatorRhythmEvent({ type: "campaign_opened", route: target });
     if (interpreted.intent === "publish") recordOperatorBehaviorEvent({ type: "export_opened", route: target, intent: interpreted.intent });
+    if (interpreted.intent === "publish") recordOperatorRhythmEvent({ type: "export_opened", route: target });
     if (interpreted.intent === "render") recordOperatorBehaviorEvent({ type: "render_checked", route: target, intent: interpreted.intent });
+    if (interpreted.intent === "render") recordOperatorRhythmEvent({ type: "render_checked", route: target });
     if (/(continue|resume)/i.test(command)) recordOperatorBehaviorEvent({ type: "workflow_continued", route: target, intent: interpreted.intent });
+    if (/(continue|resume|recover|restore)/i.test(command)) recordOperatorRhythmEvent({ type: "workflow_continued", route: target });
     persistContext(target);
     router.push(target);
   };
@@ -242,6 +248,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       : intuition.likelyNextMove === "continue_campaign"
         ? ["continue active campaign", "generate campaign variations", "review campaign readiness"]
         : ["show me my latest", "continue what we were working on", "review + package"];
+  const rhythm = deriveOperatorRhythmSnapshot();
+  const rhythmCommands = reorderSuggestionsByRhythm(quickCommands, rhythm);
 
   const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
     ? "from-rose-500/20 via-amber-400/10 to-transparent"
@@ -293,7 +301,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">{quickCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
+        <div className="mt-2 text-xs text-cyan-100/80">Operator rhythm: {rhythm.workingMode.replaceAll("_", " ")} · {rhythm.cadence} · bias {rhythm.commandSuggestionBias}</div>
+        <div className="mt-3 flex flex-wrap gap-2">{rhythmCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Compress activity rail" : "Expand activity rail"}</button>
           <button onClick={runCommand} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-5 py-3 text-sm font-medium text-white">Run orchestration</button>
