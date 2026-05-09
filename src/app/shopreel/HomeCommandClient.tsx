@@ -302,9 +302,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       <div className="pointer-events-none absolute -right-12 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="pointer-events-none absolute -left-14 bottom-0 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
       <div className="relative">
-        <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Live command session</div>
-        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Production workspace. Keep momentum.</h1>
-        <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">One world, one next move. Blockers stay visible, ready outputs rise, dormant noise cools.</p>
+        <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Command home</div>
+        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Calm command center. Keep moving.</h1>
+        <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">See what needs attention, what is ready, and what to do next.</p>
         <p className="mt-2 text-xs text-white/60">Active path: {ecosystemSnapshot.ecosystemMode} · render pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
         <p className="mt-2 text-xs text-white/55">Next move: {ecosystemSnapshot.suggestedSurfaceAction} · recovery path {ecosystemSnapshot.recoveryPriority}</p>
         <p className="mt-1 text-xs text-cyan-100/80">Likely next: {execution.nextOperationalMove} → {execution.recommendedSurface}</p>
@@ -314,19 +314,19 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className="mt-2 text-xs text-cyan-100/80">Rhythm {rhythm.cadence} · strategy {operatorAdaptation.priorityBias} · continuity {ecosystemSnapshot.continuityHealth}</div>
         <div className="mt-3 flex flex-wrap gap-2">{rhythmCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Compress activity rail" : "Expand activity rail"}</button>
+          <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Compact updates" : "Show full updates"}</button>
           <button onClick={runCommand} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-5 py-3 text-sm font-medium text-white">Run next move</button>
-          <span className="text-xs text-white/60">AI command is primary · Manual navigation is fallback</span>
+          <span className="text-xs text-white/60">Command bar first · navigation always available</span>
         </div>
       </div>
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-      <AiWorkspaceStage title="Continuity rail" className="border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+      <AiWorkspaceStage title="Active path" className="border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
         <p className="text-sm text-cyan-50/90">{assistantText}</p>
         <div className={`mt-4 ${railDensityClass}`}>{showRail ? activityStream.map((entry) => <div key={entry} className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/80">{entry}</div>) : <div className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/70">Compressed rail · {activityStream[0]}</div>}</div>
         <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">{environmentReactivity.operationalWeather.descriptor}</div>
-        {!calmMode ? <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Continuity ridges {environmentalField.topology.continuityRidges} · export fronts {environmentalField.topology.exportFronts} · instability zones {environmentalField.topology.instabilityZones}</div> : null}
+        {!calmMode ? <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Render pressure {environmentalField.topology.instabilityZones} · Ready to publish {environmentalField.topology.exportFronts} · Recovery {environmentalField.topology.continuityRidges}</div> : null}
         <div className="mt-4 flex flex-wrap gap-2">
           {interpreted.nextActions.map((action) => (
             <AiIntentChip key={action.href + action.label} label={action.label} href={action.href} className="px-3 py-1.5 text-[11px]" />
@@ -334,7 +334,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         </div>
       </AiWorkspaceStage>
 
-      <AiWorkspaceStage title="Session memory" className={`border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${environmentReactivity.structuralInstability > 65 ? "ring-1 ring-rose-300/20" : environmentReactivity.recoveryWarmth > 65 ? "ring-1 ring-emerald-300/20" : ""}`}>
+      <AiWorkspaceStage title="Workspace details" className={`border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${environmentReactivity.structuralInstability > 65 ? "ring-1 ring-rose-300/20" : environmentReactivity.recoveryWarmth > 65 ? "ring-1 ring-emerald-300/20" : ""}`}>
         <div className="space-y-2 text-sm text-white/75">
           <div>Current intent: {interpreted.intent}</div>
           <div>Last workflow: {context?.lastWorkflow ?? "none"}</div>
@@ -351,7 +351,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div>Recovery warmth: {environmentReactivity.recoveryWarmth} · temporal pressure: {environmentReactivity.temporalPressure} · environmental compression: {environmentReactivity.environmentalCompression}</div>
           <div>Environmental memory: instability {environmentalField.environmentalMemory.recurringInstabilityMemory} · export residue {environmentalField.environmentalMemory.exportResidue} · continuity fatigue {environmentalField.environmentalMemory.continuityFatigue} · stabilization confidence {environmentalField.environmentalMemory.stabilizationConfidence}</div>
           <div className="mt-2 rounded-xl bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50/90">
-            <div className="uppercase tracking-[0.14em] text-cyan-100/75">Cognitive production state</div>
+            <div className="uppercase tracking-[0.14em] text-cyan-100/75">Session signal</div>
             <div className="mt-1">Operational attention {cognitiveState.operationalAttention} · execution confidence {cognitiveState.executionConfidence} · continuity awareness {cognitiveState.continuityAwareness}</div>
             <div>Recovery intelligence {cognitiveState.recoveryIntelligence} · strategic focus {cognitiveState.strategicFocus} · render pressure {cognitiveState.renderAnxiety}</div>
             <div>Export intent {cognitiveState.exportIntent} · recovery confidence {cognitiveState.recoveryConfidence}</div>
@@ -363,42 +363,42 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div className="space-y-2">{context.pendingTasks.map((task) => <Link key={task.id} href={task.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{task.label}</span><span className="text-cyan-100/70">{task.done ? "done" : "next"}</span></Link>)}</div>
         </div> : null}
         {context?.continuityThreads?.length ? <div className="mt-4">
-          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Continuity threads</div>
+          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recovery links</div>
           <div className="space-y-2">{context.continuityThreads.slice(0, 4).map((thread) => <Link key={thread.id} href={thread.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{thread.label}</span><span className="text-cyan-100/70">{thread.status} · {thread.priority}</span></Link>)}</div>
         </div> : null}
         {context?.intentSignals ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
-          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Creative intent evolution</div>
+          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Creative pattern</div>
           <div>Pacing: {context.intentSignals.pacingBias} · CTA: {context.intentSignals.ctaBias}</div>
           <div>Hook density: {context.intentSignals.hookDensityBias} · Export style: {context.intentSignals.exportStyleBias}</div>
           <div>Variant direction: {context.intentSignals.variantDirectionBias}</div>
         </div> : null}
         {context?.ecosystemState ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
-          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Adaptive ecosystem state</div>
+          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">System state</div>
           <div>Energy: {context.ecosystemState.environmentalEnergy.replaceAll("_", " ")} · Temporal: {context.ecosystemState.temporalRailState.replaceAll("_", " ")}</div>
           <div>Saturation: {context.ecosystemState.operationalSaturation} · Entropy: {context.ecosystemState.focusEntropy} · Telemetry: {context.ecosystemState.telemetryDensityPressure}</div>
         </div> : null}
         {context?.operationalGraph ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
-          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Operational graph</div>
+          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Execution state</div>
           <div>Active chain depth: {context.operationalGraph.activeChain.length} · continuity pressure: {context.operationalGraph.continuityPressure} · readiness propagation: {context.operationalGraph.readinessPropagation}</div>
           <div>Recovery candidates: {context.operationalGraph.recoveryCandidates.join(", ")}</div>
           <div>Last execution mode: {context.lastExecutionPlan?.mode?.replaceAll("_", " ") ?? "default"}</div>
         </div> : null}
         {context?.productionConsciousness ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
-          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Production consciousness</div>
+          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Production state</div>
           <div>Awareness: ops {context.productionConsciousness.operationalAwareness} · momentum {context.productionConsciousness.momentumAwareness} · friction {context.productionConsciousness.frictionAwareness}</div>
           <div>Attention economy: blocker {context.productionConsciousness.attentionEconomy.blockerPressure} · telemetry decay {context.productionConsciousness.attentionEconomy.staleTelemetryDecay} · export focus {context.productionConsciousness.attentionEconomy.exportFocusShare}</div>
           <div>Topology: breathing {context.productionConsciousness.selfSteeringTopology.activeBreathingRoom} · compression {context.productionConsciousness.selfSteeringTopology.inactiveCompression} · stabilization {context.productionConsciousness.selfSteeringTopology.exportStabilization}</div>
           <div>Drift/recovery: coherence {context.productionConsciousness.creativeCoherenceAwareness} · recovery {context.productionConsciousness.recoveryProbability} · interruption sensitivity {context.productionConsciousness.interruptionSensitivity}</div>
         </div> : null}
         {history.length > 0 ? <div className="mt-4">
-          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Command history</div>
+          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
           <div className="flex flex-wrap gap-2">{history.map((item) => <button key={item} onClick={() => setCommand(item)} className="rounded-full bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-50 hover:bg-cyan-400/20">{item}</button>)}</div>
         </div> : null}
       </AiWorkspaceStage>
     </section>
 
-    <AiWorkspaceStage title="Operational workspaces" className="border-0 bg-white/[0.015]">
-      {recent.length === 0 ? <div className="text-sm text-white/60">No persisted activity yet. Start by creating a draft or uploading media into Library.</div> : <div className="space-y-2">{recent.map((r) => <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/[0.03] px-3 py-2 text-sm text-white/85">
+    <AiWorkspaceStage title="Recent drafts" className="border-0 bg-white/[0.015]">
+      {recent.length === 0 ? <div className="text-sm text-white/60">Nothing waiting. Create or upload the next asset.</div> : <div className="space-y-2">{recent.map((r) => <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/[0.03] px-3 py-2 text-sm text-white/85">
         <div>
           <Link href={`/shopreel/generations/${r.id}`} className="block font-medium">{r.title}</Link>
           <div className="text-xs text-white/55">Status: {r.status}</div>

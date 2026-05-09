@@ -61,13 +61,13 @@ export function useGlobalEnvironmentContinuity(): GlobalEnvironmentContinuitySna
 export function GlobalEnvironmentAmbientLine() {
   const continuity = useGlobalEnvironmentContinuity();
   const compactLine = continuity.continuousEvolution
-    ? `${continuity.continuousEvolution.productionWorldMode.replaceAll("_", " ")} · ${continuity.adaptiveAtmosphere?.mode.replaceAll("_", " ") ?? "calm"}`
+    ? `Active path · ${continuity.adaptiveAtmosphere?.activeFocusLabel ?? "steady progress"}`
     : continuity.adaptiveAtmosphere
-      ? `${continuity.adaptiveAtmosphere.mode.replaceAll("_", " ")} · ${continuity.adaptiveAtmosphere.activeFocusLabel}`
-      : `Production atmosphere · ${continuity.atmosphericContinuity}`;
+      ? `Next move · ${continuity.adaptiveAtmosphere.activeFocusLabel}`
+      : "Continuity is stable";
   return (
-    <div className="pointer-events-none fixed left-3 right-3 top-14 z-30 md:left-[290px] md:right-6">
-      <div className="rounded-full border border-cyan-300/15 bg-slate-900/42 px-3 py-1 text-[11px] text-cyan-100/70 backdrop-blur-md transition-all duration-300">
+    <div className="pointer-events-none fixed left-3 right-3 top-[3.45rem] z-30 md:left-[290px] md:right-8">
+      <div className="rounded-full border border-white/10 bg-slate-900/28 px-2.5 py-0.5 text-[10px] text-white/55 backdrop-blur-sm transition-all duration-300">
         {compactLine}
       </div>
     </div>
