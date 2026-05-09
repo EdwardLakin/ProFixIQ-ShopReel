@@ -21,6 +21,8 @@ export type EnvironmentalEmbodimentSnapshot = {
   surfaceWeight: "low" | "balanced" | "high";
   transitionPosture: "resuming" | "forward" | "recovery" | "cooled" | "pressured" | "steady";
   terrainDistortion: "none" | "mild" | "visible";
+  forwardMotionBias: "neutral" | "guided" | "pulled";
+  calmExpansion: "contained" | "settling" | "expanded";
   explanation: string[];
 };
 
@@ -75,6 +77,16 @@ export function deriveEnvironmentalEmbodimentSnapshot(args: {
     : args.atmosphere?.continuityDistortion === "mild" || unstableCompression === "mild"
       ? "mild"
       : "none";
+  const forwardMotionBias: EnvironmentalEmbodimentSnapshot["forwardMotionBias"] = exportForwardPull === "leading" || transitionPosture === "forward"
+    ? "pulled"
+    : exportForwardPull === "present" || transitionPosture === "resuming"
+      ? "guided"
+      : "neutral";
+  const calmExpansion: EnvironmentalEmbodimentSnapshot["calmExpansion"] = recoveryBreathingRoom === "wide" && stabilizationCalm === "stable"
+    ? "expanded"
+    : recoveryBreathingRoom !== "tight" || stabilizationCalm === "restoring"
+      ? "settling"
+      : "contained";
 
   return {
     spatialPersistence,
@@ -91,12 +103,14 @@ export function deriveEnvironmentalEmbodimentSnapshot(args: {
     surfaceWeight,
     transitionPosture,
     terrainDistortion,
+    forwardMotionBias,
+    calmExpansion,
     explanation: [
-      `Spatial persistence ${spatialPersistence} from continuity pressure ${continuityPressure} and mode ${args.workflow.primaryWorkMode}.`,
-      `Compression ${unstableCompression} from instability ${instabilityPressure} and blocked pressure ${args.execution.blockedChainPressure}.`,
-      `Forward pull ${exportForwardPull} and nav gravity ${navGravity} from export pressure ${exportPressure}.`,
-      `Recovery room ${recoveryBreathingRoom} with stabilization ${stabilizationCalm} from corridor ${args.continuity.recoveryCorridor}.`,
-      `Route posture ${transitionPosture} on ${args.routeContext} with carryover "${args.workflow.routeTransitionCarryover}".`,
+      continuityPresence === "anchored" ? "Continuity pressure is anchoring this surface." : "Continuity pressure is present but controlled.",
+      unstableCompression !== "none" ? `Render turbulence is ${unstableCompression === "active" ? "compressing" : "nudging"} surrounding rails.` : "Render rails remain spatially relaxed.",
+      exportForwardPull !== "idle" ? "Export momentum is pulling publish actions forward." : "Forward export pull is currently neutral.",
+      recoveryBreathingRoom !== "tight" ? "Recovery corridor is widening the workspace." : "Recovery corridor remains contained.",
+      dormantRecession !== "none" ? "Dormant branches are cooling into background." : `Route posture remains ${transitionPosture}.`,
     ],
   };
 }

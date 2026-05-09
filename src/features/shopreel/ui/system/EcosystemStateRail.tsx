@@ -54,16 +54,16 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
   const surfaceLead = useMemo(() => `${SURFACE_HINT[surface]} · ${environment.transitionPosture}`, [environment.transitionPosture, surface]);
 
   return (
-    <div className={`rounded-2xl border px-3 py-2 text-xs ${environment.unstableCompression === "active" ? "border-rose-300/30 bg-rose-500/10 text-rose-50/90" : environment.exportForwardPull === "leading" ? "border-cyan-300/30 bg-cyan-500/10 text-cyan-50/95" : "border-white/15 bg-white/[0.04] text-white/85"}`}>
+    <div className={`rounded-2xl border text-xs transition-[padding,opacity] ${environment.unstableCompression === "active" ? "px-2.5 py-1.5" : environment.recoveryBreathingRoom === "wide" ? "px-4 py-3" : "px-3 py-2"} ${environment.unstableCompression === "active" ? "border-rose-300/30 bg-rose-500/10 text-rose-50/90" : environment.exportForwardPull === "leading" ? "border-cyan-300/30 bg-cyan-500/10 text-cyan-50/95" : environment.dormantRecession === "recessed" ? "border-slate-300/10 bg-slate-500/[0.06] text-white/65" : "border-white/15 bg-white/[0.04] text-white/85"}`}>
       <div className="uppercase tracking-[0.16em] text-white/65">{surfaceLead}</div>
-      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-white/78">
+      <div className={`mt-1.5 flex flex-wrap text-white/78 ${environment.unstableCompression === "active" ? "gap-x-2 gap-y-0.5" : environment.recoveryBreathingRoom === "wide" ? "gap-x-4 gap-y-1.5" : "gap-x-3 gap-y-1"}`}>
         <span>Presence {environment.continuityPresence}</span>
         <span>Density {environment.shellDensity}</span>
         <span>Pull {environment.exportForwardPull}</span>
         <span>Calm {environment.stabilizationCalm}</span>
       </div>
       <div className="mt-1 text-white/70">{embodiment.nextWorkflowPosture} · {environment.transitionPosture}</div>
-      <div className="mt-1 text-white/60">{environment.explanation[0]}</div>
+      <div className="mt-1 text-white/60">{environment.explanation[1] ?? environment.explanation[0]}</div>
     </div>
   );
 }
