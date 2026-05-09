@@ -1,0 +1,42 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { deriveEcosystemStateSnapshot, readEcosystemStateSnapshot, type EcosystemSurface, type EcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
+import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+
+const SURFACE_HINT: Record<EcosystemSurface, string> = {
+  home: "Ecosystem state",
+  create: "Create flow continuity",
+  campaigns: "Campaign continuity",
+  render: "Render readiness",
+  publish: "Export momentum",
+  library: "Recovery path",
+  review: "Review risk",
+  editor: "Next operational move",
+};
+
+export default function EcosystemStateRail({ surface }: { surface: EcosystemSurface }) {
+  const [snapshot, setSnapshot] = useState<EcosystemStateSnapshot>(readEcosystemStateSnapshot());
+
+  useEffect(() => {
+    const update = () => setSnapshot(deriveEcosystemStateSnapshot(readWorkspaceMemory()));
+    update();
+    window.addEventListener("focus", update);
+    return () => window.removeEventListener("focus", update);
+  }, []);
+
+  const surfaceLead = useMemo(() => `${SURFACE_HINT[surface]} · ${snapshot.atmosphericLabel}`, [snapshot.atmosphericLabel, surface]);
+
+  return (
+    <div className="rounded-2xl border border-cyan-300/25 bg-cyan-500/10 px-3 py-2.5 text-xs text-cyan-50/95">
+      <div className="uppercase tracking-[0.16em] text-cyan-100/75">{surfaceLead}</div>
+      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-cyan-50/90">
+        <span>Production pressure {snapshot.operationalPressure}</span>
+        <span>Continuity {snapshot.continuityHealth}</span>
+        <span>Render readiness {Math.max(0, 100 - snapshot.renderPressure)}</span>
+        <span>Export momentum {snapshot.exportMomentum}</span>
+      </div>
+      <div className="mt-1 text-cyan-100/80">Next operational move: {snapshot.suggestedSurfaceAction}</div>
+    </div>
+  );
+}

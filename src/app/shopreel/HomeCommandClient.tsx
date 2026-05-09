@@ -26,6 +26,7 @@ import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel
 import { deriveEnvironmentReactivity } from "@/features/shopreel/ui/system/environmentReactivity";
 import { deriveEnvironmentalField } from "@/features/shopreel/ui/system/environmentField";
 import { deriveCognitiveState } from "@/features/shopreel/ui/system/cognitiveState";
+import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -222,6 +223,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       : cognitiveState.recoveryIntelligence > 64
         ? "Focus: stabilize continuity and continue execution"
         : "Focus: advance active production tasks";
+  const ecosystemSnapshot = deriveEcosystemStateSnapshot(context);
 
   const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
     ? "from-rose-500/20 via-amber-400/10 to-transparent"
@@ -265,9 +267,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Live command session</div>
         <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">What should the AI operating system run next?</h1>
         <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">This workspace is orchestration-first. Spatial rails, minimap memory, and focus-aware compression drive every move.</p>
-        <p className="mt-2 text-xs text-white/60">Cinematic state: {cinematicState.emotionalState.replaceAll("_", " ")} · pacing {cinematicState.motionPacing.replaceAll("_", " ")} · compression {cinematicState.compressionLevel.replaceAll("_", " ")}</p>
+        <p className="mt-2 text-xs text-white/60">Ecosystem state: {ecosystemSnapshot.ecosystemMode} · production pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
         <p className="mt-2 text-xs text-white/55">Operational weather: {environmentReactivity.operationalWeather.pattern.replaceAll("_", " ")} · intensity {environmentReactivity.operationalWeather.intensity} · continuity scarring {environmentReactivity.continuityScarring}</p>
-        <p className="mt-1 text-xs text-white/50">Field gravity {environmentalField.gravityWeighting} · export pull {environmentalField.exportPull} · continuity anchoring {environmentalField.continuityAnchoring} · breathing rhythm {environmentalField.pacing.breathingRhythm}</p>
+        <p className="mt-1 text-xs text-white/50">Render readiness {Math.max(0, 100 - ecosystemSnapshot.renderPressure)} · export momentum {ecosystemSnapshot.exportMomentum} · recovery path {ecosystemSnapshot.recoveryPriority} · next operational move {ecosystemSnapshot.suggestedSurfaceAction}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>

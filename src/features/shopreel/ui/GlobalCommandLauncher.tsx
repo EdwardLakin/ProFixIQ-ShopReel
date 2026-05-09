@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 import { readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -16,6 +17,7 @@ export default function GlobalCommandLauncher() {
   const [value, setValue] = useState("");
   const [history, setHistory] = useState<string[]>([]);
   const [focusLine, setFocusLine] = useState<string>("Focus: align next command with active production flow");
+  const [ecosystemHint, setEcosystemHint] = useState<string>("Ecosystem state: calm continuity");
   const pathname = usePathname();
   const router = useRouter();
   const interpreted = interpretCommand(value);
@@ -31,6 +33,8 @@ export default function GlobalCommandLauncher() {
     setHistory(memory.intentHistory);
     const pending = memory.pendingTasks.filter((task) => !task.done).length;
     const blockers = memory.pendingTasks.filter((task) => !task.done && /render|review|verify/i.test(task.label)).length;
+    const snapshot = deriveEcosystemStateSnapshot(memory);
+    setEcosystemHint(`Ecosystem state: ${snapshot.atmosphericLabel} · Next operational move: ${snapshot.suggestedSurfaceAction}`);
     setFocusLine(blockers > 0 ? "Focus: recover render blockers" : pending === 0 ? "Focus: export-ready packaging" : "Focus: continue active workflow checkpoints");
   }, [open]);
 
@@ -79,6 +83,7 @@ export default function GlobalCommandLauncher() {
           <AiCommandInput value={value} onChange={setValue} placeholder="Type a command..." className="min-h-24 text-lg" />
           <div className="mt-3 text-sm text-cyan-50/90">{interpreted.summary}</div>
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
+          <div className="mt-1 text-xs text-cyan-200/80">{ecosystemHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
           <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
