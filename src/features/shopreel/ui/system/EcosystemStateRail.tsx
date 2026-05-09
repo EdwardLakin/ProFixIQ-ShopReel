@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { deriveEcosystemStateSnapshot, readEcosystemStateSnapshot, type EcosystemSurface, type EcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
 import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 
 const SURFACE_HINT: Record<EcosystemSurface, string> = {
   home: "Ecosystem state",
@@ -17,6 +18,7 @@ const SURFACE_HINT: Record<EcosystemSurface, string> = {
 
 export default function EcosystemStateRail({ surface }: { surface: EcosystemSurface }) {
   const [snapshot, setSnapshot] = useState<EcosystemStateSnapshot>(readEcosystemStateSnapshot());
+  const continuity = useGlobalEnvironmentContinuity();
 
   useEffect(() => {
     const update = () => setSnapshot(deriveEcosystemStateSnapshot(readWorkspaceMemory()));
@@ -37,6 +39,7 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
         <span>Export momentum {snapshot.exportMomentum}</span>
       </div>
       <div className="mt-1 text-cyan-100/80">Next operational move: {snapshot.suggestedSurfaceAction}</div>
+      <div className="mt-1 text-cyan-100/70">Continuity: {continuity.explainability[0]}</div>
     </div>
   );
 }
