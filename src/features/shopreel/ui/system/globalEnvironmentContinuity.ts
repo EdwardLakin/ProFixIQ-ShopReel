@@ -1,6 +1,7 @@
 import type { EcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
 import type { AdaptiveAtmosphereMode, AdaptiveAtmosphereRhythm, AdaptiveAtmosphereDensity, AdaptiveProductionAtmosphereState } from "@/features/shopreel/ui/system/adaptiveProductionAtmosphere";
 import { readWorkspaceMemory, writeWorkspaceMemory, type WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import type { ContinuousEcosystemEvolutionState } from "@/features/shopreel/ui/system/continuousEcosystemEvolution";
 
 export type EscalationState = "calm" | "steady" | "elevated" | "critical";
 export type RecoveryCorridor = "none" | "forming" | "stable";
@@ -28,6 +29,7 @@ export type GlobalEnvironmentContinuitySnapshot = {
   adaptiveAtmosphere: AdaptiveProductionAtmosphereState | null;
   globalEnvironmentTone: GlobalEnvironmentTone;
   explainability: string[];
+  continuousEvolution: ContinuousEcosystemEvolutionState | null;
 };
 
 export type PersistedGlobalEnvironmentMemory = {
@@ -134,6 +136,7 @@ export function deriveGlobalEnvironmentContinuity(args: {
           ? "Recovery corridor forming as continuity pressure starts to normalize."
           : "Recovery corridor inactive while operational pressure remains dominant.",
     ],
+    continuousEvolution: null,
   };
 }
 

@@ -38,9 +38,10 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
         <span>Render readiness {Math.max(0, 100 - snapshot.renderPressure)}</span>
         <span>Export momentum {snapshot.exportMomentum}</span>
       </div>
-      <div className="mt-1 text-cyan-100/80">Mode {continuity.adaptiveAtmosphere?.mode ?? "calm"} · Rhythm {continuity.adaptiveAtmosphere?.rhythm ?? "breathing"} · Focus {continuity.adaptiveAtmosphere?.activeFocusLabel ?? "workflow focus"}</div>
-      <div className="mt-1 text-cyan-100/80">Next environmental adjustment: {continuity.adaptiveAtmosphere?.density ?? "normal"} density, {continuity.adaptiveAtmosphere?.hierarchy ?? "normal"} hierarchy</div>
-      <div className="mt-1 text-cyan-100/70">Continuity: {continuity.explainability[0]}</div>
+      <div className="mt-1 text-cyan-100/80">World {continuity.continuousEvolution?.productionWorldMode ?? "stable"} · atmosphere {continuity.adaptiveAtmosphere?.mode ?? "calm"} · escalation {continuity.escalationState}</div>
+      <div className="mt-1 text-cyan-100/80">Momentum {continuity.continuousEvolution?.exportMomentumPersistence ?? continuity.exportMomentum} · recovery {continuity.recoveryCorridor} · nav cooling {continuity.continuousEvolution?.dormantNavigationCooling ?? continuity.dormantInfluence}</div>
+      <div className="mt-1 text-cyan-100/80">Next environmental adjustment: density {continuity.continuousEvolution?.globalDensityBias ?? "neutral"}, hierarchy {continuity.continuousEvolution?.globalHierarchyBias ?? "neutral"}</div>
+      <div className="mt-1 text-cyan-100/70">{continuity.continuousEvolution?.explanation ?? continuity.explainability[0]}</div>
     </div>
   );
 }
