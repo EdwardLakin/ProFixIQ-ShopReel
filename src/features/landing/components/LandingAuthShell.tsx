@@ -15,40 +15,34 @@ export function LandingAuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#02040d] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(124,58,237,0.34),transparent_34%),radial-gradient(circle_at_86%_12%,rgba(34,211,238,0.24),transparent_32%),radial-gradient(circle_at_50%_100%,rgba(59,130,246,0.16),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_22%,rgba(255,255,255,0.02))]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] [background-size:34px_34px]" />
+    <main className="relative min-h-screen overflow-hidden bg-[#020611] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_8%,rgba(34,211,238,0.18),transparent_35%),radial-gradient(circle_at_80%_16%,rgba(147,51,234,0.24),transparent_38%),linear-gradient(180deg,#020611_0%,#040a1b_52%,#02040d_100%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.4)_1px,transparent_1px)] [background-size:46px_46px]" />
 
-      <div className="relative mx-auto grid min-h-screen w-full max-w-6xl items-center gap-6 px-5 py-8 sm:px-6 lg:grid-cols-[1fr_460px] lg:gap-10 lg:py-10">
+      <div className="relative mx-auto grid min-h-screen w-full max-w-7xl items-center gap-8 px-5 py-8 lg:grid-cols-[1fr_520px] lg:px-6">
         <section className="hidden lg:block">
-          <Link href="/" className="inline-flex rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm text-white/75 backdrop-blur-xl">
-            ShopReel by ProFixIQ
-          </Link>
-          <h1 className="mt-8 max-w-3xl text-5xl font-semibold leading-[1.02] tracking-tight text-white">
-            The AI-native creative operating system.
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-white/68">
-            Plan, create, review, render, export, and prepare content with a premium operator-controlled workflow.
-          </p>
-
-          <div className="mt-8 grid max-w-2xl gap-3">
-            {["Brand brain", "Campaign planning", "Manual-first publishing", "Controlled automation"].map((item) => (
-              <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-white/78 backdrop-blur-xl">
-                {item}
+          <Link href="/" className="inline-flex items-center rounded-full bg-white/[0.04] px-4 py-2 text-sm ring-1 ring-white/15">ShopReel</Link>
+          <h1 className="mt-8 max-w-xl text-6xl font-semibold leading-[1.02]">The AI-native creative operating system.</h1>
+          <p className="mt-5 max-w-xl text-lg leading-8 text-white/72">Return to your AI creative operating system.</p>
+          <div className="mt-8 space-y-3 max-w-xl">
+            {["Brand brain — Persistent memory for voice, rules, and audience.","Campaign planning — From signals to strategy in one intelligent flow.","Manual-first publishing — Operator control at every stage.","Controlled automation — AI power with human approval built in."].map((item) => (
+              <div key={item} className="flex items-center gap-3 rounded-2xl bg-white/[0.03] px-4 py-3 ring-1 ring-white/10">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400/30 to-violet-400/30 ring-1 ring-white/10">◈</span>
+                <span className="text-sm text-white/82">{item}</span>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-[radial-gradient(circle_at_20%_0%,rgba(124,58,237,0.22),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.085),rgba(255,255,255,0.035))] p-6 shadow-[0_34px_110px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.10)] backdrop-blur-2xl">
-          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
-          <div className="mb-6">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-200/85">{eyebrow}</div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">{title}</h2>
-            <p className="mt-2 text-sm leading-6 text-white/68">{subtitle}</p>
+        <section className="relative overflow-hidden rounded-[2rem] bg-slate-950/65 p-6 ring-1 ring-cyan-300/25 shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_34px_120px_-40px_rgba(34,211,238,0.58),0_34px_120px_-40px_rgba(147,51,234,0.5)] backdrop-blur-2xl sm:p-8">
+          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_0%_100%,rgba(124,58,237,0.2),transparent_34%),radial-gradient(circle_at_100%_0%,rgba(34,211,238,0.15),transparent_34%)]" />
+          <div className="relative mb-6">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/85">{eyebrow}</div>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
+            <p className="mt-2 text-sm leading-6 text-white/72">{subtitle}</p>
           </div>
-          {children}
-          {footer ? <div className="mt-6 border-t border-white/10 pt-5 text-sm text-white/68">{footer}</div> : null}
+          <div className="relative">{children}</div>
+          {footer ? <div className="relative mt-6 border-t border-white/10 pt-5 text-sm text-white/72">{footer}</div> : null}
         </section>
       </div>
     </main>
@@ -59,10 +53,10 @@ export function LandingInput(props: React.InputHTMLAttributes<HTMLInputElement> 
   const { label, className, ...rest } = props;
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-white/82">{label}</span>
+      <span className="mb-2 block text-sm font-medium text-white/88">{label}</span>
       <input
         {...rest}
-        className={`auth-input w-full rounded-2xl border border-white/15 bg-[#070b18]/88 px-4 py-3 text-[15px] text-slate-100 caret-cyan-200 outline-none transition placeholder:text-slate-400/75 hover:border-white/20 focus:border-cyan-300/45 focus:ring-2 focus:ring-cyan-300/25 ${className ?? ""}`}
+        className={`auth-input w-full rounded-xl bg-[#060d1f] px-4 py-3 text-[15px] text-slate-100 caret-cyan-200 outline-none ring-1 ring-white/15 transition placeholder:text-slate-400/75 hover:ring-white/20 focus:ring-2 focus:ring-cyan-300/45 ${className ?? ""}`}
       />
     </label>
   );
@@ -73,7 +67,7 @@ export function LandingSubmitButton({ busy, busyLabel, children, disabled }: { b
     <button
       type="submit"
       disabled={busy || disabled}
-      className="w-full rounded-2xl border border-cyan-300/35 bg-[linear-gradient(135deg,rgba(124,58,237,0.92),rgba(34,211,238,0.82))] px-4 py-3 font-semibold text-white shadow-[0_16px_46px_rgba(34,211,238,0.22),0_16px_46px_rgba(124,58,237,0.18),inset_0_1px_0_rgba(255,255,255,0.18)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-60"
+      className="w-full rounded-xl bg-[linear-gradient(90deg,rgba(147,51,234,0.95),rgba(34,211,238,0.95))] px-4 py-3 font-semibold text-white shadow-[0_20px_56px_rgba(34,211,238,0.26),0_20px_56px_rgba(147,51,234,0.22)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-60"
     >
       {busy ? busyLabel : children}
     </button>
