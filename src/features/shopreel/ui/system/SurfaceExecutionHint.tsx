@@ -25,19 +25,19 @@ export default function SurfaceExecutionHint({ surface }: { surface: EcosystemSu
   const environment = deriveEnvironmentalEmbodimentSnapshot({ continuity, ecosystem: snapshot, atmosphere: continuity.adaptiveAtmosphere, rhythm, strategic, execution, workflow: embodiment, routeContext: continuity.routeTransitionMemory.currentRoute });
 
   const line = useMemo(() => {
-    if (surface === "create") return embodiment.nextWorkflowPosture === "Continue interrupted creation" ? "Continue interrupted creation" : "Stabilize production branch";
+    if (surface === "create") return embodiment.nextWorkflowPosture === "Continue interrupted creation" ? "Continue interrupted creation" : "Next move: continue create";
     if (surface === "render") return "Resolve render blocker";
     if (surface === "publish") return embodiment.exportPull >= 56 ? "Package ready assets" : "Continue interrupted export";
-    if (surface === "review") return "Review continuity gap";
+    if (surface === "review") return "Next move: review continuity";
     if (surface === "campaigns") return "Return to campaign lineage";
-    if (surface === "editor") return "Stabilize production branch";
+    if (surface === "editor") return "Next move: continue draft";
     return embodiment.nextWorkflowPosture;
   }, [embodiment, surface]);
 
   return (
     <div className={`rounded-xl border text-xs transition-[padding,opacity] ${environment.unstableCompression === "active" ? "px-2.5 py-1.5" : environment.recoveryBreathingRoom === "wide" ? "px-4 py-2.5" : "px-3 py-2"} ${environment.unstableCompression === "active" ? "border-rose-300/25 bg-rose-500/10 text-rose-50/85" : environment.recoveryBreathingRoom === "wide" ? "border-emerald-300/20 bg-emerald-500/10 text-emerald-50/85" : environment.dormantRecession === "recessed" ? "border-slate-300/10 bg-slate-500/[0.05] text-white/65" : "border-white/10 bg-white/[0.03] text-white/78"}`}>
       <span className="font-medium">{line}</span>
-      <span className="ml-1.5 opacity-80">{environment.transitionPosture}</span>
+      <span className="ml-1.5 opacity-75">{environment.transitionPosture}</span>
     </div>
   );
 }

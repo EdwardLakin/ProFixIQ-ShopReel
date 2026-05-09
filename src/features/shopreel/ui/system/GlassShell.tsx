@@ -27,19 +27,19 @@ export default function GlassShell({
   const dynamics = deriveCognitiveShellDynamics(cognitiveState);
   const shellOpacity = 0.64 + dynamics.shellDensity / 500;
   return (
-    <main className="shopreel-route-shell relative min-h-screen overflow-hidden px-4 py-5 text-white sm:px-6 lg:px-8" style={{ letterSpacing: `${(dynamics.gravity - 50) * 0.0012}em` }}>
+    <main className="shopreel-route-shell relative min-h-screen overflow-hidden px-4 py-5 text-white sm:px-6 lg:px-8" style={{ letterSpacing: `${(dynamics.gravity - 50) * 0.0009}em` }}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="shopreel-orb shopreel-orb-a" />
         <div className="shopreel-orb shopreel-orb-b" />
         <div className="shopreel-orb shopreel-orb-c" />
-        <div className="absolute inset-0 transition-opacity duration-500 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.12),transparent_28%),linear-gradient(180deg,rgba(5,8,18,0.55),rgba(2,4,12,0.92))]" style={{ opacity: shellOpacity }} />
+        <div className="absolute inset-0 transition-opacity duration-500 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.1),transparent_30%),linear-gradient(180deg,rgba(5,8,18,0.52),rgba(2,4,12,0.9))]" style={{ opacity: shellOpacity }} />
         <div className="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:44px_44px]" style={{ opacity: 0.015 + dynamics.quieting / 2600 }} />
       </div>
 
       <div className={`relative z-10 mx-auto w-full max-w-[1540px] ${className}`}>
         <div className="mb-5 flex items-center justify-between gap-3 transition-all duration-300">
-          <div className="hidden rounded-full border border-slate-400/10 bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-white/55 shadow-2xl backdrop-blur md:block">
-            Production operating environment
+          <div className="hidden rounded-full border border-slate-400/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-white/55 shadow-2xl backdrop-blur md:block">
+            Active path
           </div>
           <div className="ml-auto flex items-center gap-2">
             {actions}
