@@ -10,6 +10,7 @@ import { deriveProductionIntuition } from "@/features/shopreel/ui/system/product
 import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { usePathname } from "next/navigation";
 import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent } from "@/features/shopreel/ui/system/operatorRhythm";
+import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
 
 function ShellScaffold({ children }: { children: ReactNode }) {
   const continuity = useGlobalEnvironmentContinuity();
@@ -22,11 +23,14 @@ function ShellScaffold({ children }: { children: ReactNode }) {
   const shellPadding = rhythm.navigationDensity === "dense" ? "pl-2 md:pl-4" : rhythm.navigationDensity === "sparse" ? "pl-5 md:pl-7" : evolution?.globalDensityBias === "elevated" || atmosphere?.density === "compressed" ? "pl-2 md:pl-4" : evolution?.globalDensityBias === "reduced" ? "pl-4 md:pl-7" : atmosphere?.density === "compact" ? "pl-3 md:pl-5" : "pl-4 md:pl-6";
   const typography = evolution?.globalHierarchyBias === "elevated" || atmosphere?.hierarchy === "urgent" ? "text-white" : atmosphere?.hierarchy === "sharp" ? "text-slate-50" : "text-slate-100";
   const navProminence = rhythm.workingMode === "exploratory" ? "opacity-100" : evolution?.globalNavigationBias === "reduced" || atmosphere?.mode === "dormant" ? "opacity-80" : "opacity-100";
-  const railEmphasis = evolution?.globalFrictionBias === "elevated" || atmosphere?.mode === "render_pressure" ? "ring-1 ring-rose-300/30" : atmosphere?.mode === "export_momentum" ? "ring-1 ring-cyan-300/25" : "";
+  const workspace = readWorkspaceMemory();
+  const operatorMemory = readOperatorBehaviorMemory();
+  const intuition = deriveProductionIntuition({ operator: operatorMemory, continuity, evolution: continuity.continuousEvolution, memory: workspace, routePathname: pathname });
+  const strategic = deriveStrategicAdaptation({ workspace, operator: operatorMemory, continuity, strategicMemory: readStrategicOperationalMemory() });
+  const railEmphasis = strategic.continuityVisibilityBias === "elevated" ? "ring-1 ring-cyan-300/35" : evolution?.globalFrictionBias === "elevated" || atmosphere?.mode === "render_pressure" ? "ring-1 ring-rose-300/30" : atmosphere?.mode === "export_momentum" ? "ring-1 ring-cyan-300/25" : "";
   const operator = deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity);
-  const navModeClass = operator.densityPreference === "compressed" ? "[&_a]:py-1.5" : operator.densityPreference === "spacious" ? "[&_a]:py-3" : "[&_a]:py-2";
-  const navBiasClass = operator.priorityBias === "campaign" ? "[&_a[data-nav=campaign]]:text-cyan-100" : operator.priorityBias === "export" ? "[&_a[data-nav=publish]]:text-cyan-100" : operator.priorityBias === "recovery" ? "[&_a[data-nav=review]]:text-cyan-100" : "";
-  const intuition = deriveProductionIntuition({ operator: readOperatorBehaviorMemory(), continuity, evolution: continuity.continuousEvolution, memory: readWorkspaceMemory(), routePathname: pathname });
+  const navModeClass = strategic.shellDensityBias === "dense" || operator.densityPreference === "compressed" ? "[&_a]:py-1.5" : strategic.shellDensityBias === "calm" || operator.densityPreference === "spacious" ? "[&_a]:py-3" : "[&_a]:py-2";
+  const navBiasClass = strategic.commandOrderingBias === "render" ? "[&_a[data-nav=render]]:text-cyan-100" : strategic.commandOrderingBias === "export" || operator.priorityBias === "export" ? "[&_a[data-nav=publish]]:text-cyan-100" : strategic.commandOrderingBias === "recovery" || operator.priorityBias === "recovery" ? "[&_a[data-nav=review]]:text-cyan-100" : operator.priorityBias === "campaign" ? "[&_a[data-nav=campaign]]:text-cyan-100" : "";
   const intuitionNavBias = intuition.suggestedSurface.includes("/publish")
     ? "[&_a[data-nav=publish]]:underline"
     : intuition.suggestedSurface.includes("/render")
