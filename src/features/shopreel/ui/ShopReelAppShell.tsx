@@ -48,24 +48,29 @@ function ShellScaffold({ children }: { children: ReactNode }) {
         : intuition.suggestedSurface.includes("/review")
           ? "[&_a[data-nav=review]]:underline"
           : "";
+  const routePull = embodiment.forwardMotionBias === "pulled"
+    ? "[&_a[data-nav=publish]]:scale-[1.01] [&_a[data-nav=render]]:scale-[1.01]"
+    : embodiment.forwardMotionBias === "guided"
+      ? "[&_a[data-nav=publish]]:translate-x-[1px]"
+      : "";
   useEffect(() => {
     recordOperatorRhythmEvent({ type: "route_changed", route: pathname });
   }, [pathname]);
 
   return (
-    <div className={`min-h-screen bg-[#02040c] ${typography}`}>
+    <div className={`min-h-screen bg-[#02040c] ${typography} ${embodiment.escalationPacing === "intense" ? "tracking-[0.01em]" : embodiment.calmExpansion === "expanded" ? "tracking-normal" : ""}`}>
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(124,58,237,.12),transparent_30%),radial-gradient(circle_at_88%_8%,rgba(34,211,238,.1),transparent_32%),linear-gradient(180deg,#050816_0%,#02040c_62%,#01020a_100%)]" style={{ opacity: Number(energyOpacity) + (evolution?.globalAtmosphereBias === "elevated" ? 0.02 : evolution?.globalRecoveryBias === "elevated" ? -0.03 : 0) }} />
         <div className={`absolute inset-0 ${densityClass} [background-image:linear-gradient(rgba(255,255,255,.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:48px_48px]`} />
       </div>
 
-      <div className={`relative flex min-h-screen ${railEmphasis}`}>
-        <div className={`${navProminence} ${navModeClass} ${navBiasClass} ${intuitionNavBias}`}><ShopReelSidebar /></div>
+      <div className={`relative flex min-h-screen ${railEmphasis} ${embodiment.unstableCompression === "active" ? "gap-1" : embodiment.calmExpansion === "expanded" ? "gap-3" : "gap-2"}`}>
+        <div className={`${navProminence} ${navModeClass} ${navBiasClass} ${intuitionNavBias} ${routePull} ${embodiment.continuityPresence === "anchored" ? "sticky top-0" : ""}`}><ShopReelSidebar /></div>
         <GlobalCommandLauncher />
         <GlobalEnvironmentAmbientLine />
 
-        <section className={`relative min-w-0 flex-1 ${shellPadding} ${embodiment.recoveryBreathingRoom === "wide" ? "pt-1" : embodiment.unstableCompression === "active" ? "pt-0" : ""}`}>
-          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""}`}>{children}</div>
+        <section className={`relative min-w-0 flex-1 ${shellPadding} ${embodiment.recoveryBreathingRoom === "wide" ? "pt-2 pb-4" : embodiment.unstableCompression === "active" ? "pt-0 pb-2" : "py-3"} ${embodiment.transitionPosture === "cooled" ? "opacity-[0.92]" : "opacity-100"}`}>
+          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}>{children}</div>
         </section>
       </div>
     </div>

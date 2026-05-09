@@ -34,5 +34,10 @@ export default function SurfaceExecutionHint({ surface }: { surface: EcosystemSu
     return embodiment.nextWorkflowPosture;
   }, [embodiment, surface]);
 
-  return <div className={`rounded-xl border px-3 py-2 text-xs ${environment.unstableCompression === "active" ? "border-rose-300/25 bg-rose-500/10 text-rose-50/85" : environment.recoveryBreathingRoom === "wide" ? "border-emerald-300/20 bg-emerald-500/10 text-emerald-50/85" : "border-white/10 bg-white/[0.03] text-white/78"}`}>{line} · {environment.transitionPosture} · {environment.shellDensity}</div>;
+  return (
+    <div className={`rounded-xl border text-xs transition-[padding,opacity] ${environment.unstableCompression === "active" ? "px-2.5 py-1.5" : environment.recoveryBreathingRoom === "wide" ? "px-4 py-2.5" : "px-3 py-2"} ${environment.unstableCompression === "active" ? "border-rose-300/25 bg-rose-500/10 text-rose-50/85" : environment.recoveryBreathingRoom === "wide" ? "border-emerald-300/20 bg-emerald-500/10 text-emerald-50/85" : environment.dormantRecession === "recessed" ? "border-slate-300/10 bg-slate-500/[0.05] text-white/65" : "border-white/10 bg-white/[0.03] text-white/78"}`}>
+      <span className="font-medium">{line}</span>
+      <span className="ml-1.5 opacity-80">{environment.transitionPosture}</span>
+    </div>
+  );
 }
