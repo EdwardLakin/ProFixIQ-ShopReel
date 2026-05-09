@@ -28,6 +28,8 @@ import { deriveEnvironmentalField } from "@/features/shopreel/ui/system/environm
 import { deriveCognitiveState } from "@/features/shopreel/ui/system/cognitiveState";
 import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
+import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
+import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -40,6 +42,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const [history, setHistory] = useState<string[]>([]);
   const [showRail, setShowRail] = useState(true);
   const [ambientCheckpoint, setAmbientCheckpoint] = useState<string>("Restoring operational checkpoint…");
+  const continuity = useGlobalEnvironmentContinuity();
 
   useEffect(() => {
     const parsed = readWorkspaceMemory();
@@ -231,6 +234,14 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         : "Focus: advance active production tasks";
   const ecosystemSnapshot = deriveEcosystemStateSnapshot(context);
   const operatorAdaptation = deriveOperatorAdaptation(readOperatorBehaviorMemory());
+  const intuition = deriveProductionIntuition({ operator: readOperatorBehaviorMemory(), continuity, evolution: continuity.continuousEvolution, memory: context, routePathname: context?.lastRoute ?? "/shopreel" });
+  const quickCommands = intuition.likelyNextMove === "package_or_publish" || intuition.likelyNextMove === "prepare_export"
+    ? ["open publish queue", "review + package", "schedule latest export"]
+    : intuition.likelyNextMove === "inspect_render_queue" || intuition.likelyNextMove === "resolve_render_blocker"
+      ? ["show failed renders", "show render queue blockers", "stabilize render continuity"]
+      : intuition.likelyNextMove === "continue_campaign"
+        ? ["continue active campaign", "generate campaign variations", "review campaign readiness"]
+        : ["show me my latest", "continue what we were working on", "review + package"];
 
   const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
     ? "from-rose-500/20 via-amber-400/10 to-transparent"
@@ -278,10 +289,11 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <p className="mt-2 text-xs text-white/55">Operational weather: {environmentReactivity.operationalWeather.pattern.replaceAll("_", " ")} · intensity {environmentReactivity.operationalWeather.intensity} · continuity scarring {environmentReactivity.continuityScarring}</p>
         <p className="mt-1 text-xs text-white/50">Operator pattern: {operatorAdaptation.priorityBias} · workspace bias {operatorAdaptation.operatorMode.replaceAll("_", " ")} · continuity preference {operatorAdaptation.continuitySensitivity}</p>
         <p className="mt-1 text-xs text-white/50">Render readiness {Math.max(0, 100 - ecosystemSnapshot.renderPressure)} · export momentum {ecosystemSnapshot.exportMomentum} · recovery path {ecosystemSnapshot.recoveryPriority} · next operational move {ecosystemSnapshot.suggestedSurfaceAction}</p>
+        <p className="mt-1 text-xs text-cyan-100/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface} ({intuition.confidence}% confidence)</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
           <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">{["show me my latest", "continue what we were working on", "review + package", "show failed renders", "generate campaign variations"].map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
+        <div className="mt-3 flex flex-wrap gap-2">{quickCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Compress activity rail" : "Expand activity rail"}</button>
           <button onClick={runCommand} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-5 py-3 text-sm font-medium text-white">Run orchestration</button>

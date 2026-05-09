@@ -5,9 +5,13 @@ import ShopReelSidebar from "@/features/shopreel/ui/ShopReelSidebar";
 import GlobalCommandLauncher from "@/features/shopreel/ui/GlobalCommandLauncher";
 import { GlobalEnvironmentAmbientLine, GlobalEnvironmentContinuityProvider, useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
+import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
+import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { usePathname } from "next/navigation";
 
 function ShellScaffold({ children }: { children: ReactNode }) {
   const continuity = useGlobalEnvironmentContinuity();
+  const pathname = usePathname();
   const atmosphere = continuity.adaptiveAtmosphere;
   const evolution = continuity.continuousEvolution;
   const densityClass = atmosphere?.friction === "high" ? "opacity-[0.07]" : atmosphere?.friction === "visible" ? "opacity-[0.06]" : atmosphere?.friction === "subtle" ? "opacity-[0.04]" : "opacity-[0.02]";
@@ -19,6 +23,16 @@ function ShellScaffold({ children }: { children: ReactNode }) {
   const operator = deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity);
   const navModeClass = operator.densityPreference === "compressed" ? "[&_a]:py-1.5" : operator.densityPreference === "spacious" ? "[&_a]:py-3" : "[&_a]:py-2";
   const navBiasClass = operator.priorityBias === "campaign" ? "[&_a[data-nav=campaign]]:text-cyan-100" : operator.priorityBias === "export" ? "[&_a[data-nav=publish]]:text-cyan-100" : operator.priorityBias === "recovery" ? "[&_a[data-nav=review]]:text-cyan-100" : "";
+  const intuition = deriveProductionIntuition({ operator: readOperatorBehaviorMemory(), continuity, evolution: continuity.continuousEvolution, memory: readWorkspaceMemory(), routePathname: pathname });
+  const intuitionNavBias = intuition.suggestedSurface.includes("/publish")
+    ? "[&_a[data-nav=publish]]:underline"
+    : intuition.suggestedSurface.includes("/render")
+      ? "[&_a[data-nav=render]]:underline"
+      : intuition.suggestedSurface.includes("/campaign")
+        ? "[&_a[data-nav=campaign]]:underline"
+        : intuition.suggestedSurface.includes("/review")
+          ? "[&_a[data-nav=review]]:underline"
+          : "";
 
   return (
     <div className={`min-h-screen bg-[#02040c] ${typography}`}>
@@ -28,7 +42,7 @@ function ShellScaffold({ children }: { children: ReactNode }) {
       </div>
 
       <div className={`relative flex min-h-screen ${railEmphasis}`}>
-        <div className={`${navProminence} ${navModeClass} ${navBiasClass}`}><ShopReelSidebar /></div>
+        <div className={`${navProminence} ${navModeClass} ${navBiasClass} ${intuitionNavBias}`}><ShopReelSidebar /></div>
         <GlobalCommandLauncher />
         <GlobalEnvironmentAmbientLine />
 
