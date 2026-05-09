@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import ShopReelSidebar from "@/features/shopreel/ui/ShopReelSidebar";
 import GlobalCommandLauncher from "@/features/shopreel/ui/GlobalCommandLauncher";
