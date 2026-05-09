@@ -9,6 +9,7 @@ import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/Gl
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggestionsByRhythm } from "@/features/shopreel/ui/system/operatorRhythm";
+import { deriveStrategicAdaptation, evolveStrategicOperationalMemory, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -36,6 +37,7 @@ export default function GlobalCommandLauncher() {
   }), [continuity, pathname]);
   const mode = continuity.adaptiveAtmosphere?.mode;
   const rhythm = useMemo(() => deriveOperatorRhythmSnapshot(), [open, pathname, history.length]);
+  const strategic = useMemo(() => deriveStrategicAdaptation({ workspace: readWorkspaceMemory(), operator: readOperatorBehaviorMemory(), continuity, strategicMemory: readStrategicOperationalMemory() }), [continuity, pathname, history.length]);
 
   const contextualExamples = useMemo(() => {
     if (intuition.likelyNextMove === "package_or_publish" || intuition.likelyNextMove === "prepare_export") return ["package ready assets", "open publish queue", "schedule latest export"];
@@ -55,6 +57,7 @@ export default function GlobalCommandLauncher() {
     return routeMatch?.examples ?? ["continue what we were working on", "open latest draft", "review render status"];
   }, [mode, pathname, operatorAdaptation.priorityBias, intuition.likelyNextMove]);
   const rhythmExamples = useMemo(() => reorderSuggestionsByRhythm(contextualExamples, rhythm), [contextualExamples, rhythm]);
+  const strategyExamples = useMemo(() => strategic.commandOrderingBias === "export" ? ["package ready assets", "open publish queue", "schedule latest export"] : strategic.commandOrderingBias === "render" ? ["show render queue blockers", "open failed renders", "stabilize render continuity"] : strategic.commandOrderingBias === "recovery" ? ["continue recovery corridor", "restore previous route", "resume interrupted workflow"] : rhythmExamples, [rhythmExamples, strategic.commandOrderingBias]);
 
   useEffect(() => {
     const memory = readWorkspaceMemory();
@@ -79,7 +82,7 @@ export default function GlobalCommandLauncher() {
 
   const run = () => {
     if (!interpreted.href) return;
-    recordOperatorBehaviorEvent({ type: "command_submitted", route: interpreted.href, intent: interpreted.intent });
+    const operatorMemory = recordOperatorBehaviorEvent({ type: "command_submitted", route: interpreted.href, intent: interpreted.intent });
     recordOperatorRhythmEvent({ type: "command_submitted", route: interpreted.href });
     if (/(continue|resume)/i.test(value)) recordOperatorRhythmEvent({ type: "workflow_continued", route: interpreted.href });
     if (interpreted.intent === "render") recordOperatorRhythmEvent({ type: "render_checked", route: interpreted.href });
@@ -89,7 +92,7 @@ export default function GlobalCommandLauncher() {
     setHistory(nextHistory);
     const existing = readWorkspaceMemory();
     if (existing) {
-      writeWorkspaceMemory({
+      const nextWorkspace = {
         ...existing,
         lastCommand: value,
         lastRoute: interpreted.href,
@@ -97,7 +100,9 @@ export default function GlobalCommandLauncher() {
         intentHistory: nextHistory,
         recentIntents: [interpreted.intent, ...existing.recentIntents].slice(0, 8),
         updatedAt: new Date().toISOString(),
-      });
+      };
+      writeWorkspaceMemory(nextWorkspace);
+      evolveStrategicOperationalMemory({ workspace: nextWorkspace, operator: operatorMemory, continuity });
     }
     router.push(interpreted.href);
     setOpen(false);
@@ -123,7 +128,9 @@ export default function GlobalCommandLauncher() {
           <div className="mt-1 text-xs text-cyan-200/80">Likely next: {intuition.suggestedCommand} → {intuition.suggestedSurface}</div>
           <div className="mt-1 text-xs text-cyan-200/75">{`Workspace bias: ${operatorAdaptation.priorityBias} · continuity preference ${operatorAdaptation.continuitySensitivity} · ${operatorAdaptation.environmentalAdjustment}`}</div>
           <div className="mt-1 text-xs text-cyan-100/80">Operator rhythm: {rhythm.workingMode.replaceAll("_", " ")} · {rhythm.cadence} cadence · prefers {rhythm.preferredSurface}</div>
-          <div className="mt-3 flex flex-wrap gap-2">{rhythmExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
+          <div className="mt-1 text-xs text-cyan-100/80">Strategic personality: {strategic.operationalPersonality.replaceAll("_", " ")} · command bias {strategic.commandOrderingBias} · continuity routing {strategic.continuityVisibilityBias}</div>
+          <div className="mt-1 text-xs text-cyan-100/70">{strategic.explanation[0]}</div>
+          <div className="mt-3 flex flex-wrap gap-2">{strategyExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
             <div className="flex flex-wrap gap-2">{history.map((item) => <button key={item} onClick={() => setValue(item)} className="rounded-full bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-50 hover:bg-cyan-400/20">{item}</button>)}</div>
