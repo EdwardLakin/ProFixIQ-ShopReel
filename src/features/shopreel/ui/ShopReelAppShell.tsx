@@ -11,6 +11,10 @@ import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMe
 import { usePathname } from "next/navigation";
 import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent } from "@/features/shopreel/ui/system/operatorRhythm";
 import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
+import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
+import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/system/productionExecutionIntelligence";
+import { deriveWorkflowEmbodimentSnapshot } from "@/features/shopreel/ui/system/workflowEmbodiment";
+import { deriveEnvironmentalEmbodimentSnapshot } from "@/features/shopreel/ui/system/environmentalEmbodiment";
 
 function ShellScaffold({ children }: { children: ReactNode }) {
   const continuity = useGlobalEnvironmentContinuity();
@@ -20,14 +24,18 @@ function ShellScaffold({ children }: { children: ReactNode }) {
   const evolution = continuity.continuousEvolution;
   const densityClass = atmosphere?.friction === "high" ? "opacity-[0.05]" : atmosphere?.friction === "visible" ? "opacity-[0.04]" : atmosphere?.friction === "subtle" ? "opacity-[0.03]" : "opacity-[0.015]";
   const energyOpacity = atmosphere?.mode === "recovery" ? "0.12" : atmosphere?.mode === "export_momentum" ? "0.23" : atmosphere?.mode === "render_pressure" || atmosphere?.mode === "fractured" ? "0.26" : "0.18";
-  const shellPadding = rhythm.navigationDensity === "dense" ? "pl-2 md:pl-4" : rhythm.navigationDensity === "sparse" ? "pl-5 md:pl-7" : evolution?.globalDensityBias === "elevated" || atmosphere?.density === "compressed" ? "pl-2 md:pl-4" : evolution?.globalDensityBias === "reduced" ? "pl-4 md:pl-7" : atmosphere?.density === "compact" ? "pl-3 md:pl-5" : "pl-4 md:pl-6";
   const typography = evolution?.globalHierarchyBias === "elevated" || atmosphere?.hierarchy === "urgent" ? "text-white" : atmosphere?.hierarchy === "sharp" ? "text-slate-50" : "text-slate-100";
-  const navProminence = rhythm.workingMode === "exploratory" ? "opacity-95" : evolution?.globalNavigationBias === "reduced" || atmosphere?.mode === "dormant" ? "opacity-70" : "opacity-90";
   const workspace = readWorkspaceMemory();
   const operatorMemory = readOperatorBehaviorMemory();
   const intuition = deriveProductionIntuition({ operator: operatorMemory, continuity, evolution: continuity.continuousEvolution, memory: workspace, routePathname: pathname });
   const strategic = deriveStrategicAdaptation({ workspace, operator: operatorMemory, continuity, strategicMemory: readStrategicOperationalMemory() });
-  const railEmphasis = strategic.continuityVisibilityBias === "elevated" ? "ring-1 ring-cyan-300/35" : evolution?.globalFrictionBias === "elevated" || atmosphere?.mode === "render_pressure" ? "ring-1 ring-rose-300/30" : atmosphere?.mode === "export_momentum" ? "ring-1 ring-cyan-300/25" : "";
+  const ecosystem = deriveEcosystemStateSnapshot(workspace);
+  const execution = deriveProductionExecutionIntelligence({ ecosystem, continuity, rhythm, intuition, strategic, routePath: pathname });
+  const workflow = deriveWorkflowEmbodimentSnapshot({ surface: pathname.includes("/render") ? "render" : pathname.includes("/publish") || pathname.includes("/export") ? "publish" : pathname.includes("/review") ? "review" : pathname.includes("/campaign") ? "campaigns" : pathname.includes("/library") ? "library" : pathname.includes("/editor") ? "editor" : pathname.includes("/create") ? "create" : "home", ecosystem, continuity, rhythm, intuition, strategic, execution });
+  const embodiment = deriveEnvironmentalEmbodimentSnapshot({ continuity, ecosystem, atmosphere, rhythm, strategic, execution, workflow, routeContext: pathname });
+  const shellPadding = embodiment.shellDensity === "compact" ? "pl-2 md:pl-4" : embodiment.shellDensity === "spacious" ? "pl-5 md:pl-8" : rhythm.navigationDensity === "dense" ? "pl-2 md:pl-4" : rhythm.navigationDensity === "sparse" ? "pl-5 md:pl-7" : evolution?.globalDensityBias === "elevated" || atmosphere?.density === "compressed" ? "pl-2 md:pl-4" : evolution?.globalDensityBias === "reduced" ? "pl-4 md:pl-7" : atmosphere?.density === "compact" ? "pl-3 md:pl-5" : "pl-4 md:pl-6";
+  const navProminence = embodiment.navGravity === "forward" ? "opacity-95" : embodiment.navGravity === "light" ? "opacity-65" : rhythm.workingMode === "exploratory" ? "opacity-95" : evolution?.globalNavigationBias === "reduced" || atmosphere?.mode === "dormant" ? "opacity-70" : "opacity-90";
+  const railEmphasis = embodiment.surfaceWeight === "high" ? "ring-1 ring-cyan-300/30" : embodiment.renderTurbulence === "elevated" ? "ring-1 ring-rose-300/28" : embodiment.dormantRecession === "recessed" ? "ring-1 ring-slate-400/15" : strategic.continuityVisibilityBias === "elevated" ? "ring-1 ring-cyan-300/35" : evolution?.globalFrictionBias === "elevated" || atmosphere?.mode === "render_pressure" ? "ring-1 ring-rose-300/30" : atmosphere?.mode === "export_momentum" ? "ring-1 ring-cyan-300/25" : "";
   const operator = deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity);
   const navModeClass = strategic.shellDensityBias === "dense" || operator.densityPreference === "compressed" ? "[&_a]:py-1.5" : strategic.shellDensityBias === "calm" || operator.densityPreference === "spacious" ? "[&_a]:py-3" : "[&_a]:py-2";
   const navBiasClass = strategic.commandOrderingBias === "render" ? "[&_a[data-nav=render]]:text-cyan-100" : strategic.commandOrderingBias === "export" || operator.priorityBias === "export" ? "[&_a[data-nav=publish]]:text-cyan-100" : strategic.commandOrderingBias === "recovery" || operator.priorityBias === "recovery" ? "[&_a[data-nav=review]]:text-cyan-100" : operator.priorityBias === "campaign" ? "[&_a[data-nav=campaign]]:text-cyan-100" : "";
@@ -56,8 +64,8 @@ function ShellScaffold({ children }: { children: ReactNode }) {
         <GlobalCommandLauncher />
         <GlobalEnvironmentAmbientLine />
 
-        <section className={`relative min-w-0 flex-1 ${shellPadding}`}>
-          <div className="min-h-screen">{children}</div>
+        <section className={`relative min-w-0 flex-1 ${shellPadding} ${embodiment.recoveryBreathingRoom === "wide" ? "pt-1" : embodiment.unstableCompression === "active" ? "pt-0" : ""}`}>
+          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""}`}>{children}</div>
         </section>
       </div>
     </div>
