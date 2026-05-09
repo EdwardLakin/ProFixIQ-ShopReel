@@ -7,6 +7,7 @@ import CampaignGenerator from "@/features/shopreel/campaigns/components/Campaign
 import { listRecentCampaigns } from "@/features/shopreel/campaigns/lib/server";
 import { getCampaignSeedDefaults } from "@/features/shopreel/campaigns/lib/promptSeeding";
 import { ShopReelActionRail, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+import EcosystemStateRail from "@/features/shopreel/ui/system/EcosystemStateRail";
 
 export default async function ShopReelCampaignsPage() {
   const campaigns = await listRecentCampaigns(24);
@@ -25,6 +26,8 @@ export default async function ShopReelCampaignsPage() {
         backHref="/shopreel"
         backLabel="Back to ShopReel"
       />
+
+      <EcosystemStateRail surface="campaigns" />
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
