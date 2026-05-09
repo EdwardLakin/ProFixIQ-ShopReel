@@ -6,6 +6,7 @@ import { mapExportPackage } from "@/features/shopreel/export/exportPackage";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import { ShopReelActionRail, ShopReelEmptyState, ShopReelPageHero, ShopReelSectionHeader, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import EcosystemStateRail from "@/features/shopreel/ui/system/EcosystemStateRail";
+import SurfaceExecutionHint from "@/features/shopreel/ui/system/SurfaceExecutionHint";
 import { computePublishReadiness } from "@/features/shopreel/publish/lifecycle";
 
 export default async function ShopReelDownloadsPage() {
@@ -47,6 +48,7 @@ export default async function ShopReelDownloadsPage() {
   return <GlassShell title="Publish / Export" hidePageIntro>
     <div className="space-y-4">
       <EcosystemStateRail surface="publish" />
+      <SurfaceExecutionHint surface="publish" />
       <ShopReelPageHero title="Publish workspace" subtitle="Package completed render outputs with deterministic readiness before export." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Open render queue", href: "/shopreel/render-queue" }]} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_290px]">
         <div className="space-y-4">

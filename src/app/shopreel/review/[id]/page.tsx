@@ -7,6 +7,7 @@ import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import ReviewWorkspaceClient from "@/features/shopreel/review/components/ReviewWorkspaceClient";
 import EcosystemStateRail from "@/features/shopreel/ui/system/EcosystemStateRail";
+import SurfaceExecutionHint from "@/features/shopreel/ui/system/SurfaceExecutionHint";
 import { mapGenerationToReviewDraft } from "@/features/shopreel/review/reviewDraft";
 
 type JsonObject = Record<string, unknown>;
@@ -127,6 +128,7 @@ export default async function ShopReelReviewRoute(props: { params: Promise<{ id:
       subtitle="Validate platform copy, copy the output, or download a manual posting package."
     >
       <EcosystemStateRail surface="review" />
+      <SurfaceExecutionHint surface="review" />
       {!draft.prompt ? (
         <GlassCard>
           <p className="text-sm text-white/70">No prompt was captured for this draft.</p>

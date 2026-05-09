@@ -7,6 +7,8 @@ import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/Gl
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 import { deriveOperatorRhythmSnapshot } from "@/features/shopreel/ui/system/operatorRhythm";
+import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
+import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/system/productionExecutionIntelligence";
 
 const SURFACE_HINT: Record<EcosystemSurface, string> = {
   home: "Ecosystem state",
@@ -39,8 +41,22 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
     memory: readWorkspaceMemory(),
     routePathname: continuity.routeTransitionMemory.currentRoute,
   }), [continuity]);
+  const strategic = useMemo(() => deriveStrategicAdaptation({
+    workspace: readWorkspaceMemory(),
+    operator: readOperatorBehaviorMemory(),
+    continuity,
+    strategicMemory: readStrategicOperationalMemory(),
+  }), [continuity]);
+  const execution = useMemo(() => deriveProductionExecutionIntelligence({
+    ecosystem: snapshot,
+    continuity,
+    rhythm,
+    intuition,
+    strategic,
+    routePath: continuity.routeTransitionMemory.currentRoute,
+  }), [continuity, intuition, rhythm, snapshot, strategic]);
   const surfaceLead = useMemo(() => `${SURFACE_HINT[surface]} · ${snapshot.atmosphericLabel}`, [snapshot.atmosphericLabel, surface]);
-  const nextMove = intuition.suggestedCommand || snapshot.suggestedSurfaceAction;
+  const nextMove = execution.nextOperationalMove || intuition.suggestedCommand || snapshot.suggestedSurfaceAction;
 
   return (
     <div className="rounded-2xl border border-cyan-300/25 bg-cyan-500/10 px-3 py-2.5 text-xs text-cyan-50/95">
@@ -58,6 +74,8 @@ export default function EcosystemStateRail({ surface }: { surface: EcosystemSurf
         <span>Bias {operator.priorityBias}</span>
       </div>
       <div className="mt-1 text-cyan-100/65">{continuity.continuousEvolution?.explanation ?? continuity.explainability[0]}</div>
+      <div className="mt-1 text-cyan-100/70">Execution: {execution.explanation[0]}</div>
+      <div className="mt-1 text-cyan-100/70">Continuity trail: {continuity.routeTransitionMemory.previousRoute} → {continuity.routeTransitionMemory.currentRoute}</div>
     </div>
   );
 }
