@@ -25,20 +25,21 @@ export default function GlassShell({
   cognitiveState = null,
 }: GlassShellProps) {
   const dynamics = deriveCognitiveShellDynamics(cognitiveState);
+  const shellOpacity = 0.64 + dynamics.shellDensity / 500;
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 py-5 text-white sm:px-6 lg:px-8" style={{ letterSpacing: `${(dynamics.gravity - 50) * 0.0012}em` }}>
+    <main className="shopreel-route-shell relative min-h-screen overflow-hidden px-4 py-5 text-white sm:px-6 lg:px-8" style={{ letterSpacing: `${(dynamics.gravity - 50) * 0.0012}em` }}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="shopreel-orb shopreel-orb-a" />
         <div className="shopreel-orb shopreel-orb-b" />
         <div className="shopreel-orb shopreel-orb-c" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.12),transparent_28%),linear-gradient(180deg,rgba(5,8,18,0.55),rgba(2,4,12,0.92))]" style={{ opacity: 0.72 + dynamics.shellDensity / 400 }} />
+        <div className="absolute inset-0 transition-opacity duration-500 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.12),transparent_28%),linear-gradient(180deg,rgba(5,8,18,0.55),rgba(2,4,12,0.92))]" style={{ opacity: shellOpacity }} />
         <div className="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:44px_44px]" style={{ opacity: 0.015 + dynamics.quieting / 2600 }} />
       </div>
 
       <div className={`relative z-10 mx-auto w-full max-w-[1540px] ${className}`}>
-        <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="mb-5 flex items-center justify-between gap-3 transition-all duration-300">
           <div className="hidden rounded-full border border-slate-400/10 bg-white/[0.035] px-3 py-1.5 text-xs font-medium text-white/55 shadow-2xl backdrop-blur md:block">
-            AI creative operating system
+            Production operating environment
           </div>
           <div className="ml-auto flex items-center gap-2">
             {actions}
@@ -47,7 +48,7 @@ export default function GlassShell({
         </div>
 
         {!hidePageIntro ? (
-          <section className="mb-6 overflow-hidden rounded-[2rem] border border-slate-400/10 bg-white/[0.055] p-5 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:p-7">
+          <section className="mb-6 overflow-hidden rounded-[2rem] border border-slate-400/10 bg-white/[0.055] p-5 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-2xl transition-all duration-300 sm:p-7">
             <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(139,92,246,.24),transparent_34%),radial-gradient(circle_at_95%_12%,rgba(34,211,238,.18),transparent_30%)]" />
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-200/75">
               {eyebrow}
