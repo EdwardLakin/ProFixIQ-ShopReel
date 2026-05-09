@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 import { readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
+import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -21,6 +22,7 @@ export default function GlobalCommandLauncher() {
   const pathname = usePathname();
   const router = useRouter();
   const interpreted = interpretCommand(value);
+  const continuity = useGlobalEnvironmentContinuity();
 
   const contextualExamples = useMemo(() => {
     const routeMatch = routeCommandSuggestions.find((x) => x.test(pathname));
@@ -47,7 +49,9 @@ export default function GlobalCommandLauncher() {
       if (event.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    const prominenceClass = continuity.escalationState === "critical" || continuity.renderInstability >= 70 ? "ring-2 ring-cyan-300/40" : "";
+
+  return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   const run = () => {
@@ -72,9 +76,11 @@ export default function GlobalCommandLauncher() {
 
   const proactiveHint = history.length > 0 ? `Resume: ${history[0]}` : "No command memory yet. Start with a workflow instruction.";
 
+  const prominenceClass = continuity.escalationState === "critical" || continuity.renderInstability >= 70 ? "ring-2 ring-cyan-300/40" : "";
+
   return (
     <>
-      <button onClick={() => setOpen(true)} className="fixed right-3 top-3 z-40 rounded-full bg-cyan-400/15 px-3 py-2 text-xs text-cyan-50 backdrop-blur">
+      <button onClick={() => setOpen(true)} className={`fixed right-3 top-3 z-40 rounded-full bg-cyan-400/15 px-3 py-2 text-xs text-cyan-50 backdrop-blur ${prominenceClass}`}>
         AI Command ⌘K
       </button>
       {open ? <div className="fixed inset-0 z-50 bg-[radial-gradient(circle_at_50%_18%,rgba(45,212,191,0.15),transparent_42%),rgba(2,4,11,0.82)] p-3 backdrop-blur-xl sm:p-6" onClick={() => setOpen(false)}>
@@ -85,6 +91,7 @@ export default function GlobalCommandLauncher() {
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{ecosystemHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
+          <div className="mt-1 text-xs text-cyan-200/75">{continuity.explainability[1]}</div>
           <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
