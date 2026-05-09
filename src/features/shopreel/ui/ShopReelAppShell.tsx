@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import ShopReelSidebar from "@/features/shopreel/ui/ShopReelSidebar";
 import GlobalCommandLauncher from "@/features/shopreel/ui/GlobalCommandLauncher";
 import { GlobalEnvironmentAmbientLine, GlobalEnvironmentContinuityProvider, useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
+import { deriveOperatorAdaptation, readOperatorBehaviorMemory } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 
 function ShellScaffold({ children }: { children: ReactNode }) {
   const continuity = useGlobalEnvironmentContinuity();
@@ -15,6 +16,9 @@ function ShellScaffold({ children }: { children: ReactNode }) {
   const typography = evolution?.globalHierarchyBias === "elevated" || atmosphere?.hierarchy === "urgent" ? "text-white" : atmosphere?.hierarchy === "sharp" ? "text-slate-50" : "text-slate-100";
   const navProminence = evolution?.globalNavigationBias === "reduced" || atmosphere?.mode === "dormant" ? "opacity-80" : "opacity-100";
   const railEmphasis = evolution?.globalFrictionBias === "elevated" || atmosphere?.mode === "render_pressure" ? "ring-1 ring-rose-300/30" : atmosphere?.mode === "export_momentum" ? "ring-1 ring-cyan-300/25" : "";
+  const operator = deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuity);
+  const navModeClass = operator.densityPreference === "compressed" ? "[&_a]:py-1.5" : operator.densityPreference === "spacious" ? "[&_a]:py-3" : "[&_a]:py-2";
+  const navBiasClass = operator.priorityBias === "campaign" ? "[&_a[data-nav=campaign]]:text-cyan-100" : operator.priorityBias === "export" ? "[&_a[data-nav=publish]]:text-cyan-100" : operator.priorityBias === "recovery" ? "[&_a[data-nav=review]]:text-cyan-100" : "";
 
   return (
     <div className={`min-h-screen bg-[#02040c] ${typography}`}>
@@ -24,7 +28,7 @@ function ShellScaffold({ children }: { children: ReactNode }) {
       </div>
 
       <div className={`relative flex min-h-screen ${railEmphasis}`}>
-        <div className={navProminence}><ShopReelSidebar /></div>
+        <div className={`${navProminence} ${navModeClass} ${navBiasClass}`}><ShopReelSidebar /></div>
         <GlobalCommandLauncher />
         <GlobalEnvironmentAmbientLine />
 
