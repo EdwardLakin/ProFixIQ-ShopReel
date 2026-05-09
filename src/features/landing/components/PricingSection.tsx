@@ -84,7 +84,9 @@ export default function PricingSection() {
         </div>
       ) : null}
 
-      <div className="relative mt-12 grid gap-5 lg:grid-cols-3">
+      <div className="mx-auto mt-8 max-w-5xl rounded-2xl border border-cyan-300/20 bg-cyan-400/5 px-4 py-3 text-center text-sm text-cyan-100/90">Scale path: Solo operating layer → Multi-channel production system → Continuous media infrastructure</div>
+
+      <div className="relative mt-8 grid gap-5 lg:grid-cols-3">
         {PLAN_ORDER.map((planKey) => {
           const plan = BILLING_PLANS[planKey];
           const highlight = plan.key === "growth";
