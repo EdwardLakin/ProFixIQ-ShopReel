@@ -8,6 +8,9 @@ import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { buildProductionMediaGraph, deriveAssetAwareness, deriveSceneIntelligence } from "@/features/shopreel/production/mediaGraph";
 import { deriveCinematicOrchestrationState, deriveEcosystemState, readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { deriveEnvironmentReactivity } from "@/features/shopreel/ui/system/environmentReactivity";
+import { deriveEnvironmentalField } from "@/features/shopreel/ui/system/environmentField";
+import { deriveCognitiveState } from "@/features/shopreel/ui/system/cognitiveState";
 
 type Scene = {
   id: string;
@@ -176,6 +179,24 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
     minutesSinceUpdate: heartbeatTick * 4,
   }), [ambientMode, blockers.length, focusMode, heartbeat.executionState, heartbeat.pendingScenes, heartbeat.readyScenes, heartbeatTick]);
 
+  const environmentReactivity = useMemo(() => deriveEnvironmentReactivity({
+    memory: readWorkspaceMemory(),
+    readyTaskCount: heartbeat.readyScenes,
+  }), [heartbeat.readyScenes, heartbeatTick]);
+
+  const environmentalField = useMemo(() => deriveEnvironmentalField({
+    memory: readWorkspaceMemory(),
+    environment: environmentReactivity,
+    readyTaskCount: heartbeat.readyScenes,
+  }), [environmentReactivity, heartbeat.readyScenes, heartbeatTick]);
+
+  const cognitiveState = useMemo(() => deriveCognitiveState({
+    memory: readWorkspaceMemory(),
+    environment: environmentReactivity,
+    field: environmentalField,
+    readyTaskCount: heartbeat.readyScenes,
+  }), [environmentReactivity, environmentalField, heartbeat.readyScenes, heartbeatTick]);
+
   const cinematicState = useMemo(() => deriveCinematicOrchestrationState({
     ecosystem: ecosystemState,
     minutesSinceUpdate: heartbeatTick * 4,
@@ -210,7 +231,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
 
   const timelineClusters = useMemo(() => scenes.map((scene, index) => ({ scene, index, lineage: scene.media?.length ? "Linked to media lineage" : "Awaiting media lineage" })), [scenes]);
 
-  const compactMode = zoomLevel === "macro" || zoomLevel === "orchestration";
+  const compactMode = zoomLevel === "macro" || zoomLevel === "orchestration" || cognitiveState.productionRhythm.railCompactness > 62;
 
   function updateScene(sceneId: string, patch: Partial<Scene>) { setDraft((current) => ({ ...current, scenes: (current.scenes ?? []).map((scene) => scene.id === sceneId ? { ...scene, ...patch } : scene) })); }
 
@@ -258,6 +279,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
           </div>
           <div className="text-sm text-white/70">Spatial state: <span className="text-white">{formatLabel(zoomLevel)}</span> zoom · <span className="text-white">{formatLabel(focusMode)}</span> intent · <span className="text-white">{formatLabel(ambientMode)}</span> ambient mode</div>
           <div className="text-xs text-white/55">Cinematic orchestration: {formatLabel(cinematicState.emotionalState)} · {formatLabel(cinematicState.motionPacing)} pacing · {formatLabel(cinematicState.depthFocus)} focus pull · {formatLabel(cinematicState.compressionLevel)} compression</div>
+          <div className="text-xs text-cyan-100/80">Cognitive production state: attention {cognitiveState.operationalAttention} · confidence {cognitiveState.executionConfidence} · continuity {cognitiveState.continuityAwareness} · render pressure {cognitiveState.renderAnxiety} · export intent {cognitiveState.exportIntent}</div>
         </div>
         <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
           <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Production minimap</div>
@@ -270,7 +292,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
 
     <GlassCard label="Orchestration gravity" title="Adaptive prominence rail" description="Execution paths self-organize by readiness, blockers, and continuity risk without noisy alerts.">
       <div className="grid gap-2">
-        {orchestrationGravity.map((signal) => <div key={signal.key} className={cx("rounded-xl px-3 py-2 text-xs transition", signal.active ? "bg-cyan-400/10 text-cyan-50" : "bg-white/[0.03] text-white/70")}>
+        {orchestrationGravity.map((signal) => <div key={signal.key} className={cx("rounded-xl px-3 py-2 text-xs transition", signal.active ? "bg-cyan-400/10 text-cyan-50" : "bg-white/[0.03] text-white/70", signal.key === "blocked-workflow" && cognitiveState.renderAnxiety > 68 ? "ring-1 ring-rose-300/30" : "")}>
           <div className="flex items-center justify-between"><span>{signal.label}</span><span>{signal.weight}% gravity</span></div>
           <div className="mt-1 text-[11px] text-white/60">{signal.reason}</div>
         </div>)}
@@ -298,7 +320,7 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
 
     <GlassCard label="Execution stream" title="Compressed telemetry rail" description="Telemetry can collapse to preserve focus while keeping heartbeat continuity visible.">
       <div className="mb-3 flex items-center justify-between"><GlassBadge tone="default">{showTelemetry ? "Expanded" : "Compressed"}</GlassBadge><button onClick={() => setShowTelemetry((c) => !c)} className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/80">{showTelemetry ? "Collapse telemetry" : "Expand telemetry"}</button></div>
-      {showTelemetry ? <div className="grid gap-2">{executionStream.map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">{item.entry}</div>)}</div> : <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70">Heartbeat {formatLabel(heartbeat.executionState)} · Render {formatLabel(heartbeat.renderState)} · {heartbeat.progress}% ready</div>}
+      {showTelemetry ? <div className={cx("grid", cognitiveState.productionRhythm.railCompactness > 60 ? "gap-1.5" : "gap-2")}>{executionStream.map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">{item.entry}</div>)}</div> : <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/70">Heartbeat {formatLabel(heartbeat.executionState)} · Render {formatLabel(heartbeat.renderState)} · {heartbeat.progress}% ready</div>}
     </GlassCard>
 
     <GlassCard label="Constrained autonomy" title="Autonomous orchestration log" description="Deterministic, explainable actions run quietly and stay reversible where safe.">

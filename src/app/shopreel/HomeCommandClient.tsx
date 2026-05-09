@@ -25,6 +25,7 @@ import {
 import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
 import { deriveEnvironmentReactivity } from "@/features/shopreel/ui/system/environmentReactivity";
 import { deriveEnvironmentalField } from "@/features/shopreel/ui/system/environmentField";
+import { deriveCognitiveState } from "@/features/shopreel/ui/system/cognitiveState";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -205,6 +206,23 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
   }), [context, environmentReactivity, recent]);
 
+
+
+  const cognitiveState = useMemo(() => deriveCognitiveState({
+    memory: context,
+    environment: environmentReactivity,
+    field: environmentalField,
+    readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+  }), [context, environmentReactivity, environmentalField, recent]);
+
+  const cognitiveFocusLine = cognitiveState.renderAnxiety > 70
+    ? "Focus: recover render blockers"
+    : cognitiveState.exportIntent > 72
+      ? "Focus: prepare export-ready packaging"
+      : cognitiveState.recoveryIntelligence > 64
+        ? "Focus: stabilize continuity and continue execution"
+        : "Focus: advance active production tasks";
+
   const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
     ? "from-rose-500/20 via-amber-400/10 to-transparent"
     : environmentReactivity.operationalWeather.pattern === "export_surge"
@@ -292,6 +310,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div>Atmospheric density: {environmentReactivity.atmosphericDensity} · focus pull: {environmentReactivity.focusPull} · dormant cooling: {environmentReactivity.dormantCooling}</div>
           <div>Recovery warmth: {environmentReactivity.recoveryWarmth} · temporal pressure: {environmentReactivity.temporalPressure} · environmental compression: {environmentReactivity.environmentalCompression}</div>
           <div>Environmental memory: instability {environmentalField.environmentalMemory.recurringInstabilityMemory} · export residue {environmentalField.environmentalMemory.exportResidue} · continuity fatigue {environmentalField.environmentalMemory.continuityFatigue} · stabilization confidence {environmentalField.environmentalMemory.stabilizationConfidence}</div>
+          <div className="mt-2 rounded-xl bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50/90">
+            <div className="uppercase tracking-[0.14em] text-cyan-100/75">Cognitive production state</div>
+            <div className="mt-1">Operational attention {cognitiveState.operationalAttention} · execution confidence {cognitiveState.executionConfidence} · continuity awareness {cognitiveState.continuityAwareness}</div>
+            <div>Recovery intelligence {cognitiveState.recoveryIntelligence} · strategic focus {cognitiveState.strategicFocus} · render pressure {cognitiveState.renderAnxiety}</div>
+            <div>Export intent {cognitiveState.exportIntent} · recovery confidence {cognitiveState.recoveryConfidence}</div>
+            <div className="mt-1 text-cyan-100/80">{cognitiveFocusLine}</div>
+          </div>
         </div>
         {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Pending tasks</div>

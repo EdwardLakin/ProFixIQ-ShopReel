@@ -15,6 +15,7 @@ export default function GlobalCommandLauncher() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [history, setHistory] = useState<string[]>([]);
+  const [focusLine, setFocusLine] = useState<string>("Focus: align next command with active production flow");
   const pathname = usePathname();
   const router = useRouter();
   const interpreted = interpretCommand(value);
@@ -28,7 +29,10 @@ export default function GlobalCommandLauncher() {
     const memory = readWorkspaceMemory();
     if (!memory) return;
     setHistory(memory.intentHistory);
-  }, []);
+    const pending = memory.pendingTasks.filter((task) => !task.done).length;
+    const blockers = memory.pendingTasks.filter((task) => !task.done && /render|review|verify/i.test(task.label)).length;
+    setFocusLine(blockers > 0 ? "Focus: recover render blockers" : pending === 0 ? "Focus: export-ready packaging" : "Focus: continue active workflow checkpoints");
+  }, [open]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -75,6 +79,7 @@ export default function GlobalCommandLauncher() {
           <AiCommandInput value={value} onChange={setValue} placeholder="Type a command..." className="min-h-24 text-lg" />
           <div className="mt-3 text-sm text-cyan-50/90">{interpreted.summary}</div>
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
+          <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
           <div className="mt-3 flex flex-wrap gap-2">{contextualExamples.map((example) => <button key={example} onClick={() => setValue(example)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10">{example}</button>)}</div>
           {history.length > 0 ? <div className="mt-4">
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
