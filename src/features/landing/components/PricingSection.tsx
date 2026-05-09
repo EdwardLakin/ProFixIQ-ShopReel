@@ -45,11 +45,11 @@ export default function PricingSection() {
   }
 
   return (
-    <section id="pricing" className="relative mx-auto w-full max-w-7xl px-6 py-16 md:py-20">
+    <section id="pricing" className="relative mx-auto w-full max-w-7xl px-6 py-14 md:py-16">
       <div className="pointer-events-none absolute inset-x-0 top-8 mx-auto h-72 max-w-4xl rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/35 to-transparent" />
 
-      <div className="mx-auto mb-7 max-w-5xl rounded-2xl ring-1 ring-cyan-300/25 bg-slate-950/60 shadow-[0_22px_72px_-40px_rgba(34,211,238,0.55)] px-4 py-2.5 text-[11px] uppercase tracking-[0.2em] text-cyan-100/88">
+      <div className="mx-auto mb-6 max-w-5xl rounded-2xl ring-1 ring-cyan-300/20 bg-slate-950/45 px-4 py-2 text-[10px] uppercase tracking-[0.18em] text-cyan-100/82">
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           <span>Scale rail online</span><span>Solo layer active</span><span>Production coordination ready</span><span>Continuous media infrastructure available</span>
         </div>
@@ -65,18 +65,16 @@ export default function PricingSection() {
           Pricing
         </div>
 
-        <h2
-          className={cx(
-            "mt-4 text-3xl font-semibold leading-tight md:text-5xl",
+        <h2 className={cx(
+            "mt-3 text-3xl font-semibold leading-tight md:text-4xl",
             glassTheme.text.primary,
           )}
         >
           Operational tiers for AI-native content systems.
         </h2>
 
-        <p
-          className={cx(
-            "mt-4 text-base leading-7 md:text-lg",
+        <p className={cx(
+            "mt-3 text-sm leading-7 md:text-base",
             glassTheme.text.secondary,
           )}
         >
@@ -91,9 +89,9 @@ export default function PricingSection() {
         </div>
       ) : null}
 
-      <div className="mx-auto mt-8 max-w-5xl rounded-2xl ring-1 ring-cyan-300/20 bg-slate-950/60 px-4 py-3 text-center text-sm text-cyan-100/90">Scale path: Solo operating layer → Production coordination system → Continuous media infrastructure</div>
+      <div className="mx-auto mt-6 max-w-5xl rounded-2xl ring-1 ring-cyan-300/15 bg-slate-950/40 px-4 py-2.5 text-center text-xs text-cyan-100/85">Scale path: Solo operating layer → Production coordination system → Continuous media infrastructure</div>
 
-      <div className="relative mt-8 grid gap-5 md:gap-6 lg:grid-cols-3">
+      <div className="relative mt-6 grid gap-4 md:gap-5 lg:grid-cols-3">
         {PLAN_ORDER.map((planKey) => {
           const plan = BILLING_PLANS[planKey];
           const highlight = plan.key === "growth";
@@ -116,7 +114,7 @@ export default function PricingSection() {
                 </GlassButton>
               }
             >
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   {plan.badge ? (
                     <GlassBadge tone="copper">{plan.badge}</GlassBadge>
@@ -124,13 +122,13 @@ export default function PricingSection() {
                   <GlassBadge tone="default">{plan.fairUseLabel}</GlassBadge>
                 </div>
 
-                <p className="text-sm text-white/65">{plan.bestFor}</p>
+                <p className="text-sm text-white/62">{plan.bestFor}</p>
 
                 <div>
                   <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/45">
                     Included
                   </div>
-                  <div className={cx("space-y-2 text-sm", glassTheme.text.primary)}>
+                  <div className={cx("space-y-1.5 text-sm", glassTheme.text.primary)}>
                     {plan.includedFeatures.map((feature) => (
                       <div key={feature}>✓ {feature}</div>
                     ))}
@@ -141,7 +139,7 @@ export default function PricingSection() {
                   <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/45">
                     Scales with
                   </div>
-                  <div className="space-y-2 text-sm text-white/65">
+                  <div className="space-y-1.5 text-sm text-white/63">
                     {plan.premiumFeatures.map((feature) => (
                       <div key={feature}>→ {feature}</div>
                     ))}
