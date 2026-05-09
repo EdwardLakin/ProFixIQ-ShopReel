@@ -1,5 +1,3 @@
-"use client";
-
 import type { AiIntent } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 import type { CommandExecutionPlan, OperationalGraph } from "@/features/shopreel/ui/system/operationalGraph";
 
@@ -228,6 +226,7 @@ export type SelfSteeringTopologyState = {
 export const WORKSPACE_MEMORY_KEY = "shopreel-workspace-memory-v2";
 
 export function readWorkspaceMemory(): WorkspaceMemory | null {
+  if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(WORKSPACE_MEMORY_KEY);
   if (!raw) return null;
   try {
@@ -238,6 +237,7 @@ export function readWorkspaceMemory(): WorkspaceMemory | null {
 }
 
 export function writeWorkspaceMemory(memory: WorkspaceMemory): void {
+  if (typeof window === "undefined") return;
   window.localStorage.setItem(WORKSPACE_MEMORY_KEY, JSON.stringify(memory));
 }
 
