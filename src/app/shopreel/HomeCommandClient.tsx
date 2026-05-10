@@ -33,6 +33,7 @@ import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/Gl
 import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggestionsByRhythm } from "@/features/shopreel/ui/system/operatorRhythm";
 import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
 import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/system/productionExecutionIntelligence";
+import { buildRecoveryInbox } from "@/features/shopreel/ui/system/recoveryInbox";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -146,6 +147,16 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         readyTaskCount,
         minutesSinceUpdate,
         interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
+      }),
+      recoveryInbox: buildRecoveryInbox({
+        route,
+        generationId: recent[0]?.id,
+        campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+        interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
+        hasReviewItems: pendingTasks.some((task) => /review/i.test(task.label) && !task.done),
+        hasPublishReady: recent.some((item) => /ready|completed/i.test(item.status)),
+        hasPublishFailures: recent.some((item) => /failed|error|blocked/i.test(item.status)),
+        hasDraftContinuity: pendingTasks.some((task) => /draft|storyboard|revise/i.test(task.label) && !task.done),
       }),
       operationalGraph,
       lastExecutionPlan: executionPlan,
@@ -346,6 +357,10 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Pending tasks</div>
           <div className="space-y-2">{context.pendingTasks.map((task) => <Link key={task.id} href={task.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{task.label}</span><span className="text-cyan-100/70">{task.done ? "done" : "next"}</span></Link>)}</div>
+        </div> : null}
+        {context?.recoveryInbox?.length ? <div className="mt-4">
+          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-amber-100/80">Recovery inbox</div>
+          <div className="space-y-2">{context.recoveryInbox.slice(0, 4).map((item) => <Link key={item.id} href={item.resume_route} className="flex items-center justify-between rounded-xl bg-amber-300/10 px-3 py-2 text-xs text-amber-50 hover:bg-amber-300/20"><span>{item.recommended_next_action}</span><span className="text-amber-100/80">{item.current_stage.replaceAll("_", " ")} · resume</span></Link>)}</div>
         </div> : null}
         {context?.continuityThreads?.length ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recovery links</div>

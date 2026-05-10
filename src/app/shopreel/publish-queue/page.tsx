@@ -9,6 +9,7 @@ import {
   computePublishFailureDiagnostics,
   getPublishFailureNextAction,
 } from "@/features/shopreel/operations/lib/publishFailureDiagnostics";
+import RecoveryInboxRail from "@/features/shopreel/ui/system/RecoveryInboxRail";
 
 export default async function ShopReelPublishQueuePage() {
   const shopId = await getCurrentShopId();
@@ -133,6 +134,7 @@ export default async function ShopReelPublishQueuePage() {
       subtitle="Operational publish queue and failure diagnostics."
     >
       <ShopReelNav />
+      <RecoveryInboxRail />
       <PublishQueueClient
         initialJobs={jobsList}
         initialQueuedPublicationsWithoutJobs={queuedPublicationsWithoutJobs}
