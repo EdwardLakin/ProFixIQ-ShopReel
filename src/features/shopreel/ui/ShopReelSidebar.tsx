@@ -54,7 +54,7 @@ export default function ShopReelSidebar() {
         type="button"
         aria-label={open ? "Close navigation menu" : "Open navigation menu"}
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-4 left-3 z-[95] flex h-12 min-w-[92px] items-center justify-center gap-2 rounded-full border border-white/15 bg-[#090f21]/90 px-3 text-xs font-medium tracking-[0.08em] text-cyan-50/90 shadow-[0_8px_30px_rgba(0,0,0,.42),0_0_24px_rgba(56,189,248,.2)] touch-manipulation backdrop-blur-xl sm:bottom-auto sm:top-6"
+        className="fixed bottom-4 left-3 z-[130] flex h-12 min-w-[92px] items-center justify-center gap-2 rounded-full border border-white/15 bg-[#090f21]/90 px-3 text-xs font-medium tracking-[0.08em] text-cyan-50/90 shadow-[0_8px_30px_rgba(0,0,0,.42),0_0_24px_rgba(56,189,248,.2)] touch-manipulation backdrop-blur-xl sm:bottom-auto sm:left-4 sm:top-4"
       >
         <span className="text-sm leading-none">☰</span><span>Launch</span>
       </button>
