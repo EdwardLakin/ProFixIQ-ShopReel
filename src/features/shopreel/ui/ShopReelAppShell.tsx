@@ -68,10 +68,9 @@ function ShellScaffold({ children }: { children: ReactNode }) {
 
       <div className={`relative flex min-h-screen overflow-x-clip ${railEmphasis} ${spatial.lanePosture === "compact" || embodiment.unstableCompression === "active" ? "gap-1" : spatial.lanePosture === "expanded" || embodiment.calmExpansion === "expanded" ? "gap-3" : "gap-2"} transition-[gap] duration-300`}>
         <div className={`${navProminence} ${navModeClass} ${navBiasClass} ${intuitionNavBias} ${routePull} transition-all duration-300 ${embodiment.continuityPresence === "anchored" ? "sticky top-0" : ""}`}><ShopReelSidebar /></div>
-        <GlobalCommandLauncher />
-
+        
         <section className={`relative min-w-0 flex-1 ${shellPadding} ${spatial.recoveryExpansion >= 70 || embodiment.recoveryBreathingRoom === "wide" ? "pt-3 pb-5" : spatial.instabilityCompression >= 70 || embodiment.unstableCompression === "active" ? "pt-1 pb-3" : "py-4"} ${embodiment.transitionPosture === "cooled" ? "opacity-[0.94]" : "opacity-100"} transition-[padding,opacity,transform] duration-300`}>
-          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}><GlobalEnvironmentAmbientLine />
+          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}><div className="flex flex-wrap items-center justify-between gap-2"><div className="min-w-0 flex-1"><GlobalEnvironmentAmbientLine /></div><div className="shrink-0"><GlobalCommandLauncher /></div></div>
             {children}</div>
         </section>
       </div>

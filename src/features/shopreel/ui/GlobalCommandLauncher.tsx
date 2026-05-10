@@ -114,7 +114,7 @@ export default function GlobalCommandLauncher() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className={`fixed right-3 top-3 z-40 rounded-full bg-cyan-400/15 px-3 py-2 text-xs text-cyan-50 backdrop-blur ${prominenceClass}`}>
+      <button onClick={() => setOpen(true)} className={`relative z-20 inline-flex min-h-10 items-center rounded-full bg-cyan-400/15 px-3 py-2 text-xs text-cyan-50 backdrop-blur transition hover:bg-cyan-300/20 ${prominenceClass}`}>
         AI Command ⌘K
       </button>
       {open ? <div className="fixed inset-0 z-50 bg-[radial-gradient(circle_at_50%_18%,rgba(45,212,191,0.15),transparent_42%),rgba(2,4,11,0.82)] p-3 backdrop-blur-xl sm:p-6" onClick={() => setOpen(false)}>
