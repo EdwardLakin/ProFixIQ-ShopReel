@@ -6,7 +6,9 @@ import {
   ACTIVE_PUBLICATION_STATUSES,
   QUEUED_PUBLISH_JOB_STATUS,
   QUEUED_PUBLICATION_STATUS,
+  FAILED_PUBLICATION_STATUS,
 } from "@/features/shopreel/lib/contracts/lifecycle";
+import { buildPublishReadinessModel } from "@/features/shopreel/publishing/publishReadinessModel";
 import {
   requireUserActionTenantContext,
   toEndpointErrorResponse,
@@ -94,9 +96,23 @@ export async function POST(
       hasConnectedPlatformAccount: (connectedAccounts?.length ?? 0) > 0,
     });
 
-    if (readiness.state !== "ready_to_publish") {
+    const metadata = objectRecord(generation.generation_metadata);
+    const storyDraft = objectRecord(generation.story_draft);
+    const preflight = buildPublishReadinessModel({
+      platform,
+      hasContent: !!generation.content_piece_id,
+      hasRenderOutput: !!((contentPiece && contentPiece.render_url) || metadata.render_url),
+      reviewApproved: readiness.state !== "needs_review" && readiness.state !== "rejected",
+      hasConnectedAccount: (connectedAccounts?.length ?? 0) > 0,
+      hasCaption: typeof storyDraft.caption === "string" && storyDraft.caption.trim().length > 0,
+      hasThumbnail: typeof metadata.thumbnail_url === "string" && metadata.thumbnail_url.trim().length > 0,
+      publishFailed: (generationPublications ?? []).some((p: any) => p.status === FAILED_PUBLICATION_STATUS),
+      retryAvailable: true,
+    });
+
+    if (readiness.state !== "ready_to_publish" || !preflight.can_queue) {
       return NextResponse.json(
-        { ok: false, error: `Generation is not publish-ready: ${readiness.label}` },
+        { ok: false, error: `Generation is not publish-ready: ${readiness.label}`, readiness: preflight },
         { status: 400 }
       );
     }
@@ -108,8 +124,6 @@ export async function POST(
       );
     }
 
-    const storyDraft = objectRecord(generation.story_draft);
-    const metadata = objectRecord(generation.generation_metadata);
 
     const title =
       typeof storyDraft.title === "string" && storyDraft.title.trim().length > 0

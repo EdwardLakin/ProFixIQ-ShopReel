@@ -8,6 +8,7 @@ import {
   getIntegrationLifecycleTruth,
   type IntegrationLifecycleTruthState,
 } from "@/features/shopreel/integrations/shared/lifecycleTruth";
+import type { PublishReadinessModel } from "@/features/shopreel/publishing/publishReadinessModel";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 
 type PublishPlatform = "instagram" | "facebook" | "tiktok" | "youtube";
@@ -33,8 +34,9 @@ export default function PublishPlatformButtons(props: {
   generationId: string;
   canPublish: boolean;
   compact?: boolean;
+  readinessByPlatform?: Partial<Record<PublishPlatform, PublishReadinessModel>>;
 }) {
-  const { generationId, canPublish, compact = false } = props;
+  const { generationId, canPublish, compact = false, readinessByPlatform } = props;
   const [pendingPlatform, setPendingPlatform] = useState<PublishPlatform | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [nextHint, setNextHint] = useState<"queue" | "history" | null>(null);
@@ -93,7 +95,8 @@ export default function PublishPlatformButtons(props: {
         {buttons.map((platform) => {
           const busy = pendingPlatform === platform;
           const truth = getIntegrationLifecycleTruth(platform);
-          const isPublishEnabled = canPublish && truth.publishReady && !pendingPlatform;
+          const readiness = readinessByPlatform?.[platform];
+          const isPublishEnabled = canPublish && !!readiness?.can_queue && !pendingPlatform;
 
           return (
             <div key={platform} className="space-y-1">
@@ -107,8 +110,19 @@ export default function PublishPlatformButtons(props: {
               </GlassButton>
               <div className="flex items-center gap-2">
                 <GlassBadge tone={truthTone(truth.state)}>{truth.label}</GlassBadge>
-                <span className={cx("text-xs", glassTheme.text.muted)}>{truth.publishReady ? "Live publish path" : "Not live"}</span>
+                <span className={cx("text-xs", glassTheme.text.muted)}>{readiness?.can_publish_live ? "Live publish path" : "Internal queue/draft only"}</span>
               </div>
+                {readiness?.blockers?.length ? (
+                  <div className={cx("text-[11px]", glassTheme.text.copperSoft)}>
+                    Blocked: {readiness.blockers.map((blocker) => blocker.label).join(" • ")}
+                  </div>
+                ) : null}
+                {readiness?.warnings?.length ? (
+                  <div className={cx("text-[11px]", glassTheme.text.muted)}>
+                    Watch: {readiness.warnings.map((warning) => warning.label).join(" • ")}
+                  </div>
+                ) : null}
+
             </div>
           );
         })}
@@ -120,7 +134,7 @@ export default function PublishPlatformButtons(props: {
         </div>
       ) : null}
 
-      <div className={cx("text-xs", glassTheme.text.muted)}>Only integrations marked Implemented support live platform publishing in this surface.</div>
+      <div className={cx("text-xs", glassTheme.text.muted)}>Queueing is preflight validated. Queued/internal does not equal external published until post URL/ID is persisted.</div>
 
       {message ? (
         <div className="space-y-2">

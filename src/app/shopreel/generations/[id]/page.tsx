@@ -17,6 +17,7 @@ import ReviewApprovalActions from "@/features/shopreel/operations/components/Rev
 import RetryRenderButton from "@/features/shopreel/operations/components/RetryRenderButton";
 import { computeGenerationPublishReadiness } from "@/features/shopreel/operations/lib/publishReadiness";
 import CampaignWorkflowContinuityRail from "@/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail";
+import { buildPublishReadinessModel } from "@/features/shopreel/publishing/publishReadinessModel";
 
 type BlogSection = {
   key: string;
@@ -138,6 +139,45 @@ export default async function ShopReelGenerationDetailPage(
   });
 
   const canPublish = readiness.state === "ready_to_publish";
+  const readinessByPlatform = {
+    instagram: buildPublishReadinessModel({
+      platform: "instagram",
+      hasContent: !!generation.content_piece_id,
+      hasRenderOutput: !!(renderUrl || contentPiece?.render_url),
+      reviewApproved: readiness.state !== "needs_review" && readiness.state !== "rejected",
+      hasConnectedAccount: (connectedAccounts?.length ?? 0) > 0,
+      hasCaption: !!draft?.caption,
+      hasThumbnail: !!thumbnailUrl,
+    }),
+    facebook: buildPublishReadinessModel({
+      platform: "facebook",
+      hasContent: !!generation.content_piece_id,
+      hasRenderOutput: !!(renderUrl || contentPiece?.render_url),
+      reviewApproved: readiness.state !== "needs_review" && readiness.state !== "rejected",
+      hasConnectedAccount: (connectedAccounts?.length ?? 0) > 0,
+      hasCaption: !!draft?.caption,
+      hasThumbnail: !!thumbnailUrl,
+    }),
+    tiktok: buildPublishReadinessModel({
+      platform: "tiktok",
+      hasContent: !!generation.content_piece_id,
+      hasRenderOutput: !!(renderUrl || contentPiece?.render_url),
+      reviewApproved: readiness.state !== "needs_review" && readiness.state !== "rejected",
+      hasConnectedAccount: (connectedAccounts?.length ?? 0) > 0,
+      hasCaption: !!draft?.caption,
+      hasThumbnail: !!thumbnailUrl,
+    }),
+    youtube: buildPublishReadinessModel({
+      platform: "youtube",
+      hasContent: !!generation.content_piece_id,
+      hasRenderOutput: !!(renderUrl || contentPiece?.render_url),
+      reviewApproved: readiness.state !== "needs_review" && readiness.state !== "rejected",
+      hasConnectedAccount: (connectedAccounts?.length ?? 0) > 0,
+      hasCaption: !!draft?.caption,
+      hasThumbnail: !!thumbnailUrl,
+    }),
+  };
+
 
   return (
     <GlassShell
@@ -208,7 +248,7 @@ export default async function ShopReelGenerationDetailPage(
               </div>
             ) : null}
             <div className="mt-4">
-              <PublishPlatformButtons generationId={generation.id} canPublish={canPublish} />
+              <PublishPlatformButtons generationId={generation.id} canPublish={canPublish} readinessByPlatform={readinessByPlatform} />
             </div>
           </div>
 
