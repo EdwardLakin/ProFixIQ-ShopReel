@@ -6,8 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "shopreel:video:key": "node scripts/generate-shopreel-video-key.js"
+    "lint": "tsc --noEmit",
+    "shopreel:video:key": "node scripts/generate-shopreel-video-key.js",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@runwayml/sdk": "^3.16.0",

@@ -25,6 +25,9 @@
   --cyan-2: rgba(54, 191, 216, 0.05);
   --violet-1: rgba(37, 99, 235, 0.10);
   --violet-2: rgba(34, 211, 238, 0.06);
+
+  --font-sans: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Arial Black", Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
 }
 
 *,
