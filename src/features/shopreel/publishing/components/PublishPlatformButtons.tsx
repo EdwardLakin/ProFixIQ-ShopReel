@@ -4,8 +4,19 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+import {
+  getIntegrationLifecycleTruth,
+  type IntegrationLifecycleTruthState,
+} from "@/features/shopreel/integrations/shared/lifecycleTruth";
+import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 
 type PublishPlatform = "instagram" | "facebook" | "tiktok" | "youtube";
+
+function truthTone(state: IntegrationLifecycleTruthState): "default" | "muted" | "copper" {
+  if (state === "implemented") return "copper";
+  if (state === "partial") return "default";
+  return "muted";
+}
 
 const PLATFORM_ORDER: PublishPlatform[] = [
   "instagram",
@@ -81,16 +92,24 @@ export default function PublishPlatformButtons(props: {
       <div className={cx("flex flex-wrap gap-2", compact ? "gap-2" : "gap-3")}>
         {buttons.map((platform) => {
           const busy = pendingPlatform === platform;
+          const truth = getIntegrationLifecycleTruth(platform);
+          const isPublishEnabled = canPublish && truth.publishReady && !pendingPlatform;
 
           return (
-            <GlassButton
-              key={platform}
-              variant={platform === "instagram" ? "primary" : "secondary"}
-              disabled={!canPublish || !!pendingPlatform}
-              onClick={() => void publishTo(platform)}
-            >
-              {busy ? `Queueing ${formatLabel(platform)}...` : formatLabel(platform)}
-            </GlassButton>
+            <div key={platform} className="space-y-1">
+              <GlassButton
+                variant={platform === "instagram" ? "primary" : "secondary"}
+                disabled={!isPublishEnabled}
+                onClick={() => void publishTo(platform)}
+                title={truth.notes}
+              >
+                {busy ? `Queueing ${formatLabel(platform)}...` : formatLabel(platform)}
+              </GlassButton>
+              <div className="flex items-center gap-2">
+                <GlassBadge tone={truthTone(truth.state)}>{truth.label}</GlassBadge>
+                <span className={cx("text-xs", glassTheme.text.muted)}>{truth.publishReady ? "Live publish path" : "Not live"}</span>
+              </div>
+            </div>
           );
         })}
       </div>
@@ -100,6 +119,8 @@ export default function PublishPlatformButtons(props: {
           This generation must be ready before it can be published.
         </div>
       ) : null}
+
+      <div className={cx("text-xs", glassTheme.text.muted)}>Only integrations marked Implemented support live platform publishing in this surface.</div>
 
       {message ? (
         <div className="space-y-2">
