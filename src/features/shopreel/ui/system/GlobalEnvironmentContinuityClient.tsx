@@ -23,7 +23,6 @@ const fallbackSnapshot: GlobalEnvironmentContinuitySnapshot = {
   explainability: ["No workspace memory yet, running safe deterministic defaults."],
   continuousEvolution: null,
 };
-
 const ContinuityContext = createContext<GlobalEnvironmentContinuitySnapshot>(fallbackSnapshot);
 
 export function GlobalEnvironmentContinuityProvider({ children }: { children: ReactNode }) {
@@ -37,9 +36,7 @@ export function GlobalEnvironmentContinuityProvider({ children }: { children: Re
     const behaviorMemory = readOperatorBehaviorMemory();
     const hadPriorActivity = behaviorMemory.recentEvents.length > 0;
     const dormantHours = hadPriorActivity ? (Date.now() - new Date(behaviorMemory.lastActiveAt).getTime()) / 3600000 : 0;
-    if (hadPriorActivity && dormantHours > 18) {
-      recordOperatorBehaviorEvent({ type: "dormant_return", route: pathname });
-    }
+    if (hadPriorActivity && dormantHours > 18) recordOperatorBehaviorEvent({ type: "dormant_return", route: pathname });
     recordOperatorBehaviorEvent({ type: "route_changed", route: pathname });
     const operatorAdaptation = deriveOperatorAdaptation(readOperatorBehaviorMemory(), continuitySnapshot);
     const adaptiveAtmosphere = deriveAdaptiveProductionAtmosphere({ continuity: continuitySnapshot, ecosystem, memory, routeContext: pathname, previous: snapshot.adaptiveAtmosphere });
@@ -50,33 +47,18 @@ export function GlobalEnvironmentContinuityProvider({ children }: { children: Re
     persistContinuousEcosystemRouteMemory(evolved.routeMemory);
   }, [pathname]);
 
-  const value = useMemo(() => snapshot, [snapshot]);
-  return <ContinuityContext.Provider value={value}>{children}</ContinuityContext.Provider>;
+  return <ContinuityContext.Provider value={useMemo(() => snapshot, [snapshot])}>{children}</ContinuityContext.Provider>;
 }
-
-export function useGlobalEnvironmentContinuity(): GlobalEnvironmentContinuitySnapshot {
-  return useContext(ContinuityContext);
-}
+export function useGlobalEnvironmentContinuity(): GlobalEnvironmentContinuitySnapshot { return useContext(ContinuityContext); }
 
 export function GlobalEnvironmentAmbientLine() {
   const continuity = useGlobalEnvironmentContinuity();
-  const compactLine = continuity.continuousEvolution
-    ? `Status · ${continuity.adaptiveAtmosphere?.activeFocusLabel ?? "steady progress"}`
-    : continuity.adaptiveAtmosphere
-      ? `Next move · ${continuity.adaptiveAtmosphere.activeFocusLabel}`
-      : "Continuity is stable";
   const issueTone = continuity.renderInstability >= 70 || continuity.continuityFracture >= 70;
+  const message = issueTone ? "Needs attention" : "Active path";
+  const detail = continuity.adaptiveAtmosphere?.activeFocusLabel ?? "steady progress";
   return (
-    <div className="pointer-events-none fixed right-3 top-[3.2rem] z-30 md:right-5 md:top-4">
-      <div
-        className={`rounded-full border px-2.5 py-1 text-[10px] backdrop-blur-sm transition-all duration-300 ${
-          issueTone
-            ? "border-rose-300/35 bg-rose-500/15 text-rose-50/90"
-            : "border-white/10 bg-slate-900/32 text-white/60"
-        }`}
-      >
-        {compactLine}
-      </div>
+    <div className="rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-xs text-white/80">
+      <span className="font-medium">{message}:</span> {detail}
     </div>
   );
 }
