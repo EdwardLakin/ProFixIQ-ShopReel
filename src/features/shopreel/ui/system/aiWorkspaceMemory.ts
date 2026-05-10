@@ -1,5 +1,6 @@
 import type { AiIntent } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 import type { CommandExecutionPlan, OperationalGraph } from "@/features/shopreel/ui/system/operationalGraph";
+import type { TransitionSnapshot } from "@/features/shopreel/ui/system/transitionEngine";
 
 export type WorkspaceTask = {
   id: string;
@@ -28,6 +29,7 @@ export type WorkspaceMemory = {
   operationalGraph?: OperationalGraph;
   lastExecutionPlan?: CommandExecutionPlan;
   worldState?: PersistentWorldState;
+  transitionSnapshot?: TransitionSnapshot;
   updatedAt: string;
 };
 export type PersistentWorldState = {
