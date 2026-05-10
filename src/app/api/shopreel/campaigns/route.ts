@@ -4,6 +4,24 @@ import { upsertCampaignBrain } from "@/features/shopreel/brain/repository";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
+export function validateCreateCampaignPayload(payload: {
+  title?: string;
+  coreIdea?: string;
+}) {
+  const title = payload.title?.trim() ?? "";
+  const coreIdea = payload.coreIdea?.trim() ?? "";
+
+  if (!title) {
+    throw new Error("Campaign title is required");
+  }
+
+  if (!coreIdea) {
+    throw new Error("Campaign goal/brief is required");
+  }
+
+  return { title, coreIdea };
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as {
@@ -23,9 +41,14 @@ export async function POST(req: Request) {
       };
     };
 
+    const validated = validateCreateCampaignPayload({
+      title: body.title,
+      coreIdea: body.coreIdea,
+    });
+
     const campaignId = await createCampaign({
-      title: body.title?.trim() || "Untitled Campaign",
-      coreIdea: body.coreIdea?.trim() || "ShopReel marketing campaign",
+      title: validated.title,
+      coreIdea: validated.coreIdea,
       audience: body.audience ?? null,
       offer: body.offer ?? null,
       campaignGoal: body.campaignGoal ?? null,
@@ -59,7 +82,7 @@ export async function POST(req: Request) {
         ok: false,
         error: error instanceof Error ? error.message : "Failed to create campaign",
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }
