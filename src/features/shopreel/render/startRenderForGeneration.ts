@@ -2,13 +2,28 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { createRenderJob } from "@/features/shopreel/render/createRenderJob";
 import type { StoryDraft } from "@/features/shopreel/story-builder/types";
 import { STORY_GENERATION_QUEUED_STATUS } from "@/features/shopreel/lib/contracts/lifecycle";
-import type { Json } from "@/types/supabase";
+import type { Json, TablesUpdate } from "@/types/supabase";
 
 type UnknownRecord = Record<string, unknown>;
 
 function asRecord(value: unknown): UnknownRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as UnknownRecord;
+}
+
+function toJson(value: unknown): Json {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if (Array.isArray(value)) return value.map((entry) => toJson(entry));
+  if (typeof value === "object") {
+    const out: Record<string, Json | undefined> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = toJson(v);
+    }
+    return out;
+  }
+  return String(value);
 }
 
 export async function startRenderForGeneration(input: { shopId: string; generationId: string; handoff?: { preflight?: { status?: string; score?: number; blockers?: Array<{ message: string }>; warnings?: Array<{ message: string }> }; publishIntent?: { targetPlatforms?: string[]; title?: string; caption?: string; cta?: string; variantId?: string; variantName?: string; sceneCount?: number; durationSeconds?: number; editorSessionId?: string } } }) {
@@ -74,14 +89,16 @@ export async function startRenderForGeneration(input: { shopId: string; generati
         publishSource: "render",
       };
 
+  const generationUpdate: TablesUpdate<"shopreel_story_generations"> = {
+    render_job_id: renderJob.id,
+    status: STORY_GENERATION_QUEUED_STATUS,
+    generation_metadata: toJson(nextMetadata),
+    updated_at: new Date().toISOString(),
+  };
+
   await supabase
     .from("shopreel_story_generations")
-    .update({
-      render_job_id: renderJob.id,
-      status: STORY_GENERATION_QUEUED_STATUS,
-      generation_metadata: nextMetadata as unknown as Json,
-      updated_at: new Date().toISOString(),
-    })
+    .update(generationUpdate)
     .eq("id", generation.id)
     .eq("shop_id", input.shopId);
 

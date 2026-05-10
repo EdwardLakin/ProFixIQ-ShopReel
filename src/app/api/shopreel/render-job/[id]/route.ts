@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { withDeprecatedApiHeaders } from "@/features/shopreel/server/apiOwnership";
+import type { TablesUpdate } from "@/types/supabase";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -13,6 +14,15 @@ type UpdateRenderJobBody = {
   thumbnailUrl?: string | null;
   errorMessage?: string | null;
 };
+
+const ALLOWED_RENDER_STATUSES = new Set(["queued", "rendering", "ready", "published", "failed"] as const);
+
+function normalizeRenderStatus(value: unknown): UpdateRenderJobBody["status"] {
+  if (typeof value !== "string") return undefined;
+  return ALLOWED_RENDER_STATUSES.has(value as never)
+    ? (value as UpdateRenderJobBody["status"])
+    : undefined;
+}
 
 async function safeReadJson(req: NextRequest): Promise<UpdateRenderJobBody> {
   const text = await req.text();
@@ -33,9 +43,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const body = await safeReadJson(req);
   const supabase = createAdminClient();
 
-  const updates = {
-    status: body.status ?? "queued",
-    output_url: body.outputUrl ?? null,
+  const updates: TablesUpdate<"reel_render_jobs"> = {
+    status: normalizeRenderStatus(body.status) ?? "queued",
+    render_url: body.outputUrl ?? null,
     thumbnail_url: body.thumbnailUrl ?? null,
     error_message: body.errorMessage ?? null,
     updated_at: new Date().toISOString(),
@@ -43,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const { data, error } = await supabase
     .from("reel_render_jobs")
-    .update(updates as never)
+    .update(updates)
     .eq("id", id)
     .select("*")
     .single();
@@ -83,9 +93,7 @@ export async function DELETE(_: NextRequest, { params }: Params) {
     const { id } = await params;
     const shopId = await getCurrentShopId();
     const supabase = createAdminClient();
-    const legacy = supabase as any;
-
-    await legacy
+    await supabase
       .from("shopreel_story_generations")
       .update({
         render_job_id: null,
@@ -94,7 +102,7 @@ export async function DELETE(_: NextRequest, { params }: Params) {
       .eq("render_job_id", id)
       .eq("shop_id", shopId);
 
-    const { error } = await legacy
+    const { error } = await supabase
       .from("reel_render_jobs")
       .delete()
       .eq("id", id)
