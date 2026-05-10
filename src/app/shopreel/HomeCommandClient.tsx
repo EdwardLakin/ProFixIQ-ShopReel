@@ -44,6 +44,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const [isFocused, setIsFocused] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [showRail, setShowRail] = useState(true);
+  const [showSystemDetails, setShowSystemDetails] = useState(false);
   const [ambientCheckpoint, setAmbientCheckpoint] = useState<string>("Restoring operational checkpoint…");
   const continuity = useGlobalEnvironmentContinuity();
 
@@ -305,7 +306,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Command home</div>
         <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Calm command center. Keep moving.</h1>
         <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">See what needs attention, what is ready, and what to do next.</p>
-        <p className="mt-2 text-xs text-white/60">Active path: {ecosystemSnapshot.ecosystemMode} · render pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
+        <p className="mt-2 text-xs text-white/60">Active flow: {ecosystemSnapshot.ecosystemMode} · render pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
         <p className="mt-2 text-xs text-white/55">Next move: {ecosystemSnapshot.suggestedSurfaceAction} · recovery path {ecosystemSnapshot.recoveryPriority}</p>
         <p className="mt-1 text-xs text-cyan-100/80">Likely next: {execution.nextOperationalMove} → {execution.recommendedSurface}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
@@ -314,7 +315,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className="mt-2 text-xs text-cyan-100/80">Rhythm {rhythm.cadence} · strategy {operatorAdaptation.priorityBias} · continuity {ecosystemSnapshot.continuityHealth}</div>
         <div className="mt-3 flex flex-wrap gap-2">{rhythmCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Compact updates" : "Show full updates"}</button>
+          <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Collapse updates" : "Show updates"}</button>
+          <button onClick={() => setShowSystemDetails((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showSystemDetails ? "Hide system details" : "System details"}</button>
           <button onClick={runCommand} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-5 py-3 text-sm font-medium text-white">Run next move</button>
           <span className="text-xs text-white/60">Command bar first · navigation always available</span>
         </div>
@@ -322,10 +324,10 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-      <AiWorkspaceStage title="Active path" className="border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+      <AiWorkspaceStage title="Next actions" className="border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
         <p className="text-sm text-cyan-50/90">{assistantText}</p>
         <div className={`mt-4 ${railDensityClass}`}>{showRail ? activityStream.map((entry) => <div key={entry} className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/80">{entry}</div>) : <div className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/70">Compressed rail · {activityStream[0]}</div>}</div>
-        <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">{environmentReactivity.operationalWeather.descriptor}</div>
+        <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Why this is suggested: {environmentReactivity.operationalWeather.descriptor}</div>
         {!calmMode ? <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Render pressure {environmentalField.topology.instabilityZones} · Ready to publish {environmentalField.topology.exportFronts} · Recovery {environmentalField.topology.continuityRidges}</div> : null}
         <div className="mt-4 flex flex-wrap gap-2">
           {interpreted.nextActions.map((action) => (
@@ -334,29 +336,12 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         </div>
       </AiWorkspaceStage>
 
-      <AiWorkspaceStage title="Workspace details" className={`border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${environmentReactivity.structuralInstability > 65 ? "ring-1 ring-rose-300/20" : environmentReactivity.recoveryWarmth > 65 ? "ring-1 ring-emerald-300/20" : ""}`}>
+      <AiWorkspaceStage title="Operational queue" className={`border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${environmentReactivity.structuralInstability > 65 ? "ring-1 ring-rose-300/20" : environmentReactivity.recoveryWarmth > 65 ? "ring-1 ring-emerald-300/20" : ""}`}>
         <div className="space-y-2 text-sm text-white/75">
           <div>Current intent: {interpreted.intent}</div>
           <div>Last workflow: {context?.lastWorkflow ?? "none"}</div>
           <div>Last route: {context?.lastRoute ?? "none"}</div>
-          <div>Creative pattern: {context?.creativeContinuity?.structurePattern ?? "hook-proof-cta"}</div>
-          <div>Caption density bias: {context?.creativeContinuity?.captionDensity ?? "light"}</div>
-          <div>World aging: {context?.worldState?.operationalAging ?? 0} · momentum: {context?.worldState?.momentumAcceleration ?? 0}</div>
-          <div>Environmental harmony: {context?.operationalGraph?.environmentalInterpretation.operationalHarmony ?? 0} · execution confidence: {context?.operationalGraph?.environmentalInterpretation.executionConfidence ?? 0}</div>
-          <div>Weather: {context?.operationalGraph?.continuityWeather.pattern?.replaceAll("_", " ") ?? "unknown"} · recovery window {context?.operationalGraph?.continuityWeather.recoveryWindow ?? 0}</div>
-          <div>Rebalancing: focus shift {context?.operationalGraph?.adaptiveRebalancing.focusDensityShift ?? 0} · recovery corridor {context?.operationalGraph?.adaptiveRebalancing.recoveryCorridorWidth ?? 0}</div>
-          <div>Reality blend integrity: {context?.operationalGraph?.multiRealityDepth.blendIntegrity ?? 0} · escalation reality {context?.operationalGraph?.multiRealityDepth.escalationReality ?? 0}</div>
-          <div>Autonomous stabilization: {context?.worldState?.autonomousStabilizationActions?.[0]?.replaceAll("_", " ") ?? "none"}</div>
-          <div>Atmospheric density: {environmentReactivity.atmosphericDensity} · focus pull: {environmentReactivity.focusPull} · dormant cooling: {environmentReactivity.dormantCooling}</div>
-          <div>Recovery warmth: {environmentReactivity.recoveryWarmth} · temporal pressure: {environmentReactivity.temporalPressure} · environmental compression: {environmentReactivity.environmentalCompression}</div>
-          <div>Environmental memory: instability {environmentalField.environmentalMemory.recurringInstabilityMemory} · export residue {environmentalField.environmentalMemory.exportResidue} · continuity fatigue {environmentalField.environmentalMemory.continuityFatigue} · stabilization confidence {environmentalField.environmentalMemory.stabilizationConfidence}</div>
-          <div className="mt-2 rounded-xl bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50/90">
-            <div className="uppercase tracking-[0.14em] text-cyan-100/75">Session signal</div>
-            <div className="mt-1">Operational attention {cognitiveState.operationalAttention} · execution confidence {cognitiveState.executionConfidence} · continuity awareness {cognitiveState.continuityAwareness}</div>
-            <div>Recovery intelligence {cognitiveState.recoveryIntelligence} · strategic focus {cognitiveState.strategicFocus} · render pressure {cognitiveState.renderAnxiety}</div>
-            <div>Export intent {cognitiveState.exportIntent} · recovery confidence {cognitiveState.recoveryConfidence}</div>
-            <div className="mt-1 text-cyan-100/80">{cognitiveFocusLine}</div>
-          </div>
+          <div className="mt-2 rounded-xl bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50/90">{cognitiveFocusLine}</div>
         </div>
         {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Pending tasks</div>
@@ -366,24 +351,24 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recovery links</div>
           <div className="space-y-2">{context.continuityThreads.slice(0, 4).map((thread) => <Link key={thread.id} href={thread.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{thread.label}</span><span className="text-cyan-100/70">{thread.status} · {thread.priority}</span></Link>)}</div>
         </div> : null}
-        {context?.intentSignals ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
+        {showSystemDetails && context?.intentSignals ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
           <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Creative pattern</div>
           <div>Pacing: {context.intentSignals.pacingBias} · CTA: {context.intentSignals.ctaBias}</div>
           <div>Hook density: {context.intentSignals.hookDensityBias} · Export style: {context.intentSignals.exportStyleBias}</div>
           <div>Variant direction: {context.intentSignals.variantDirectionBias}</div>
         </div> : null}
-        {context?.ecosystemState ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
+        {showSystemDetails && context?.ecosystemState ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
           <div className="mb-1 uppercase tracking-[0.14em] text-white/50">System state</div>
           <div>Energy: {context.ecosystemState.environmentalEnergy.replaceAll("_", " ")} · Temporal: {context.ecosystemState.temporalRailState.replaceAll("_", " ")}</div>
           <div>Saturation: {context.ecosystemState.operationalSaturation} · Entropy: {context.ecosystemState.focusEntropy} · Telemetry: {context.ecosystemState.telemetryDensityPressure}</div>
         </div> : null}
-        {context?.operationalGraph ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
+        {showSystemDetails && context?.operationalGraph ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
           <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Execution state</div>
           <div>Active chain depth: {context.operationalGraph.activeChain.length} · continuity pressure: {context.operationalGraph.continuityPressure} · readiness propagation: {context.operationalGraph.readinessPropagation}</div>
           <div>Recovery candidates: {context.operationalGraph.recoveryCandidates.join(", ")}</div>
           <div>Last execution mode: {context.lastExecutionPlan?.mode?.replaceAll("_", " ") ?? "default"}</div>
         </div> : null}
-        {context?.productionConsciousness ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
+        {showSystemDetails && context?.productionConsciousness ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
           <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Production state</div>
           <div>Awareness: ops {context.productionConsciousness.operationalAwareness} · momentum {context.productionConsciousness.momentumAwareness} · friction {context.productionConsciousness.frictionAwareness}</div>
           <div>Attention economy: blocker {context.productionConsciousness.attentionEconomy.blockerPressure} · telemetry decay {context.productionConsciousness.attentionEconomy.staleTelemetryDecay} · export focus {context.productionConsciousness.attentionEconomy.exportFocusShare}</div>
@@ -397,16 +382,20 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       </AiWorkspaceStage>
     </section>
 
-    <AiWorkspaceStage title="Recent drafts" className="border-0 bg-white/[0.015]">
-      {recent.length === 0 ? <div className="text-sm text-white/60">Nothing waiting. Create or upload the next asset.</div> : <div className="space-y-2">{recent.map((r) => <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/[0.03] px-3 py-2 text-sm text-white/85">
+    <AiWorkspaceStage title="Recent drafts" className="border-0 bg-white/[0.03] shadow-[0_24px_70px_rgba(0,0,0,0.5)]">
+      {recent.length === 0 ? <div className="rounded-2xl bg-white/[0.04] p-4 text-sm text-white/70">No recent drafts yet. Start a new draft in Create content, or open the library to seed one from assets.</div> : <div className="space-y-3">{recent.map((r) => <div key={r.id} className="flex min-h-[94px] flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/90">
         <div>
-          <Link href={`/shopreel/generations/${r.id}`} className="block font-medium">{r.title}</Link>
-          <div className="text-xs text-white/55">Status: {r.status}</div>
+          <Link href={`/shopreel/generations/${r.id}`} className="block text-base font-semibold">{r.title}</Link>
+          <div className="mt-1 text-xs text-white/70">Status: {r.status} · Updated recently · Targets: multi-platform</div>
+          <div className="mt-1 text-xs text-white/60">Summary: Continue this draft toward review, render, and publish readiness.</div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/shopreel/generations/${r.id}`} className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs text-cyan-50">Continue work</Link>
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          <Link href={`/shopreel/generations/${r.id}`} className="rounded-full bg-cyan-400/25 px-4 py-2 text-xs font-semibold text-cyan-50">Continue work</Link>
+          <Link href={`/shopreel/editor?id=${r.id}`} className="rounded-full bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50">Open editor</Link>
           <Link href="/shopreel/render-queue" className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/75">Review outputs</Link>
           <Link href="/shopreel/exports" className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/75">Package & publish</Link>
+          <Link href="/shopreel/create" className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/75">Duplicate</Link>
+          <Link href="/shopreel/generations" className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/75">Sync</Link>
         </div>
       </div>)}</div>}
     </AiWorkspaceStage>
