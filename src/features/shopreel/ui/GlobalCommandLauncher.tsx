@@ -10,6 +10,7 @@ import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBeh
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggestionsByRhythm } from "@/features/shopreel/ui/system/operatorRhythm";
 import { deriveStrategicAdaptation, evolveStrategicOperationalMemory, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
+import { deriveTransitionSnapshot } from "@/features/shopreel/ui/system/transitionEngine";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -89,6 +90,13 @@ export default function GlobalCommandLauncher() {
     if (interpreted.intent === "publish") recordOperatorRhythmEvent({ type: "export_opened", route: interpreted.href });
     if (interpreted.intent === "campaign") recordOperatorRhythmEvent({ type: "campaign_opened", route: interpreted.href });
     const nextHistory = [value, ...history].filter((x) => x.trim()).slice(0, 8);
+    const transition = deriveTransitionSnapshot({
+      currentRoute: pathname,
+      targetRoute: interpreted.href,
+      command: value,
+      interpretedIntent: interpreted.intent,
+      memory: readWorkspaceMemory(),
+    });
     setHistory(nextHistory);
     const existing = readWorkspaceMemory();
     if (existing) {
@@ -99,12 +107,15 @@ export default function GlobalCommandLauncher() {
         lastWorkflow: interpreted.intent,
         intentHistory: nextHistory,
         recentIntents: [interpreted.intent, ...existing.recentIntents].slice(0, 8),
+        transitionSnapshot: transition,
         updatedAt: new Date().toISOString(),
       };
       writeWorkspaceMemory(nextWorkspace);
       evolveStrategicOperationalMemory({ workspace: nextWorkspace, operator: operatorMemory, continuity });
     }
     router.push(interpreted.href);
+    setFocusLine(`Next move: ${transition.nextActionLabel}`);
+    setEcosystemHint(`Transition: ${transition.mode} · ${transition.continuityCorridor}`);
     setOpen(false);
   };
 

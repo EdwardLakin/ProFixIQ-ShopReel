@@ -27,6 +27,7 @@ function ShellScaffold({ children }: { children: ReactNode }) {
   const energyOpacity = atmosphere?.mode === "recovery" ? "0.12" : atmosphere?.mode === "export_momentum" ? "0.23" : atmosphere?.mode === "render_pressure" || atmosphere?.mode === "fractured" ? "0.26" : "0.18";
   const typography = evolution?.globalHierarchyBias === "elevated" || atmosphere?.hierarchy === "urgent" ? "text-white" : atmosphere?.hierarchy === "sharp" ? "text-slate-50" : "text-slate-100";
   const workspace = readWorkspaceMemory();
+  const transition = workspace?.transitionSnapshot;
   const operatorMemory = readOperatorBehaviorMemory();
   const intuition = deriveProductionIntuition({ operator: operatorMemory, continuity, evolution: continuity.continuousEvolution, memory: workspace, routePathname: pathname });
   const strategic = deriveStrategicAdaptation({ workspace, operator: operatorMemory, continuity, strategicMemory: readStrategicOperationalMemory() });
@@ -50,7 +51,9 @@ function ShellScaffold({ children }: { children: ReactNode }) {
         : intuition.suggestedSurface.includes("/review")
           ? "[&_a[data-nav=review]]:underline"
           : "";
-  const routePull = spatial.forwardProgressionPull >= 66 || embodiment.forwardMotionBias === "pulled"
+  const routePull = transition?.mode === "progression"
+    ? "[&_a[data-nav=publish]]:translate-x-[1px] [&_a[data-nav=render]]:translate-x-[1px]"
+    : spatial.forwardProgressionPull >= 66 || embodiment.forwardMotionBias === "pulled"
     ? "[&_a[data-nav=publish]]:scale-[1.01] [&_a[data-nav=render]]:scale-[1.01]"
     : spatial.forwardProgressionPull >= 50 || embodiment.forwardMotionBias === "guided"
       ? "[&_a[data-nav=publish]]:translate-x-[1px]"
@@ -69,8 +72,8 @@ function ShellScaffold({ children }: { children: ReactNode }) {
       <div className={`relative flex min-h-screen overflow-x-clip ${railEmphasis} ${spatial.lanePosture === "compact" || embodiment.unstableCompression === "active" ? "gap-1" : spatial.lanePosture === "expanded" || embodiment.calmExpansion === "expanded" ? "gap-3" : "gap-2"} transition-[gap] duration-300`}>
         <div className={`${navProminence} ${navModeClass} ${navBiasClass} ${intuitionNavBias} ${routePull} transition-all duration-300 ${embodiment.continuityPresence === "anchored" ? "sticky top-0" : ""}`}><ShopReelSidebar /></div>
         
-        <section className={`relative min-w-0 flex-1 ${shellPadding} ${spatial.recoveryExpansion >= 70 || embodiment.recoveryBreathingRoom === "wide" ? "pt-3 pb-5" : spatial.instabilityCompression >= 70 || embodiment.unstableCompression === "active" ? "pt-1 pb-3" : "py-4"} ${embodiment.transitionPosture === "cooled" ? "opacity-[0.94]" : "opacity-100"} transition-[padding,opacity,transform] duration-300`}>
-          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}><div className="flex flex-wrap items-center justify-between gap-2"><div className="min-w-0 flex-1"><GlobalEnvironmentAmbientLine /></div><div className="shrink-0"><GlobalCommandLauncher /></div></div>
+        <section className={`relative min-w-0 flex-1 ${shellPadding} ${spatial.recoveryExpansion >= 70 || embodiment.recoveryBreathingRoom === "wide" ? "pt-3 pb-5" : spatial.instabilityCompression >= 70 || embodiment.unstableCompression === "active" ? "pt-1 pb-3" : "py-4"} ${transition?.mode === "continuity" ? "opacity-[0.97]" : embodiment.transitionPosture === "cooled" ? "opacity-[0.94]" : "opacity-100"} transition-[padding,opacity,transform] duration-300`}>
+          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}><div className="flex flex-wrap items-center justify-between gap-2"><div className="min-w-0 flex-1 space-y-1"><GlobalEnvironmentAmbientLine />{transition ? <div className="text-[11px] text-cyan-100/70">{transition.routeCarryover} · Next: {transition.nextActionLabel}</div> : null}</div><div className="shrink-0"><GlobalCommandLauncher /></div></div>
             {children}</div>
         </section>
       </div>
