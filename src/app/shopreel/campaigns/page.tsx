@@ -4,6 +4,7 @@ import { listRecentCampaigns } from "@/features/shopreel/campaigns/lib/server";
 import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import EcosystemStateRail from "@/features/shopreel/ui/system/EcosystemStateRail";
 import SurfaceExecutionHint from "@/features/shopreel/ui/system/SurfaceExecutionHint";
+import CampaignWorkflowContinuityRail from "@/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail";
 
 export default async function CampaignsPage() {
   const campaigns = await listRecentCampaigns(24);
@@ -13,6 +14,7 @@ export default async function CampaignsPage() {
       <div className="space-y-4">
         <EcosystemStateRail surface="campaigns" />
         <SurfaceExecutionHint surface="campaigns" />
+        <CampaignWorkflowContinuityRail />
         <CampaignGenerator
           campaigns={campaigns.map((campaign) => ({
             ...campaign,

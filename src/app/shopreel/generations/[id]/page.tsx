@@ -16,6 +16,7 @@ import PublishPlatformButtons from "@/features/shopreel/publishing/components/Pu
 import ReviewApprovalActions from "@/features/shopreel/operations/components/ReviewApprovalActions";
 import RetryRenderButton from "@/features/shopreel/operations/components/RetryRenderButton";
 import { computeGenerationPublishReadiness } from "@/features/shopreel/operations/lib/publishReadiness";
+import CampaignWorkflowContinuityRail from "@/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail";
 
 type BlogSection = {
   key: string;
@@ -163,6 +164,7 @@ export default async function ShopReelGenerationDetailPage(
       }
     >
       <section className="space-y-5">
+        <CampaignWorkflowContinuityRail campaignId={generation.campaign_id ?? undefined} generationId={generation.id} />
         <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(300px,3fr)]">
         <GlassCard
           label="Story"

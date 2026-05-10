@@ -11,6 +11,7 @@ import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import CampaignDetailClient from "@/features/shopreel/campaigns/components/CampaignDetailClient";
 import { listCampaignItemsWithMediaJobs } from "@/features/shopreel/campaigns/lib/server";
 import { ShopReelActionRail } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
+import CampaignWorkflowContinuityRail from "@/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail";
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -87,6 +88,8 @@ export default async function ShopReelCampaignDetailPage(
         backHref="/shopreel/campaigns"
         backLabel="Back to Campaigns"
       />
+
+      <CampaignWorkflowContinuityRail campaignId={campaign.id} />
 
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <GlassCard
