@@ -11,6 +11,7 @@ import { deriveProductionIntuition } from "@/features/shopreel/ui/system/product
 import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggestionsByRhythm } from "@/features/shopreel/ui/system/operatorRhythm";
 import { deriveStrategicAdaptation, evolveStrategicOperationalMemory, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
 import { deriveTransitionSnapshot } from "@/features/shopreel/ui/system/transitionEngine";
+import { resolveRouteFromPrompt } from "@/features/shopreel/ui/system/shopReelRouteRegistry";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -82,17 +83,18 @@ export default function GlobalCommandLauncher() {
   }, []);
 
   const run = () => {
-    if (!interpreted.href) return;
-    const operatorMemory = recordOperatorBehaviorEvent({ type: "command_submitted", route: interpreted.href, intent: interpreted.intent });
-    recordOperatorRhythmEvent({ type: "command_submitted", route: interpreted.href });
-    if (/(continue|resume)/i.test(value)) recordOperatorRhythmEvent({ type: "workflow_continued", route: interpreted.href });
-    if (interpreted.intent === "render") recordOperatorRhythmEvent({ type: "render_checked", route: interpreted.href });
-    if (interpreted.intent === "publish") recordOperatorRhythmEvent({ type: "export_opened", route: interpreted.href });
-    if (interpreted.intent === "campaign") recordOperatorRhythmEvent({ type: "campaign_opened", route: interpreted.href });
+    const decision = resolveRouteFromPrompt(value, readWorkspaceMemory()?.lastRoute);
+    const selectedRoute = decision.route;
+    const operatorMemory = recordOperatorBehaviorEvent({ type: "command_submitted", route: selectedRoute, intent: decision.intent });
+    recordOperatorRhythmEvent({ type: "command_submitted", route: selectedRoute });
+    if (/(continue|resume)/i.test(value)) recordOperatorRhythmEvent({ type: "workflow_continued", route: selectedRoute });
+    if (decision.intent === "render") recordOperatorRhythmEvent({ type: "render_checked", route: selectedRoute });
+    if (decision.intent === "publish") recordOperatorRhythmEvent({ type: "export_opened", route: selectedRoute });
+    if (decision.intent.includes("campaign")) recordOperatorRhythmEvent({ type: "campaign_opened", route: selectedRoute });
     const nextHistory = [value, ...history].filter((x) => x.trim()).slice(0, 8);
     const transition = deriveTransitionSnapshot({
       currentRoute: pathname,
-      targetRoute: interpreted.href,
+      targetRoute: selectedRoute,
       command: value,
       interpretedIntent: interpreted.intent,
       memory: readWorkspaceMemory(),
@@ -103,17 +105,18 @@ export default function GlobalCommandLauncher() {
       const nextWorkspace = {
         ...existing,
         lastCommand: value,
-        lastRoute: interpreted.href,
-        lastWorkflow: interpreted.intent,
+        lastRoute: selectedRoute,
+        lastWorkflow: decision.intent as any,
         intentHistory: nextHistory,
-        recentIntents: [interpreted.intent, ...existing.recentIntents].slice(0, 8),
+        recentIntents: [decision.intent as any, ...existing.recentIntents].slice(0, 8),
         transitionSnapshot: transition,
         updatedAt: new Date().toISOString(),
       };
       writeWorkspaceMemory(nextWorkspace);
       evolveStrategicOperationalMemory({ workspace: nextWorkspace, operator: operatorMemory, continuity });
     }
-    router.push(interpreted.href);
+    console.info("[ShopReelRouteTrace]", { input: value, detectedIntent: decision.intent, selectedRoute: selectedRoute, recoveryUsed: decision.usedRecovery, staleContinuityIgnored: decision.ignoredStaleContinuity, reason: decision.reason });
+    router.push(selectedRoute);
     setFocusLine(`Next move: ${transition.nextActionLabel}`);
     setEcosystemHint(`Transition: ${transition.mode} · ${transition.continuityCorridor}`);
     setOpen(false);

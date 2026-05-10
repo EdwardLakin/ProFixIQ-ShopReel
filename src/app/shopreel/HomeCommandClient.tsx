@@ -35,6 +35,7 @@ import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/fea
 import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/system/productionExecutionIntelligence";
 import { buildRecoveryInbox } from "@/features/shopreel/ui/system/recoveryInbox";
 import { classifyCommandInputIntent } from "@/features/shopreel/ui/system/commandInputIntent";
+import { resolveRouteFromPrompt } from "@/features/shopreel/ui/system/shopReelRouteRegistry";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -172,10 +173,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
   const runCommand = () => {
     const resolvedCampaignId = commandIntent === "create_campaign" ? undefined : recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId ?? undefined;
-    const fallbackLatest = recent[0] ? `/shopreel/generations/${recent[0].id}` : "/shopreel/generations";
-    const inferredTarget = interpreted.intent === "latest" && /continue/.test(command.toLowerCase())
-      ? context?.lastRoute ?? fallbackLatest
-      : interpreted.href ?? "/shopreel";
+    const decision = resolveRouteFromPrompt(command, context?.lastRoute);
+    const inferredTarget = decision.route;
     const graph = context?.operationalGraph ?? buildOperationalGraph({
       generationId: recent[0]?.id,
       campaignId: resolvedCampaignId,
@@ -191,21 +190,22 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
     if (commandIntent === "create_campaign") {
       const prompt = encodeURIComponent(command.trim());
-      target = `/shopreel/campaigns?mode=create&prompt=${prompt}`;
+      target = `/shopreel/campaigns/new?prompt=${prompt}`;
     }
 
     const countText = recent.length > 0 ? `I found ${recent.length} recent drafts.` : "No recent drafts were found yet.";
     setAssistantText(`${interpreted.summary} ${countText} Operating mode: ${executionPlan.mode.replaceAll("_", " ")}.`);
-    recordOperatorBehaviorEvent({ type: "command_submitted", route: target, intent: interpreted.intent });
+    recordOperatorBehaviorEvent({ type: "command_submitted", route: target, intent: decision.intent as any });
     recordOperatorRhythmEvent({ type: "command_submitted", route: target });
-    if (interpreted.intent === "campaign") recordOperatorBehaviorEvent({ type: "campaign_opened", route: target, intent: interpreted.intent });
+    if (decision.intent.includes("campaign")) recordOperatorBehaviorEvent({ type: "campaign_opened", route: target, intent: decision.intent as any });
     if (interpreted.intent === "campaign") recordOperatorRhythmEvent({ type: "campaign_opened", route: target });
-    if (interpreted.intent === "publish") recordOperatorBehaviorEvent({ type: "export_opened", route: target, intent: interpreted.intent });
+    if (decision.intent === "publish") recordOperatorBehaviorEvent({ type: "export_opened", route: target, intent: decision.intent as any });
     if (interpreted.intent === "publish") recordOperatorRhythmEvent({ type: "export_opened", route: target });
-    if (interpreted.intent === "render") recordOperatorBehaviorEvent({ type: "render_checked", route: target, intent: interpreted.intent });
+    if (decision.intent === "render") recordOperatorBehaviorEvent({ type: "render_checked", route: target, intent: decision.intent as any });
     if (interpreted.intent === "render") recordOperatorRhythmEvent({ type: "render_checked", route: target });
     if (/(continue|resume)/i.test(command)) recordOperatorBehaviorEvent({ type: "workflow_continued", route: target, intent: interpreted.intent });
     if (/(continue|resume|recover|restore)/i.test(command)) recordOperatorRhythmEvent({ type: "workflow_continued", route: target });
+    console.info("[ShopReelRouteTrace]", { input: command, detectedIntent: decision.intent, selectedRoute: target, recoveryUsed: decision.usedRecovery, staleContinuityIgnored: decision.ignoredStaleContinuity, reason: decision.reason });
     persistContext(target);
     router.push(target);
   };
