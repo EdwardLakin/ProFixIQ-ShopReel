@@ -4,21 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-type NavItem = { label: string; href: string; icon: string; section?: "main" | "studio" | "system" };
+import { getManualNavRoutes } from "@/features/shopreel/ui/system/shopReelRouteRegistry";
 
-const navItems: NavItem[] = [
-  { label: "Continue work", href: "/shopreel", icon: "⌂", section: "main" },
-  { label: "Create content", href: "/shopreel/create", icon: "✦", section: "main" },
-  { label: "Latest drafts", href: "/shopreel/generations", icon: "▣", section: "main" },
-  { label: "Review outputs", href: "/shopreel/render-queue", icon: "◌", section: "main" },
-  { label: "Asset library", href: "/shopreel/library", icon: "◫", section: "main" },
-  { label: "Package & publish", href: "/shopreel/exports", icon: "↥", section: "main" },
-  { label: "Video Studio", href: "/shopreel/video-creation/advanced", icon: "◉", section: "studio" },
-  { label: "Ideas", href: "/shopreel/ideas", icon: "◇", section: "studio" },
-  { label: "Editor", href: "/shopreel/editor", icon: "✎", section: "studio" },
-  { label: "Monitor campaigns", href: "/shopreel/campaigns", icon: "◎", section: "studio" },
-  { label: "Settings", href: "/shopreel/settings", icon: "⚙", section: "system" },
-];
+const iconByPath: Record<string, string> = {
+  "/shopreel": "⌂",
+  "/shopreel/create": "✦",
+  "/shopreel/campaigns": "◎",
+  "/shopreel/ideas": "◇",
+  "/shopreel/opportunities": "◈",
+  "/shopreel/upload": "⤴",
+  "/shopreel/video-creation": "◉",
+  "/shopreel/render-queue": "◌",
+  "/shopreel/exports": "↥",
+  "/shopreel/library": "◫",
+  "/shopreel/publish-center": "⇪",
+  "/shopreel/publish-queue": "☰",
+  "/shopreel/editor": "✎",
+  "/shopreel/review": "✓",
+};
 
 const isActivePath = (pathname: string, href: string) =>
   href === "/shopreel" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -61,9 +64,9 @@ export default function ShopReelSidebar() {
       <aside className={`fixed inset-y-0 left-0 z-[90] w-[min(24rem,94vw)] transform overflow-x-hidden border-r border-cyan-100/10 bg-[#040812]/96 p-5 shadow-[30px_0_90px_rgba(0,0,0,.66)] backdrop-blur-2xl transition duration-300 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="mb-5 text-xs uppercase tracking-[0.22em] text-cyan-100/70">Workflow launcher</div>
         <nav className="h-[calc(100vh-6.25rem)] space-y-2 overflow-y-auto pr-1">
-          {navItems.map((item) => {
-            const active = isActivePath(pathname, item.href);
-            return <Link key={item.href} href={item.href} className={`flex min-h-[50px] items-center gap-3 rounded-2xl px-4 py-3 text-[15px] transition ${active ? "bg-gradient-to-r from-cyan-400/18 to-violet-400/16 text-cyan-50" : "text-white/78 hover:bg-white/8 hover:text-white"}`}><span className="text-base leading-none">{item.icon}</span><span>{item.label}</span></Link>;
+          {getManualNavRoutes().map((item) => {
+            const active = isActivePath(pathname, item.path);
+            return <Link key={item.path} href={item.path} className={`flex min-h-[50px] items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[15px] transition ${active ? "bg-gradient-to-r from-cyan-400/18 to-violet-400/16 text-cyan-50" : "text-white/78 hover:bg-white/8 hover:text-white"}`}><span className="flex items-center gap-3"><span className="text-base leading-none">{iconByPath[item.path] ?? "•"}</span><span>{item.label}</span></span>{item.lifecycleStatus === "usable_but_partial" ? <span className="rounded-full border border-amber-300/40 px-2 py-0.5 text-[10px] uppercase text-amber-100">Partial</span> : null}</Link>;
           })}
         </nav>
       </aside>
