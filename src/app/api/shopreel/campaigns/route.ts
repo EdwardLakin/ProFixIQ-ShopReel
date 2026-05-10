@@ -77,10 +77,22 @@ export async function POST(req: Request) {
       id: campaignId,
     });
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create campaign";
+    console.error("[ShopReelCampaignCreateFailure]", {
+      route: "/api/shopreel/campaigns",
+      stage: "create_campaign_workspace",
+      error: message,
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
+
+    const userFacingError = message.includes("ON CONFLICT specification")
+      ? "Campaign workspace setup failed due to a database constraint mismatch. Please retry in a moment."
+      : message;
+
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Failed to create campaign",
+        error: userFacingError,
       },
       { status: 400 }
     );
