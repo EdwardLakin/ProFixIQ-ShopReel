@@ -6,6 +6,7 @@ import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { listStoryGenerations } from "@/features/shopreel/story-sources/server/listStoryGenerations";
 import { ShopReelPageHero, ShopReelSurface } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import StatusBadge from "@/features/shopreel/components/StatusBadge";
+import RecoveryInboxRail from "@/features/shopreel/ui/system/RecoveryInboxRail";
 
 type Generation = Awaited<ReturnType<typeof listStoryGenerations>>[number];
 const norm = (s: string | null | undefined) => (s ?? "unknown").toLowerCase();
@@ -23,5 +24,5 @@ export default async function ShopReelGenerationsPage() {
   const shopId = await getCurrentShopId();
   const generations = await listStoryGenerations({ shopId, limit: 100 });
   const groups = ["Active", "Needs review", "Ready to publish", "Blocked"] as const;
-  return <GlassShell title="Projects" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Generations" subtitle="Create, review, render, and publish from one queue." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Render queue", href: "/shopreel/render-queue" }]} />{groups.map((name) => { const items = generations.filter((g) => bucket(norm(g.status)) === name); return <ShopReelSurface key={name} title={name} description={`${items.length} items`}>{items.length ? <div className="grid gap-4 lg:grid-cols-2">{items.map((g) => <Card key={g.id} g={g} />)}</div> : <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/65">{name === "Blocked" ? "No failed renders." : name === "Ready to publish" ? "Ready assets will appear here." : "Nothing waiting."}</div>}</ShopReelSurface>; })}</div></GlassShell>;
+  return <GlassShell title="Projects" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Generations" subtitle="Create, review, render, and publish from one queue." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Render queue", href: "/shopreel/render-queue" }]} /><RecoveryInboxRail />{groups.map((name) => { const items = generations.filter((g) => bucket(norm(g.status)) === name); return <ShopReelSurface key={name} title={name} description={`${items.length} items`}>{items.length ? <div className="grid gap-4 lg:grid-cols-2">{items.map((g) => <Card key={g.id} g={g} />)}</div> : <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/65">{name === "Blocked" ? "No failed renders." : name === "Ready to publish" ? "Ready assets will appear here." : "Nothing waiting."}</div>}</ShopReelSurface>; })}</div></GlassShell>;
 }

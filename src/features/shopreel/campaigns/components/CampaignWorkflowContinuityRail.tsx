@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { buildCampaignWorkflowDescriptor, campaignWorkflowProgress } from "@/features/shopreel/campaigns/lib/campaignWorkflow";
 import { readWorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { buildRecoveryInbox } from "@/features/shopreel/ui/system/recoveryInbox";
 
 const labels = {
   idea: "Idea",
@@ -36,6 +37,16 @@ export default function CampaignWorkflowContinuityRail({ campaignId, generationI
       lastCampaignId: campaignId ?? memory.lastCampaignId,
       lastGenerationId: generationId ?? memory.lastGenerationId,
       campaignWorkflowDescriptor: descriptor,
+      recoveryInbox: buildRecoveryInbox({
+        route: pathname,
+        generationId: generationId ?? memory.lastGenerationId,
+        campaignId: campaignId ?? memory.lastCampaignId,
+        interrupted: Boolean(memory.interruptedWorkflow),
+        hasReviewItems: descriptor.stage === "review" || descriptor.stage === "generation",
+        hasPublishReady: descriptor.stage === "publish_prep",
+        hasPublishFailures: false,
+        hasDraftContinuity: descriptor.stage === "editing" || descriptor.stage === "selection",
+      }),
       updatedAt: new Date().toISOString(),
     });
   }, [descriptor, campaignId, generationId]);
