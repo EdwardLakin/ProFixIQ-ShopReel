@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { getOpenAIClient } from "@/features/ai/server/openai";
 
 export type WorkOrderInput = {
   id: string;
@@ -88,10 +88,6 @@ type RawConceptResponse = {
   captionByPlatform?: unknown;
   hashtagsByPlatform?: unknown;
 };
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 const ALLOWED_CONTENT_TYPES = new Set<GeneratedVideoConcept["contentType"]>([
   "workflow_demo",
@@ -535,7 +531,7 @@ Return strict JSON only with this exact shape:
 `;
 
   try {
-    const response = await openai.responses.create({
+    const response = await getOpenAIClient().responses.create({
       model: "gpt-5-mini",
       temperature: 0.7,
       input: [

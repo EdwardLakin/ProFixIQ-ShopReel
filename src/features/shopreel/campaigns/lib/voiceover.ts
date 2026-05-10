@@ -1,11 +1,7 @@
-import OpenAI from "openai";
 import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
+import { getOpenAIClient } from "@/features/ai/server/openai";
 import fs from "node:fs/promises";
 import path from "node:path";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function buildCampaignVoiceoverScript(input: {
   campaignTitle: string;
@@ -35,7 +31,7 @@ Scenes:
 ${input.scenes.map((s, i) => `${i + 1}. ${s.title}: ${s.prompt}`).join("\n")}
 `.trim();
 
-  const response = await openai.responses.create({
+  const response = await getOpenAIClient().responses.create({
     model: SHOPREEL_AI_MODELS.text,
     input: prompt,
   });
@@ -48,7 +44,7 @@ export async function generateCampaignVoiceoverAudio(input: {
   outputDir: string;
   fileBase: string;
 }) {
-  const audio = await openai.audio.speech.create({
+  const audio = await getOpenAIClient().audio.speech.create({
     model: "gpt-4o-mini-tts",
     voice: "alloy",
     input: input.script,
