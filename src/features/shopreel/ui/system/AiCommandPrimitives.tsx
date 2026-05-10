@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
+import { classifyCommandIntent } from "@/features/shopreel/ui/system/commandIntentClassifier";
 
 export type AiIntent = "latest" | "create" | "campaign" | "render" | "library" | "publish" | "ideas" | "editor" | "unknown";
 
@@ -15,14 +16,30 @@ export type CommandRouteResult = {
 export function interpretCommand(input: string): CommandRouteResult {
   const q = input.toLowerCase().trim();
   if (!q) return { intent: "unknown", summary: "Waiting for your command.", nextActions: [] };
-  if (/(continue|continue latest|what we were working on|latest|recent|show me latest|latest work|recent projects)/.test(q)) return { intent: "latest", href: "/shopreel/generations", summary: "I understood you want to continue recent work.", nextActions: [{ label: "Open latest generation", href: "/shopreel/generations" }, { label: "Open library uploads", href: "/shopreel/library" }] };
-  if (/(create|make reel|new video|upload|from these uploads)/.test(q)) return { intent: "create", href: "/shopreel/create", summary: "I understood you want to create a new reel draft.", nextActions: [{ label: "Open create workspace", href: "/shopreel/create" }, { label: "Review uploads", href: "/shopreel/library" }] };
-  if (/(campaign|campaign data|payproof)/.test(q)) return { intent: "campaign", href: "/shopreel/campaigns", summary: "I understood you want campaign intelligence and workflow.", nextActions: [{ label: "Open campaigns", href: "/shopreel/campaigns" }, { label: "Open analytics", href: "/shopreel/analytics" }] };
+
+  const classified = classifyCommandIntent(input);
+
+  if (classified.classification === "ambiguous_needs_choice") {
+    return {
+      intent: "campaign",
+      summary: "Continue current work or start new campaign from this brief?",
+      nextActions: [
+        { label: "Continue current work", href: "/shopreel/generations" },
+        { label: "Start new campaign from this brief", href: "/shopreel/campaigns" },
+      ],
+    };
+  }
+
+  if (classified.classification === "create_new_campaign_brief") return { intent: "campaign", href: "/shopreel/campaigns", summary: "New campaign brief detected. Launch workspace ready.", nextActions: [{ label: "Create launch campaign", href: "/shopreel/campaigns" }, { label: "Draft launch messaging", href: "/shopreel/ideas" }, { label: "Generate content plan", href: "/shopreel/create" }, { label: "Create content workspace", href: "/shopreel/create" }] };
+  if (classified.classification === "create_new_content_brief") return { intent: "create", href: "/shopreel/create", summary: "New content brief detected. Create workspace ready.", nextActions: [{ label: "Generate short-form ideas", href: "/shopreel/ideas" }, { label: "Build content plan", href: "/shopreel/create" }, { label: "Draft launch messaging", href: "/shopreel/ideas" }] };
+  if (classified.classification === "continue_existing_work") return { intent: "latest", href: "/shopreel/generations", summary: "Existing render continuity detected.", nextActions: [{ label: "Open latest generation", href: "/shopreel/generations" }, { label: "Review continuity", href: "/shopreel/review" }] };
+  if (classified.classification === "review_or_publish_existing_asset") return { intent: "publish", href: "/shopreel/exports", summary: "Ready to review or publish existing assets.", nextActions: [{ label: "Open exports", href: "/shopreel/exports" }, { label: "Open publish queue", href: "/shopreel/publish-queue" }] };
+
   if (/(render|failed render|processing|need attention)/.test(q)) return { intent: "render", href: "/shopreel/render-queue", summary: "I understood you want render status and exceptions.", nextActions: [{ label: "Open render queue", href: "/shopreel/render-queue" }, { label: "Open render jobs", href: "/shopreel/render-jobs" }] };
   if (/(library|assets|uploads)/.test(q)) return { intent: "library", href: "/shopreel/library", summary: "I understood you need asset/library access.", nextActions: [{ label: "Open library", href: "/shopreel/library" }, { label: "Open content", href: "/shopreel/content" }] };
-  if (/(publish|export|package|ready assets)/.test(q)) return { intent: "publish", href: "/shopreel/exports", summary: "I understood you want to package and publish ready assets.", nextActions: [{ label: "Open exports", href: "/shopreel/exports" }, { label: "Open publish queue", href: "/shopreel/publish-queue" }] };
   if (/(ideas|brainstorm)/.test(q)) return { intent: "ideas", href: "/shopreel/ideas", summary: "I understood you want ideation support.", nextActions: [{ label: "Open ideas", href: "/shopreel/ideas" }, { label: "Open opportunities", href: "/shopreel/opportunities" }] };
   if (/(editor|edit draft)/.test(q)) return { intent: "editor", href: "/shopreel/editor", summary: "I understood you want editor access.", nextActions: [{ label: "Open editor", href: "/shopreel/editor" }, { label: "Open generations", href: "/shopreel/generations" }] };
+
   return { intent: "unknown", summary: "I couldn't confidently map that yet, but I can route you to core workspaces.", nextActions: [{ label: "Open command home", href: "/shopreel" }, { label: "Open generations", href: "/shopreel/generations" }] };
 }
 
