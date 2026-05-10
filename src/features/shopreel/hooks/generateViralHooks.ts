@@ -1,9 +1,5 @@
-import OpenAI from "openai";
 import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getOpenAIClient } from "@/features/ai/server/openai";
 
 type HookResult = {
   hook: string;
@@ -22,7 +18,7 @@ function fallbackHooks(subject: string): HookResult[] {
 
 export async function generateViralHooks(subject: string, contentType: string) {
   try {
-    const response = await openai.responses.create({
+    const response = await getOpenAIClient().responses.create({
       model: SHOPREEL_AI_MODELS.text,
       input: [
         {
