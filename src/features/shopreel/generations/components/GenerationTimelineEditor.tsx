@@ -292,6 +292,9 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
       </div>
     </GlassCard>
 
+    <details className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-sm text-white/75">
+      <summary className="cursor-pointer select-none">Show workspace signals</summary>
+      <div className="mt-3 space-y-4">
     <GlassCard label="Orchestration gravity" title="Adaptive prominence rail" description="Execution paths self-organize by readiness, blockers, and continuity risk without noisy alerts.">
       <div className="grid gap-2">
         {orchestrationGravity.map((signal) => <div key={signal.key} className={cx("rounded-xl px-3 py-2 text-xs transition", signal.active ? "bg-cyan-400/10 text-cyan-50" : "bg-white/[0.03] text-white/70", signal.key === "blocked-workflow" && cognitiveState.renderAnxiety > 68 ? "ring-1 ring-rose-300/30" : "")}>
@@ -366,12 +369,15 @@ export default function GenerationTimelineEditor(props: { generationId: string; 
       </div>
     </GlassCard>
 
+      </div>
+    </details>
+
     <GlassCard label="Timeline" title="Story timeline editor" description="Adjust scene structure, overlay copy, and voiceover flow before publishing." strong>
       <div className="grid gap-4 md:grid-cols-2"><label className="grid gap-2"><span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Hook</span><input value={draft.hook ?? ""} onChange={(e) => setDraft((current) => ({ ...current, hook: e.target.value }))} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none" /></label><label className="grid gap-2"><span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>CTA</span><input value={draft.cta ?? ""} onChange={(e) => setDraft((current) => ({ ...current, cta: e.target.value }))} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none" /></label></div>
     </GlassCard>
 
     {!compactMode && <GlassCard label="Scenes" title="Scene-by-scene control" description="Edit each scene as an individual beat in the video." strong>
-      {scenes.length === 0 ? <div className={cx("rounded-2xl border p-4 text-sm", glassTheme.border.softer, glassTheme.glass.panelSoft, glassTheme.text.secondary)}>No scenes are attached to this story yet.</div> : <div className="grid gap-3">{scenes.map((scene, index) => <div key={scene.id} className={cx("grid gap-4 rounded-2xl border p-4", glassTheme.border.softer, glassTheme.glass.panelSoft)}><div className="flex items-center justify-between"><div className="text-sm text-white">{index + 1}. {scene.title}</div><GlassBadge tone="default">{formatLabel(scene.role)}</GlassBadge></div><textarea value={scene.voiceoverText ?? ""} onChange={(e) => updateScene(scene.id, { voiceoverText: e.target.value })} rows={2} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none" /></div>)}</div>}
+      {scenes.length === 0 ? <div className={cx("rounded-2xl border p-4 text-sm", glassTheme.border.softer, glassTheme.glass.panelSoft, glassTheme.text.secondary)}>Nothing waiting. Add scenes from the editor when ready.</div> : <div className="grid gap-3">{scenes.map((scene, index) => <div key={scene.id} className={cx("grid gap-4 rounded-2xl border p-4", glassTheme.border.softer, glassTheme.glass.panelSoft)}><div className="flex items-center justify-between"><div className="text-sm text-white">{index + 1}. {scene.title}</div><GlassBadge tone="default">{formatLabel(scene.role)}</GlassBadge></div><textarea value={scene.voiceoverText ?? ""} onChange={(e) => updateScene(scene.id, { voiceoverText: e.target.value })} rows={2} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none" /></div>)}</div>}
     </GlassCard>}
 
     <div className="flex flex-wrap gap-3"><GlassButton variant="primary" onClick={() => void saveDraft()} disabled={saving}>{saving ? "Saving..." : "Save timeline"}</GlassButton></div>

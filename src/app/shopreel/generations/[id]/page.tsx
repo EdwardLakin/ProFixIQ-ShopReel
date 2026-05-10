@@ -146,7 +146,7 @@ export default async function ShopReelGenerationDetailPage(
           ? blog.title
           : draft?.title ?? "Story generation"
       }
-      subtitle="Review generated story structure, preview render output, and open the editor."
+      subtitle="Review copy, approve or request changes, and package publish-ready output."
       actions={
         <>
           <Link href={editorPath}>
@@ -163,7 +163,7 @@ export default async function ShopReelGenerationDetailPage(
       }
     >
       <section className="space-y-5">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(300px,3fr)]">
         <GlassCard
           label="Story"
           title="Generation summary"
@@ -192,16 +192,14 @@ export default async function ShopReelGenerationDetailPage(
               Publish
             </div>
             <div className={cx("mt-2 text-sm", glassTheme.text.secondary)}>
-              Queue this reviewed generation to one or more destinations.
+              Approve this draft, then package to connected destinations.
             </div>
             {!canPublish ? (
               <div className={cx("mt-2 text-xs", glassTheme.text.copperSoft)}>
                 Publish blocked: {readiness.label}
               </div>
             ) : null}
-            <div className="mt-4">
-              <ReviewApprovalActions generationId={generation.id} compact />
-            </div>
+            <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3"><div className="mb-2 text-xs text-white/70">Decision</div><ReviewApprovalActions generationId={generation.id} compact /></div>
             {!canPublish && generation.status === "ready" ? (
               <div className="mt-4">
                 <RetryRenderButton generationId={generation.id} />
@@ -320,12 +318,11 @@ export default async function ShopReelGenerationDetailPage(
                 glassTheme.text.secondary,
               )}
             >
-              No render preview yet.
+              No render yet. Approve to queue render or request changes first.
             </div>
           )}
 
-          <div className="grid gap-3">
-            {[
+          <details className="grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-3"><summary className="cursor-pointer text-sm text-white/80">System details</summary>{[
               ["Generation ID", generation.id],
               ["Render Job", generation.render_job_id ?? "—"],
               ["Content Piece", generation.content_piece_id ?? "—"],
@@ -347,7 +344,7 @@ export default async function ShopReelGenerationDetailPage(
                 </div>
               </div>
             ))}
-          </div>
+          </details>
         </GlassCard>
         </div>
       </section>
