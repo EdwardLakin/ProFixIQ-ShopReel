@@ -12,4 +12,28 @@ export type CampaignBrainUpsertInput = { shopId: string; campaignId: string; use
 export async function getBrandBrainProfile(shopId: string): Promise<BrandBrainProfile | null> { const { data, error } = await db().from("shopreel_brand_brain_profiles").select("*").eq("shop_id", shopId).maybeSingle(); if (error) throw new Error(error.message); return (data as BrandBrainProfile | null) ?? null; }
 export async function upsertBrandBrainProfile(input: BrandBrainUpsertInput): Promise<BrandBrainProfile> { const { data, error } = await db().from("shopreel_brand_brain_profiles").upsert({ shop_id: input.shopId, updated_by: input.userId, created_by: input.userId, positioning: input.positioning ?? null, brand_voice_rules: input.brandVoiceRules ?? null, prohibited_claims: input.prohibitedClaims ?? [], preferred_ctas: input.preferredCtas ?? [], visual_style_notes: input.visualStyleNotes ?? null, audience_notes: input.audienceNotes ?? null, metadata: input.metadata ?? {} }, { onConflict: "shop_id" }).select("*").single(); if (error) throw new Error(error.message); return data as BrandBrainProfile; }
 export async function getCampaignBrain(shopId: string, campaignId: string): Promise<CampaignBrain | null> { const { data, error } = await db().from("shopreel_campaign_brains").select("*").eq("shop_id", shopId).eq("campaign_id", campaignId).maybeSingle(); if (error) throw new Error(error.message); return (data as CampaignBrain | null) ?? null; }
-export async function upsertCampaignBrain(input: CampaignBrainUpsertInput): Promise<CampaignBrain> { const { data, error } = await db().from("shopreel_campaign_brains").upsert({ shop_id: input.shopId, campaign_id: input.campaignId, updated_by: input.userId, created_by: input.userId, campaign_objective: input.campaignObjective ?? null, target_audience: input.targetAudience ?? null, channel_priorities: input.channelPriorities ?? [], content_pillars: input.contentPillars ?? [], experiment_hypotheses: input.experimentHypotheses ?? [], success_signals: input.successSignals ?? [], metadata: input.metadata ?? {} }, { onConflict: "campaign_id" }).select("*").single(); if (error) throw new Error(error.message); return data as CampaignBrain; }
+export async function upsertCampaignBrain(input: CampaignBrainUpsertInput): Promise<CampaignBrain> {
+  const { data, error } = await db()
+    .from("shopreel_campaign_brains")
+    .upsert(
+      {
+        shop_id: input.shopId,
+        campaign_id: input.campaignId,
+        updated_by: input.userId,
+        created_by: input.userId,
+        campaign_objective: input.campaignObjective ?? null,
+        target_audience: input.targetAudience ?? null,
+        channel_priorities: input.channelPriorities ?? [],
+        content_pillars: input.contentPillars ?? [],
+        experiment_hypotheses: input.experimentHypotheses ?? [],
+        success_signals: input.successSignals ?? [],
+        metadata: input.metadata ?? {},
+      },
+      { onConflict: "shop_id,campaign_id" }
+    )
+    .select("*")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data as CampaignBrain;
+}
