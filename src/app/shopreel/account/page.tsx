@@ -10,6 +10,8 @@ import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { getShopReelSettings } from "@/features/shopreel/settings/getShopReelSettings";
+import { getIntegrationLifecycleTruth, type IntegrationLifecycleTruthState } from "@/features/shopreel/integrations/shared/lifecycleTruth";
+import type { ShopReelPlatform } from "@/features/shopreel/integrations/shared/types";
 
 type ShopUserRow = {
   id?: string | null;
@@ -19,6 +21,12 @@ type ShopUserRow = {
   is_active?: boolean | null;
   created_at?: string | null;
 };
+
+function truthTone(state: IntegrationLifecycleTruthState): "default" | "muted" | "copper" {
+  if (state === "implemented") return "copper";
+  if (state === "partial") return "default";
+  return "muted";
+}
 
 type PlatformAccountRow = {
   id: string;
@@ -40,6 +48,10 @@ function formatDateTime(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
+
+function isShopReelPlatform(value: string): value is ShopReelPlatform {
+  return ["instagram", "facebook", "youtube", "tiktok", "blog", "linkedin", "google_business", "email"].includes(value);
 }
 
 function readAccountLabel(row: PlatformAccountRow) {
@@ -277,6 +289,9 @@ export default async function ShopReelAccountPage() {
           ) : (
             <div className="grid gap-3">
               {accounts.map((account) => {
+                const truth = isShopReelPlatform(account.platform)
+                  ? getIntegrationLifecycleTruth(account.platform)
+                  : { state: "disabled" as const, label: "Disabled", notes: "Unsupported platform.", oauthReady: false, publishReady: false };
                 const expired =
                   !!account.token_expires_at &&
                   new Date(account.token_expires_at).getTime() <= Date.now();
@@ -319,6 +334,7 @@ export default async function ShopReelAccountPage() {
                             ? "Connected"
                             : "Inactive"}
                       </GlassBadge>
+                      <GlassBadge tone={truthTone(truth.state)}>{truth.label}</GlassBadge>
                     </div>
                   </div>
                 );

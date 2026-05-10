@@ -166,7 +166,7 @@ export default function PublishQueueClient(props: {
     <GlassCard
       label="Queue"
       title="Publish queue"
-      description="Track what is queued, blocked, and ready to retry."
+      description="Track what is queued, blocked, and ready to retry. Implemented integrations are the only live publish paths."
       strong
       footer={
         <div className="flex flex-wrap gap-2">
@@ -380,6 +380,9 @@ export default function PublishQueueClient(props: {
             ))}
           </div>
         )}
+      </div>
+      <div className={cx("mt-3 text-xs", glassTheme.text.muted)}>
+        Planned/mock integrations may queue internal jobs, but this does not confirm a live external post until a real platform post URL or ID is persisted.
       </div>
     </GlassCard>
   );
