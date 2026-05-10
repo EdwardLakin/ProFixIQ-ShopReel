@@ -1,5 +1,6 @@
 import type { AiIntent } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { deriveStageFromRoute, resolveWorkflowType, type CanonicalWorkflowState } from "@/features/shopreel/ui/system/workflowTransitionModel";
 
 export type WorkflowPosture = "create_posture" | "review_posture" | "render_posture" | "export_posture" | "recovery_posture" | "dormant_posture" | "escalation_posture";
 export type TransitionIntent =
@@ -28,6 +29,8 @@ export type TransitionSnapshot = {
   routeCarryover: string;
   focusCarryover: string;
   nextActionLabel: string;
+  descriptor: CanonicalWorkflowState;
+  safeLoading: "soft_continuity" | "standard";
   updatedAt: string;
 };
 
@@ -69,10 +72,19 @@ function derivePosture(route: string, mode: TransitionMode): WorkflowPosture {
 
 export function resolveTransitionIntent(context: TransitionContext): TransitionIntent {
   const manual = context.command.toLowerCase();
-  if (/(resume interrupted|restore continuity|return to active branch)/.test(manual)) return "restore_continuity";
-  if (/(continue latest|continue|resume)/.test(manual)) return "continue_latest";
+  const tokens = manual.split(/\s+/).filter(Boolean);
+  if (tokens.includes("restore") || (tokens.includes("resume") && tokens.includes("interrupted")) || manual.includes("return to active branch")) return "restore_continuity";
+  if (tokens.includes("continue") || tokens.includes("resume") || manual.includes("continue latest")) return "continue_latest";
   if (context.memory?.interruptedWorkflow) return "resume_interrupted_work";
   return "return_to_active_branch";
+}
+
+function deriveTransitionReason(intent: TransitionIntent): CanonicalWorkflowState["transition_reason"] {
+  if (intent === "resume_interrupted_work" || intent === "restore_continuity") return "continuity_resume";
+  if (intent === "review_to_render") return "render_escalation";
+  if (intent === "export_to_publish") return "publish_handoff";
+  if (intent === "continue_latest" || intent === "return_to_active_branch") return "manual_recovery";
+  return "workflow_progression";
 }
 
 export function deriveTransitionSnapshot(context: TransitionContext): TransitionSnapshot {
@@ -99,6 +111,15 @@ export function deriveTransitionSnapshot(context: TransitionContext): Transition
     routeCarryover: `Carry ${context.currentRoute} context into ${context.targetRoute}.`,
     focusCarryover: context.memory?.lastCommand || "Continue active production focus",
     nextActionLabel: explicit?.nextActionLabel ?? "Continue draft",
+    descriptor: {
+      workflow_type: resolveWorkflowType(context.interpretedIntent),
+      current_stage: deriveStageFromRoute(context.currentRoute),
+      next_stage: deriveStageFromRoute(context.targetRoute),
+      resumable_entity_id: context.memory?.lastGenerationId ?? context.memory?.lastCampaignId,
+      transition_reason: deriveTransitionReason(intent),
+      completion_state: mode === "recovery" ? "interrupted" : mode === "progression" ? "ready_for_next" : "in_progress",
+    },
+    safeLoading: mode === "continuity" || mode === "recovery" ? "soft_continuity" : "standard",
     updatedAt: new Date().toISOString(),
   };
 }
