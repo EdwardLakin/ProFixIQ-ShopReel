@@ -7,6 +7,7 @@ import EcosystemStateRail from "@/features/shopreel/ui/system/EcosystemStateRail
 import SurfaceExecutionHint from "@/features/shopreel/ui/system/SurfaceExecutionHint";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { DEFAULT_SHOPREEL_PLATFORM_IDS, SHOPREEL_PLATFORM_PRESETS, type ShopReelPlatformId } from "@/features/shopreel/platforms/presets";
+import CampaignWorkflowContinuityRail from "@/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail";
 
 type UploadFileMeta = { file: File; fileType: "image" | "video" };
 
@@ -155,6 +156,7 @@ export default function ShopReelCreatePage() {
     <GlassShell eyebrow="Create" title="Create your next piece of content" subtitle="Guided studio flow: choose format, upload media, brief AI, select channels, then generate draft.">
       <EcosystemStateRail surface="create" />
       <SurfaceExecutionHint surface="create" />
+      <CampaignWorkflowContinuityRail />
       <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"><div className="grid gap-2 sm:grid-cols-4"><div className="rounded-xl border border-cyan-300/25 bg-cyan-500/10 px-3 py-2 text-xs text-white/85">01 · Format</div><div className="rounded-xl border border-violet-300/25 bg-violet-500/10 px-3 py-2 text-xs text-white/85">02 · Source</div><div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">03 · Brief</div><div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">04 · Channels</div></div></div><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="space-y-4">
           {prefillNotice ? (
