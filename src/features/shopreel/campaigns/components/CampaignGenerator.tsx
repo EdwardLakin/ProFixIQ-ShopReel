@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Database } from "@/types/supabase";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
@@ -125,6 +125,10 @@ export default function CampaignGenerator({
   };
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const promptFromCommand = useMemo(() => searchParams.get("prompt")?.trim() ?? "", [searchParams]);
+  const creatingFromPrompt = searchParams.get("mode") === "create" && promptFromCommand.length > 0;
 
   const [title, setTitle] = useState("ShopReel vs Traditional Marketing");
   const [coreIdea, setCoreIdea] = useState(
@@ -133,9 +137,28 @@ export default function CampaignGenerator({
   const [audience, setAudience] = useState("Repair shops, local businesses, and creators");
   const [offer, setOffer] = useState("Turn real work into marketing automatically");
   const [campaignGoal, setCampaignGoal] = useState("Brand awareness and product introduction");
+  const [productContext, setProductContext] = useState("");
+  const [tone, setTone] = useState("Confident and practical");
+  const [platformFocus, setPlatformFocus] = useState("instagram, facebook, tiktok, youtube");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!creatingFromPrompt) return;
+    const prompt = promptFromCommand;
+    const shortTitle = prompt.split(/[.!?\n]/)[0]?.replace(/^build\s+/i, "").trim() ?? "New Campaign";
+    const platformMatch = prompt.match(/\b(instagram|facebook|tiktok|youtube|linkedin|x|twitter)\b/gi) ?? [];
+
+    setTitle(shortTitle.slice(0, 100));
+    setCoreIdea(prompt);
+    setAudience(/\bfor\s+([^.,\n]+)/i.exec(prompt)?.[1]?.trim() ?? "");
+    setOffer(/\b(offer|promote|featuring)\s+([^.,\n]+)/i.exec(prompt)?.[2]?.trim() ?? "");
+    setCampaignGoal(/\b(goal|objective|to)\s+([^.,\n]+)/i.exec(prompt)?.[2]?.trim() ?? "Awareness and conversions");
+    setProductContext(/\b(?:for|about)\s+([^.,\n]+)/i.exec(prompt)?.[1]?.trim() ?? "");
+    setTone(/\b(tone|style)\s*(?:is|:)?\s*([^.,\n]+)/i.exec(prompt)?.[2]?.trim() ?? "Confident and practical");
+    if (platformMatch.length > 0) setPlatformFocus(Array.from(new Set(platformMatch.map((x) => x.toLowerCase()))).join(", "));
+  }, [creatingFromPrompt, promptFromCommand]);
 
   async function create() {
     try {
@@ -154,7 +177,15 @@ export default function CampaignGenerator({
           audience,
           offer,
           campaignGoal,
-          platformFocus: ["instagram", "facebook", "tiktok", "youtube"],
+          platformFocus: platformFocus.split(",").map((p) => p.trim().toLowerCase()).filter(Boolean),
+          campaignBrain: {
+            campaignObjective: campaignGoal || null,
+            targetAudience: audience || null,
+            channelPriorities: platformFocus.split(",").map((p) => p.trim().toLowerCase()).filter(Boolean),
+            contentPillars: [],
+            experimentHypotheses: [],
+            successSignals: creatingFromPrompt ? [promptFromCommand] : [],
+          },
         }),
       });
 
@@ -198,6 +229,7 @@ export default function CampaignGenerator({
         ) : null}
 
         <div className="grid gap-3.5">
+          {creatingFromPrompt ? <div className="rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-50">New campaign detected · Campaign brief generated from your prompt.</div> : null}
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
               Campaign Title
@@ -207,6 +239,21 @@ export default function CampaignGenerator({
               onChange={(e) => setTitle(e.target.value)}
               className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
             />
+          </label>
+
+          <label className="grid gap-2">
+            <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Product / Brand Context</span>
+            <input value={productContext} onChange={(e) => setProductContext(e.target.value)} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
+          </label>
+
+          <label className="grid gap-2">
+            <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Tone</span>
+            <input value={tone} onChange={(e) => setTone(e.target.value)} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
+          </label>
+
+          <label className="grid gap-2">
+            <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Platforms</span>
+            <input value={platformFocus} onChange={(e) => setPlatformFocus(e.target.value)} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
           </label>
 
           <label className="grid gap-2">
