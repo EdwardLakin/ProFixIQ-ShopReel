@@ -122,6 +122,7 @@ export default function GlobalCommandLauncher() {
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-cyan-100/70">Command center · {pathname}</div>
           <AiCommandInput value={value} onChange={setValue} placeholder={modePlaceholder} className="min-h-24 text-lg" />
           <div className="mt-3 text-sm text-cyan-50/90">{interpreted.summary}</div>
+          {interpreted.nextActions.length > 0 ? <div className="mt-2 flex flex-wrap gap-2">{interpreted.nextActions.map((action) => <button key={action.label} onClick={() => router.push(action.href)} className="rounded-full bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10">{action.label}</button>)}</div> : null}
           <div className="mt-2 text-xs text-cyan-100/70">{proactiveHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{ecosystemHint}</div>
           <div className="mt-1 text-xs text-cyan-200/80">{focusLine}</div>
