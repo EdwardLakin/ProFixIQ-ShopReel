@@ -69,6 +69,14 @@ function timeAgoLabel(value: string | null) {
   return new Date(value).toLocaleDateString();
 }
 
+
+function whatHappensNext(row: PublicationDiagnosticRow): string {
+  if (row.diagnostics.currentPublicationStatus === "queued") return "Queued internally. External publish is pending worker execution.";
+  if (row.diagnostics.currentPublicationStatus === "publishing") return "Publish call in progress. Wait for external post URL/ID persistence.";
+  if (row.diagnostics.retryable) return "Failed but retryable. Retry routes through canonical queue transition semantics.";
+  return "Failed and blocked. Operator action is required before queueing again.";
+}
+
 function statusTone(status: string | null | undefined): "default" | "copper" | "muted" {
   if (status === "completed" || status === "published") return "copper";
   if (status === "failed") return "muted";
@@ -337,6 +345,7 @@ export default function PublishQueueClient(props: {
                       Reason: {row.diagnostics.reasonLabel} • {row.diagnostics.retryabilityLabel}
                     </div>
                     <div className={cx("text-xs", glassTheme.text.muted)}>{row.diagnostics.summary}</div>
+                    <div className={cx("text-xs", glassTheme.text.secondary)}>Next: {whatHappensNext(row)}</div>
                   </div>
                   <GlassBadge tone={row.diagnostics.retryable ? "default" : "muted"}>
                     {row.diagnostics.retryable ? "retryable" : "blocked"}
