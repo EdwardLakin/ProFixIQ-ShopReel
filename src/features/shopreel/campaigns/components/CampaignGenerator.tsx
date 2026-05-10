@@ -8,6 +8,7 @@ import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
+import { consumeCampaignCommandHandoff } from "@/features/shopreel/ui/system/campaignCommandHandoff";
 
 type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"] & {
   items?: Array<{
@@ -127,9 +128,35 @@ export default function CampaignGenerator({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const promptFromCommand = useMemo(() => searchParams.get("prompt")?.trim() ?? "", [searchParams]);
+  const handoffId = useMemo(() => searchParams.get("handoff")?.trim() ?? "", [searchParams]);
+  const [promptFromCommand, setPromptFromCommand] = useState("");
+  const [handoffError, setHandoffError] = useState<string | null>(null);
   const creatingFromPrompt = searchParams.get("mode") === "create" && promptFromCommand.length > 0;
 
+
+
+  useEffect(() => {
+    if (searchParams.get("mode") !== "create") return;
+    const fallbackPrompt = searchParams.get("prompt")?.trim() ?? "";
+    if (handoffId) {
+      const handoff = consumeCampaignCommandHandoff(handoffId);
+      if (!handoff) {
+        setHandoffError("Campaign handoff expired before loading. Paste the prompt again to generate a new campaign brief.");
+        if (fallbackPrompt) setPromptFromCommand(fallbackPrompt);
+        console.info("[ShopReelRouteTrace]", { handoffId, handoffMethod: "session_storage", campaignPrefillStatus: "handoff_missing" });
+        return;
+      }
+      setPromptFromCommand(handoff.prompt.trim());
+      setHandoffError(null);
+      console.info("[ShopReelRouteTrace]", { handoffId, handoffMethod: "session_storage", campaignPrefillStatus: "handoff_loaded", promptLength: handoff.prompt.length });
+      return;
+    }
+
+    if (fallbackPrompt) {
+      setPromptFromCommand(fallbackPrompt);
+      console.info("[ShopReelRouteTrace]", { handoffMethod: "query_fallback", campaignPrefillStatus: "fallback_loaded", promptLength: fallbackPrompt.length });
+    }
+  }, [handoffId, searchParams]);
   const [title, setTitle] = useState("ShopReel vs Traditional Marketing");
   const [coreIdea, setCoreIdea] = useState(
     `Compare ShopReel to traditional marketing methods and introduce ShopReel as the future of business marketing.${seedDefaults.suggestedHook ? ` ${seedDefaults.suggestedHook}.` : ""}`
@@ -230,6 +257,8 @@ export default function CampaignGenerator({
 
         <div className="grid gap-3.5">
           {creatingFromPrompt ? <div className="rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-50">New campaign detected · Campaign brief generated from your prompt.</div> : null}
+          {promptFromCommand ? <div className="rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-50">Source prompt context preserved ({promptFromCommand.length} chars).</div> : null}
+          {handoffError ? <div className="rounded-xl border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-100">{handoffError}</div> : null}
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
               Campaign Title

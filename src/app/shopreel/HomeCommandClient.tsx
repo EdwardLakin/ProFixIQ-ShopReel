@@ -36,6 +36,7 @@ import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/sy
 import { buildRecoveryInbox } from "@/features/shopreel/ui/system/recoveryInbox";
 import { classifyCommandInputIntent } from "@/features/shopreel/ui/system/commandInputIntent";
 import { resolveRouteFromPrompt } from "@/features/shopreel/ui/system/shopReelRouteRegistry";
+import { createCampaignCommandHandoff } from "@/features/shopreel/ui/system/campaignCommandHandoff";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -188,9 +189,14 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     const executionPlan = planCommandExecution(command, graph, inferredTarget, interpreted.intent);
     let target = executionPlan.targetRoute;
 
+    let handoffMethod: "none" | "session_storage" = "none";
+    let handoffId: string | null = null;
+
     if (commandIntent === "create_campaign") {
-      const prompt = encodeURIComponent(command.trim());
-      target = `/shopreel/campaigns/new?prompt=${prompt}`;
+      const handoff = createCampaignCommandHandoff({ prompt: command.trim(), source: "home_command" });
+      handoffMethod = "session_storage";
+      handoffId = handoff.id;
+      target = `/shopreel/campaigns/new?mode=create&handoff=${encodeURIComponent(handoff.id)}`;
     }
 
     const countText = recent.length > 0 ? `I found ${recent.length} recent drafts.` : "No recent drafts were found yet.";
@@ -205,7 +211,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     if (interpreted.intent === "render") recordOperatorRhythmEvent({ type: "render_checked", route: target });
     if (/(continue|resume)/i.test(command)) recordOperatorBehaviorEvent({ type: "workflow_continued", route: target, intent: interpreted.intent });
     if (/(continue|resume|recover|restore)/i.test(command)) recordOperatorRhythmEvent({ type: "workflow_continued", route: target });
-    console.info("[ShopReelRouteTrace]", { input: command, detectedIntent: decision.intent, selectedRoute: target, recoveryUsed: decision.usedRecovery, staleContinuityIgnored: decision.ignoredStaleContinuity, reason: decision.reason });
+    console.info("[ShopReelRouteTrace]", { input: command, promptLength: command.length, detectedIntent: decision.intent, selectedRoute: target, handoffMethod, handoffId, recoveryUsed: decision.usedRecovery, staleContinuityIgnored: decision.ignoredStaleContinuity, reason: decision.reason });
     persistContext(target);
     router.push(target);
   };

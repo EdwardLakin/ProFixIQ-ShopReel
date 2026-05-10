@@ -12,6 +12,8 @@ import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggest
 import { deriveStrategicAdaptation, evolveStrategicOperationalMemory, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
 import { deriveTransitionSnapshot } from "@/features/shopreel/ui/system/transitionEngine";
 import { resolveRouteFromPrompt } from "@/features/shopreel/ui/system/shopReelRouteRegistry";
+import { classifyCommandInputIntent } from "@/features/shopreel/ui/system/commandInputIntent";
+import { createCampaignCommandHandoff } from "@/features/shopreel/ui/system/campaignCommandHandoff";
 
 const routeCommandSuggestions: Array<{ test: (path: string) => boolean; examples: string[] }> = [
   { test: (path) => path.startsWith("/shopreel/render"), examples: ["show failed renders", "package completed jobs", "open latest export"] },
@@ -84,7 +86,16 @@ export default function GlobalCommandLauncher() {
 
   const run = () => {
     const decision = resolveRouteFromPrompt(value, readWorkspaceMemory()?.lastRoute);
-    const selectedRoute = decision.route;
+    const commandIntent = classifyCommandInputIntent(value);
+    let selectedRoute = decision.route;
+    let handoffMethod: "none" | "session_storage" = "none";
+    let handoffId: string | null = null;
+    if (commandIntent === "create_campaign") {
+      const handoff = createCampaignCommandHandoff({ prompt: value.trim(), source: "global_command" });
+      selectedRoute = `/shopreel/campaigns/new?mode=create&handoff=${encodeURIComponent(handoff.id)}`;
+      handoffMethod = "session_storage";
+      handoffId = handoff.id;
+    }
     const operatorMemory = recordOperatorBehaviorEvent({ type: "command_submitted", route: selectedRoute, intent: decision.intent });
     recordOperatorRhythmEvent({ type: "command_submitted", route: selectedRoute });
     if (/(continue|resume)/i.test(value)) recordOperatorRhythmEvent({ type: "workflow_continued", route: selectedRoute });
@@ -115,7 +126,7 @@ export default function GlobalCommandLauncher() {
       writeWorkspaceMemory(nextWorkspace);
       evolveStrategicOperationalMemory({ workspace: nextWorkspace, operator: operatorMemory, continuity });
     }
-    console.info("[ShopReelRouteTrace]", { input: value, detectedIntent: decision.intent, selectedRoute: selectedRoute, recoveryUsed: decision.usedRecovery, staleContinuityIgnored: decision.ignoredStaleContinuity, reason: decision.reason });
+    console.info("[ShopReelRouteTrace]", { input: value, promptLength: value.length, detectedIntent: decision.intent, selectedRoute: selectedRoute, handoffMethod, handoffId, recoveryUsed: decision.usedRecovery, staleContinuityIgnored: decision.ignoredStaleContinuity, reason: decision.reason });
     router.push(selectedRoute);
     setFocusLine(`Next move: ${transition.nextActionLabel}`);
     setEcosystemHint(`Transition: ${transition.mode} · ${transition.continuityCorridor}`);
