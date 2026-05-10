@@ -6,6 +6,7 @@ import { buildCreatorResearchDraft } from "@/features/shopreel/creator/buildCrea
 import { createContentPieceFromStoryDraft } from "@/features/shopreel/story-builder/createContentPieceFromStoryDraft";
 import { saveStoryGeneration, saveStorySource } from "@/features/shopreel/story-sources/server";
 import type { StorySource } from "@/features/shopreel/story-sources";
+import type { Json } from "@/types/supabase";
 
 type OutputType = "video" | "blog" | "email" | "post";
 
@@ -29,6 +30,21 @@ type Body = {
   researchBullets?: string[] | null;
   angle: Angle;
 };
+
+type CreatorRequestResultPayload = {
+  derivedPosts?: Array<Record<string, Json | undefined>>;
+  [key: string]: Json | undefined;
+};
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function asDerivedPosts(value: unknown): Array<Record<string, Json | undefined>> {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is Record<string, Json | undefined> => !!entry && typeof entry === "object" && !Array.isArray(entry));
+}
 
 function safeStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -54,7 +70,6 @@ export async function POST(req: Request) {
     const body = (await req.json()) as Body;
     const shopId = await getCurrentShopId();
     const supabase = createAdminClient();
-    const legacy = supabase as any;
 
     if (!body.topic || body.topic.trim().length < 3) {
       return NextResponse.json({ ok: false, error: "Topic required" }, { status: 400 });
@@ -113,7 +128,7 @@ export async function POST(req: Request) {
 
     const savedSource = await saveStorySource(source);
 
-    await legacy
+    await supabase
       .from("shopreel_content_opportunities")
       .upsert(
         {
@@ -163,7 +178,7 @@ export async function POST(req: Request) {
       sourceSystem: "creator_mode",
     });
 
-    await legacy
+    await supabase
       .from("content_pieces")
       .update({
         metadata: {
@@ -201,40 +216,35 @@ export async function POST(req: Request) {
     });
 
     if (body.creatorRequestId) {
-      const { data: request } = await legacy
+      const { data: request } = await supabase
         .from("shopreel_creator_requests")
         .select("result_payload")
         .eq("id", body.creatorRequestId)
         .eq("shop_id", shopId)
         .maybeSingle();
 
-      const resultPayload =
-        request?.result_payload && typeof request.result_payload === "object" && !Array.isArray(request.result_payload)
-          ? request.result_payload
-          : {};
+      const resultPayloadObject = asObject(request?.result_payload);
+      const derivedPosts = asDerivedPosts(resultPayloadObject.derivedPosts);
+      const nextResultPayload: CreatorRequestResultPayload = {
+        ...(resultPayloadObject as CreatorRequestResultPayload),
+        derivedPosts: [
+          ...derivedPosts,
+          {
+            title,
+            generationId: generation.id,
+            storySourceId: savedSource.id,
+            createdAt: now,
+            angleTitle: body.angle.title,
+            outputType: body.outputType,
+          },
+        ],
+      };
 
-      const derivedPosts = Array.isArray((resultPayload as any).derivedPosts)
-        ? (resultPayload as any).derivedPosts
-        : [];
-
-      await legacy
+      await supabase
         .from("shopreel_creator_requests")
         .update({
           updated_at: now,
-          result_payload: {
-            ...resultPayload,
-            derivedPosts: [
-              ...derivedPosts,
-              {
-                title,
-                generationId: generation.id,
-                storySourceId: savedSource.id,
-                createdAt: now,
-                angleTitle: body.angle.title,
-                outputType: body.outputType,
-              },
-            ],
-          },
+          result_payload: nextResultPayload,
         })
         .eq("id", body.creatorRequestId)
         .eq("shop_id", shopId);

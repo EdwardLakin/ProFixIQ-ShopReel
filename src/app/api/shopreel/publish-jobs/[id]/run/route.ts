@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import {
   ACTIVE_PUBLISH_JOB_STATUSES,
 } from "@/features/shopreel/lib/contracts/lifecycle";
+import type { Tables } from "@/types/supabase";
 import {
   requireUserActionTenantContext,
   toEndpointErrorResponse,
@@ -16,14 +17,12 @@ export async function POST(
     const { id } = await ctx.params;
     const { shopId } = await requireUserActionTenantContext();
     const supabase = createAdminClient();
-    const legacy = supabase as any;
-
-    const { data: job, error: jobError } = await legacy
+    const { data: job, error: jobError } = await supabase
       .from("shopreel_publish_jobs")
-      .select("*")
+      .select("id,status")
       .eq("id", id)
       .eq("shop_id", shopId)
-      .maybeSingle();
+      .maybeSingle<Tables<"shopreel_publish_jobs">>();
 
     if (jobError) {
       throw new Error(jobError.message);
@@ -36,7 +35,7 @@ export async function POST(
       );
     }
 
-    if (!ACTIVE_PUBLISH_JOB_STATUSES.includes(job.status)) {
+    if (!ACTIVE_PUBLISH_JOB_STATUSES.includes(job.status as (typeof ACTIVE_PUBLISH_JOB_STATUSES)[number])) {
       return NextResponse.json(
         {
           ok: false,
