@@ -34,6 +34,7 @@ import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggest
 import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
 import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/system/productionExecutionIntelligence";
 import { buildRecoveryInbox } from "@/features/shopreel/ui/system/recoveryInbox";
+import { classifyCommandInputIntent } from "@/features/shopreel/ui/system/commandInputIntent";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -59,8 +60,10 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   }, []);
 
   const interpreted = useMemo(() => interpretCommand(command), [command]);
+  const commandIntent = useMemo(() => classifyCommandInputIntent(command), [command]);
 
   const persistContext = (route: string) => {
+    const resolvedCampaignId = commandIntent === "create_campaign" ? undefined : recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId ?? undefined;
     const nextHistory = [command, ...(context?.intentHistory ?? [])].filter((x) => x.trim()).slice(0, 8);
     const nextIntents = [interpreted.intent, ...(context?.recentIntents ?? [])].slice(0, 8);
     const pendingTasks = buildPendingTasks(interpreted.intent);
@@ -70,17 +73,17 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     const continuityThreads = buildContinuityThreads({
       intent: interpreted.intent,
       pendingTasks,
-      interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+      interruptedWorkflow: commandIntent === "create_campaign" ? undefined : interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
       lastRoute: route,
       generationId: recent[0]?.id,
-      campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+      campaignId: resolvedCampaignId,
     });
     const ecosystemState = deriveEcosystemState({
       pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
       readyTaskCount,
       blockerCount,
       continuityThreadCount: continuityThreads.length,
-      interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+      interruptedWorkflow: commandIntent === "create_campaign" ? undefined : interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
       adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
       minutesSinceUpdate,
     });
@@ -95,7 +98,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
     const operationalGraph = buildOperationalGraph({
       generationId: recent[0]?.id,
-      campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+      campaignId: resolvedCampaignId,
       pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
       blockerCount,
       readyTaskCount,
@@ -107,7 +110,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
     const next: WorkspaceMemory = {
       lastWorkflow: interpreted.intent,
-      lastCampaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+      lastCampaignId: resolvedCampaignId,
       lastRenderContextRoute: interpreted.intent === "render" ? route : context?.lastRenderContextRoute,
       lastGenerationId: recent[0]?.id,
       lastCommand: command,
@@ -115,16 +118,16 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       recentIntents: nextIntents,
       intentHistory: nextHistory,
       pendingTasks,
-      interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+      interruptedWorkflow: commandIntent === "create_campaign" ? undefined : interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
       adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
       creativeContinuity: context?.creativeContinuity ?? defaultCreativeContinuityMemory(),
       continuityThreads: buildContinuityThreads({
         intent: interpreted.intent,
         pendingTasks,
-        interruptedWorkflow: interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
+        interruptedWorkflow: commandIntent === "create_campaign" ? undefined : interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
         lastRoute: route,
         generationId: recent[0]?.id,
-        campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+        campaignId: resolvedCampaignId,
       }),
       intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
       ecosystemState,
@@ -151,7 +154,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       recoveryInbox: buildRecoveryInbox({
         route,
         generationId: recent[0]?.id,
-        campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+        campaignId: resolvedCampaignId,
         interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
         hasReviewItems: pendingTasks.some((task) => /review/i.test(task.label) && !task.done),
         hasPublishReady: recent.some((item) => /ready|completed/i.test(item.status)),
@@ -168,13 +171,14 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   };
 
   const runCommand = () => {
+    const resolvedCampaignId = commandIntent === "create_campaign" ? undefined : recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId ?? undefined;
     const fallbackLatest = recent[0] ? `/shopreel/generations/${recent[0].id}` : "/shopreel/generations";
     const inferredTarget = interpreted.intent === "latest" && /continue/.test(command.toLowerCase())
       ? context?.lastRoute ?? fallbackLatest
       : interpreted.href ?? "/shopreel";
     const graph = context?.operationalGraph ?? buildOperationalGraph({
       generationId: recent[0]?.id,
-      campaignId: recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId,
+      campaignId: resolvedCampaignId,
       pendingTaskCount: context?.pendingTasks.filter((task) => !task.done).length ?? 0,
       blockerCount: context?.pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length ?? 0,
       readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
@@ -183,9 +187,14 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       lastRoute: inferredTarget,
     });
     const executionPlan = planCommandExecution(command, graph, inferredTarget, interpreted.intent);
-    const target = executionPlan.targetRoute;
+    let target = executionPlan.targetRoute;
 
-    const countText = recent.length > 0 ? `I found ${recent.length} recent drafts. The newest reel was touched moments ago.` : "I couldn't find persisted activity yet, so I'll start from your command home.";
+    if (commandIntent === "create_campaign") {
+      const prompt = encodeURIComponent(command.trim());
+      target = `/shopreel/campaigns?mode=create&prompt=${prompt}`;
+    }
+
+    const countText = recent.length > 0 ? `I found ${recent.length} recent drafts.` : "No recent drafts were found yet.";
     setAssistantText(`${interpreted.summary} ${countText} Operating mode: ${executionPlan.mode.replaceAll("_", " ")}.`);
     recordOperatorBehaviorEvent({ type: "command_submitted", route: target, intent: interpreted.intent });
     recordOperatorRhythmEvent({ type: "command_submitted", route: target });
@@ -294,7 +303,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const activityStream = [
     `Continuing ${context?.lastWorkflow ?? "new"} session`,
     ambientCheckpoint,
-    recent[0] ? `Latest draft located: ${recent[0].title}` : "No latest draft persisted yet",
+    recent[0] ? `Latest draft: ${recent[0].title}` : "No latest draft persisted yet",
     `${recent.filter((item) => /ready|complete|published/i.test(item.status)).length} outputs ready for packaging`,
     `Last active workspace: ${context?.lastRoute ?? "Command Home"}`,
     context?.pendingTasks[0] ? `Next checkpoint: ${context.pendingTasks[0].label}` : "No pending checkpoints detected",
@@ -317,7 +326,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Command home</div>
         <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Calm command center. Keep moving.</h1>
         <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">See what needs attention, what is ready, and what to do next.</p>
-        <p className="mt-2 text-xs text-white/60">Active flow: {ecosystemSnapshot.ecosystemMode} · render pressure {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
+        <p className="mt-2 text-xs text-white/60">Active flow: {ecosystemSnapshot.ecosystemMode} · workflow status {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
         <p className="mt-2 text-xs text-white/55">Next move: {ecosystemSnapshot.suggestedSurfaceAction} · recovery path {ecosystemSnapshot.recoveryPriority}</p>
         <p className="mt-1 text-xs text-cyan-100/80">Likely next: {execution.nextOperationalMove} → {execution.recommendedSurface}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
