@@ -53,6 +53,8 @@ export async function POST(
                 objection: angle.objection,
                 emotional_outcome: angle.emotionalOutcome,
                 platform_adaptation: angle.platformAdaptation,
+                narrative_archetype: angle.narrativeArchetype,
+                storyboard: angle.storyboard,
               },
             },
             status: "draft",
