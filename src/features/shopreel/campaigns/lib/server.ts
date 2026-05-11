@@ -2,46 +2,13 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { Database, Json } from "@/types/supabase";
 import { getBrandBrainProfile } from "@/features/shopreel/brain/repository";
+import { buildCampaignBrainMetadata, generateDifferentiatedAngles } from "@/features/shopreel/campaigns/lib/campaignIntelligence";
 
 type CampaignInsert =
   Database["public"]["Tables"]["shopreel_campaigns"]["Insert"];
 
 type CampaignItemInsert =
   Database["public"]["Tables"]["shopreel_campaign_items"]["Insert"];
-
-const DEFAULT_ANGLES = [
-  "Problem",
-  "Old Way",
-  "New Way",
-  "How It Works",
-  "Outcome",
-  "Call To Action",
-] as const;
-
-function buildCampaignPrompt(args: {
-  preferredCta?: string | null;
-  prohibitedClaims?: string[];
-  voiceRules?: string | null;
-  coreIdea: string;
-  angle: string;
-  audience: string | null;
-  offer: string | null;
-  campaignGoal: string | null;
-}) {
-  const parts = [
-    `Create a short cinematic vertical marketing video about ${args.coreIdea}.`,
-    `Angle: ${args.angle}.`,
-    args.audience ? `Audience: ${args.audience}.` : "",
-    args.offer ? `Offer or promise: ${args.offer}.` : "",
-    args.campaignGoal ? `Campaign goal: ${args.campaignGoal}.` : "",
-    args.voiceRules ? `Voice rules: ${args.voiceRules}.` : "",
-    args.preferredCta ? `Preferred CTA: ${args.preferredCta}.` : "",
-    (args.prohibitedClaims && args.prohibitedClaims.length > 0) ? `Do not claim: ${args.prohibitedClaims.join(", ")}.` : "",
-    "Make it clear, modern, emotionally engaging, and platform-ready for short-form social video.",
-  ].filter(Boolean);
-
-  return parts.join(" ");
-}
 
 export async function createCampaign(args: {
   title: string;
@@ -65,7 +32,7 @@ export async function createCampaign(args: {
     campaign_goal: args.campaignGoal,
     platform_focus: args.platformFocus,
     status: "draft",
-    metadata: {},
+    metadata: buildCampaignBrainMetadata(args.coreIdea),
   };
 
   const { data: campaign, error: campaignError } = await supabase
@@ -78,22 +45,23 @@ export async function createCampaign(args: {
     throw new Error(campaignError?.message ?? "Failed to create campaign");
   }
 
-  const itemInserts: CampaignItemInsert[] = DEFAULT_ANGLES.map((angle, index) => ({
+  const baseAngles = generateDifferentiatedAngles({ title: args.title, coreIdea: args.coreIdea });
+
+  const itemInserts: CampaignItemInsert[] = baseAngles.map((angle) => ({
     campaign_id: campaign.id,
     shop_id: shopId,
-    sort_order: index,
-    angle,
-    title: `${args.title} — ${angle}`,
-    prompt: buildCampaignPrompt({
-      coreIdea: args.coreIdea,
-      angle,
-      audience: args.audience,
-      offer: args.offer,
-      campaignGoal: args.campaignGoal,
-      preferredCta: (brandBrain?.preferred_ctas ?? [])[0] ?? null,
-      prohibitedClaims: brandBrain?.prohibited_claims ?? [],
-      voiceRules: brandBrain?.brand_voice_rules ?? null,
-    }),
+    sort_order: angle.sortOrder,
+    angle: angle.angle,
+    title: angle.title,
+    prompt: [
+      angle.prompt,
+      args.audience ? `Campaign audience context: ${args.audience}.` : "",
+      args.offer ? `Offer context: ${args.offer}.` : "",
+      args.campaignGoal ? `Campaign goal: ${args.campaignGoal}.` : "",
+      (brandBrain?.preferred_ctas ?? [])[0] ? `Preferred CTA signal: ${(brandBrain?.preferred_ctas ?? [])[0]}.` : "",
+      (brandBrain?.prohibited_claims ?? []).length > 0 ? `Do not claim: ${(brandBrain?.prohibited_claims ?? []).join(", ")}.` : "",
+      brandBrain?.brand_voice_rules ? `Voice guardrails: ${brandBrain.brand_voice_rules}.` : "",
+    ].filter(Boolean).join(" "),
     negative_prompt:
       "Avoid blurry visuals, distorted hands, low detail, unreadable text, cluttered composition.",
     style: "cinematic",
@@ -103,7 +71,13 @@ export async function createCampaign(args: {
     status: "draft",
     metadata: {
       generated_from_campaign: true,
-      campaign_angle: angle,
+      campaign_angle: angle.angle,
+      campaign_intelligence: {
+        hook: angle.hook,
+        objection: angle.objection,
+        emotional_outcome: angle.emotionalOutcome,
+        platform_adaptation: angle.platformAdaptation,
+      },
     } satisfies Json,
   }));
 

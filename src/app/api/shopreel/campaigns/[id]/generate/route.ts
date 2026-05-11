@@ -2,36 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { ensureScenesForCampaignItem, createMediaJobsForCampaignItemScenes } from "@/features/shopreel/campaigns/lib/multiscene";
-import { DEFAULT_CAMPAIGN_ANGLES } from "@/features/shopreel/campaigns/lib/defaultCampaignAngles";
-
-function buildAngles(coreIdea: string, title: string) {
-  return [
-    {
-      angle: "Problem",
-      title: `${title} — Problem`,
-      prompt: `Create a short cinematic vertical marketing video about ${coreIdea}. Angle: Problem. Make it clear, modern, emotionally engaging, and platform-ready.`,
-      sort_order: 1,
-    },
-    {
-      angle: "Old Way",
-      title: `${title} — Old Way`,
-      prompt: `Create a short cinematic vertical marketing video about ${coreIdea}. Angle: Old Way. Show the outdated, frustrating, inefficient version clearly.`,
-      sort_order: 2,
-    },
-    {
-      angle: "New Way",
-      title: `${title} — New Way`,
-      prompt: `Create a short cinematic vertical marketing video about ${coreIdea}. Angle: New Way. Show the modern, streamlined, better workflow.`,
-      sort_order: 3,
-    },
-    {
-      angle: "Outcome",
-      title: `${title} — Outcome`,
-      prompt: `Create a short cinematic vertical marketing video about ${coreIdea}. Angle: Outcome. Show the result, confidence, growth, and finished success.`,
-      sort_order: 4,
-    },
-  ];
-}
+import { buildCampaignBrainMetadata, generateDifferentiatedAngles } from "@/features/shopreel/campaigns/lib/campaignIntelligence";
 
 export async function POST(
   _req: Request,
@@ -63,7 +34,7 @@ export async function POST(
     let items = existingItems ?? [];
 
     if (items.length === 0) {
-      const angles = buildAngles(campaign.core_idea, campaign.title);
+      const angles = generateDifferentiatedAngles({ coreIdea: campaign.core_idea, title: campaign.title });
 
       const { data: insertedItems, error: insertItemsError } = await supabase
         .from("shopreel_campaign_items")
@@ -74,7 +45,16 @@ export async function POST(
             angle: angle.angle,
             title: angle.title,
             prompt: angle.prompt,
-            sort_order: angle.sort_order,
+            sort_order: angle.sortOrder,
+            metadata: {
+              generated_from_campaign: true,
+              campaign_intelligence: {
+                hook: angle.hook,
+                objection: angle.objection,
+                emotional_outcome: angle.emotionalOutcome,
+                platform_adaptation: angle.platformAdaptation,
+              },
+            },
             status: "draft",
             aspect_ratio: "9:16",
             duration_seconds: 20,
@@ -106,6 +86,7 @@ export async function POST(
       .from("shopreel_campaigns")
       .update({
         status: "ready",
+        metadata: buildCampaignBrainMetadata(campaign.core_idea),
         updated_at: new Date().toISOString(),
       })
       .eq("id", campaign.id);
