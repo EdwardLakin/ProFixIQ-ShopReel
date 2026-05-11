@@ -178,12 +178,16 @@ export async function finalizeCompletedMediaJob(args: {
   } | null;
 }) {
   const supabase = createAdminClient();
+  const finalUrl = args.storage?.publicUrl ?? args.providerResult.previewUrl ?? null;
+  if (!finalUrl) {
+    throw new Error("Video provider did not return an output yet.");
+  }
 
   const outputAssetId = await createOutputAsset({
     shopId: args.completedJob.shop_id,
     title: args.completedJob.title,
     assetType: args.completedJob.job_type === "image" ? "photo" : "video",
-    publicUrl: args.storage?.publicUrl ?? args.providerResult.previewUrl ?? null,
+    publicUrl: finalUrl,
     storagePath: args.storage?.storagePath ?? null,
     bucket: args.storage?.bucket ?? null,
     mimeType: args.completedJob.job_type === "image" ? "image/png" : "video/mp4",
@@ -208,7 +212,7 @@ export async function finalizeCompletedMediaJob(args: {
     .update({
       status: "completed",
       provider_job_id: args.providerResult.providerJobId,
-      preview_url: args.storage?.publicUrl ?? args.providerResult.previewUrl ?? null,
+      preview_url: finalUrl,
       output_asset_id: outputAssetId,
       completed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -216,7 +220,7 @@ export async function finalizeCompletedMediaJob(args: {
         output_asset_id: outputAssetId,
         provider: args.completedJob.provider,
         provider_job_id: args.providerResult.providerJobId,
-        preview_url: args.storage?.publicUrl ?? args.providerResult.previewUrl ?? null,
+        preview_url: finalUrl,
         provider_result: args.providerResult.resultPayload,
         real_provider_output: true,
       },
@@ -307,6 +311,8 @@ export async function processMediaGenerationJob(
             provider: job.provider,
             provider_job_id: providerResult.providerJobId,
             provider_status: providerResult.providerStatus ?? "queued",
+            lifecycle_stage: "waiting_for_provider",
+            estimated_provider_cost_cents: providerResult.costEstimateCents ?? null,
             provider_result: providerResult.resultPayload,
             async_video: true,
           },

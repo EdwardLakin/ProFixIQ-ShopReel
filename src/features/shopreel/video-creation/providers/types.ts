@@ -18,7 +18,20 @@ export type MediaProviderJobInput = {
 export type MediaProviderResult = {
   providerJobId: string | null;
   previewUrl: string | null;
+  outputUrl?: string | null;
   providerStatus?: "queued" | "in_progress" | "completed" | "failed";
+  errorMessage?: string | null;
+  costEstimateCents?: number | null;
+  model?: string | null;
+  capability?: {
+    image: boolean;
+    video: boolean;
+    audio: boolean;
+    assemblyRender: boolean;
+    async: boolean;
+    supportsPolling: boolean;
+    maxDurationSeconds: number | null;
+  };
   resultPayload: Json;
 };
 
