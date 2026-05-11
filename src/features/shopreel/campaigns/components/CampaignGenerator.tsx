@@ -15,6 +15,7 @@ type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"] & {
     id: string;
     status: string;
     final_output_asset_id: string | null;
+    created_at: string;
   }> | null;
   production_summary?: {
     totalItems: number;
@@ -38,21 +39,29 @@ function timeAgoLabel(value: string) {
 
   if (diffMinutes < 60) return `${Math.max(diffMinutes, 1)}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago}`;
+  if (diffDays < 7) return `${diffDays}d ago`;
 
   return new Date(value).toLocaleDateString();
-}
-
-function getCampaignHref(campaignId: string) {
-  return `/shopreel/campaigns/${campaignId}`;
 }
 
 function getCampaignReviewHref(campaignId: string) {
   return `/shopreel/campaigns/${campaignId}/review`;
 }
 
-function getCampaignProductionHref(campaignId: string) {
-  return `/shopreel/campaigns/${campaignId}/production`;
+function getCampaignProductionHref(campaignId: string, campaign: CampaignRow) {
+  const items = (campaign.items ?? []).slice();
+  if (items.length === 0) return `/shopreel/campaigns/${campaignId}`;
+
+  const sortByCreatedAt = (a: { created_at: string }, b: { created_at: string }) =>
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+
+  const firstActiveItem = items
+    .filter((item) => !item.final_output_asset_id)
+    .sort(sortByCreatedAt)[0];
+
+  const primaryItem = firstActiveItem ?? items.sort(sortByCreatedAt)[0];
+
+  return primaryItem ? `/shopreel/campaigns/items/${primaryItem.id}` : `/shopreel/campaigns/${campaignId}`;
 }
 
 function getDisplayStageLabel(campaign: CampaignRow) {
@@ -68,12 +77,20 @@ function getDisplayStageLabel(campaign: CampaignRow) {
       return "Ready to assemble";
     }
 
-    if (summary.processingScenes > 0 || summary.queuedScenes > 0) {
+    if (summary.processingScenes > 0) {
       return "Generating";
     }
 
-    if (summary.totalScenes > 0 || summary.totalItems > 0) {
-      return "Started";
+    if (summary.finalReadyItems > 0 && summary.finalReadyItems < summary.totalItems) {
+      return "Partially ready";
+    }
+
+    if (summary.queuedScenes > 0 && summary.processingScenes === 0 && summary.finalReadyItems === 0) {
+      return "Frames queued";
+    }
+
+    if (summary.totalItems > 0) {
+      return "Storyboard ready";
     }
   }
 
@@ -109,7 +126,7 @@ function getPrimaryAction(campaign: CampaignRow) {
   }
 
   return {
-    href: getCampaignProductionHref(campaign.id),
+    href: getCampaignProductionHref(campaign.id, campaign),
     label: "Production",
     variant: "primary" as const,
   };
@@ -405,13 +422,11 @@ export default function CampaignGenerator({
 
                       {summary ? (
                         <div className="flex flex-wrap gap-2 text-xs text-white/55">
-                          <span>{summary.completedScenes} scenes complete</span>
+                          <span>{summary.finalReadyItems} frames ready</span>
                           <span>•</span>
                           <span>{summary.processingScenes} processing</span>
                           <span>•</span>
                           <span>{summary.queuedScenes} queued</span>
-                          <span>•</span>
-                          <span>{summary.finalReadyItems} final ready</span>
                         </div>
                       ) : null}
                     </div>
@@ -422,7 +437,7 @@ export default function CampaignGenerator({
                           {primaryAction.label}
                         </GlassButton>
                       </Link>
-                      <Link href={getCampaignHref(campaign.id)}>
+                      <Link href={primaryAction.href}>
                         <GlassButton variant="ghost">Open</GlassButton>
                       </Link>
                     </div>

@@ -3,6 +3,8 @@ export const revalidate = 0;
 
 import CampaignFlowShell from "@/features/shopreel/campaigns/components/CampaignFlowShell";
 import CampaignPageHeader from "@/features/shopreel/campaigns/components/CampaignPageHeader";
+import Link from "next/link";
+import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
@@ -63,6 +65,15 @@ export default async function ShopReelCampaignDetailPage(
   }
 
   const totalItems = items.length;
+  const primaryItem =
+    items.find((item) => !item.final_output_asset_id) ??
+    [...items].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )[0] ??
+    null;
+  const productionWorkspaceHref = primaryItem
+    ? `/shopreel/campaigns/items/${primaryItem.id}`
+    : `/shopreel/campaigns/${campaign.id}`;
   const completedItems = items.filter((item) => !!item.final_output_asset_id).length;
 
   const progressPercent =
@@ -83,11 +94,16 @@ export default async function ShopReelCampaignDetailPage(
   return (
     <CampaignFlowShell>
       <CampaignPageHeader
-        title={`${campaign.title} — Production`}
-        subtitle="Generate scenes, run premium production, sync outputs, and build final campaign ads."
+        title={`${campaign.title} — Campaign overview`}
+        subtitle="Use this page for summary context and operations. Do production work in the storyboard workspace."
         backHref="/shopreel/campaigns"
         backLabel="Back to Campaigns"
       />
+      <div className="mb-4">
+        <Link href={productionWorkspaceHref}>
+          <GlassButton variant="primary">Open production workspace</GlassButton>
+        </Link>
+      </div>
 
       <CampaignWorkflowContinuityRail campaignId={campaign.id} />
 
@@ -193,7 +209,7 @@ export default async function ShopReelCampaignDetailPage(
           }}
         />
       </section>
-      <ShopReelActionRail title="Production rail" items={["Confirm campaign summary inputs before generation","Prioritize failed scenes before premium assembly","Track completed items vs total items for delivery confidence","Use synced outputs before moving to exports"]} />
+      <ShopReelActionRail title="Overview rail" items={["Use the production workspace as the primary storyboard surface","Review campaign summary inputs and audience context","Prioritize failed scenes before final assembly","Track completed outputs before export or publish"]} />
     </CampaignFlowShell>
   );
 }
