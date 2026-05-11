@@ -122,7 +122,7 @@ export async function listRecentCampaigns(limit = 24) {
 
   const { data: items, error: itemsError } = await supabase
     .from("shopreel_campaign_items")
-    .select("id, campaign_id, status, final_output_asset_id")
+    .select("id, campaign_id, status, final_output_asset_id, created_at")
     .in("campaign_id", campaignIds)
     .eq("shop_id", shopId);
 
