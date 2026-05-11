@@ -300,6 +300,15 @@ export async function processMediaGenerationJob(
     });
 
     if (job.job_type === "video" && providerResult.providerStatus !== "completed") {
+      console.info("[shopreel][video-creation][run]", {
+        route: "/api/shopreel/video-creation/jobs/[id]/run",
+        jobId: job.id,
+        provider: job.provider,
+        providerJobId: providerResult.providerJobId,
+        model: providerResult.model ?? null,
+        lifecycleStage: "submit",
+        normalizedStatus: providerResult.providerStatus ?? "queued",
+      });
       const { data: processingJob, error: processingError } = await supabase
         .from("shopreel_media_generation_jobs")
         .update({
@@ -311,6 +320,7 @@ export async function processMediaGenerationJob(
             provider: job.provider,
             provider_job_id: providerResult.providerJobId,
             provider_status: providerResult.providerStatus ?? "queued",
+            model: providerResult.model ?? null,
             lifecycle_stage: "waiting_for_provider",
             estimated_provider_cost_cents: providerResult.costEstimateCents ?? null,
             provider_result: providerResult.resultPayload,
@@ -342,6 +352,11 @@ export async function processMediaGenerationJob(
       .from("shopreel_media_generation_jobs")
       .update({
         status: "failed",
+        result_payload: {
+          ...(job.result_payload && typeof job.result_payload === "object" ? job.result_payload : {}),
+          lifecycle_stage: "failed",
+          sanitized_error: error instanceof Error ? error.message : "Media generation failed",
+        },
         error_text: error instanceof Error ? error.message : "Media generation failed",
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

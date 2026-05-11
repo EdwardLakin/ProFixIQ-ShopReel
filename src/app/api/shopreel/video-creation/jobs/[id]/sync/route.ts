@@ -10,6 +10,7 @@ import { fetchRailwayVideoJob } from "@/features/shopreel/video-creation/lib/rai
 import { finalizeCompletedMediaJob } from "@/features/shopreel/video-creation/lib/server";
 import { normalizeVideoJobStatus } from "@/features/shopreel/video-creation/lib/status";
 import { getMediaProviderMode } from "@/features/shopreel/video-creation/lib/env";
+import { getMediaProviderAdapter } from "@/features/shopreel/video-creation/providers";
 
 export async function POST(
   _req: Request,
@@ -39,6 +40,105 @@ export async function POST(
 
     if (!mediaJob.provider_job_id) {
       throw new Error("Media job is missing provider_job_id");
+    }
+
+
+    if (mediaJob.provider === "fal") {
+      const adapter = getMediaProviderAdapter("fal");
+      if (!adapter.poll) {
+        throw new Error("fal.ai adapter does not support polling.");
+      }
+
+      const falResult = await adapter.poll({
+        jobId: mediaJob.id,
+        provider: mediaJob.provider,
+        jobType: mediaJob.job_type,
+        prompt: mediaJob.prompt,
+        promptEnhanced: mediaJob.prompt_enhanced,
+        negativePrompt: mediaJob.negative_prompt,
+        style: mediaJob.style,
+        visualMode: mediaJob.visual_mode,
+        aspectRatio: mediaJob.aspect_ratio,
+        durationSeconds: mediaJob.duration_seconds,
+        inputAssetIds: mediaJob.input_asset_ids ?? [],
+        settings: mediaJob.settings,
+        providerJobId: mediaJob.provider_job_id,
+      });
+
+      console.info("[shopreel][video-creation][sync]", {
+        route: "/api/shopreel/video-creation/jobs/[id]/sync",
+        jobId: mediaJob.id,
+        provider: "fal",
+        providerJobId: mediaJob.provider_job_id,
+        model: falResult.model ?? null,
+        lifecycleStage: "poll",
+        normalizedStatus: falResult.providerStatus ?? "waiting_for_provider",
+        sanitizedError: falResult.errorMessage ?? null,
+      });
+
+      if (falResult.providerStatus === "completed") {
+        if (!falResult.outputUrl && !falResult.previewUrl) {
+          const { data: failedJob } = await supabase.from("shopreel_media_generation_jobs").update({
+            status: "failed",
+            error_text: "fal.ai completed without an output URL.",
+            updated_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+            result_payload: {
+              ...(mediaJob.result_payload && typeof mediaJob.result_payload === "object" ? mediaJob.result_payload : {}),
+              provider: "fal",
+              provider_status: "completed",
+              lifecycle_stage: "poll",
+              model: falResult.model ?? null,
+              provider_result: falResult.resultPayload,
+            },
+          } as any).eq("id", mediaJob.id).select("*").single();
+          return NextResponse.json({ ok: true, completed: false, failed: true, job: failedJob });
+        }
+
+        const completedJob = await finalizeCompletedMediaJob({
+          completedJob: mediaJob,
+          providerResult: {
+            providerJobId: mediaJob.provider_job_id,
+            previewUrl: falResult.outputUrl ?? falResult.previewUrl,
+            resultPayload: falResult.resultPayload,
+          },
+        });
+
+        return NextResponse.json({ ok: true, completed: true, job: completedJob });
+      }
+
+      if (falResult.providerStatus === "failed") {
+        const { data: failedJob } = await supabase.from("shopreel_media_generation_jobs").update({
+          status: "failed",
+          error_text: falResult.errorMessage ?? "fal.ai generation failed",
+          updated_at: new Date().toISOString(),
+          completed_at: new Date().toISOString(),
+          result_payload: {
+            ...(mediaJob.result_payload && typeof mediaJob.result_payload === "object" ? mediaJob.result_payload : {}),
+            provider: "fal",
+            provider_status: "failed",
+            lifecycle_stage: "poll",
+            model: falResult.model ?? null,
+            provider_result: falResult.resultPayload,
+          },
+        } as any).eq("id", mediaJob.id).select("*").single();
+        return NextResponse.json({ ok: true, completed: false, failed: true, job: failedJob });
+      }
+
+      await supabase.from("shopreel_media_generation_jobs").update({
+        status: "processing",
+        updated_at: new Date().toISOString(),
+        result_payload: {
+          ...(mediaJob.result_payload && typeof mediaJob.result_payload === "object" ? mediaJob.result_payload : {}),
+          provider: "fal",
+          provider_status: falResult.providerStatus ?? "polling",
+          lifecycle_stage: "poll",
+          model: falResult.model ?? null,
+          provider_result: falResult.resultPayload,
+        },
+      }).eq("id", mediaJob.id);
+
+      return NextResponse.json({ ok: true, completed: false, message: "fal.ai generation is still processing." });
     }
 
     if (mediaJob.provider === "openai" && getMediaProviderMode() === "railway_legacy") {

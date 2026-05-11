@@ -51,9 +51,9 @@ export default function SeriesDetailClient({
     () =>
       jobs.filter(
         (job) =>
-          job.provider === "openai" &&
+          (job.provider === "openai" || job.provider === "fal") &&
           job.job_type === "video" &&
-          job.status === "processing"
+          ["submitted", "processing", "rendering"].includes(job.status)
       ),
     [jobs]
   );
@@ -324,9 +324,9 @@ export default function SeriesDetailClient({
             const info = getMediaJobSeriesInfo(job);
             const canRun = job.status === "queued" || job.status === "failed";
             const canSync =
-              job.provider === "openai" &&
+              (job.provider === "openai" || job.provider === "fal") &&
               job.job_type === "video" &&
-              job.status === "processing";
+              ["submitted", "processing", "rendering"].includes(job.status);
 
             return (
               <div
@@ -348,6 +348,10 @@ export default function SeriesDetailClient({
                       <GlassBadge tone={statusTone(job.status)}>{job.status}</GlassBadge>
                       <GlassBadge tone="muted">{job.aspect_ratio}</GlassBadge>
                       {job.style ? <GlassBadge tone="muted">{job.style}</GlassBadge> : null}
+                      <GlassBadge tone="muted">Provider: {job.provider === "fal" ? "fal.ai" : job.provider}</GlassBadge>
+                      {job.result_payload && typeof job.result_payload === "object" && (job.result_payload as any).model ? (
+                        <GlassBadge tone="muted">Model: {String((job.result_payload as any).model)}</GlassBadge>
+                      ) : null}
                       {job.visual_mode ? (
                         <GlassBadge tone="muted">{job.visual_mode}</GlassBadge>
                       ) : null}
