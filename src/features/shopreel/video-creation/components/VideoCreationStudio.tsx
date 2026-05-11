@@ -48,10 +48,23 @@ type StoryboardScene = {
   id: string;
   sceneNumber: number;
   title: string;
+  emotionalBeat: string;
   hookBeat: string;
+  setupBeat: string;
+  tensionBeat: string;
+  payoffBeat: string;
+  ctaBeat: string;
   voiceoverLine: string;
   captionText: string;
   visualDirection: string;
+  pacingNotes: string;
+  cameraFeel: string;
+  transitionStyle: string;
+  narrationTiming: string;
+  editRhythm: string;
+  platformAdaptation: string;
+  narrativeArchetype: string;
+  emotionalContinuityStage: "awareness" | "overwhelm" | "reflection" | "support" | "momentum" | "recovery";
   suggestedMediaSlot: string;
   durationSeconds: number;
   motionDirection: string;
@@ -86,6 +99,9 @@ function sourceLabelForJob(job: MediaJob) {
   if (typeof settings.is_variation_of_job_id === "string" && settings.is_variation_of_job_id) return "Variation";
   return "Brief only";
 }
+
+const EMOTIONAL_CONTINUITY_ORDER: StoryboardScene["emotionalContinuityStage"][] = ["awareness", "overwhelm", "reflection", "support", "momentum", "recovery"];
+const NARRATIVE_ARCHETYPES = ["POV", "Cinematic", "Testimonial", "Documentary", "Montage", "Founder story", "Emotional reset", "Educational"] as const;
 
 export default function VideoCreationStudio({
   recentJobs,
@@ -215,14 +231,28 @@ export default function VideoCreationStudio({
     const promptFocus = prompt.trim() || "Core offer and message";
 
     const generated = sequence.slice(0, sceneCount).map((beat, index) => {
+      const continuity = EMOTIONAL_CONTINUITY_ORDER[Math.min(index, EMOTIONAL_CONTINUITY_ORDER.length - 1)];
       const scene: StoryboardScene = {
         id: `scene-${Date.now()}-${index + 1}`,
         sceneNumber: index + 1,
         title: beat,
+        emotionalBeat: continuity,
         hookBeat: `${beat} for ${briefLabel}`,
+        setupBeat: `Ground the viewer in ${promptFocus.slice(0, 50)}`,
+        tensionBeat: index < sceneCount - 1 ? "Escalate friction with real-world pressure." : "Resolve the final resistance.",
+        payoffBeat: index >= 2 ? "Show tangible emotional or practical relief." : "Seed the transformation to come.",
+        ctaBeat: index === sceneCount - 1 ? "Invite immediate next action with clarity." : "",
         voiceoverLine: voiceoverMode === "none" ? "" : `${beat}: ${promptFocus.slice(0, 90)}`,
         captionText: `${briefLabel} • ${beat}`,
         visualDirection: `${formatLabel(style)} ${formatLabel(visualMode)} direction in ${aspectRatio}, ${jobType} format`,
+        pacingNotes: index === 0 ? "Fast hook cadence in first 2 seconds." : index === sceneCount - 1 ? "Intentional hold before CTA reveal." : "Keep cuts rhythmic and emotion-led.",
+        cameraFeel: index === 0 ? "Static handheld, shallow depth." : index === sceneCount - 1 ? "Slow push-in with steady resolve." : "Subtle lateral drift with grounded realism.",
+        transitionStyle: index === 0 ? "Hard cut to pattern interrupt." : "Match-cut with emotional continuity.",
+        narrationTiming: voiceoverMode === "none" ? "No narration" : index === 0 ? "Front-load first line in 0.8s." : "Narration lands on scene midpoint.",
+        editRhythm: "TikTok: 1.2s cuts • Reels: emotional hold • Shorts: text-forward rhythm",
+        platformAdaptation: "Center-safe captions, vertical composition, hook text in upper third.",
+        narrativeArchetype: NARRATIVE_ARCHETYPES[index % NARRATIVE_ARCHETYPES.length],
+        emotionalContinuityStage: continuity,
         suggestedMediaSlot: selectedAssetIds.length > 0 ? `Asset ${Math.min(index + 1, selectedAssetIds.length)}` : "",
         durationSeconds: perScene,
         motionDirection: index === 0 ? "Push-in opener" : index === sceneCount - 1 ? "Hold with CTA reveal" : "Smooth lateral movement",
@@ -302,7 +332,7 @@ export default function VideoCreationStudio({
 
       const storyboardSummary = storyboardScenes.length
         ? storyboardScenes
-            .map((scene) => `Scene ${scene.sceneNumber} ${scene.title}: ${scene.visualDirection || scene.suggestedMediaSlot}. Voice: ${scene.voiceoverLine || "none"}. Caption: ${scene.captionText || "none"}. ${scene.durationSeconds}s.`)
+            .map((scene) => `Scene ${scene.sceneNumber} ${scene.title} [${scene.emotionalContinuityStage}/${scene.narrativeArchetype}]: Hook ${scene.hookBeat}. Setup ${scene.setupBeat}. Tension ${scene.tensionBeat}. Payoff ${scene.payoffBeat}. CTA ${scene.ctaBeat || "none"}. Visual ${scene.visualDirection || scene.suggestedMediaSlot}. Camera ${scene.cameraFeel}. Pacing ${scene.pacingNotes}. Transition ${scene.transitionStyle}. Edit ${scene.editRhythm}. Voice: ${scene.voiceoverLine || "none"}. Caption: ${scene.captionText || "none"}. ${scene.durationSeconds}s.`)
             .join(" ")
         : "";
 
@@ -739,9 +769,20 @@ export default function VideoCreationStudio({
               </div>
               {storyboardMessage ? <div className={cx("text-xs", glassTheme.text.copperSoft)}>{storyboardMessage}</div> : null}
               {storyboardScenes.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                    <div className={cx("text-xs uppercase tracking-[0.16em]", glassTheme.text.muted)}>Emotional continuity rail</div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      {storyboardScenes.map((scene) => (
+                        <span key={`continuity-${scene.id}`} className="rounded-full border border-white/15 bg-white/[0.04] px-2 py-1 text-white/80">
+                          S{scene.sceneNumber} {formatLabel(scene.emotionalContinuityStage)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   {storyboardScenes.map((scene) => (
-                    <div key={scene.id} className="rounded-2xl border border-white/15 bg-black/25 p-3">
+                    <div key={scene.id} className="rounded-2xl border border-white/15 bg-black/25 p-4">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <div className="text-xs text-white/60">Scene {scene.sceneNumber}</div>
                         <div className="flex items-center gap-2">
@@ -750,10 +791,28 @@ export default function VideoCreationStudio({
                         </div>
                       </div>
                       <input value={scene.title} onChange={(e) => updateScene(scene.id, { title: e.target.value })} className="mb-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white" />
+                      <div className="mb-2 grid gap-2 sm:grid-cols-2">
+                        <input value={scene.emotionalBeat} onChange={(e) => updateScene(scene.id, { emotionalBeat: e.target.value })} placeholder="Emotional beat" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <select value={scene.emotionalContinuityStage} onChange={(e) => updateScene(scene.id, { emotionalContinuityStage: e.target.value as StoryboardScene["emotionalContinuityStage"] })} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white">
+                          {EMOTIONAL_CONTINUITY_ORDER.map((item) => <option key={item} value={item}>{formatLabel(item)}</option>)}
+                        </select>
+                      </div>
                       <div className="grid gap-2">
+                        <input value={scene.hookBeat} onChange={(e) => updateScene(scene.id, { hookBeat: e.target.value })} placeholder="Hook" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.setupBeat} onChange={(e) => updateScene(scene.id, { setupBeat: e.target.value })} placeholder="Setup" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.tensionBeat} onChange={(e) => updateScene(scene.id, { tensionBeat: e.target.value })} placeholder="Tension" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.payoffBeat} onChange={(e) => updateScene(scene.id, { payoffBeat: e.target.value })} placeholder="Payoff" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.ctaBeat} onChange={(e) => updateScene(scene.id, { ctaBeat: e.target.value })} placeholder="CTA" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
                         <input value={scene.voiceoverLine} onChange={(e) => updateScene(scene.id, { voiceoverLine: e.target.value })} placeholder="Voiceover line" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
-                        <input value={scene.captionText} onChange={(e) => updateScene(scene.id, { captionText: e.target.value })} placeholder="Caption text" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.captionText} onChange={(e) => updateScene(scene.id, { captionText: e.target.value })} placeholder="Overlay text" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
                         <input value={scene.visualDirection} onChange={(e) => updateScene(scene.id, { visualDirection: e.target.value })} placeholder="Visual direction" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.cameraFeel} onChange={(e) => updateScene(scene.id, { cameraFeel: e.target.value })} placeholder="Camera feel" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.transitionStyle} onChange={(e) => updateScene(scene.id, { transitionStyle: e.target.value })} placeholder="Transition style" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.pacingNotes} onChange={(e) => updateScene(scene.id, { pacingNotes: e.target.value })} placeholder="Pacing notes" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.narrationTiming} onChange={(e) => updateScene(scene.id, { narrationTiming: e.target.value })} placeholder="Narration timing" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.editRhythm} onChange={(e) => updateScene(scene.id, { editRhythm: e.target.value })} placeholder="Edit rhythm" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.platformAdaptation} onChange={(e) => updateScene(scene.id, { platformAdaptation: e.target.value })} placeholder="Platform adaptation" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
+                        <input value={scene.narrativeArchetype} onChange={(e) => updateScene(scene.id, { narrativeArchetype: e.target.value })} placeholder="Narrative archetype" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
                         <div className="grid grid-cols-2 gap-2">
                           <input value={scene.suggestedMediaSlot} onChange={(e) => updateScene(scene.id, { suggestedMediaSlot: e.target.value })} placeholder="Media slot" className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
                           <input type="number" min={3} max={30} value={scene.durationSeconds} onChange={(e) => updateScene(scene.id, { durationSeconds: Number(e.target.value) || 3 })} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white" />
@@ -768,6 +827,7 @@ export default function VideoCreationStudio({
                       </div>
                     </div>
                   ))}
+                </div>
                 </div>
               ) : null}
               {jobType === "series" ? (
