@@ -77,6 +77,13 @@ export async function createCampaign(args: {
         objection: angle.objection,
         emotional_outcome: angle.emotionalOutcome,
         platform_adaptation: angle.platformAdaptation,
+        narrative_archetype: angle.narrativeArchetype,
+        storyboard: angle.storyboard,
+        emotional_realism: angle.emotionalRealism,
+      },
+      review_readiness: {
+        emotional_realism_score: angle.emotionalRealism.realismScore,
+        blockers: angle.emotionalRealism.penalties,
       },
     } satisfies Json,
   }));
