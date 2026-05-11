@@ -285,6 +285,22 @@ function getNextAction(args: {
   };
 }
 
+function getDominantFrameCta(scenes: SceneRow[]) {
+  const sceneWithFrame = scenes.find((scene) => scene.frame_job?.status === "completed" || scene.frame_job?.preview_url);
+  if (sceneWithFrame) {
+    return {
+      label: "Generate Scene Frames",
+      description: "Keep building visual references across the full storyboard before clip generation.",
+      targetSceneId: null as string | null,
+    };
+  }
+  return {
+    label: "Generate First Scene",
+    description: "Start the storyboard with one key frame so creators can see the visual direction immediately.",
+    targetSceneId: scenes[0]?.id ?? null,
+  };
+}
+
 export default function CampaignItemClient({
   item,
   scenes,
@@ -507,6 +523,7 @@ export default function CampaignItemClient({
     const missing = scenes.filter((scene) => !workspaceSceneOrder.includes(scene.id));
     return [...ordered, ...missing];
   }, [scenes, workspaceSceneOrder]);
+  const dominantFrameCta = useMemo(() => getDominantFrameCta(orderedScenes), [orderedScenes]);
 
   function moveScene(sceneId: string, direction: -1 | 1) {
     setWorkspaceSceneOrder((current) => {
@@ -687,13 +704,16 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <GlassCard
-        label="Progress"
-        title="Video Progress"
-        description="Track scene generation before the final video is assembled."
-        strong
-      >
+      <GlassCard label="Workflow" title="Creator Production Flow" description="Review the campaign story, generate scene visuals, then move into clips and final output." strong>
         <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-white/75">
+            {["Review Campaign", "Generate Frames", "Generate Clips", "Review Output", "Export / Publish"].map((step, index, arr) => (
+              <div key={step} className="inline-flex items-center gap-2">
+                <span className="rounded-full border border-white/15 bg-white/[0.03] px-3 py-1">{step}</span>
+                {index < arr.length - 1 ? <span className="text-white/35">→</span> : null}
+              </div>
+            ))}
+          </div>
           <div className="text-3xl font-semibold text-white">{progressPercent}%</div>
           <div className="h-4 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
             <div
@@ -721,21 +741,41 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <GlassCard
-        label="Next step"
-        title={nextAction.label}
-        description={nextAction.description}
-        strong
-      >
+      <GlassCard label="Primary Action" title={dominantFrameCta.label} description={dominantFrameCta.description} strong>
         <div className="space-y-4">
           {statusMessage ? (
             <div className="text-sm text-white/60">{statusMessage}</div>
           ) : null}
 
           <div className="flex flex-wrap gap-3">
-            {nextAction.action === "build_scenes" ? (
+            {dominantFrameCta.targetSceneId ? (
+              (() => {
+                const targetSceneId = dominantFrameCta.targetSceneId;
+                return (
               <GlassButton
                 variant="primary"
+                onClick={() => void generateSceneFrame(targetSceneId)}
+                disabled={anyBusy}
+              >
+                {busy === `frame-${targetSceneId}` ? "Working..." : dominantFrameCta.label}
+              </GlassButton>
+                );
+              })()
+            ) : (
+              <GlassButton
+                variant="primary"
+                onClick={() =>
+                  void Promise.all(orderedScenes.map((scene) => generateSceneFrame(scene.id)))
+                }
+                disabled={anyBusy || orderedScenes.length === 0}
+              >
+                {busy?.startsWith("frame-") ? "Working..." : dominantFrameCta.label}
+              </GlassButton>
+            )}
+
+            {nextAction.action === "build_scenes" ? (
+              <GlassButton
+                variant="secondary"
                 onClick={() =>
                   void runAction(
                     "create-scenes",
@@ -751,7 +791,7 @@ export default function CampaignItemClient({
 
             {nextAction.action === "create_videos" ? (
               <GlassButton
-                variant="primary"
+                variant="secondary"
                 onClick={() =>
                   void runAction(
                     "run-scenes",
@@ -767,7 +807,7 @@ export default function CampaignItemClient({
 
             {nextAction.action === "check_progress" ? (
               <GlassButton
-                variant="primary"
+                variant="secondary"
                 onClick={() =>
                   void runAction(
                     "sync-scenes",
@@ -893,12 +933,7 @@ export default function CampaignItemClient({
 
 
 
-      <GlassCard
-        label="Scene Director"
-        title="Emotional + Pacing Map"
-        description="Visualize emotional progression, pacing shifts, and platform rhythm before approving renders."
-        strong
-      >
+      <GlassCard label="Storyboard Arc" title="Emotional + Pacing Map" description="Follow the narrative progression so each scene feels like part of one cinematic story." strong>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="text-xs uppercase tracking-[0.16em] text-white/55">Emotional progression</div>
@@ -922,12 +957,7 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <GlassCard
-        label="Creative Workspace"
-        title="Interactive sequencing board"
-        description="Reorder scenes, tune emotional pacing, and preview platform-native direction from one creative surface."
-        strong
-      >
+      <GlassCard label="Storyboard Workspace" title="Scene sequencing board" description="Arrange scene order, shape story rhythm, and preview platform pacing with a creator-first lens." strong>
         <div className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 xl:col-span-2">
             <div className="text-xs uppercase tracking-[0.16em] text-white/55">Emotional timeline</div>
@@ -964,12 +994,7 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <GlassCard
-        label="Refinement"
-        title="Creator tuning controls"
-        description="Apply focused direction preferences without exposing low-level AI internals."
-        strong
-      >
+      <GlassCard label="Creative Refinement" title="Creator tuning controls" description="Apply focused direction preferences while keeping orchestration details in the background." strong>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           {[
             ["stronger_hook", "Stronger hook"],
@@ -999,12 +1024,7 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <GlassCard
-        label="Scenes"
-        title="Storyboard Wall"
-        description="Review each scene as a cinematic storyboard card before rendering and assembly."
-        strong
-      >
+      <GlassCard label="Scenes" title="Storyboard Wall" description="Review each scene as a cinematic planning block, then generate frame references and clips." strong>
         <div className="grid gap-3">
           {orderedScenes.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">
@@ -1021,6 +1041,9 @@ export default function CampaignItemClient({
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-2">
+                      <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/80">
+                        {`Shot ${index + 1} • ${getSceneDirection(scene).emotionalArcPosition}`}
+                      </div>
                       <div className="text-lg font-semibold text-white">
                         {index + 1}. {scene.title}
                       </div>
@@ -1055,11 +1078,11 @@ export default function CampaignItemClient({
                           <div className="space-y-3">
                             <div className="grid gap-2 md:grid-cols-2">
                               <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-                                <div className="text-[11px] uppercase tracking-[0.16em] text-white/50">Emotional beat</div>
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-white/50">Scene mood</div>
                                 <div className="mt-1 text-sm text-white/85">{direction.emotionalBeat}</div>
                               </div>
                               <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-                                <div className="text-[11px] uppercase tracking-[0.16em] text-white/50">Hook-first direction</div>
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-white/50">Opening moment</div>
                                 <div className="mt-1 text-sm text-white/85">{direction.hook}</div>
                               </div>
                             </div>
