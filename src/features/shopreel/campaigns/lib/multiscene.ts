@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import { buildVisualNarrativeDirection, nextEmotionalArcStage, scoreEmotionalRealism, selectHumanMoment } from "./narrativeIntelligence";
+import { buildHumanBehaviorLayer, buildSceneTextureSystem, buildVisualNarrativeDirection, detectRealismDegradation, nextEmotionalArcStage, scoreEmotionalRealism, selectHumanMoment } from "./narrativeIntelligence";
 
 type PlannedScene = {
   sceneOrder: number;
@@ -176,25 +176,25 @@ export function planScenesForCampaignItem(args: {
     {
       sceneOrder: 1,
       title: `${args.itemTitle} — Hook`,
-      prompt: `${base} ${toneKit} Story beat: Hook. ${args.storyboard?.hook ?? "Create an emotionally believable opening moment in the first 2 seconds."} Human moment seed: ${selectHumanMoment(args.prompt, 1).momentType}; behavior(${selectHumanMoment(args.prompt, 1).physicalBehavior}); environment(${selectHumanMoment(args.prompt, 1).environmentDetail}); sensory(${selectHumanMoment(args.prompt, 1).sensoryCue}); hesitation(${selectHumanMoment(args.prompt, 1).hesitation}); inner monologue(${selectHumanMoment(args.prompt, 1).internalMonologue ?? "none"}). Scene objective: create a powerful opening hook with a specific human scenario, not a generic claim.`,
+      prompt: `${base} ${toneKit} Story beat: Hook. ${args.storyboard?.hook ?? "Create an emotionally believable opening moment in the first 2 seconds."} Human moment seed: ${selectHumanMoment(args.prompt, 1).momentType}; behavior(${selectHumanMoment(args.prompt, 1).physicalBehavior}); environment(${selectHumanMoment(args.prompt, 1).environmentDetail}); sensory(${selectHumanMoment(args.prompt, 1).sensoryCue}); hesitation(${selectHumanMoment(args.prompt, 1).hesitation}); inner monologue(${selectHumanMoment(args.prompt, 1).internalMonologue ?? "none"}). Behavioral layer: ${buildHumanBehaviorLayer(args.prompt, 1).behaviorTypes.join("; ")}. Avoidance loop: ${buildHumanBehaviorLayer(args.prompt, 1).avoidanceLoops.join("; ")}. Emotional contradiction: ${buildHumanBehaviorLayer(args.prompt, 1).emotionalContradictions.join("; ")}. Scene texture: ${buildSceneTextureSystem(args.prompt, 1).lightingTexture}; ambient(${buildSceneTextureSystem(args.prompt, 1).ambientSound}); clutter(${buildSceneTextureSystem(args.prompt, 1).environmentalClutter}); time-of-day emotion(${buildSceneTextureSystem(args.prompt, 1).timeOfDayEmotionalSignal}). Dialogue realism constraints: pauses, unfinished thoughts, interruption, awkward phrasing, no motivational language. Scene objective: create a powerful opening hook with a specific human scenario, not a generic claim.`,
       durationSeconds,
     },
     {
       sceneOrder: 2,
       title: `${args.itemTitle} — Problem`,
-      prompt: `${base} ${toneKit} Story beat: Setup + Tension. ${args.storyboard?.setup ?? "Ground the viewer in a concrete context."} ${args.storyboard?.tension ?? "Escalate pressure through visible friction."} Human moment seed: ${selectHumanMoment(args.prompt, 2).momentType}; behavior(${selectHumanMoment(args.prompt, 2).physicalBehavior}); interruption(${selectHumanMoment(args.prompt, 2).interruption}); inner monologue(${selectHumanMoment(args.prompt, 2).internalMonologue ?? "none"}). Scene objective: show contextual realism and emotional pressure with cinematic continuity.`,
+      prompt: `${base} ${toneKit} Story beat: Setup + Tension. ${args.storyboard?.setup ?? "Ground the viewer in a concrete context."} ${args.storyboard?.tension ?? "Escalate pressure through visible friction."} Human moment seed: ${selectHumanMoment(args.prompt, 2).momentType}; behavior(${selectHumanMoment(args.prompt, 2).physicalBehavior}); interruption(${selectHumanMoment(args.prompt, 2).interruption}); inner monologue(${selectHumanMoment(args.prompt, 2).internalMonologue ?? "none"}). Behavioral layer: ${buildHumanBehaviorLayer(args.prompt, 2).behaviorTypes.join("; ")}. Avoidance loop: ${buildHumanBehaviorLayer(args.prompt, 2).avoidanceLoops.join("; ")}. Scene texture: ${buildSceneTextureSystem(args.prompt, 2).objectDetail}; room tone(${buildSceneTextureSystem(args.prompt, 2).roomTone}); background(${buildSceneTextureSystem(args.prompt, 2).backgroundActivity}). Scene objective: show contextual realism and emotional pressure with cinematic continuity.`,
       durationSeconds,
     },
     {
       sceneOrder: 3,
       title: `${args.itemTitle} — Solution`,
-      prompt: `${base} ${toneKit} Story beat: Transition. ${args.storyboard?.transition ?? "Use a visual pivot to shift from stuck to momentum."} Human moment seed: ${selectHumanMoment(args.prompt, 3).momentType}; trigger(${selectHumanMoment(args.prompt, 3).emotionalTrigger}); pacing(${selectHumanMoment(args.prompt, 3).pacing}). Scene objective: show the turning point with platform-native pacing and visual clarity.`,
+      prompt: `${base} ${toneKit} Story beat: Transition. ${args.storyboard?.transition ?? "Use a visual pivot to shift from stuck to momentum."} Human moment seed: ${selectHumanMoment(args.prompt, 3).momentType}; trigger(${selectHumanMoment(args.prompt, 3).emotionalTrigger}); pacing(${selectHumanMoment(args.prompt, 3).pacing}). Contradiction track: ${buildHumanBehaviorLayer(args.prompt, 3).emotionalContradictions.join("; ")}. Texture rhythm: ${buildSceneTextureSystem(args.prompt, 3).movementRhythm}; silence pacing(${buildSceneTextureSystem(args.prompt, 3).silencePacing}). Scene objective: show the turning point with platform-native pacing and visual clarity.`,
       durationSeconds,
     },
     {
       sceneOrder: 4,
       title: `${args.itemTitle} — Outcome`,
-      prompt: `${base} ${toneKit} Story beat: Payoff + CTA. ${args.storyboard?.payoff ?? "Show the emotional and practical payoff."} ${args.storyboard?.cta ?? "End with a calm, actionable CTA."} Human moment seed: ${selectHumanMoment(args.prompt, 4).momentType}; recovery behavior(${selectHumanMoment(args.prompt, 4).physicalBehavior}); dialogue style(${selectHumanMoment(args.prompt, 4).dialogueStyle}). Scene objective: close with believable emotional release and a concise next step.`,
+      prompt: `${base} ${toneKit} Story beat: Payoff + CTA. ${args.storyboard?.payoff ?? "Show the emotional and practical payoff."} ${args.storyboard?.cta ?? "End with a calm, actionable CTA."} Human moment seed: ${selectHumanMoment(args.prompt, 4).momentType}; recovery behavior(${selectHumanMoment(args.prompt, 4).physicalBehavior}); dialogue style(${selectHumanMoment(args.prompt, 4).dialogueStyle}). Recovery pacing memory: avoid emotionally perfect resolution, retain minor awkwardness and unfinished context. Texture close: ${buildSceneTextureSystem(args.prompt, 4).physicalAtmosphere}. Scene objective: close with believable emotional release and a concise next step.`,
       durationSeconds,
     },
   ];
@@ -217,6 +217,18 @@ export async function ensureScenesForCampaignItem(campaignItemId: string) {
 
   const creativeProfile = getCreativeProfileFromMetadata(item.metadata);
   const narrative = getNarrativeMetadata(item.metadata);
+  const realismSignals = detectRealismDegradation(item.prompt ?? "");
+  const { error: itemMetadataUpdateError } = await supabase
+    .from("shopreel_campaign_items")
+    .update({
+      metadata: {
+        ...asObject(item.metadata),
+        realism_scoring: realismSignals,
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", item.id);
+  if (itemMetadataUpdateError) throw new Error(itemMetadataUpdateError.message);
 
   const plannedScenes = planScenesForCampaignItem({
     itemTitle: item.title,
