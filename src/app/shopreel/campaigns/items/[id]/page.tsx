@@ -49,17 +49,31 @@ export default async function ShopReelCampaignItemPage(props: {
 
 
   const sceneIds = (scenes ?? []).map((scene) => scene.id);
-  const { data: frameJobs } = sceneIds.length
-    ? await supabase
-        .from("shopreel_media_generation_jobs")
-        .select("id, status, preview_url, provider, provider_job_id, error_text, settings, result_payload")
-        .eq("shop_id", shopId)
-        .eq("job_type", "image")
-        .order("created_at", { ascending: false })
-    : { data: [], error: null };
+  type FrameJob = {
+    id: string;
+    status: string;
+    preview_url: string | null;
+    provider: string;
+    provider_job_id: string | null;
+    error_text: string | null;
+    settings: unknown;
+    result_payload: unknown;
+  };
+
+  let frameJobs: FrameJob[] = [];
+  if (sceneIds.length) {
+    const { data } = await supabase
+      .from("shopreel_media_generation_jobs")
+      .select("id, status, preview_url, provider, provider_job_id, error_text, settings, result_payload")
+      .eq("shop_id", shopId)
+      .eq("job_type", "image")
+      .order("created_at", { ascending: false });
+
+    frameJobs = (data ?? []) as FrameJob[];
+  }
 
   const frameByScene = new Map<string, { id: string; status: string; preview_url: string | null; provider: string; provider_job_id: string | null; error_text: string | null; settings: unknown; result_payload: unknown }>();
-  for (const job of frameJobs ?? []) {
+  for (const job of frameJobs) {
     const settings = job.settings && typeof job.settings === "object" && !Array.isArray(job.settings) ? job.settings as Record<string, unknown> : null;
     const sceneId = typeof settings?.scene_id === "string" ? settings.scene_id : null;
     if (!sceneId || frameByScene.has(sceneId)) continue;
