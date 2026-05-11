@@ -92,7 +92,7 @@ export default async function ShopReelCampaignItemPage(props: {
     <CampaignFlowShell>
       <CampaignPageHeader
         title={item.title}
-        subtitle="Run, monitor, and assemble this item into a final multi-scene ad."
+        subtitle="Shape the storyboard, generate scene frames, and move this campaign into production."
         backHref={`/shopreel/campaigns/${item.campaign_id}/production`}
         backLabel="Back to Campaign"
       />
