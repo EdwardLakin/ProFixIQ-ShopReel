@@ -1126,6 +1126,7 @@ export default function CampaignItemClient({
                         />
                       ) : null}
                     </div>
+                  </div>
                 </div>
               );
             })
