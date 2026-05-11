@@ -56,6 +56,8 @@ export function buildPublishReadinessModel(input: {
   hasThumbnail: boolean;
   publishFailed?: boolean;
   retryAvailable?: boolean;
+  realismDegradationScore?: number;
+  emotionalAuthenticityScore?: number;
 }): PublishReadinessModel {
   const truth = getIntegrationLifecycleTruth(input.platform as any);
   const blockers: PublishReadinessIssue[] = [];
@@ -73,6 +75,9 @@ export function buildPublishReadinessModel(input: {
   }
   if (!input.hasCaption) warnings.push({ code: "missing_caption", label: "Caption is missing" });
   if (!input.hasThumbnail) warnings.push({ code: "missing_thumbnail", label: "Thumbnail is missing" });
+  if ((input.realismDegradationScore ?? 0) > 60) {
+    warnings.push({ code: "missing_caption", label: "Narrative realism degraded: reduce AI-polished language and over-clean emotional arcs." });
+  }
 
   const canPublishLive = blockers.length === 0 && truth.publishReady;
   const canQueue = blockers.filter((b) => b.code !== "platform_blocked_state").length === 0 && (truth.publishReady || truth.state === "partial");
@@ -89,6 +94,7 @@ export function buildPublishReadinessModel(input: {
     readinessState === "platform_not_live_ready" ? "Prepare draft/package only; live external publish is unavailable." :
     readinessState === "failed_retryable" ? "Retry from publish queue and monitor worker attempts." :
     readinessState === "failed_operator_action" ? "Resolve blocker in settings or content package before retry." :
+    (input.realismDegradationScore ?? 0) > 60 ? "Revise scene behavior, texture, and dialogue realism before publishing." :
     "Queue now, then monitor internal queue until external publish proof is persisted.";
 
   const score = Math.max(0, Math.min(100, 100 - blockers.length * 25 - warnings.length * 7));

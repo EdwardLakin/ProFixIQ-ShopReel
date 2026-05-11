@@ -48,6 +48,38 @@ export type EmotionalRealismScore = {
   summary: string;
 };
 
+export type HumanBehaviorLayerResult = {
+  behaviorTypes: string[];
+  avoidanceLoops: string[];
+  emotionalContradictions: string[];
+  dialogueImperfections: string[];
+  pacingImperfections: string[];
+};
+
+export type SceneTextureResult = {
+  roomTone: string;
+  ambientSound: string;
+  objectDetail: string;
+  lightingTexture: string;
+  movementRhythm: string;
+  environmentalClutter: string;
+  physicalAtmosphere: string;
+  silencePacing: string;
+  backgroundActivity: string;
+  timeOfDay: "morning" | "afternoon" | "late_night";
+  timeOfDayEmotionalSignal: string;
+};
+
+export type RealismDegradationScore = {
+  realismDegradationScore: number;
+  aiLanguageProbability: number;
+  emotionalAuthenticityScore: number;
+  pacingRealismScore: number;
+  dialogueRealismScore: number;
+  behavioralRealismScore: number;
+  penalties: string[];
+};
+
 const MOMENT_LIBRARY: ReadonlyArray<HumanMomentBlueprint> = [
   {
     momentType: "staring_at_unread_messages",
@@ -93,6 +125,17 @@ const BANNED_PATTERNS = [
   "future of productivity",
   "never feel overwhelmed again",
   "life-changing ai",
+];
+
+const AI_LANGUAGE_FLAGS = [
+  "you are stronger than you think",
+  "everything changed when",
+  "future of emotional support",
+  "never struggle again",
+  "life-changing ai",
+  "unlock your",
+  "transform your life",
+  "the future of",
 ];
 
 function clampScore(value: number): number {
@@ -150,6 +193,74 @@ export function scoreEmotionalRealism(text: string): EmotionalRealismScore {
     dialogueRealismScore: clampScore(dialogue - penaltyValue),
     penalties,
     summary: penalties.length > 0 ? "Downgraded for generic motivational language." : "Emotionally grounded with specific human behavior cues.",
+  };
+}
+
+export function buildHumanBehaviorLayer(seed: string, sceneOrder: number): HumanBehaviorLayerResult {
+  const m = selectHumanMoment(seed, sceneOrder);
+  const behaviorPool = [
+    m.physicalBehavior,
+    "checks phone repeatedly while avoiding the core task",
+    "starts typing then deletes the full line",
+    "opens and closes tabs without committing",
+    "stops mid-thought and stares before continuing",
+  ];
+  const avoidance = [
+    "opens the assignment, then drifts into distraction before returning",
+    "refreshes inbox while pretending to progress",
+    "reorganizes nearby objects instead of beginning",
+    "almost starts, then postpones for one more minute",
+  ];
+  const contradictions = [
+    "wants help but avoids asking",
+    "needs rest while feeling guilty for slowing down",
+    "tries to focus while emotionally exhausted",
+    "wants connection but isolates in silence",
+  ];
+  return {
+    behaviorTypes: [behaviorPool[sceneOrder % behaviorPool.length]!, m.hesitation],
+    avoidanceLoops: [avoidance[sceneOrder % avoidance.length]!, m.interruption],
+    emotionalContradictions: [contradictions[sceneOrder % contradictions.length]!, m.emotionalTrigger],
+    dialogueImperfections: ["short unfinished phrases", "self-corrections", "awkward pauses"],
+    pacingImperfections: ["delayed response beat", "micro-hesitation before action", m.pacing],
+  };
+}
+
+export function buildSceneTextureSystem(seed: string, sceneOrder: number): SceneTextureResult {
+  const slot = sceneOrder % 3;
+  const timeOfDay: SceneTextureResult["timeOfDay"] = slot === 1 ? "morning" : slot === 2 ? "afternoon" : "late_night";
+  const emotional = timeOfDay === "morning" ? "anxiety starting with rushed pressure" : timeOfDay === "afternoon" ? "burnout and energy crash" : "isolation, exhaustion, quiet vulnerability";
+  const textures = selectHumanMoment(seed, sceneOrder);
+  return {
+    roomTone: "lived-in and imperfect, not staged",
+    ambientSound: textures.sensoryCue,
+    objectDetail: textures.environmentDetail,
+    lightingTexture: timeOfDay === "late_night" ? "cold monitor glow with low practical light" : "natural mixed practical lighting with uneven shadows",
+    movementRhythm: textures.pacing,
+    environmentalClutter: "unfinished tasks and partially used objects remain visible",
+    physicalAtmosphere: "subtle tension in posture and breathing",
+    silencePacing: "allow small silence pockets before reactions",
+    backgroundActivity: "distant room or hallway activity without stealing focus",
+    timeOfDay,
+    timeOfDayEmotionalSignal: emotional,
+  };
+}
+
+export function detectRealismDegradation(text: string): RealismDegradationScore {
+  const normalized = text.toLowerCase();
+  const aiFlags = AI_LANGUAGE_FLAGS.filter((f) => normalized.includes(f));
+  const overCleanFlags = ["perfect", "always", "never", "everything changed"].filter((f) => normalized.includes(f));
+  const noHesitationPenalty = /(pause|hesitat|interrupt|unfinished|silence)/i.test(text) ? 0 : 20;
+  const aiProbability = clampScore(aiFlags.length * 20 + overCleanFlags.length * 12 + noHesitationPenalty);
+  const degradation = clampScore(aiProbability + (text.length < 160 ? 14 : 0));
+  return {
+    realismDegradationScore: degradation,
+    aiLanguageProbability: aiProbability,
+    emotionalAuthenticityScore: clampScore(100 - degradation),
+    pacingRealismScore: clampScore(84 - noHesitationPenalty - aiFlags.length * 8),
+    dialogueRealismScore: clampScore(80 - aiFlags.length * 10 - overCleanFlags.length * 8),
+    behavioralRealismScore: clampScore(/(check|avoid|hesitat|fidget|pause|stare|re-read)/i.test(text) ? 82 : 56),
+    penalties: [...aiFlags, ...overCleanFlags],
   };
 }
 

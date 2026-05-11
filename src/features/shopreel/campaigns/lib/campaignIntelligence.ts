@@ -1,5 +1,5 @@
 import type { Json } from "@/types/supabase";
-import { buildVisualNarrativeDirection, nextEmotionalArcStage, scoreEmotionalRealism } from "./narrativeIntelligence";
+import { buildHumanBehaviorLayer, buildSceneTextureSystem, buildVisualNarrativeDirection, detectRealismDegradation, nextEmotionalArcStage, scoreEmotionalRealism } from "./narrativeIntelligence";
 
 type DistilledPrompt = {
   summary: string;
@@ -33,6 +33,7 @@ export type CampaignAngleDraft = {
   platformAdaptation: string;
   narrativeArchetype: string;
   emotionalRealism: ReturnType<typeof scoreEmotionalRealism>;
+  realismDegradation: ReturnType<typeof detectRealismDegradation>;
   storyboard: {
     hook: string;
     setup: string;
@@ -179,6 +180,10 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
       `End-state to visualize: ${outcome}`,
       `Platform adaptation: ${platformAdaptation}`,
       `Emotional arc stage: ${emotionalArcStage}. Prioritize believable vulnerability and lived-in micro-behaviors over polished claims.`,
+      `Human behavior layer: ${buildHumanBehaviorLayer(args.coreIdea, index + 1).behaviorTypes.join("; ")}. Avoidance loops: ${buildHumanBehaviorLayer(args.coreIdea, index + 1).avoidanceLoops.join("; ")}.`,
+      `Emotional contradictions: ${buildHumanBehaviorLayer(args.coreIdea, index + 1).emotionalContradictions.join("; ")}.`,
+      `Scene texture system: room tone(${buildSceneTextureSystem(args.coreIdea, index + 1).roomTone}); ambient(${buildSceneTextureSystem(args.coreIdea, index + 1).ambientSound}); object detail(${buildSceneTextureSystem(args.coreIdea, index + 1).objectDetail}); lighting(${buildSceneTextureSystem(args.coreIdea, index + 1).lightingTexture}); time-of-day(${buildSceneTextureSystem(args.coreIdea, index + 1).timeOfDay} -> ${buildSceneTextureSystem(args.coreIdea, index + 1).timeOfDayEmotionalSignal}).`,
+      "Realism guardrails: avoid motivational slogans, avoid over-explaining emotion, allow pauses, interruptions, contradictions, and incomplete thoughts.",
       `Narrative beats: Hook(${storyboard.hook}) Setup(${storyboard.setup}) Tension(${storyboard.tension}) Transition(${storyboard.transition}) Payoff(${storyboard.payoff}) CTA(${storyboard.cta}).`,
       `Visual storytelling direction: pacing(${storyboard.pacing}); tone(${storyboard.tone}); camera feel(${storyboard.cameraFeel}); edit rhythm(${storyboard.editRhythm}); text overlay style(${storyboard.textOverlayStyle}); transition style(${storyboard.transitionStyle}); music energy(${storyboard.musicEnergy}).`,
       `Platform-specific pacing: TikTok(${storyboard.platformAdaptation.tiktok}) Reels(${storyboard.platformAdaptation.reels}) Shorts(${storyboard.platformAdaptation.shorts}).`,
@@ -186,6 +191,7 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
     ].join(" ");
 
     const realism = scoreEmotionalRealism(prompt);
+    const realismDegradation = detectRealismDegradation(prompt);
     return {
       angle: frame.angle,
       title: `${args.title} — ${frame.angle}`,
@@ -199,6 +205,7 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
       storyboard,
       // carried inside metadata for downstream review/readiness
       emotionalRealism: realism,
+      realismDegradation,
     };
   });
 }
@@ -207,6 +214,7 @@ export function buildCampaignBrainMetadata(coreIdea: string): Json {
   const distilled = distillCampaignPrompt(coreIdea);
   const brain = buildCampaignBrain(coreIdea);
   const realismBaseline = scoreEmotionalRealism(coreIdea);
+  const degradationBaseline = detectRealismDegradation(coreIdea);
   return {
     campaign_thesis: brain.thesis,
     emotional_core: brain.emotionalCore,
@@ -221,8 +229,16 @@ export function buildCampaignBrainMetadata(coreIdea: string): Json {
       progression_history: [nextEmotionalArcStage()],
       unresolved_arcs: [],
       emotional_fatigue_index: 0,
+      pacing_memory: {
+        emotional_intensity_history: [],
+        pacing_fatigue: 0,
+        tonal_repetition: 0,
+        unresolved_arc_count: 0,
+        escalation_curve: "awareness -> friction -> struggle -> reflection -> support -> recovery",
+      },
     },
     emotional_realism_baseline: realismBaseline,
+    realism_degradation_baseline: degradationBaseline,
     visual_narrative_intelligence: buildVisualNarrativeDirection(coreIdea),
   } satisfies Json;
 }
