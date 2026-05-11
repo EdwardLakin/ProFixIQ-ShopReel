@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassCard from "@/features/shopreel/ui/system/GlassCard";
@@ -134,6 +134,23 @@ type SceneDirection = {
   sceneEnergy: string;
   emotionalIntensity: string;
   visualDirectionBlocks: string[];
+};
+
+type PlatformPreviewMode = "tiktok" | "reels" | "shorts";
+type RefinementAction =
+  | "stronger_hook"
+  | "more_emotional"
+  | "quieter_tone"
+  | "more_cinematic"
+  | "more_documentary"
+  | "simplify_narration"
+  | "reduce_ai_feel"
+  | "increase_realism";
+
+const PLATFORM_LABELS: Record<PlatformPreviewMode, string> = {
+  tiktok: "TikTok",
+  reels: "Reels",
+  shorts: "Shorts",
 };
 
 function toTitleCase(value: string) {
@@ -444,6 +461,36 @@ export default function CampaignItemClient({
 
   const anyBusy = busy !== null;
   const emotionalProgression = scenes.map((scene) => getSceneDirection(scene).emotionalBeat);
+  const [platformPreview, setPlatformPreview] = useState<PlatformPreviewMode>("tiktok");
+  const [workspaceSceneOrder, setWorkspaceSceneOrder] = useState<string[]>([]);
+  const [collapsedScenes, setCollapsedScenes] = useState<Record<string, boolean>>({});
+  const [selectedRefinements, setSelectedRefinements] = useState<RefinementAction[]>([]);
+
+  useEffect(() => {
+    setWorkspaceSceneOrder(scenes.map((scene) => scene.id));
+  }, [scenes]);
+
+  const orderedScenes = useMemo(() => {
+    const map = new Map(scenes.map((scene) => [scene.id, scene]));
+    const ordered = workspaceSceneOrder
+      .map((id) => map.get(id))
+      .filter((scene): scene is SceneRow => !!scene);
+    const missing = scenes.filter((scene) => !workspaceSceneOrder.includes(scene.id));
+    return [...ordered, ...missing];
+  }, [scenes, workspaceSceneOrder]);
+
+  function moveScene(sceneId: string, direction: -1 | 1) {
+    setWorkspaceSceneOrder((current) => {
+      const index = current.indexOf(sceneId);
+      if (index < 0) return current;
+      const target = index + direction;
+      if (target < 0 || target >= current.length) return current;
+      const next = [...current];
+      const [entry] = next.splice(index, 1);
+      next.splice(target, 0, entry);
+      return next;
+    });
+  }
 
   return (
     <div className="grid gap-5">
@@ -847,18 +894,95 @@ export default function CampaignItemClient({
       </GlassCard>
 
       <GlassCard
+        label="Creative Workspace"
+        title="Interactive sequencing board"
+        description="Reorder scenes, tune emotional pacing, and preview platform-native direction from one creative surface."
+        strong
+      >
+        <div className="grid gap-4 xl:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 xl:col-span-2">
+            <div className="text-xs uppercase tracking-[0.16em] text-white/55">Emotional timeline</div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-white/85">
+              {orderedScenes.map((scene, index) => {
+                const direction = getSceneDirection(scene);
+                return (
+                  <div key={`emotion-${scene.id}`} className="inline-flex items-center gap-2">
+                    <span className="rounded-full border border-cyan-200/30 bg-cyan-500/10 px-3 py-1">{direction.emotionalBeat}</span>
+                    {index < orderedScenes.length - 1 ? <span className="text-white/35">→</span> : null}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 text-xs text-white/60">
+              Suggested flow: overwhelm → hesitation → reflection → support → momentum → calm.
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-xs uppercase tracking-[0.16em] text-white/55">Platform preview</div>
+            <div className="mt-3 grid gap-2">
+              {(Object.keys(PLATFORM_LABELS) as PlatformPreviewMode[]).map((mode) => (
+                <button key={mode} type="button" onClick={() => setPlatformPreview(mode)} className={`rounded-xl border px-3 py-2 text-left text-sm ${platformPreview === mode ? "border-cyan-300/40 bg-cyan-500/15 text-cyan-100" : "border-white/10 bg-white/[0.03] text-white/75"}`}>
+                  {PLATFORM_LABELS[mode]}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/75">
+              {platformPreview === "tiktok" ? "Fast cuts, aggressive hook timing, lean overlays, decisive transitions." : null}
+              {platformPreview === "reels" ? "Emotional hold before payoff, softer overlay density, cinematic transitions." : null}
+              {platformPreview === "shorts" ? "Text rhythm clarity, early learning hook, compressed transition style." : null}
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+
+      <GlassCard
+        label="Refinement"
+        title="Creator tuning controls"
+        description="Apply focused direction preferences without exposing low-level AI internals."
+        strong
+      >
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            ["stronger_hook", "Stronger hook"],
+            ["more_emotional", "More emotional"],
+            ["quieter_tone", "Quieter tone"],
+            ["more_cinematic", "More cinematic"],
+            ["more_documentary", "More documentary"],
+            ["simplify_narration", "Simplify narration"],
+            ["reduce_ai_feel", "Reduce AI-feel"],
+            ["increase_realism", "Increase realism"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() =>
+                setSelectedRefinements((current) =>
+                  current.includes(key as RefinementAction)
+                    ? current.filter((item) => item !== key)
+                    : [...current, key as RefinementAction]
+                )
+              }
+              className={`rounded-xl border px-3 py-2 text-left text-sm ${selectedRefinements.includes(key as RefinementAction) ? "border-emerald-300/40 bg-emerald-500/15 text-emerald-100" : "border-white/10 bg-black/20 text-white/80"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard
         label="Scenes"
         title="Storyboard Wall"
         description="Review each scene as a cinematic storyboard card before rendering and assembly."
         strong
       >
         <div className="grid gap-3">
-          {scenes.length === 0 ? (
+          {orderedScenes.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">
               No scenes yet. Use the next step above to build them.
             </div>
           ) : (
-            scenes.map((scene) => {
+            orderedScenes.map((scene, index) => {
               const status = displayStatus(scene);
 
               return (
@@ -869,7 +993,14 @@ export default function CampaignItemClient({
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-2">
                       <div className="text-lg font-semibold text-white">
-                        {scene.scene_order}. {scene.title}
+                        {index + 1}. {scene.title}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <GlassButton variant="ghost" onClick={() => moveScene(scene.id, -1)} disabled={index === 0}>Move up</GlassButton>
+                        <GlassButton variant="ghost" onClick={() => moveScene(scene.id, 1)} disabled={index === orderedScenes.length - 1}>Move down</GlassButton>
+                        <GlassButton variant="ghost" onClick={() => setCollapsedScenes((current) => ({ ...current, [scene.id]: !current[scene.id] }))}>
+                          {collapsedScenes[scene.id] ? "Expand scene" : "Collapse scene"}
+                        </GlassButton>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
@@ -887,7 +1018,7 @@ export default function CampaignItemClient({
                         ) : null}
                       </div>
 
-                      {(() => {
+                      {!collapsedScenes[scene.id] ? (() => {
                         const direction = getSceneDirection(scene);
                         return (
                           <div className="space-y-3">
@@ -932,7 +1063,7 @@ export default function CampaignItemClient({
                             <div className="text-xs text-white/65">Scene prompt reference: {scene.prompt}</div>
                           </div>
                         );
-                      })()}
+                      })() : <div className="text-xs text-white/55">Scene collapsed. Expand to continue creative direction review.</div>}
                       {scene.media_job?.error_text ? (
                         <div className="text-sm text-red-300">
                           {scene.media_job.error_text}
