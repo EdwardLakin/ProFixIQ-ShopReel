@@ -47,11 +47,31 @@ export default async function ShopReelCampaignItemPage(props: {
     throw new Error(scenesError.message);
   }
 
+
+  const sceneIds = (scenes ?? []).map((scene) => scene.id);
+  const { data: frameJobs } = sceneIds.length
+    ? await supabase
+        .from("shopreel_media_generation_jobs")
+        .select("id, status, preview_url, provider, provider_job_id, error_text, settings, result_payload")
+        .eq("shop_id", shopId)
+        .eq("job_type", "image")
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+
+  const frameByScene = new Map<string, { id: string; status: string; preview_url: string | null; provider: string; provider_job_id: string | null; error_text: string | null; settings: unknown; result_payload: unknown }>();
+  for (const job of frameJobs ?? []) {
+    const settings = job.settings && typeof job.settings === "object" && !Array.isArray(job.settings) ? job.settings as Record<string, unknown> : null;
+    const sceneId = typeof settings?.scene_id === "string" ? settings.scene_id : null;
+    if (!sceneId || frameByScene.has(sceneId)) continue;
+    frameByScene.set(sceneId, job);
+  }
+
   const normalizedScenes = (scenes ?? []).map((scene) => ({
     ...scene,
     media_job: Array.isArray(scene.media_job)
       ? scene.media_job[0] ?? null
       : scene.media_job,
+    frame_job: frameByScene.get(scene.id) ?? null,
   }));
 
   return (

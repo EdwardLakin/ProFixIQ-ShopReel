@@ -1,4 +1,4 @@
-import { getFalApiKey, getShopreelFalVideoModel } from "@/features/shopreel/video-creation/lib/env";
+import { getFalApiKey, getShopreelFalImageModel, getShopreelFalVideoModel } from "@/features/shopreel/video-creation/lib/env";
 import type { MediaProviderAdapter, MediaProviderJobInput, MediaProviderResult, NormalizedProviderStatus } from "./types";
 
 type FalQueueResponse = {
@@ -36,7 +36,8 @@ export const falMediaProvider: MediaProviderAdapter = {
       throw new Error("fal.ai is not configured for video generation.");
     }
 
-    const model = getShopreelFalVideoModel();
+    const isImage = input.jobType === "image";
+    const model = isImage ? getShopreelFalImageModel() : getShopreelFalVideoModel();
     const prompt = input.promptEnhanced?.trim() || input.prompt?.trim() || "Create a premium high-quality branded video asset.";
 
     try {
@@ -49,8 +50,9 @@ export const falMediaProvider: MediaProviderAdapter = {
         },
         body: JSON.stringify({
           prompt,
-          duration: input.durationSeconds ?? 8,
+          duration: isImage ? undefined : input.durationSeconds ?? 8,
           aspect_ratio: input.aspectRatio,
+          negative_prompt: input.negativePrompt ?? undefined,
         }),
       });
 
@@ -64,7 +66,7 @@ export const falMediaProvider: MediaProviderAdapter = {
         previewUrl: null,
         providerStatus: json.request_id ? "waiting_for_provider" : mapFalStatus(json.status),
         model,
-        capability: { image: false, video: true, audio: false, assemblyRender: false, async: true, supportsPolling: true, maxDurationSeconds: null },
+        capability: { image: isImage, video: !isImage, audio: false, assemblyRender: false, async: true, supportsPolling: true, maxDurationSeconds: null },
         resultPayload: { provider: "fal", model, submit_response: json, lifecycle_stage: "submit" },
       };
     } catch (error) {
@@ -76,7 +78,8 @@ export const falMediaProvider: MediaProviderAdapter = {
     if (!apiKey) {
       throw new Error("fal.ai is not configured for video generation.");
     }
-    const model = getShopreelFalVideoModel();
+    const isImage = input.jobType === "image";
+    const model = isImage ? getShopreelFalImageModel() : getShopreelFalVideoModel();
 
     try {
       // TODO(phase-17): verify the polling URL and response payload shape against live fal.ai docs/account.
@@ -101,7 +104,7 @@ export const falMediaProvider: MediaProviderAdapter = {
         outputUrl,
         providerStatus,
         model,
-        capability: { image: false, video: true, audio: false, assemblyRender: false, async: true, supportsPolling: true, maxDurationSeconds: null },
+        capability: { image: isImage, video: !isImage, audio: false, assemblyRender: false, async: true, supportsPolling: true, maxDurationSeconds: null },
         errorMessage: providerStatus === "failed" ? json.error ?? "fal.ai generation failed" : null,
         resultPayload: { provider: "fal", model, poll_response: json, lifecycle_stage: "poll" },
       };

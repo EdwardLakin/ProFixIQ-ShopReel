@@ -59,3 +59,7 @@ export function getFalApiKey() {
 export function getShopreelFalVideoModel() {
   return process.env.SHOPREEL_FAL_VIDEO_MODEL?.trim() || "fal-ai/veo3";
 }
+
+export function getShopreelFalImageModel() {
+  return process.env.SHOPREEL_FAL_IMAGE_MODEL?.trim() || "fal-ai/flux/schnell";
+}
