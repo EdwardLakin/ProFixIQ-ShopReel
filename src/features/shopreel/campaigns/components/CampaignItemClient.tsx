@@ -33,6 +33,14 @@ type SceneRow = {
     preview_url: string | null;
     error_text?: string | null;
   } | null;
+  frame_job?: {
+    id: string;
+    status: string;
+    preview_url: string | null;
+    provider?: string | null;
+    provider_job_id?: string | null;
+    error_text?: string | null;
+  } | null;
 };
 
 type ItemRow = {
@@ -358,6 +366,27 @@ export default function CampaignItemClient({
       window.setTimeout(() => {
         setStatusMessage(null);
       }, 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Action failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
+  async function generateSceneFrame(sceneId: string) {
+    try {
+      setBusy(`frame-${sceneId}`);
+      setError(null);
+      setStatusMessage("Generating scene frame...");
+      const res = await fetch(`/api/shopreel/campaigns/items/${item.id}/scene-frames/${sceneId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run: true }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.ok === false) throw new Error(json?.error ?? "Failed to generate scene frame");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");
     } finally {
@@ -1005,6 +1034,8 @@ export default function CampaignItemClient({
 
                       <div className="flex flex-wrap gap-2">
                         <GlassBadge tone="default">{status}</GlassBadge>
+                        <GlassBadge tone="muted">Frame: {scene.frame_job?.status ?? "not_started"}</GlassBadge>
+                        {scene.frame_job?.provider ? <GlassBadge tone="muted">{scene.frame_job.provider}</GlassBadge> : null}
                         {scene.duration_seconds ? (
                           <GlassBadge tone="muted">{scene.duration_seconds}s</GlassBadge>
                         ) : null}
@@ -1064,6 +1095,16 @@ export default function CampaignItemClient({
                           </div>
                         );
                       })() : <div className="text-xs text-white/55">Scene collapsed. Expand to continue creative direction review.</div>}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <GlassButton
+                          variant="secondary"
+                          disabled={anyBusy}
+                          onClick={() => void generateSceneFrame(scene.id)}
+                        >
+                          {scene.frame_job ? "Regenerate frame" : "Generate frame"}
+                        </GlassButton>
+                      </div>
+                      {scene.frame_job?.error_text ? <div className="text-sm text-red-300">{scene.frame_job.error_text}</div> : null}
                       {scene.media_job?.error_text ? (
                         <div className="text-sm text-red-300">
                           {scene.media_job.error_text}
@@ -1071,15 +1112,20 @@ export default function CampaignItemClient({
                       ) : null}
                     </div>
 
-                    {scene.media_job?.preview_url ? (
-                      <video
-                        src={scene.media_job.preview_url}
-                        controls
-                        playsInline
-                        className="h-44 rounded-2xl border border-white/10"
-                      />
-                    ) : null}
-                  </div>
+                    <div className="space-y-3">
+                      {scene.frame_job?.preview_url ? (
+                        <img src={scene.frame_job.preview_url} alt={`${scene.title} keyframe`} className="h-44 rounded-2xl border border-white/10 object-cover" />
+                      ) : null}
+
+                      {scene.media_job?.preview_url ? (
+                        <video
+                          src={scene.media_job.preview_url}
+                          controls
+                          playsInline
+                          className="h-44 rounded-2xl border border-white/10"
+                        />
+                      ) : null}
+                    </div>
                 </div>
               );
             })
