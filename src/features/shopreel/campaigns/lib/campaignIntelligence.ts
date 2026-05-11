@@ -30,6 +30,23 @@ export type CampaignAngleDraft = {
   objection: string;
   emotionalOutcome: string;
   platformAdaptation: string;
+  narrativeArchetype: string;
+  storyboard: {
+    hook: string;
+    setup: string;
+    tension: string;
+    transition: string;
+    payoff: string;
+    cta: string;
+    pacing: string;
+    tone: string;
+    cameraFeel: string;
+    editRhythm: string;
+    textOverlayStyle: string;
+    transitionStyle: string;
+    musicEnergy: string;
+    platformAdaptation: Record<"tiktok" | "reels" | "shorts", string>;
+  };
 };
 
 const STOPWORDS = new Set(["the","and","for","with","that","this","from","into","about","your","their","have","been","will","want","need","make","more","less","just","show","than","when","they","them","you","our","out","too"]);
@@ -119,10 +136,10 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
   const brain = buildCampaignBrain(args.coreIdea);
   const distilled = distillCampaignPrompt(args.coreIdea);
   const angleFrames = [
-    { angle: "Emotional Tension", narrative: "Show inner friction before any feature appears", hookType: "confession" },
-    { angle: "Situational Breakdown", narrative: "Drop into a specific real-world moment and escalate stakes", hookType: "scenario" },
-    { angle: "Behavior Shift", narrative: "Contrast habits that stall progress vs habits that create momentum", hookType: "challenge" },
-    { angle: "Cinematic Proof", narrative: "Use visual progression that proves outcome without overexplaining", hookType: "proof" },
+    { angle: "POV Shift", narrative: "Open in first-person urgency and move toward control", hookType: "confession", archetype: "POV" },
+    { angle: "Founder Confession", narrative: "Show the operator/founder pressure before the turning point", hookType: "scenario", archetype: "founder story" },
+    { angle: "Documentary Proof", narrative: "Ground the story in realistic process moments and observable change", hookType: "proof", archetype: "documentary" },
+    { angle: "Before/After Release", narrative: "Contrast messy reality with emotionally clear after-state", hookType: "challenge", archetype: "before/after" },
   ] as const;
 
   return angleFrames.map((frame, index) => {
@@ -131,16 +148,40 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
     const outcome = distilled.outcomes[index % distilled.outcomes.length] ?? "Confidence and momentum.";
     const platformAdaptation = brain.platformStrategy[index % brain.platformStrategy.length] ?? "Short-form first.";
 
+    const storyboard = {
+      hook: `Open on a human, believable moment of ${distilled.emotionalSignals[0]} in less than 2 seconds before any product explanation.`,
+      setup: "Ground the viewer in a concrete environment and role, not abstract marketing language.",
+      tension: `Escalate the cost of the current behavior by showing one missed moment, one hesitation, or one visible friction loop around: ${objection}`,
+      transition: "Use a decisive visual pivot (gesture, glance, workflow change, or environmental shift) instead of a lecture.",
+      payoff: `Show emotional and practical release: ${outcome}. Capture body language and pacing change, not only feature output.`,
+      cta: "Close with a calm, specific next action that feels useful today (save, send, try one step now).",
+      pacing: "fast hook -> grounded setup -> rising pressure -> sharp pivot -> emotionally warm payoff -> concise CTA",
+      tone: "human, cinematic, realistic, emotionally precise",
+      cameraFeel: "handheld-intimate opening, stabilized mid-section, controlled confident close",
+      editRhythm: "pattern interrupt cuts in first 2s, medium cadence in setup, accelerated micro-cuts in tension, breathing room on payoff",
+      textOverlayStyle: "minimal lower-third captions with short kinetic emphasis words only",
+      transitionStyle: "match-cut or movement-led transition; avoid template wipes",
+      musicEnergy: "starts tense/minimal, lifts at pivot, resolves with warm momentum",
+      platformAdaptation: {
+        tiktok: "Aggressive first-second disruption, high contrast visual beat, immediate emotional conflict.",
+        reels: "Aspirational but relatable emotional hook, expressive close-up moments, cleaner polish in payoff.",
+        shorts: "Educational clarity pacing: show cause/effect sequence and explicit takeaway by final beat.",
+      },
+    };
+
     const prompt = [
       `Create a short cinematic vertical video concept for: ${args.coreIdea}.`,
-      `Creative frame: ${frame.angle}. Narrative objective: ${frame.narrative}.`,
+      `Creative frame: ${frame.angle}. Narrative objective: ${frame.narrative}. Archetype: ${frame.archetype}.`,
       `Audience focus: ${brain.audiencePersonas.join("; ")}.`,
       `Emotional target: ${brain.emotionalCore}.`,
       `Primary hook style: ${frame.hookType}. Opening hook line: ${hook}`,
       `Address this objection naturally: ${objection}`,
       `End-state to visualize: ${outcome}`,
       `Platform adaptation: ${platformAdaptation}`,
-      "Avoid repeating the source prompt verbatim. Build a fresh, behavior-driven narrative with concrete situational details.",
+      `Narrative beats: Hook(${storyboard.hook}) Setup(${storyboard.setup}) Tension(${storyboard.tension}) Transition(${storyboard.transition}) Payoff(${storyboard.payoff}) CTA(${storyboard.cta}).`,
+      `Visual storytelling direction: pacing(${storyboard.pacing}); tone(${storyboard.tone}); camera feel(${storyboard.cameraFeel}); edit rhythm(${storyboard.editRhythm}); text overlay style(${storyboard.textOverlayStyle}); transition style(${storyboard.transitionStyle}); music energy(${storyboard.musicEnergy}).`,
+      `Platform-specific pacing: TikTok(${storyboard.platformAdaptation.tiktok}) Reels(${storyboard.platformAdaptation.reels}) Shorts(${storyboard.platformAdaptation.shorts}).`,
+      "Avoid repeating the source prompt verbatim. Build a specific human scenario with cinematic details and emotional realism.",
     ].join(" ");
 
     return {
@@ -152,6 +193,8 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
       objection,
       emotionalOutcome: outcome,
       platformAdaptation,
+      narrativeArchetype: frame.archetype,
+      storyboard,
     };
   });
 }

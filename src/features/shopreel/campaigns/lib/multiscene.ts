@@ -18,6 +18,27 @@ type CreativeProfile = {
   energy?: string | null;
 };
 
+type SceneStoryboard = {
+  hook?: string;
+  setup?: string;
+  tension?: string;
+  transition?: string;
+  payoff?: string;
+  cta?: string;
+  pacing?: string;
+  tone?: string;
+  cameraFeel?: string;
+  editRhythm?: string;
+  textOverlayStyle?: string;
+  transitionStyle?: string;
+  musicEnergy?: string;
+  platformAdaptation?: {
+    tiktok?: string;
+    reels?: string;
+    shorts?: string;
+  };
+};
+
 const SILENT_VISUAL_RULE =
   "No spoken dialogue. No voiceover. No subtitles. No captions. No on-screen text. Visual storytelling only.";
 
@@ -54,6 +75,40 @@ function getCreativeProfileFromMetadata(metadata: unknown): CreativeProfile {
   };
 }
 
+function getNarrativeMetadata(metadata: unknown): { archetype: string; storyboard: SceneStoryboard } {
+  const root = asObject(metadata);
+  const intelligence = asObject(root.campaign_intelligence);
+  const storyboard = asObject(intelligence.storyboard);
+  const platform = asObject(storyboard.platformAdaptation);
+
+  return {
+    archetype:
+      typeof intelligence.narrative_archetype === "string"
+        ? intelligence.narrative_archetype
+        : "cinematic",
+    storyboard: {
+      hook: typeof storyboard.hook === "string" ? storyboard.hook : undefined,
+      setup: typeof storyboard.setup === "string" ? storyboard.setup : undefined,
+      tension: typeof storyboard.tension === "string" ? storyboard.tension : undefined,
+      transition: typeof storyboard.transition === "string" ? storyboard.transition : undefined,
+      payoff: typeof storyboard.payoff === "string" ? storyboard.payoff : undefined,
+      cta: typeof storyboard.cta === "string" ? storyboard.cta : undefined,
+      pacing: typeof storyboard.pacing === "string" ? storyboard.pacing : undefined,
+      tone: typeof storyboard.tone === "string" ? storyboard.tone : undefined,
+      cameraFeel: typeof storyboard.cameraFeel === "string" ? storyboard.cameraFeel : undefined,
+      editRhythm: typeof storyboard.editRhythm === "string" ? storyboard.editRhythm : undefined,
+      textOverlayStyle: typeof storyboard.textOverlayStyle === "string" ? storyboard.textOverlayStyle : undefined,
+      transitionStyle: typeof storyboard.transitionStyle === "string" ? storyboard.transitionStyle : undefined,
+      musicEnergy: typeof storyboard.musicEnergy === "string" ? storyboard.musicEnergy : undefined,
+      platformAdaptation: {
+        tiktok: typeof platform.tiktok === "string" ? platform.tiktok : undefined,
+        reels: typeof platform.reels === "string" ? platform.reels : undefined,
+        shorts: typeof platform.shorts === "string" ? platform.shorts : undefined,
+      },
+    },
+  };
+}
+
 function buildCreativeDirection(profile: CreativeProfile) {
   const parts = [
     profile.style ? `Overall style: ${profile.style}.` : "",
@@ -74,6 +129,8 @@ export function planScenesForCampaignItem(args: {
   angle: string;
   prompt: string;
   creativeProfile?: CreativeProfile;
+  narrativeArchetype?: string;
+  storyboard?: SceneStoryboard;
   fallbackDurationSeconds?: number | null;
 }): PlannedScene[] {
   const creativeProfile = args.creativeProfile ?? {};
@@ -96,29 +153,43 @@ export function planScenesForCampaignItem(args: {
     .join(" ")
     .trim();
 
+  const toneKit = [
+    args.narrativeArchetype ? `Narrative archetype: ${args.narrativeArchetype}.` : "",
+    args.storyboard?.pacing ? `Pacing map: ${args.storyboard.pacing}.` : "",
+    args.storyboard?.tone ? `Tone: ${args.storyboard.tone}.` : "",
+    args.storyboard?.cameraFeel ? `Camera feel: ${args.storyboard.cameraFeel}.` : "",
+    args.storyboard?.editRhythm ? `Edit rhythm: ${args.storyboard.editRhythm}.` : "",
+    args.storyboard?.textOverlayStyle ? `Text overlay style: ${args.storyboard.textOverlayStyle}.` : "",
+    args.storyboard?.transitionStyle ? `Transition style: ${args.storyboard.transitionStyle}.` : "",
+    args.storyboard?.musicEnergy ? `Music energy arc: ${args.storyboard.musicEnergy}.` : "",
+    args.storyboard?.platformAdaptation?.tiktok ? `TikTok pacing: ${args.storyboard.platformAdaptation.tiktok}.` : "",
+    args.storyboard?.platformAdaptation?.reels ? `Instagram Reels pacing: ${args.storyboard.platformAdaptation.reels}.` : "",
+    args.storyboard?.platformAdaptation?.shorts ? `YouTube Shorts pacing: ${args.storyboard.platformAdaptation.shorts}.` : "",
+  ].filter(Boolean).join(" ");
+
   return [
     {
       sceneOrder: 1,
       title: `${args.itemTitle} — Hook`,
-      prompt: `${base} Scene objective: create a powerful opening hook in the first seconds. Make it highly visual, premium, and attention-grabbing while matching the same creative direction as the rest of the campaign.`,
+      prompt: `${base} ${toneKit} Story beat: Hook. ${args.storyboard?.hook ?? "Create an emotionally believable opening moment in the first 2 seconds."} Scene objective: create a powerful opening hook with a specific human scenario, not a generic claim.`,
       durationSeconds,
     },
     {
       sceneOrder: 2,
       title: `${args.itemTitle} — Problem`,
-      prompt: `${base} Scene objective: show the old way, pain point, confusion, friction, or frustration clearly and visually while preserving the same visual identity as scene one.`,
+      prompt: `${base} ${toneKit} Story beat: Setup + Tension. ${args.storyboard?.setup ?? "Ground the viewer in a concrete context."} ${args.storyboard?.tension ?? "Escalate pressure through visible friction."} Scene objective: show contextual realism and emotional pressure with cinematic continuity.`,
       durationSeconds,
     },
     {
       sceneOrder: 3,
       title: `${args.itemTitle} — Solution`,
-      prompt: `${base} Scene objective: show the better way, transformation, modern workflow, product improvement, or system improvement while preserving the same visual identity as the earlier scenes.`,
+      prompt: `${base} ${toneKit} Story beat: Transition. ${args.storyboard?.transition ?? "Use a visual pivot to shift from stuck to momentum."} Scene objective: show the turning point with platform-native pacing and visual clarity.`,
       durationSeconds,
     },
     {
       sceneOrder: 4,
       title: `${args.itemTitle} — Outcome`,
-      prompt: `${base} Scene objective: show the payoff, result, confidence, momentum, growth, or polished end state while preserving the same visual identity as the full campaign.`,
+      prompt: `${base} ${toneKit} Story beat: Payoff + CTA. ${args.storyboard?.payoff ?? "Show the emotional and practical payoff."} ${args.storyboard?.cta ?? "End with a calm, actionable CTA."} Scene objective: close with believable emotional release and a concise next step.`,
       durationSeconds,
     },
   ];
@@ -140,12 +211,15 @@ export async function ensureScenesForCampaignItem(campaignItemId: string) {
   }
 
   const creativeProfile = getCreativeProfileFromMetadata(item.metadata);
+  const narrative = getNarrativeMetadata(item.metadata);
 
   const plannedScenes = planScenesForCampaignItem({
     itemTitle: item.title,
     angle: item.angle,
     prompt: item.prompt,
     creativeProfile,
+    narrativeArchetype: narrative.archetype,
+    storyboard: narrative.storyboard,
     fallbackDurationSeconds: item.duration_seconds,
   });
 
