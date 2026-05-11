@@ -121,7 +121,7 @@ export const openAiMediaProvider: MediaProviderAdapter = {
       return {
         providerJobId: railwayJob.id,
         previewUrl: railwayJob.previewUrl ?? null,
-        providerStatus: railwayJob.status ?? "queued",
+        providerStatus: "waiting_for_provider",
         resultPayload: {
           provider: "railway",
           mode: "railway_video_generation_async",

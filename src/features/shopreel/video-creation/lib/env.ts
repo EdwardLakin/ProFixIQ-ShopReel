@@ -11,10 +11,13 @@ function requireEnv(name: string): string {
 }
 
 export type EnvHealth = "configured" | "partially_configured" | "unavailable";
-export type MediaProviderMode = "direct" | "railway_legacy";
+export type MediaProviderMode = "direct" | "railway_legacy" | "fal";
 
 export function getMediaProviderMode(): MediaProviderMode {
-  return process.env.SHOPREEL_MEDIA_PROVIDER_MODE === "railway_legacy" ? "railway_legacy" : "direct";
+  const mode = process.env.SHOPREEL_MEDIA_PROVIDER_MODE;
+  if (mode === "railway_legacy") return "railway_legacy";
+  if (mode === "fal") return "fal";
+  return "direct";
 }
 
 export function getVideoGenerationEnvHealth(): {
@@ -46,4 +49,13 @@ export function getRailwayVideoBaseUrl() {
 
 export function getRailwayVideoApiKey() {
   return requireEnv("SHOPREEL_RAILWAY_VIDEO_API_KEY");
+}
+
+
+export function getFalApiKey() {
+  return process.env.FAL_KEY?.trim() || process.env.FAL_API_KEY?.trim() || null;
+}
+
+export function getShopreelFalVideoModel() {
+  return process.env.SHOPREEL_FAL_VIDEO_MODEL?.trim() || "fal-ai/veo3";
 }

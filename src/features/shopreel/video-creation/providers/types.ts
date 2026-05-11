@@ -15,11 +15,20 @@ export type MediaProviderJobInput = {
   settings: Json;
 };
 
+export type NormalizedProviderStatus =
+  | "queued"
+  | "submitting"
+  | "processing"
+  | "polling"
+  | "completed"
+  | "failed"
+  | "waiting_for_provider";
+
 export type MediaProviderResult = {
   providerJobId: string | null;
   previewUrl: string | null;
   outputUrl?: string | null;
-  providerStatus?: "queued" | "in_progress" | "completed" | "failed";
+  providerStatus?: NormalizedProviderStatus;
   errorMessage?: string | null;
   costEstimateCents?: number | null;
   model?: string | null;
@@ -38,4 +47,5 @@ export type MediaProviderResult = {
 export interface MediaProviderAdapter {
   name: string;
   run(input: MediaProviderJobInput): Promise<MediaProviderResult>;
+  poll?(input: MediaProviderJobInput & { providerJobId: string }): Promise<MediaProviderResult>;
 }
