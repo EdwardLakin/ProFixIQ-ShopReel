@@ -25,6 +25,7 @@ type SceneRow = {
   duration_seconds: number | null;
   media_job_id: string | null;
   output_asset_id?: string | null;
+  metadata?: unknown;
   media_job?: {
     id: string;
     status: string;
@@ -112,6 +113,99 @@ function getCreativeProfile(item: ItemRow): CreativeProfile {
       typeof creative.lighting === "string" ? creative.lighting : "soft_natural",
     energy:
       typeof creative.energy === "string" ? creative.energy : "confident_modern",
+  };
+}
+
+
+
+type SceneDirection = {
+  emotionalBeat: string;
+  hook: string;
+  pacing: string;
+  cameraMotion: string;
+  framing: string;
+  lightingMood: string;
+  overlayText: string;
+  narrationTone: string;
+  transitionStyle: string;
+  platformPacing: { tiktok: string; reels: string; shorts: string };
+  durationEstimate: string;
+  emotionalArcPosition: string;
+  sceneEnergy: string;
+  emotionalIntensity: string;
+  visualDirectionBlocks: string[];
+};
+
+function toTitleCase(value: string) {
+  return value
+    .split(/[_\s-]+/)
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
+}
+
+function firstSentence(value: string, fallback: string) {
+  const part = value.split(/(?<=[.!?])\s+/)[0]?.trim();
+  return part && part.length > 0 ? part : fallback;
+}
+
+function getSceneDirection(scene: SceneRow): SceneDirection {
+  const sceneMetadata = asObject(scene.metadata);
+  const storyboard = asObject(sceneMetadata.storyboard);
+  const visualNarrative = asObject(sceneMetadata.visual_narrative);
+  const platform = asObject(storyboard.platformAdaptation);
+  const emotional = asObject(sceneMetadata.emotional_realism);
+
+  const fallbackEmotionalBeat = firstSentence(scene.prompt, "Grounded emotional turning point");
+  const fallbackHook = firstSentence(scene.prompt, "Open on a precise human moment.");
+  const arcPosition = typeof sceneMetadata.emotional_arc_stage === "string"
+    ? sceneMetadata.emotional_arc_stage
+    : typeof sceneMetadata.arc_stage === "string"
+      ? sceneMetadata.arc_stage
+      : "progression";
+
+  return {
+    emotionalBeat: typeof sceneMetadata.emotional_beat === "string" ? sceneMetadata.emotional_beat : fallbackEmotionalBeat,
+    hook: typeof storyboard.hook === "string" ? storyboard.hook : fallbackHook,
+    pacing: typeof storyboard.pacing === "string" ? storyboard.pacing : "fast cuts -> intentional pause -> emotional release",
+    cameraMotion:
+      typeof visualNarrative.cameraMovement === "string"
+        ? visualNarrative.cameraMovement
+        : typeof storyboard.cameraFeel === "string"
+          ? storyboard.cameraFeel
+          : "static handheld with a slow push-in",
+    framing:
+      typeof visualNarrative.framing === "string"
+        ? visualNarrative.framing
+        : "tight subject framing with contextual environment",
+    lightingMood:
+      typeof visualNarrative.lightingMood === "string"
+        ? visualNarrative.lightingMood
+        : "cold-to-warm practical lighting transition",
+    overlayText: typeof storyboard.textOverlayStyle === "string" ? storyboard.textOverlayStyle : "minimal sentence overlays with emotional specificity",
+    narrationTone: typeof storyboard.tone === "string" ? storyboard.tone : "calm, empathetic, precise",
+    transitionStyle:
+      typeof storyboard.transitionStyle === "string"
+        ? storyboard.transitionStyle
+        : typeof visualNarrative.transitionEnergy === "string"
+          ? visualNarrative.transitionEnergy
+          : "movement-led transitions",
+    platformPacing: {
+      tiktok: typeof platform.tiktok === "string" ? platform.tiktok : "fast emotional cuts",
+      reels: typeof platform.reels === "string" ? platform.reels : "emotional hold before payoff",
+      shorts: typeof platform.shorts === "string" ? platform.shorts : "text-led educational rhythm",
+    },
+    durationEstimate: scene.duration_seconds ? `${scene.duration_seconds}s` : "~6-10s",
+    emotionalArcPosition: toTitleCase(arcPosition),
+    sceneEnergy: typeof sceneMetadata.scene_energy === "string" ? sceneMetadata.scene_energy : "Measured escalation",
+    emotionalIntensity: typeof emotional.realismScore === "number" ? `${Math.round(emotional.realismScore)} / 100` : "Balanced",
+    visualDirectionBlocks: [
+      "static handheld",
+      "slow push-in",
+      "shallow depth",
+      "warm lighting transition",
+      "ambient room tone",
+      "low-frequency cinematic music",
+    ],
   };
 }
 
@@ -349,6 +443,7 @@ export default function CampaignItemClient({
   );
 
   const anyBusy = busy !== null;
+  const emotionalProgression = scenes.map((scene) => getSceneDirection(scene).emotionalBeat);
 
   return (
     <div className="grid gap-5">
@@ -720,10 +815,41 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
+
+
+      <GlassCard
+        label="Scene Director"
+        title="Emotional + Pacing Map"
+        description="Visualize emotional progression, pacing shifts, and platform rhythm before approving renders."
+        strong
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-xs uppercase tracking-[0.16em] text-white/55">Emotional progression</div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-white/85">
+              {emotionalProgression.length === 0 ? "No scenes yet." : emotionalProgression.map((beat, index) => (
+                <div key={`${beat}-${index}`} className="inline-flex items-center gap-2">
+                  <span className="rounded-full border border-white/15 px-2 py-1">{beat}</span>
+                  {index < emotionalProgression.length - 1 ? <span className="text-white/40">→</span> : null}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-xs uppercase tracking-[0.16em] text-white/55">Pacing visualization</div>
+            <div className="mt-3 flex flex-wrap gap-2 text-sm text-white/85">
+              {["fast cuts", "silence beats", "slow emotional hold", "escalation", "release"].map((phase) => (
+                <span key={phase} className="rounded-full border border-cyan-200/30 bg-cyan-500/10 px-3 py-1">{phase}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+
       <GlassCard
         label="Scenes"
-        title="Scene List"
-        description="Each scene becomes a video clip before the final video is assembled."
+        title="Storyboard Wall"
+        description="Review each scene as a cinematic storyboard card before rendering and assembly."
         strong
       >
         <div className="grid gap-3">
@@ -761,7 +887,52 @@ export default function CampaignItemClient({
                         ) : null}
                       </div>
 
-                      <div className="text-sm text-white/70">{scene.prompt}</div>
+                      {(() => {
+                        const direction = getSceneDirection(scene);
+                        return (
+                          <div className="space-y-3">
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-white/50">Emotional beat</div>
+                                <div className="mt-1 text-sm text-white/85">{direction.emotionalBeat}</div>
+                              </div>
+                              <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                                <div className="text-[11px] uppercase tracking-[0.16em] text-white/50">Hook-first direction</div>
+                                <div className="mt-1 text-sm text-white/85">{direction.hook}</div>
+                              </div>
+                            </div>
+                            <div className="grid gap-2 text-xs text-white/70 md:grid-cols-2 xl:grid-cols-3">
+                              <div>Camera: <span className="text-white/90">{direction.cameraMotion}</span></div>
+                              <div>Framing: <span className="text-white/90">{direction.framing}</span></div>
+                              <div>Lighting mood: <span className="text-white/90">{direction.lightingMood}</span></div>
+                              <div>Narration tone: <span className="text-white/90">{direction.narrationTone}</span></div>
+                              <div>Transition: <span className="text-white/90">{direction.transitionStyle}</span></div>
+                              <div>Duration: <span className="text-white/90">{direction.durationEstimate}</span></div>
+                              <div>Pacing: <span className="text-white/90">{direction.pacing}</span></div>
+                              <div>Arc: <span className="text-white/90">{direction.emotionalArcPosition}</span></div>
+                              <div>Scene energy: <span className="text-white/90">{direction.sceneEnergy}</span></div>
+                              <div>Emotional intensity: <span className="text-white/90">{direction.emotionalIntensity}</span></div>
+                            </div>
+                            <div className="rounded-xl border border-cyan-200/20 bg-cyan-500/10 p-3 text-xs text-cyan-100/90">
+                              Overlay text style: {direction.overlayText}
+                            </div>
+                            <div className="grid gap-2 md:grid-cols-3">
+                              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs"><span className="text-white/50">TikTok pacing</span><div className="mt-1 text-white/90">{direction.platformPacing.tiktok}</div></div>
+                              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs"><span className="text-white/50">Reels rhythm</span><div className="mt-1 text-white/90">{direction.platformPacing.reels}</div></div>
+                              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs"><span className="text-white/50">Shorts rhythm</span><div className="mt-1 text-white/90">{direction.platformPacing.shorts}</div></div>
+                            </div>
+                            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                              <div className="text-[11px] uppercase tracking-[0.16em] text-white/50">Visual direction blocks</div>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {direction.visualDirectionBlocks.map((block) => (
+                                  <GlassBadge key={`${scene.id}-${block}`} tone="muted">{block}</GlassBadge>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="text-xs text-white/65">Scene prompt reference: {scene.prompt}</div>
+                          </div>
+                        );
+                      })()}
                       {scene.media_job?.error_text ? (
                         <div className="text-sm text-red-300">
                           {scene.media_job.error_text}
