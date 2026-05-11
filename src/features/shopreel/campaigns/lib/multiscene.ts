@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import { buildVisualNarrativeDirection, nextEmotionalArcStage, scoreEmotionalRealism, selectHumanMoment } from "./narrativeIntelligence";
 
 type PlannedScene = {
   sceneOrder: number;
@@ -153,6 +154,8 @@ export function planScenesForCampaignItem(args: {
     .join(" ")
     .trim();
 
+  const visualDirection = buildVisualNarrativeDirection(args.angle);
+  const arcStage = nextEmotionalArcStage();
   const toneKit = [
     args.narrativeArchetype ? `Narrative archetype: ${args.narrativeArchetype}.` : "",
     args.storyboard?.pacing ? `Pacing map: ${args.storyboard.pacing}.` : "",
@@ -165,31 +168,33 @@ export function planScenesForCampaignItem(args: {
     args.storyboard?.platformAdaptation?.tiktok ? `TikTok pacing: ${args.storyboard.platformAdaptation.tiktok}.` : "",
     args.storyboard?.platformAdaptation?.reels ? `Instagram Reels pacing: ${args.storyboard.platformAdaptation.reels}.` : "",
     args.storyboard?.platformAdaptation?.shorts ? `YouTube Shorts pacing: ${args.storyboard.platformAdaptation.shorts}.` : "",
+    `Visual narrative intelligence: framing(${visualDirection.framing}), lens(${visualDirection.lensStyle}), distance(${visualDirection.cameraDistance}), movement(${visualDirection.cameraMovement}), lighting(${visualDirection.lightingMood}), texture(${visualDirection.textureRealism}), composition(${visualDirection.environmentComposition}).`,
+    `Continuity memory stage: ${arcStage}. Ensure emotional progression from prior scenes without repeating identical behavior loops.`,
   ].filter(Boolean).join(" ");
 
   return [
     {
       sceneOrder: 1,
       title: `${args.itemTitle} — Hook`,
-      prompt: `${base} ${toneKit} Story beat: Hook. ${args.storyboard?.hook ?? "Create an emotionally believable opening moment in the first 2 seconds."} Scene objective: create a powerful opening hook with a specific human scenario, not a generic claim.`,
+      prompt: `${base} ${toneKit} Story beat: Hook. ${args.storyboard?.hook ?? "Create an emotionally believable opening moment in the first 2 seconds."} Human moment seed: ${selectHumanMoment(args.prompt, 1).momentType}; behavior(${selectHumanMoment(args.prompt, 1).physicalBehavior}); environment(${selectHumanMoment(args.prompt, 1).environmentDetail}); sensory(${selectHumanMoment(args.prompt, 1).sensoryCue}); hesitation(${selectHumanMoment(args.prompt, 1).hesitation}); inner monologue(${selectHumanMoment(args.prompt, 1).internalMonologue ?? "none"}). Scene objective: create a powerful opening hook with a specific human scenario, not a generic claim.`,
       durationSeconds,
     },
     {
       sceneOrder: 2,
       title: `${args.itemTitle} — Problem`,
-      prompt: `${base} ${toneKit} Story beat: Setup + Tension. ${args.storyboard?.setup ?? "Ground the viewer in a concrete context."} ${args.storyboard?.tension ?? "Escalate pressure through visible friction."} Scene objective: show contextual realism and emotional pressure with cinematic continuity.`,
+      prompt: `${base} ${toneKit} Story beat: Setup + Tension. ${args.storyboard?.setup ?? "Ground the viewer in a concrete context."} ${args.storyboard?.tension ?? "Escalate pressure through visible friction."} Human moment seed: ${selectHumanMoment(args.prompt, 2).momentType}; behavior(${selectHumanMoment(args.prompt, 2).physicalBehavior}); interruption(${selectHumanMoment(args.prompt, 2).interruption}); inner monologue(${selectHumanMoment(args.prompt, 2).internalMonologue ?? "none"}). Scene objective: show contextual realism and emotional pressure with cinematic continuity.`,
       durationSeconds,
     },
     {
       sceneOrder: 3,
       title: `${args.itemTitle} — Solution`,
-      prompt: `${base} ${toneKit} Story beat: Transition. ${args.storyboard?.transition ?? "Use a visual pivot to shift from stuck to momentum."} Scene objective: show the turning point with platform-native pacing and visual clarity.`,
+      prompt: `${base} ${toneKit} Story beat: Transition. ${args.storyboard?.transition ?? "Use a visual pivot to shift from stuck to momentum."} Human moment seed: ${selectHumanMoment(args.prompt, 3).momentType}; trigger(${selectHumanMoment(args.prompt, 3).emotionalTrigger}); pacing(${selectHumanMoment(args.prompt, 3).pacing}). Scene objective: show the turning point with platform-native pacing and visual clarity.`,
       durationSeconds,
     },
     {
       sceneOrder: 4,
       title: `${args.itemTitle} — Outcome`,
-      prompt: `${base} ${toneKit} Story beat: Payoff + CTA. ${args.storyboard?.payoff ?? "Show the emotional and practical payoff."} ${args.storyboard?.cta ?? "End with a calm, actionable CTA."} Scene objective: close with believable emotional release and a concise next step.`,
+      prompt: `${base} ${toneKit} Story beat: Payoff + CTA. ${args.storyboard?.payoff ?? "Show the emotional and practical payoff."} ${args.storyboard?.cta ?? "End with a calm, actionable CTA."} Human moment seed: ${selectHumanMoment(args.prompt, 4).momentType}; recovery behavior(${selectHumanMoment(args.prompt, 4).physicalBehavior}); dialogue style(${selectHumanMoment(args.prompt, 4).dialogueStyle}). Scene objective: close with believable emotional release and a concise next step.`,
       durationSeconds,
     },
   ];
@@ -376,6 +381,7 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
       }
     }
 
+    const sceneRealism = scoreEmotionalRealism(scene.prompt ?? "");
     const { data: mediaJob, error: mediaJobError } = await supabase
       .from("shopreel_media_generation_jobs")
       .insert({
@@ -403,6 +409,8 @@ export async function createMediaJobsForCampaignItemScenes(campaignItemId: strin
           pipeline: "sora_scene",
           silent_visuals_only: true,
           creative_profile: creativeProfile,
+          emotional_realism: sceneRealism,
+          realism_gate: sceneRealism.realismScore >= 55 ? "pass" : "revise",
         },
       })
       .select("*")

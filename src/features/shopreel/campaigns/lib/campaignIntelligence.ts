@@ -1,4 +1,5 @@
 import type { Json } from "@/types/supabase";
+import { buildVisualNarrativeDirection, nextEmotionalArcStage, scoreEmotionalRealism } from "./narrativeIntelligence";
 
 type DistilledPrompt = {
   summary: string;
@@ -31,6 +32,7 @@ export type CampaignAngleDraft = {
   emotionalOutcome: string;
   platformAdaptation: string;
   narrativeArchetype: string;
+  emotionalRealism: ReturnType<typeof scoreEmotionalRealism>;
   storyboard: {
     hook: string;
     setup: string;
@@ -148,6 +150,7 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
     const outcome = distilled.outcomes[index % distilled.outcomes.length] ?? "Confidence and momentum.";
     const platformAdaptation = brain.platformStrategy[index % brain.platformStrategy.length] ?? "Short-form first.";
 
+    const visualDirection = buildVisualNarrativeDirection(args.coreIdea);
     const storyboard = {
       hook: `Open on a human, believable moment of ${distilled.emotionalSignals[0]} in less than 2 seconds before any product explanation.`,
       setup: "Ground the viewer in a concrete environment and role, not abstract marketing language.",
@@ -157,18 +160,15 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
       cta: "Close with a calm, specific next action that feels useful today (save, send, try one step now).",
       pacing: "fast hook -> grounded setup -> rising pressure -> sharp pivot -> emotionally warm payoff -> concise CTA",
       tone: "human, cinematic, realistic, emotionally precise",
-      cameraFeel: "handheld-intimate opening, stabilized mid-section, controlled confident close",
-      editRhythm: "pattern interrupt cuts in first 2s, medium cadence in setup, accelerated micro-cuts in tension, breathing room on payoff",
+      cameraFeel: visualDirection.cameraMovement,
+      editRhythm: visualDirection.editRhythm,
       textOverlayStyle: "minimal lower-third captions with short kinetic emphasis words only",
-      transitionStyle: "match-cut or movement-led transition; avoid template wipes",
+      transitionStyle: visualDirection.transitionEnergy,
       musicEnergy: "starts tense/minimal, lifts at pivot, resolves with warm momentum",
-      platformAdaptation: {
-        tiktok: "Aggressive first-second disruption, high contrast visual beat, immediate emotional conflict.",
-        reels: "Aspirational but relatable emotional hook, expressive close-up moments, cleaner polish in payoff.",
-        shorts: "Educational clarity pacing: show cause/effect sequence and explicit takeaway by final beat.",
-      },
+      platformAdaptation: visualDirection.platformPacing,
     };
 
+    const emotionalArcStage = nextEmotionalArcStage();
     const prompt = [
       `Create a short cinematic vertical video concept for: ${args.coreIdea}.`,
       `Creative frame: ${frame.angle}. Narrative objective: ${frame.narrative}. Archetype: ${frame.archetype}.`,
@@ -178,12 +178,14 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
       `Address this objection naturally: ${objection}`,
       `End-state to visualize: ${outcome}`,
       `Platform adaptation: ${platformAdaptation}`,
+      `Emotional arc stage: ${emotionalArcStage}. Prioritize believable vulnerability and lived-in micro-behaviors over polished claims.`,
       `Narrative beats: Hook(${storyboard.hook}) Setup(${storyboard.setup}) Tension(${storyboard.tension}) Transition(${storyboard.transition}) Payoff(${storyboard.payoff}) CTA(${storyboard.cta}).`,
       `Visual storytelling direction: pacing(${storyboard.pacing}); tone(${storyboard.tone}); camera feel(${storyboard.cameraFeel}); edit rhythm(${storyboard.editRhythm}); text overlay style(${storyboard.textOverlayStyle}); transition style(${storyboard.transitionStyle}); music energy(${storyboard.musicEnergy}).`,
       `Platform-specific pacing: TikTok(${storyboard.platformAdaptation.tiktok}) Reels(${storyboard.platformAdaptation.reels}) Shorts(${storyboard.platformAdaptation.shorts}).`,
       "Avoid repeating the source prompt verbatim. Build a specific human scenario with cinematic details and emotional realism.",
     ].join(" ");
 
+    const realism = scoreEmotionalRealism(prompt);
     return {
       angle: frame.angle,
       title: `${args.title} — ${frame.angle}`,
@@ -195,6 +197,8 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
       platformAdaptation,
       narrativeArchetype: frame.archetype,
       storyboard,
+      // carried inside metadata for downstream review/readiness
+      emotionalRealism: realism,
     };
   });
 }
@@ -202,6 +206,7 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
 export function buildCampaignBrainMetadata(coreIdea: string): Json {
   const distilled = distillCampaignPrompt(coreIdea);
   const brain = buildCampaignBrain(coreIdea);
+  const realismBaseline = scoreEmotionalRealism(coreIdea);
   return {
     campaign_thesis: brain.thesis,
     emotional_core: brain.emotionalCore,
@@ -211,5 +216,13 @@ export function buildCampaignBrainMetadata(coreIdea: string): Json {
     cta_strategy: brain.ctaStrategy,
     platform_strategy: brain.platformStrategy,
     distilled_prompt: distilled,
+    narrative_continuity_memory: {
+      current_stage: nextEmotionalArcStage(),
+      progression_history: [nextEmotionalArcStage()],
+      unresolved_arcs: [],
+      emotional_fatigue_index: 0,
+    },
+    emotional_realism_baseline: realismBaseline,
+    visual_narrative_intelligence: buildVisualNarrativeDirection(coreIdea),
   } satisfies Json;
 }
