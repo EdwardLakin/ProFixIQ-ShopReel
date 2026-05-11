@@ -1,5 +1,5 @@
 import { SHOPREEL_AI_MODELS } from "@/features/shopreel/ai/modelConfig";
-import { getOpenAIApiKey } from "@/features/shopreel/video-creation/lib/env";
+import { getMediaProviderMode, getOpenAIApiKey } from "@/features/shopreel/video-creation/lib/env";
 import { normalizeOpenAIVideoSeconds } from "@/features/shopreel/video-creation/lib/normalizeOpenAIVideoSeconds";
 import { submitRailwayVideoJob } from "@/features/shopreel/video-creation/lib/railwayClient";
 import type { MediaProviderAdapter, MediaProviderJobInput, MediaProviderResult } from "./types";
@@ -85,6 +85,27 @@ export const openAiMediaProvider: MediaProviderAdapter = {
 
     if (input.jobType === "video") {
       const seconds = normalizeOpenAIVideoSeconds(input.durationSeconds);
+      const providerMode = getMediaProviderMode();
+
+      if (providerMode !== "railway_legacy") {
+        return {
+          providerJobId: null,
+          previewUrl: null,
+          providerStatus: "queued",
+          errorMessage: "Video provider did not return an output yet.",
+          model: SHOPREEL_AI_MODELS.videoDraft,
+          capability: { image: false, video: true, audio: false, assemblyRender: false, async: true, supportsPolling: true, maxDurationSeconds: 20 },
+          resultPayload: {
+            provider: "openai",
+            mode: providerMode,
+            lifecycle_note: "waiting_for_provider",
+            prompt,
+            requested_model: SHOPREEL_AI_MODELS.videoDraft,
+            requested_size: mapAspectRatioToVideoSize(input.aspectRatio),
+          },
+        };
+      }
+
       const railwayJob = await submitRailwayVideoJob({
         localJobId: input.jobId,
         prompt,

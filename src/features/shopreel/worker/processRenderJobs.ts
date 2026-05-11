@@ -55,18 +55,12 @@ export async function processRenderJobs(contentPieceId?: string | null) {
         })
         .eq("id", job.id);
 
-      const fakeRenderUrl = `https://example.com/rendered/${job.id}.mp4`;
-      const fakeThumbUrl = `https://example.com/thumbs/${job.id}.jpg`;
-
       await legacy
         .from("reel_render_jobs")
         .update({
-          status: "completed",
-          render_url: fakeRenderUrl,
-          thumbnail_url: fakeThumbUrl,
-          completed_at: new Date().toISOString(),
+          status: "failed",
+          error_message: "This render path is currently mock/dev-only and does not produce a real provider output.",
           updated_at: new Date().toISOString(),
-          error_message: null,
         })
         .eq("id", job.id);
 
@@ -74,9 +68,7 @@ export async function processRenderJobs(contentPieceId?: string | null) {
         await legacy
           .from("content_pieces")
           .update({
-            status: "ready",
-            render_url: fakeRenderUrl,
-            thumbnail_url: fakeThumbUrl,
+            status: "failed",
             updated_at: new Date().toISOString(),
           })
           .eq("id", job.content_piece_id);
@@ -84,7 +76,7 @@ export async function processRenderJobs(contentPieceId?: string | null) {
         await legacy
           .from("content_calendar_items")
           .update({
-            status: "ready",
+            status: "failed",
             updated_at: new Date().toISOString(),
           })
           .eq("content_piece_id", job.content_piece_id);
@@ -93,13 +85,12 @@ export async function processRenderJobs(contentPieceId?: string | null) {
       await legacy
         .from("shopreel_story_generations")
         .update({
-          status: "ready",
+          status: "failed",
           updated_at: new Date().toISOString(),
           generation_metadata: {
             ...safeObject(job.render_payload),
-            render_completed_at: new Date().toISOString(),
-            render_url: fakeRenderUrl,
-            thumbnail_url: fakeThumbUrl,
+            render_lifecycle_note: "mock_dev_only_no_provider_output",
+            render_failed_at: new Date().toISOString(),
             render_worker: "worker:render",
           },
         })

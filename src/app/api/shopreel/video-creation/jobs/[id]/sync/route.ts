@@ -9,6 +9,7 @@ import {
 import { fetchRailwayVideoJob } from "@/features/shopreel/video-creation/lib/railwayClient";
 import { finalizeCompletedMediaJob } from "@/features/shopreel/video-creation/lib/server";
 import { normalizeVideoJobStatus } from "@/features/shopreel/video-creation/lib/status";
+import { getMediaProviderMode } from "@/features/shopreel/video-creation/lib/env";
 
 export async function POST(
   _req: Request,
@@ -40,7 +41,7 @@ export async function POST(
       throw new Error("Media job is missing provider_job_id");
     }
 
-    if (mediaJob.provider === "openai") {
+    if (mediaJob.provider === "openai" && getMediaProviderMode() === "railway_legacy") {
       const status = await fetchRailwayVideoJob(mediaJob.provider_job_id);
       const normalized = normalizeVideoJobStatus(status.status);
       if (normalized === "queued" || normalized === "submitted" || normalized === "processing" || normalized === "rendering") {
@@ -63,6 +64,11 @@ export async function POST(
         return NextResponse.json({ ok: true, completed: true, job: completedJob });
       }
       throw new Error(`Unexpected Railway video status: ${status.status ?? "unknown"}`);
+    }
+
+    if (mediaJob.provider === "openai" && getMediaProviderMode() !== "railway_legacy") {
+      await supabase.from("shopreel_media_generation_jobs").update({ status: "rendering", updated_at: new Date().toISOString(), result_payload: { ...(mediaJob.result_payload && typeof mediaJob.result_payload === "object" ? mediaJob.result_payload : {}), lifecycle_stage: "polling", message: "Generation is still processing.", provider_mode: getMediaProviderMode() } }).eq("id", mediaJob.id);
+      return NextResponse.json({ ok: true, completed: false, message: "Generation is still processing." });
     }
 
     const status = await fetchOpenAIVideoStatus(mediaJob.provider_job_id);
@@ -145,7 +151,7 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Failed to sync video job",
+        error: "Provider failed. Retry is available.",
       },
       { status: 500 }
     );
