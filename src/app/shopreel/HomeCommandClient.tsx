@@ -32,11 +32,11 @@ type RuntimeCampaignContext = {
 
 const quickPrompts = ["Launch campaign", "Refine direction", "Review approvals", "Open workspace"];
 const chamberNav = [
-  { label: "Home", href: "/shopreel" },
-  { label: "Workspace", href: "/shopreel/campaigns" },
-  { label: "Continuity", href: "/shopreel/operator" },
-  { label: "Approvals", href: "/shopreel/review" },
-  { label: "Reports", href: "/shopreel/analytics" },
+  { label: "Home", shortLabel: "H", href: "/shopreel" },
+  { label: "Workspace", shortLabel: "W", href: "/shopreel/campaigns" },
+  { label: "Continuity", shortLabel: "C", href: "/shopreel/operator" },
+  { label: "Approvals", shortLabel: "A", href: "/shopreel/review" },
+  { label: "Reports", shortLabel: "R", href: "/shopreel/analytics" },
 ] as const;
 const chamberGlyphs = ["◉", "◈", "◎", "◌", "◍"] as const;
 
@@ -125,23 +125,25 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   };
 
   return (
-    <div className="relative h-[calc(100vh-8.5rem)] min-h-[720px] overflow-hidden rounded-[2.1rem] bg-[radial-gradient(130%_95%_at_58%_-8%,rgba(85,67,182,.42),transparent_56%),radial-gradient(90%_80%_at_3%_95%,rgba(21,166,224,.2),transparent_68%),linear-gradient(145deg,#04070f,#070c1c_38%,#090b1a)] p-3 md:p-4">
+    <div className="relative h-[calc(100svh-8.25rem)] max-h-[960px] min-h-[700px] overflow-hidden rounded-[2.1rem] bg-[radial-gradient(130%_95%_at_58%_-8%,rgba(85,67,182,.42),transparent_56%),radial-gradient(90%_80%_at_3%_95%,rgba(21,166,224,.2),transparent_68%),linear-gradient(145deg,#04070f,#070c1c_38%,#090b1a)] p-2.5 md:p-3">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(110deg,rgba(6,11,32,.92),rgba(6,9,25,.74)_35%,rgba(15,13,32,.72)_66%,rgba(15,10,24,.92))]" />
-      <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[72px_minmax(0,1fr)_330px]">
-        <aside className="hidden min-h-0 flex-col rounded-[1.6rem] bg-gradient-to-b from-white/[0.06] via-white/[0.03] to-transparent p-2.5 shadow-[inset_-1px_0_0_rgba(255,255,255,.06)] lg:flex">
+      <div className="grid h-full min-h-0 gap-2.5 lg:grid-cols-[80px_minmax(0,1fr)_340px]">
+        <aside className="hidden min-h-0 flex-col rounded-[1.4rem] bg-gradient-to-b from-white/[0.05] via-white/[0.02] to-transparent p-2 shadow-[inset_-1px_0_0_rgba(255,255,255,.06)] lg:flex">
           <div className="space-y-2">
             {chamberNav.map((item, index) => (
-              <Link key={item.href} href={item.href} className="group flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs text-white/72 transition hover:bg-violet-500/12 hover:text-cyan-50">
+              <Link key={item.href} href={item.href} title={item.label} className="group flex items-center justify-center rounded-xl px-1.5 py-2 text-xs text-white/72 transition hover:bg-violet-500/12 hover:text-cyan-50">
                 <span className="text-[13px] text-cyan-200/70 group-hover:text-cyan-100">{chamberGlyphs[index]}</span>
-                <span>{item.label}</span>
+                <span className="text-[10px] text-white/45">{item.shortLabel}</span>
               </Link>
             ))}
           </div>
-          <div className="mt-auto rounded-xl bg-gradient-to-r from-amber-300/12 to-violet-400/12 px-2 py-2 text-center text-xs font-medium text-amber-100/90">Operations</div>
+          <Link href="/shopreel/operations" className="mt-auto rounded-xl bg-gradient-to-r from-amber-300/12 to-violet-400/12 px-1.5 py-2 text-center text-[10px] font-medium tracking-[0.08em] text-amber-100/90">OPS</Link>
         </aside>
 
-        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-3">
-          <section className="rounded-2xl bg-[linear-gradient(140deg,rgba(9,14,33,.86),rgba(4,8,21,.9)_48%,rgba(12,11,25,.9))] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_18px_48px_rgba(1,3,10,.5)]">
+        <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2.5">
+          <section className="relative min-h-0 overflow-hidden rounded-[1.8rem] bg-[linear-gradient(140deg,rgba(9,14,33,.9),rgba(4,8,21,.92)_48%,rgba(12,11,25,.92))] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_18px_48px_rgba(1,3,10,.5)]">
+            <div className="pointer-events-none absolute right-[2.2rem] top-[6.4rem] h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(251,146,60,.35),rgba(124,58,237,.28)_45%,transparent_72%)]" />
+            <div className={`${prefersReducedMotion ? "" : "animate-[spin_26s_linear_infinite]"} pointer-events-none absolute right-[3.2rem] top-[7.1rem] h-20 w-20 rounded-full border border-cyan-100/25`} />
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-100/70">Ready for next move</div>
@@ -149,19 +151,17 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               </div>
               <ShopReelNotificationsBell />
             </div>
-            <div className="mt-3 rounded-[1.15rem] bg-[linear-gradient(145deg,rgba(14,21,44,.75),rgba(8,12,30,.85))] p-3 shadow-[inset_0_0_0_1px_rgba(139,92,246,.2),inset_0_12px_40px_rgba(34,211,238,.08)]">
+            <div className="relative mt-3 rounded-[1.15rem] bg-[linear-gradient(145deg,rgba(14,21,44,.68),rgba(8,12,30,.82))] p-3 shadow-[inset_0_0_0_1px_rgba(139,92,246,.16),inset_0_12px_40px_rgba(34,211,238,.08)]">
               <div className="mb-2 text-xs text-cyan-100/75">Operator prompt</div>
               <AiCommandInput value={command} onChange={setCommand} placeholder="What should the operator run next?" className="min-h-16 border-transparent bg-transparent shadow-none focus-visible:ring-0" />
               <div className="mt-2 flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full bg-white/[0.08] px-3 py-1 text-xs text-white/82">{prompt}</button>)}</div>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <button onClick={() => runCommand()} className="rounded-xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-4 py-2 text-sm font-semibold text-white">Continue</button>
-              <button onClick={() => dispatch({ type: "RECOVER" })} disabled={!runtimeSession.recoverableContext} className="rounded-xl border border-cyan-200/35 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100 disabled:opacity-50">Continue where you left off</button>
               <Link href="/shopreel/review" className="rounded-xl border border-white/18 px-3 py-2 text-sm text-white/80">Review approvals</Link>
+              <button onClick={() => dispatch({ type: "RECOVER" })} disabled={!runtimeSession.recoverableContext} className="rounded-lg border border-cyan-200/30 bg-cyan-400/10 px-2.5 py-1.5 text-xs text-cyan-100/90 disabled:opacity-50">Resume</button>
+              <Link href="/shopreel/operations" className="ml-auto text-xs text-cyan-100/80 underline-offset-2 hover:underline">Manual / Operations</Link>
             </div>
-          </section>
-
-          <div className="min-h-0 overflow-hidden rounded-[1.8rem] border border-white/10 bg-black/20">
             <OperatorRuntimeCanvas
               session={runtimeSession}
               onRecover={() => dispatch({ type: "RECOVER" })}
@@ -174,9 +174,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               reducedMotion={prefersReducedMotion}
               chamberMemory={chamberMemory}
             />
-          </div>
+          </section>
 
-          <section className="grid grid-cols-2 gap-2 rounded-xl bg-[linear-gradient(145deg,rgba(10,14,31,.6),rgba(7,12,30,.8))] p-2.5 text-xs md:grid-cols-5">
+          <section className="grid grid-cols-5 gap-2 rounded-xl bg-[linear-gradient(145deg,rgba(10,14,31,.52),rgba(7,12,30,.72))] px-2.5 py-2 text-xs">
             {[
               ["Runtime pulse", "Calm"],
               ["Continuity signal", "Stable"],
@@ -184,30 +184,27 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               ["Momentum", "Building"],
               ["Unresolved", `${recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length} items`],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-lg bg-white/[0.03] px-2 py-1.5">
+              <div key={label} className="border-l border-white/10 px-2 py-1 first:border-l-0">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-white/55">{label}</div>
                 <div className="mt-0.5 text-sm text-cyan-100">{value}</div>
               </div>
             ))}
           </section>
 
-          <section className="flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/20 p-2.5">
-            {["campaigns", "review", "library", "operations"].map((route) => (
-              <Link key={route} href={`/shopreel/${route}`} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/80 capitalize">{route}</Link>
-            ))}
-          </section>
         </div>
 
-        <aside className="min-h-0 rounded-2xl bg-[linear-gradient(150deg,rgba(10,14,32,.74),rgba(8,11,27,.96))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
+        <aside className="min-h-0 h-full max-h-full overflow-hidden rounded-2xl bg-[linear-gradient(150deg,rgba(10,14,32,.74),rgba(8,11,27,.96))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-medium text-white">Operational Worlds</h3>
             <span className="text-[11px] text-white/55">Recent continuity</span>
           </div>
           <div className="h-[calc(100%-2rem)] min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:rgba(103,232,249,.35)_transparent] [scrollbar-width:thin]">
-            <div className="grid gap-2">
+            <div className="grid gap-2.5">
             {recent.slice(0, 12).map((item) => (
-              <button key={item.id} onClick={() => router.push(`/shopreel/content/${item.id}`)} className="relative block min-h-[158px] w-full overflow-hidden rounded-2xl bg-[radial-gradient(88%_60%_at_84%_14%,rgba(251,146,60,.28),transparent_58%),radial-gradient(120%_90%_at_60%_100%,rgba(99,102,241,.26),rgba(5,8,22,.92)_70%)] p-3 text-left shadow-[0_16px_45px_rgba(0,0,0,.42)]">
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(5,10,26,.88)_70%)]" />
+              <button key={item.id} onClick={() => router.push(`/shopreel/content/${item.id}`)} className="relative block min-h-[192px] w-full overflow-hidden rounded-2xl bg-[radial-gradient(88%_60%_at_84%_14%,rgba(251,146,60,.3),transparent_58%),radial-gradient(120%_90%_at_60%_100%,rgba(99,102,241,.28),rgba(5,8,22,.92)_70%)] p-3.5 text-left shadow-[0_16px_45px_rgba(0,0,0,.42)]">
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(5,10,26,.9)_74%)]" />
+                <div className="pointer-events-none absolute -right-8 top-8 h-24 w-24 rounded-full bg-amber-200/20 blur-2xl" />
+                <div className="pointer-events-none absolute left-0 top-[42%] h-px w-full bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] uppercase tracking-[0.14em] text-cyan-100/70">{statusTone(item.status)}</span>
                   <span className="text-[10px] text-white/45">{item.id.slice(0, 8)}</span>
