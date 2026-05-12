@@ -32,13 +32,12 @@ type RuntimeCampaignContext = {
 
 const quickPrompts = ["Launch campaign", "Refine direction", "Review approvals", "Open workspace"];
 const chamberNav = [
-  { label: "Home", shortLabel: "H", href: "/shopreel" },
-  { label: "Workspace", shortLabel: "W", href: "/shopreel/campaigns" },
-  { label: "Continuity", shortLabel: "C", href: "/shopreel/operator" },
-  { label: "Approvals", shortLabel: "A", href: "/shopreel/review" },
-  { label: "Reports", shortLabel: "R", href: "/shopreel/analytics" },
+  { label: "Home", icon: "⌂", href: "/shopreel" },
+  { label: "Workspace", icon: "◫", href: "/shopreel/campaigns" },
+  { label: "Continuity", icon: "◌", href: "/shopreel/operator" },
+  { label: "Approvals", icon: "✓", href: "/shopreel/review" },
+  { label: "Reports", icon: "◴", href: "/shopreel/analytics" },
 ] as const;
-const chamberGlyphs = ["◉", "◈", "◎", "◌", "◍"] as const;
 
 export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
   const router = useRouter();
@@ -125,29 +124,30 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   };
 
   return (
-    <div className="relative h-[calc(100svh-8.25rem)] max-h-[960px] min-h-[700px] overflow-hidden rounded-[2.1rem] bg-[radial-gradient(130%_95%_at_58%_-8%,rgba(85,67,182,.42),transparent_56%),radial-gradient(90%_80%_at_3%_95%,rgba(21,166,224,.2),transparent_68%),linear-gradient(145deg,#04070f,#070c1c_38%,#090b1a)] p-2.5 md:p-3">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(120%_90%_at_52%_-12%,rgba(95,69,218,.34),transparent_55%),radial-gradient(70%_65%_at_2%_90%,rgba(31,161,222,.18),transparent_68%),linear-gradient(145deg,#030610,#060a18_40%,#080b1a)] px-4 pb-4 pt-3 lg:h-[100svh] lg:px-5 lg:pb-5">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(110deg,rgba(6,11,32,.92),rgba(6,9,25,.74)_35%,rgba(15,13,32,.72)_66%,rgba(15,10,24,.92))]" />
-      <div className="grid h-full min-h-0 gap-2.5 lg:grid-cols-[80px_minmax(0,1fr)_340px]">
-        <aside className="hidden min-h-0 flex-col rounded-[1.4rem] bg-gradient-to-b from-white/[0.05] via-white/[0.02] to-transparent p-2 shadow-[inset_-1px_0_0_rgba(255,255,255,.06)] lg:flex">
+      <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[84px_minmax(0,1fr)_340px]">
+        <aside className="hidden min-h-0 flex-col py-4 lg:flex">
           <div className="space-y-2">
-            {chamberNav.map((item, index) => (
-              <Link key={item.href} href={item.href} title={item.label} className="group flex items-center justify-center rounded-xl px-1.5 py-2 text-xs text-white/72 transition hover:bg-violet-500/12 hover:text-cyan-50">
-                <span className="text-[13px] text-cyan-200/70 group-hover:text-cyan-100">{chamberGlyphs[index]}</span>
-                <span className="text-[10px] text-white/45">{item.shortLabel}</span>
+            {chamberNav.map((item) => (
+              <Link key={item.href} href={item.href} aria-label={item.label} title={item.label} className="group flex items-center gap-2 rounded-xl px-2 py-2 text-xs text-white/70 transition hover:bg-white/10 hover:text-cyan-100">
+                <span className="text-sm text-cyan-200/75">{item.icon}</span>
+                <span className="text-[11px]">{item.label}</span>
               </Link>
             ))}
           </div>
-          <Link href="/shopreel/operations" className="mt-auto rounded-xl bg-gradient-to-r from-amber-300/12 to-violet-400/12 px-1.5 py-2 text-center text-[10px] font-medium tracking-[0.08em] text-amber-100/90">OPS</Link>
+          <Link href="/shopreel/operations" className="mt-auto inline-flex items-center gap-2 px-2 py-2 text-[11px] uppercase tracking-[0.12em] text-amber-100/85"><span className="text-amber-200">≡</span>Operations</Link>
         </aside>
 
         <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2.5">
-          <section className="relative min-h-0 overflow-hidden rounded-[1.8rem] bg-[linear-gradient(140deg,rgba(9,14,33,.9),rgba(4,8,21,.92)_48%,rgba(12,11,25,.92))] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_18px_48px_rgba(1,3,10,.5)]">
+          <section className="relative min-h-0 overflow-hidden rounded-[1.8rem] bg-[linear-gradient(140deg,rgba(9,14,33,.8),rgba(4,8,21,.9)_48%,rgba(12,11,25,.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_18px_48px_rgba(1,3,10,.5)]">
             <div className="pointer-events-none absolute right-[2.2rem] top-[6.4rem] h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(251,146,60,.35),rgba(124,58,237,.28)_45%,transparent_72%)]" />
             <div className={`${prefersReducedMotion ? "" : "animate-[spin_26s_linear_infinite]"} pointer-events-none absolute right-[3.2rem] top-[7.1rem] h-20 w-20 rounded-full border border-cyan-100/25`} />
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-100/70">Ready for next move</div>
-                <p className="mt-1 text-sm text-white/75">Continuity intact. Systems nominal.</p>
+                <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-100/70">Operator online</div>
+                <h1 className="mt-1 text-3xl font-semibold text-white">Operator Online</h1>
+                <p className="mt-1 text-sm text-white/75">Continuity intact. Systems nominal. Focus your next move.</p>
               </div>
               <ShopReelNotificationsBell />
             </div>
@@ -173,10 +173,11 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
               reducedMotion={prefersReducedMotion}
               chamberMemory={chamberMemory}
+              compact
             />
           </section>
 
-          <section className="grid grid-cols-5 gap-2 rounded-xl bg-[linear-gradient(145deg,rgba(10,14,31,.52),rgba(7,12,30,.72))] px-2.5 py-2 text-xs">
+          <section className="grid grid-cols-5 gap-2 border-t border-white/10 px-2 py-2 text-xs">
             {[
               ["Runtime pulse", "Calm"],
               ["Continuity signal", "Stable"],
@@ -193,7 +194,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
         </div>
 
-        <aside className="min-h-0 h-full max-h-full overflow-hidden rounded-2xl bg-[linear-gradient(150deg,rgba(10,14,32,.74),rgba(8,11,27,.96))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
+        <aside className="min-h-0 h-full max-h-full overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(150deg,rgba(10,14,32,.74),rgba(8,11,27,.96))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-medium text-white">Operational Worlds</h3>
             <span className="text-[11px] text-white/55">Recent continuity</span>
@@ -201,15 +202,16 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <div className="h-[calc(100%-2rem)] min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:rgba(103,232,249,.35)_transparent] [scrollbar-width:thin]">
             <div className="grid gap-2.5">
             {recent.slice(0, 12).map((item) => (
-              <button key={item.id} onClick={() => router.push(`/shopreel/content/${item.id}`)} className="relative block min-h-[192px] w-full overflow-hidden rounded-2xl bg-[radial-gradient(88%_60%_at_84%_14%,rgba(251,146,60,.3),transparent_58%),radial-gradient(120%_90%_at_60%_100%,rgba(99,102,241,.28),rgba(5,8,22,.92)_70%)] p-3.5 text-left shadow-[0_16px_45px_rgba(0,0,0,.42)]">
+              <button key={item.id} onClick={() => router.push(`/shopreel/content/${item.id}`)} className="relative block min-h-[220px] w-full overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(88%_60%_at_84%_14%,rgba(251,146,60,.3),transparent_58%),radial-gradient(120%_90%_at_60%_100%,rgba(99,102,241,.28),rgba(5,8,22,.92)_70%)] p-3.5 text-left shadow-[0_16px_45px_rgba(0,0,0,.42)]">
                 <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(5,10,26,.9)_74%)]" />
                 <div className="pointer-events-none absolute -right-8 top-8 h-24 w-24 rounded-full bg-amber-200/20 blur-2xl" />
                 <div className="pointer-events-none absolute left-0 top-[42%] h-px w-full bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />
+                <div className="pointer-events-none absolute right-7 top-10 h-24 w-[2px] bg-gradient-to-b from-amber-200/80 via-cyan-100/55 to-transparent" />
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] uppercase tracking-[0.14em] text-cyan-100/70">{statusTone(item.status)}</span>
                   <span className="text-[10px] text-white/45">{item.id.slice(0, 8)}</span>
                 </div>
-                <p className="relative mt-2 line-clamp-2 text-sm text-white">{item.title}</p>
+                <p className="relative mt-2 line-clamp-2 text-xl leading-tight text-white">{item.title}</p>
                 <div className="relative mt-6 text-xs text-white/70">Stage: {item.status.replaceAll("_", " ")}</div>
                 <div className="relative text-xs text-cyan-100/80">Continue where you left off</div>
               </button>

@@ -32,6 +32,7 @@ export default function OperatorRuntimeCanvas({
   onDecisionSaved,
   reducedMotion,
   chamberMemory,
+  compact = false,
 }: {
   session: OperatorRuntimeSessionState;
   onRecover: () => void;
@@ -43,6 +44,7 @@ export default function OperatorRuntimeCanvas({
   onDecisionSaved: (summary: string) => void;
   reducedMotion: boolean;
   chamberMemory: PersistedChamberMemory | null;
+  compact?: boolean;
 }) {
   const activeSurface = operatorSurfaceRegistry[session.activeSurface];
   const previousSurface = session.previousSurface ? operatorSurfaceRegistry[session.previousSurface] : null;
@@ -114,11 +116,11 @@ export default function OperatorRuntimeCanvas({
         : "opacity-60 translate-y-[2px]";
 
   return (
-    <section className={`relative mt-3 h-[calc(100%-12.75rem)] min-h-0 overflow-y-auto rounded-[1.4rem] bg-gradient-to-br ${choreography.depthModel.shellLightingClass} p-4 md:p-5`}>
+    <section className={`relative min-h-0 ${compact ? "mt-4" : "mt-3"} ${compact ? "overflow-visible" : "overflow-y-auto"} rounded-[1.2rem] bg-gradient-to-br ${choreography.depthModel.shellLightingClass} ${compact ? "px-0 pb-0 pt-2" : "p-4 md:p-5"}`}>
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.backdropClass}`} />
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.chamberAtmosphereClass}`} />
       <div className="pointer-events-none absolute inset-x-[6%] top-[15%] h-[55%] rounded-[2rem] bg-gradient-to-b from-white/[0.05] via-transparent to-transparent blur-2xl" />
-      <div className={`relative mb-3 grid gap-2 rounded-xl p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass}`}>
+      <div className={`relative mb-3 grid gap-2 rounded-xl p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass} ${compact ? "border border-white/10 bg-black/15" : ""}`}>
         <div>Current objective: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
         <div>Active campaign: <span className="text-white/80">{campaignContext?.title ?? (session.selectedEntityIds.campaignId ? "Campaign context unavailable" : "No active campaign selected")}</span></div>
         <div>Lifecycle stage: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
