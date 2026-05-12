@@ -124,9 +124,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   };
 
   return (
-    <div className="relative h-[calc(100vh-8.5rem)] min-h-[760px] overflow-hidden rounded-[2.1rem] border border-violet-200/20 bg-[linear-gradient(140deg,rgba(4,8,20,.98),rgba(6,10,26,.95))] p-3 md:p-4">
+    <div className="relative h-[calc(100vh-8.5rem)] min-h-[720px] overflow-hidden rounded-[2.1rem] border border-violet-200/20 bg-[linear-gradient(140deg,rgba(4,8,20,.98),rgba(6,10,26,.95))] p-3 md:p-4">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(95%_60%_at_65%_2%,rgba(99,102,241,0.2),transparent_70%),radial-gradient(75%_75%_at_0%_100%,rgba(56,189,248,0.13),transparent_75%)]" />
-      <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[72px_minmax(0,1fr)_340px]">
+      <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[72px_minmax(0,1fr)_330px]">
         <aside className="hidden min-h-0 flex-col rounded-2xl border border-white/10 bg-black/25 p-2 lg:flex">
           <div className="space-y-2">
             {chamberNav.map((item) => (
@@ -137,11 +137,11 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         </aside>
 
         <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-3">
-          <section className="rounded-2xl border border-white/12 bg-black/25 p-4">
+          <section className="rounded-2xl border border-white/12 bg-black/25 p-3.5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-100/70">Operator Online</div>
-                <p className="mt-1 text-sm text-white/75">Current Objective: {runtimeSession.lastOperatorSummary || "Focused"}</p>
+                <p className="mt-1 text-sm text-white/75">Continuity intact. Systems nominal.</p>
               </div>
               <ShopReelNotificationsBell />
             </div>
@@ -157,7 +157,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
             </div>
           </section>
 
-          <div className="min-h-0 overflow-hidden">
+          <div className="min-h-0 overflow-hidden rounded-[1.8rem] border border-white/10 bg-black/20">
             <OperatorRuntimeCanvas
               session={runtimeSession}
               onRecover={() => dispatch({ type: "RECOVER" })}
@@ -172,13 +172,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
             />
           </div>
 
-          <section className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs md:grid-cols-5">
+          <section className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/20 p-2.5 text-xs md:grid-cols-5">
             {[
-              ["Runtime pulse", "Stable"],
-              ["Continuity signal", "Focused"],
-              ["Atmosphere", "Building"],
-              ["Momentum", "Forward"],
-              ["Unresolved", `${recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length}`],
+              ["Runtime pulse", "Calm"],
+              ["Continuity signal", "Stable"],
+              ["Atmosphere", "Focused"],
+              ["Momentum", "Building"],
+              ["Unresolved", `${recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length} items`],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-white/55">{label}</div>
@@ -199,7 +199,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
             <h3 className="text-sm font-medium text-white">Operational Worlds</h3>
             <span className="text-[11px] text-white/55">Recent continuity</span>
           </div>
-          <div className="h-[calc(100%-2rem)] min-h-0 space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:rgba(103,232,249,.35)_transparent] [scrollbar-width:thin]">
+          <div className="h-[calc(100%-2rem)] min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:rgba(103,232,249,.35)_transparent] [scrollbar-width:thin]">
+            <div className="grid gap-2">
             {recent.slice(0, 12).map((item) => (
               <button key={item.id} onClick={() => router.push(`/shopreel/content/${item.id}`)} className="block w-full rounded-xl border border-white/10 bg-[linear-gradient(145deg,rgba(21,26,46,.6),rgba(7,11,24,.86))] p-3 text-left">
                 <div className="flex items-center justify-between gap-2">
@@ -211,6 +212,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                 <div className="text-xs text-white/45">Continue where you left off</div>
               </button>
             ))}
+            </div>
           </div>
         </aside>
       </div>
