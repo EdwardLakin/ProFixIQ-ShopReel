@@ -105,8 +105,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   };
 
   return (
-    <div className="space-y-6 pb-10">
-      <section className={`relative overflow-hidden rounded-[2.1rem] border bg-[linear-gradient(145deg,rgba(7,11,28,.95),rgba(3,6,17,.98))] shadow-[0_40px_130px_rgba(0,0,0,0.66)] transition-all duration-300 motion-reduce:transition-none ${runtimeSession.compressedHero ? "border-cyan-200/45 p-4 md:p-5" : "border-violet-200/28 p-7 md:p-8"}`}>
+    <div className="relative space-y-6 overflow-hidden pb-10">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(90%_70%_at_82%_4%,rgba(99,102,241,0.18),transparent_70%),radial-gradient(85%_80%_at_3%_96%,rgba(56,189,248,0.12),transparent_72%)]" />
+      <section className={`relative overflow-hidden rounded-[2.3rem] border bg-[linear-gradient(145deg,rgba(7,11,28,.95),rgba(3,6,17,.98))] shadow-[0_40px_130px_rgba(0,0,0,0.66)] transition-all duration-300 motion-reduce:transition-none ${runtimeSession.compressedHero ? "border-cyan-200/40 p-4 md:p-5" : "border-violet-200/25 p-6 md:p-7"}`}>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_85%_0%,rgba(102,146,255,0.17),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(181,126,255,0.14),transparent_58%)]" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-cyan-100/75"><span>SHOPREEL OPERATOR</span><span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-0.5 text-[10px]">{runtimeSession.compressedHero ? "Runtime active" : "Operator ready"}</span></div>
@@ -137,7 +138,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         reducedMotion={prefersReducedMotion}
       />
 
-      <section className="relative overflow-x-auto rounded-[1.6rem] border border-white/10 bg-[linear-gradient(135deg,rgba(8,11,23,.94),rgba(4,7,16,.92))] p-4">
+      <section className="relative overflow-x-auto rounded-[1.6rem] border border-white/10 bg-[linear-gradient(135deg,rgba(8,11,23,.8),rgba(4,7,16,.7))] p-4">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Recent operational worlds</div>
           <div className="text-[11px] text-white/55">Compressed cinematic rail</div>
@@ -152,17 +153,18 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                   ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-100"
                   : "border-emerald-300/30 bg-emerald-500/10 text-emerald-100";
             return (
-              <article key={item.id} className={`w-[270px] rounded-2xl border border-white/12 bg-white/[0.03] p-3 transition-all duration-300 ${prefersReducedMotion ? "" : index === 0 ? "scale-100" : "scale-[0.965] opacity-85"}`}>
-                <div className="text-[11px] uppercase tracking-[0.12em] text-white/55">Project surface</div>
+              <article key={item.id} className={`w-[280px] rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(21,26,46,.6),rgba(7,11,24,.86))] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.36)] transition-all duration-300 ${prefersReducedMotion ? "" : index === 0 ? "scale-100" : "scale-[0.96] opacity-80"}`}>
+                <div className="text-[11px] uppercase tracking-[0.12em] text-white/55">Standby world</div>
                 <p className="mt-1 line-clamp-2 text-sm font-medium text-white">{item.title}</p>
                 <div className={`mt-3 inline-flex rounded-full border px-2 py-0.5 text-[11px] ${tone}`}>{item.status}</div>
+                <div className="mt-2 text-[11px] text-white/50">Continuity retained for interruption-safe restoration.</div>
               </article>
             );
           })}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <section className="rounded-2xl border border-white/10 bg-black/15 p-4 opacity-85">
         <div className="text-xs uppercase tracking-[0.15em] text-white/55">Runtime utilities</div>
         <div className="mt-2 text-sm text-white/75">Manual operations stay compact as utility interruptions while operator continuity remains primary.</div>
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
