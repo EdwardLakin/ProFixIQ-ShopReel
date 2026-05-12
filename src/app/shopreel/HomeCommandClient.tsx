@@ -16,7 +16,7 @@ import {
   initialOperatorRuntimeSession,
   operatorRuntimeSessionReducer,
 } from "@/features/shopreel/ui/system/operatorRuntimeSession";
-import { persistRuntimeSession, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+import { persistRuntimeSession, readPersistedRuntimeSession, type PersistedChamberMemory } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 type RecentItem = { id: string; title: string; status: string };
 type RuntimeCampaignContext = {
@@ -40,6 +40,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const [runtimeSession, dispatch] = useReducer(operatorRuntimeSessionReducer, initialOperatorRuntimeSession);
   const [campaignContext, setCampaignContext] = useState<RuntimeCampaignContext | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [chamberMemory, setChamberMemory] = useState<PersistedChamberMemory | null>(null);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -56,6 +57,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     setCommand(parsed.lastCommand);
     const persistedRuntime = readPersistedRuntimeSession();
     if (persistedRuntime) {
+      setChamberMemory(persistedRuntime.chamberMemory);
       dispatch({ type: "START_RUNTIME", command: parsed.lastCommand ?? "", resolution: {
         state: persistedRuntime.progressionStage,
         surfaceId: persistedRuntime.activeSurface,
@@ -81,6 +83,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
   useEffect(() => {
     persistRuntimeSession(runtimeSession);
+    const persistedRuntime = readPersistedRuntimeSession();
+    setChamberMemory(persistedRuntime?.chamberMemory ?? null);
   }, [runtimeSession]);
 
   useEffect(() => {
@@ -136,6 +140,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         campaignContext={campaignContext}
         onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
         reducedMotion={prefersReducedMotion}
+        chamberMemory={chamberMemory}
       />
 
       <section className="relative overflow-x-auto rounded-[1.6rem] border border-white/10 bg-[linear-gradient(135deg,rgba(8,11,23,.8),rgba(4,7,16,.7))] p-4">

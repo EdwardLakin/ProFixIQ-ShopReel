@@ -7,6 +7,7 @@ import { operatorSurfaceRegistry, resolveRuntimeFallbackRoute } from "@/features
 import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
 import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { approveRuntimeReviewDecision, rejectRuntimeReviewDecision, requestRuntimeReviewChanges, type RuntimeReviewActionError } from "@/features/shopreel/ui/system/operatorRuntimeReviewActions";
+import type { PersistedChamberMemory } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 type RuntimeRecentItem = { id: string; title: string; status: string };
 type RuntimeCampaignContext = {
@@ -30,6 +31,7 @@ export default function OperatorRuntimeCanvas({
   campaignContext,
   onDecisionSaved,
   reducedMotion,
+  chamberMemory,
 }: {
   session: OperatorRuntimeSessionState;
   onRecover: () => void;
@@ -40,6 +42,7 @@ export default function OperatorRuntimeCanvas({
   campaignContext: RuntimeCampaignContext | null;
   onDecisionSaved: (summary: string) => void;
   reducedMotion: boolean;
+  chamberMemory: PersistedChamberMemory | null;
 }) {
   const activeSurface = operatorSurfaceRegistry[session.activeSurface];
   const previousSurface = session.previousSurface ? operatorSurfaceRegistry[session.previousSurface] : null;
@@ -69,6 +72,7 @@ export default function OperatorRuntimeCanvas({
     refinementDepth,
     campaignUnavailable: Boolean(session.selectedEntityIds.campaignId && !campaignContext),
     reducedMotion,
+    chamberMemory,
   });
 
   const [decisionState, setDecisionState] = useState<Record<string, { status: "idle" | "pending" | "success" | "error"; message?: string }>>({});
@@ -98,6 +102,7 @@ export default function OperatorRuntimeCanvas({
   return (
     <section className={`relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br ${choreography.depthModel.shellLightingClass} p-4 md:p-6`}>
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.backdropClass}`} />
+      <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.chamberAtmosphereClass}`} />
       <div className="pointer-events-none absolute inset-x-[6%] top-[15%] h-[55%] rounded-[2rem] bg-gradient-to-b from-white/[0.05] via-transparent to-transparent blur-2xl" />
       <div className="relative mb-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-cyan-100/90 md:grid-cols-2">
         <div>Operator presence: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
@@ -112,11 +117,20 @@ export default function OperatorRuntimeCanvas({
         </div>
         <span className="rounded-full border border-cyan-100/25 px-2 py-1 text-xs text-cyan-100">{session.runtimeState}</span>
       </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-cyan-100/75">
+        <span className="rounded-full border border-cyan-100/20 bg-cyan-300/10 px-2 py-0.5">{choreography.chamberIdentityLabel}</span>
+        <span className="rounded-full border border-white/15 px-2 py-0.5 text-white/70">Density: {choreography.densityMode}</span>
+      </div>
       <div className={`mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 ${choreography.depthModel.continuityRailClass}`}>
         <div className="mb-2 text-[10px] uppercase tracking-[0.17em] text-cyan-100/60">Continuity memory spine</div>
         <div className="flex flex-wrap gap-2">
-          {progression.map((step, index) => <span key={step.id} className={`rounded-full px-2 py-1 text-[11px] ${activeProgressIndex >= index && activeProgressIndex !== -1 ? "bg-cyan-400/20 text-cyan-100" : "bg-white/5 text-white/55"}`}>{step.label}</span>)}
+        {progression.map((step, index) => <span key={step.id} className={`rounded-full px-2 py-1 text-[11px] ${activeProgressIndex >= index && activeProgressIndex !== -1 ? "bg-cyan-400/20 text-cyan-100" : "bg-white/5 text-white/55"}`}>{step.label}</span>)}
         </div>
+        {choreography.memoryResidue.length > 0 ? (
+          <div className={`mt-2 flex flex-wrap gap-1.5 ${choreography.depthModel.memoryResidueClass}`}>
+            {choreography.memoryResidue.map((trace) => <span key={trace} className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/50">Residue: {trace}</span>)}
+          </div>
+        ) : null}
       </div>
 
       {isThinking ? <div className="mt-3 rounded-xl border border-violet-200/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-100">Operator is interpreting and preparing the next surface. {transitionCopy}</div> : null}
