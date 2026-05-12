@@ -3,436 +3,141 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AiCommandInput,
-  AiIntentChip,
-  AiWorkspaceStage,
-  interpretCommand,
-} from "@/features/shopreel/ui/system/AiCommandPrimitives";
-import {
-  buildPendingTasks,
-  buildContinuityThreads,
-  defaultCreativeContinuityMemory,
-  evolveCreativeIntentSignals,
-  deriveCinematicOrchestrationState,
-  deriveEcosystemState,
-  deriveProductionConsciousnessState,
-  derivePersistentWorldState,
-  readWorkspaceMemory,
-  writeWorkspaceMemory,
-  type WorkspaceMemory,
-} from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
+import { readWorkspaceMemory, type WorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
-import { deriveEnvironmentReactivity } from "@/features/shopreel/ui/system/environmentReactivity";
-import { deriveEnvironmentalField } from "@/features/shopreel/ui/system/environmentField";
-import { deriveCognitiveState } from "@/features/shopreel/ui/system/cognitiveState";
-import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
-import { deriveOperatorAdaptation, readOperatorBehaviorMemory, recordOperatorBehaviorEvent } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
-import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
-import { useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
-import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent, reorderSuggestionsByRhythm } from "@/features/shopreel/ui/system/operatorRhythm";
-import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
-import { deriveProductionExecutionIntelligence } from "@/features/shopreel/ui/system/productionExecutionIntelligence";
-import { buildRecoveryInbox } from "@/features/shopreel/ui/system/recoveryInbox";
-import { classifyCommandInputIntent } from "@/features/shopreel/ui/system/commandInputIntent";
-import { executeShopReelCommand, traceShopReelCommandExecution } from "@/features/shopreel/ui/system/executeShopReelCommand";
+import { buildPendingTasks, buildContinuityThreads } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { executeShopReelCommand } from "@/features/shopreel/ui/system/executeShopReelCommand";
 
 type RecentItem = { id: string; title: string; status: string };
+
+const stageLabel = (status: string) => {
+  const normalized = status.toLowerCase();
+  if (/(review|approval|needs)/.test(normalized)) return "Needs approval";
+  if (/(ready|completed|published)/.test(normalized)) return "Draft ready";
+  if (/(render|processing|queued)/.test(normalized)) return "In production";
+  if (/(fail|error|blocked)/.test(normalized)) return "Needs attention";
+  return "Ready to plan";
+};
 
 export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
   const router = useRouter();
   const [command, setCommand] = useState("");
-  const [assistantText, setAssistantText] = useState("Command ready. Continue, recover, render, package, or publish.");
   const [context, setContext] = useState<WorkspaceMemory | null>(null);
-  const [isFocused, setIsFocused] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
-  const [showRail, setShowRail] = useState(true);
-  const [showSystemDetails, setShowSystemDetails] = useState(false);
-  const [ambientCheckpoint, setAmbientCheckpoint] = useState<string>("Restoring operational checkpoint…");
-  const continuity = useGlobalEnvironmentContinuity();
+  const interpreted = useMemo(() => interpretCommand(command), [command]);
 
   useEffect(() => {
     const parsed = readWorkspaceMemory();
     if (!parsed) return;
     setContext(parsed);
     setCommand(parsed.lastCommand);
-    setHistory(parsed.intentHistory);
-    setAmbientCheckpoint(`Restored ${parsed.lastWorkflow} context from ${new Date(parsed.updatedAt).toLocaleString()}.`);
   }, []);
 
-  const interpreted = useMemo(() => interpretCommand(command), [command]);
-  const commandIntent = useMemo(() => classifyCommandInputIntent(command), [command]);
-
   const persistContext = (route: string) => {
-    const resolvedCampaignId = commandIntent === "create_campaign" ? undefined : recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId ?? undefined;
-    const nextHistory = [command, ...(context?.intentHistory ?? [])].filter((x) => x.trim()).slice(0, 8);
-    const nextIntents = [interpreted.intent, ...(context?.recentIntents ?? [])].slice(0, 8);
     const pendingTasks = buildPendingTasks(interpreted.intent);
-    const blockerCount = pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length;
-    const readyTaskCount = recent.filter((item) => /ready|complete|published/i.test(item.status)).length;
-    const minutesSinceUpdate = context?.updatedAt ? Math.max(0, Math.floor((Date.now() - new Date(context.updatedAt).getTime()) / 60000)) : 0;
-    const continuityThreads = buildContinuityThreads({
-      intent: interpreted.intent,
-      pendingTasks,
-      interruptedWorkflow: commandIntent === "create_campaign" ? undefined : interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
-      lastRoute: route,
-      generationId: recent[0]?.id,
-      campaignId: resolvedCampaignId,
-    });
-    const ecosystemState = deriveEcosystemState({
-      pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
-      readyTaskCount,
-      blockerCount,
-      continuityThreadCount: continuityThreads.length,
-      interruptedWorkflow: commandIntent === "create_campaign" ? undefined : interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
-      adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
-      minutesSinceUpdate,
-    });
-    const cinematicState = deriveCinematicOrchestrationState({
-      ecosystem: ecosystemState,
-      minutesSinceUpdate,
-      continuityThreadCount: continuityThreads.length,
-      blockerCount,
-      exportReadyCount: readyTaskCount,
-      interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
-    });
-
     const operationalGraph = buildOperationalGraph({
       generationId: recent[0]?.id,
-      campaignId: resolvedCampaignId,
+      campaignId: context?.lastCampaignId,
       pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
-      blockerCount,
-      readyTaskCount,
-      interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
-      continuityThreadCount: continuityThreads.length,
+      blockerCount: pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length,
+      readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+      interrupted: false,
+      continuityThreadCount: 0,
       lastRoute: route,
     });
-    const executionPlan = planCommandExecution(command, operationalGraph, route, interpreted.intent);
 
+    const base = context ?? readWorkspaceMemory();
+    if (!base) return;
     const next: WorkspaceMemory = {
+      ...base,
       lastWorkflow: interpreted.intent,
-      lastCampaignId: resolvedCampaignId,
-      lastRenderContextRoute: interpreted.intent === "render" ? route : context?.lastRenderContextRoute,
-      lastGenerationId: recent[0]?.id,
       lastCommand: command,
       lastRoute: route,
-      recentIntents: nextIntents,
-      intentHistory: nextHistory,
       pendingTasks,
-      interruptedWorkflow: commandIntent === "create_campaign" ? undefined : interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
-      adaptiveMode: interpreted.intent === "render" ? "render" : interpreted.intent === "campaign" ? "campaign" : interpreted.intent === "publish" ? "publish" : interpreted.intent === "latest" ? "scene" : "balanced",
-      creativeContinuity: context?.creativeContinuity ?? defaultCreativeContinuityMemory(),
-      continuityThreads: buildContinuityThreads({
-        intent: interpreted.intent,
-        pendingTasks,
-        interruptedWorkflow: commandIntent === "create_campaign" ? undefined : interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow,
-        lastRoute: route,
-        generationId: recent[0]?.id,
-        campaignId: resolvedCampaignId,
-      }),
-      intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
-      ecosystemState,
-      productionConsciousness: deriveProductionConsciousnessState({
-        ecosystem: ecosystemState,
-        cinematic: cinematicState,
-        continuityThreadCount: continuityThreads.length,
-        pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
-        readyTaskCount,
-        blockerCount,
-        minutesSinceUpdate,
-        interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
-        intentSignals: evolveCreativeIntentSignals(context?.creativeContinuity ?? defaultCreativeContinuityMemory()),
-      }),
-      worldState: derivePersistentWorldState({
-        ecosystem: ecosystemState,
-        cinematic: cinematicState,
-        continuityThreadCount: continuityThreads.length,
-        blockerCount,
-        readyTaskCount,
-        minutesSinceUpdate,
-        interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
-      }),
-      recoveryInbox: buildRecoveryInbox({
-        route,
-        generationId: recent[0]?.id,
-        campaignId: resolvedCampaignId,
-        interrupted: Boolean(interpreted.intent !== "unknown" ? interpreted.intent : context?.interruptedWorkflow),
-        hasReviewItems: pendingTasks.some((task) => /review/i.test(task.label) && !task.done),
-        hasPublishReady: recent.some((item) => /ready|completed/i.test(item.status)),
-        hasPublishFailures: recent.some((item) => /failed|error|blocked/i.test(item.status)),
-        hasDraftContinuity: pendingTasks.some((task) => /draft|storyboard|revise/i.test(task.label) && !task.done),
-      }),
+      continuityThreads: buildContinuityThreads({ intent: interpreted.intent, pendingTasks, lastRoute: route }),
       operationalGraph,
-      lastExecutionPlan: executionPlan,
+      lastExecutionPlan: planCommandExecution(command, operationalGraph, route, interpreted.intent),
       updatedAt: new Date().toISOString(),
     };
     writeWorkspaceMemory(next);
     setContext(next);
-    setHistory(nextHistory);
   };
 
   const runCommand = () => {
-    const resolvedCampaignId = commandIntent === "create_campaign" ? undefined : recent.find((x) => /campaign/i.test(x.title))?.id ?? context?.lastCampaignId ?? undefined;
     const execution = executeShopReelCommand({ command, lastRoute: context?.lastRoute, source: "home_command" });
-    const { decision, selectedRoute: inferredTarget, handoffMethod, handoffId, commandIntent: resolvedCommandIntent } = execution;
-    const graph = context?.operationalGraph ?? buildOperationalGraph({
-      generationId: recent[0]?.id,
-      campaignId: resolvedCampaignId,
-      pendingTaskCount: context?.pendingTasks.filter((task) => !task.done).length ?? 0,
-      blockerCount: context?.pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length ?? 0,
-      readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
-      interrupted: Boolean(context?.interruptedWorkflow),
-      continuityThreadCount: context?.continuityThreads?.length ?? 0,
-      lastRoute: inferredTarget,
-    });
-    const executionPlan = planCommandExecution(command, graph, inferredTarget, interpreted.intent);
-    let target = executionPlan.targetRoute;
-    if (resolvedCommandIntent === "create_campaign") target = inferredTarget;
-
-
-    const countText = recent.length > 0 ? `I found ${recent.length} recent drafts.` : "No recent drafts were found yet.";
-    setAssistantText(`${interpreted.summary} ${countText} Operating mode: ${executionPlan.mode.replaceAll("_", " ")}.`);
-    recordOperatorBehaviorEvent({ type: "command_submitted", route: target, intent: decision.intent as any });
-    recordOperatorRhythmEvent({ type: "command_submitted", route: target });
-    if (decision.intent.includes("campaign")) recordOperatorBehaviorEvent({ type: "campaign_opened", route: target, intent: decision.intent as any });
-    if (interpreted.intent === "campaign") recordOperatorRhythmEvent({ type: "campaign_opened", route: target });
-    if (decision.intent === "publish") recordOperatorBehaviorEvent({ type: "export_opened", route: target, intent: decision.intent as any });
-    if (interpreted.intent === "publish") recordOperatorRhythmEvent({ type: "export_opened", route: target });
-    if (decision.intent === "render") recordOperatorBehaviorEvent({ type: "render_checked", route: target, intent: decision.intent as any });
-    if (interpreted.intent === "render") recordOperatorRhythmEvent({ type: "render_checked", route: target });
-    if (/(continue|resume)/i.test(command)) recordOperatorBehaviorEvent({ type: "workflow_continued", route: target, intent: interpreted.intent });
-    if (/(continue|resume|recover|restore)/i.test(command)) recordOperatorRhythmEvent({ type: "workflow_continued", route: target });
-    traceShopReelCommandExecution({ source: "home_command", prompt: command, detectedIntent: decision.intent, selectedRoute: target, handoffMethod, handoffId, staleContinuityIgnored: decision.ignoredStaleContinuity, reason: decision.reason });
-    persistContext(target);
-    router.push(target);
+    persistContext(execution.selectedRoute);
+    router.push(execution.selectedRoute);
   };
 
-
-
-  const cinematicState = useMemo(() => {
-    const minutesSinceUpdate = context?.updatedAt ? Math.max(0, Math.floor((Date.now() - new Date(context.updatedAt).getTime()) / 60000)) : 0;
-    const ecosystem = context?.ecosystemState ?? deriveEcosystemState({
-      pendingTaskCount: context?.pendingTasks.filter((task) => !task.done).length ?? 0,
-      readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
-      blockerCount: context?.pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length ?? 0,
-      continuityThreadCount: context?.continuityThreads?.length ?? 0,
-      interruptedWorkflow: context?.interruptedWorkflow,
-      adaptiveMode: context?.adaptiveMode,
-      minutesSinceUpdate,
-    });
-    return deriveCinematicOrchestrationState({
-      ecosystem,
-      minutesSinceUpdate,
-      continuityThreadCount: context?.continuityThreads?.length ?? 0,
-      blockerCount: context?.pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length ?? 0,
-      exportReadyCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
-      interrupted: Boolean(context?.interruptedWorkflow),
-    });
-  }, [context, recent]);
-
-  const environmentReactivity = useMemo(() => deriveEnvironmentReactivity({
-    memory: context,
-    readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
-  }), [context, recent]);
-
-
-  const environmentalField = useMemo(() => deriveEnvironmentalField({
-    memory: context,
-    environment: environmentReactivity,
-    readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
-  }), [context, environmentReactivity, recent]);
-
-
-
-  const cognitiveState = useMemo(() => deriveCognitiveState({
-    memory: context,
-    environment: environmentReactivity,
-    field: environmentalField,
-    readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
-  }), [context, environmentReactivity, environmentalField, recent]);
-
-  const cognitiveFocusLine = cognitiveState.renderAnxiety > 70
-    ? "Focus: recover render blockers"
-    : cognitiveState.exportIntent > 72
-      ? "Focus: prepare export-ready packaging"
-      : cognitiveState.recoveryIntelligence > 64
-        ? "Focus: stabilize continuity and continue execution"
-        : "Focus: advance active production tasks";
-  const ecosystemSnapshot = deriveEcosystemStateSnapshot(context);
-  const operatorAdaptation = deriveOperatorAdaptation(readOperatorBehaviorMemory());
-  const intuition = deriveProductionIntuition({ operator: readOperatorBehaviorMemory(), continuity, evolution: continuity.continuousEvolution, memory: context, routePathname: context?.lastRoute ?? "/shopreel" });
-  const rhythm = deriveOperatorRhythmSnapshot();
-  const strategic = deriveStrategicAdaptation({ workspace: context, operator: readOperatorBehaviorMemory(), continuity, strategicMemory: readStrategicOperationalMemory() });
-  const execution = deriveProductionExecutionIntelligence({
-    ecosystem: ecosystemSnapshot,
-    continuity,
-    rhythm,
-    intuition,
-    strategic,
-    routePath: context?.lastRoute ?? "/shopreel",
-  });
-  const surfaceCommandMap: Record<string, string[]> = {
-    "/shopreel/exports": ["open publish queue", "review + package", "schedule latest export"],
-    "/shopreel/render-queue": ["show failed renders", "show render queue blockers", "stabilize render continuity"],
-    "/shopreel/campaigns": ["continue active campaign", "generate campaign variations", "review campaign readiness"],
-    "/shopreel/review": ["restore continuity and recover interrupted flow", "review blockers", "continue what we were working on"],
-    "/shopreel/create": ["create next draft", "open create flow", "continue what we were working on"],
-  };
-  const quickCommands = surfaceCommandMap[execution.recommendedSurface] ?? ["launch a new campaign from this idea", "continue my active campaign", "review pending approvals"];
-  const rhythmCommands = reorderSuggestionsByRhythm(quickCommands, rhythm);
-
-  const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
-    ? "from-rose-500/20 via-amber-400/10 to-transparent"
-    : environmentReactivity.operationalWeather.pattern === "export_surge"
-      ? "from-emerald-400/20 via-cyan-400/10 to-transparent"
-      : environmentReactivity.operationalWeather.pattern === "cinematic_stabilization"
-        ? "from-sky-500/15 via-indigo-500/10 to-transparent"
-        : cinematicState.emotionalState === "blocker_friction"
-    ? "from-rose-500/20 via-amber-400/10 to-transparent"
-    : cinematicState.emotionalState === "export_anticipation"
-      ? "from-emerald-400/20 via-cyan-400/10 to-transparent"
-      : cinematicState.emotionalState === "render_momentum"
-        ? "from-fuchsia-500/20 via-cyan-500/10 to-transparent"
-        : cinematicState.emotionalState === "calm_continuity"
-          ? "from-sky-500/15 via-indigo-500/10 to-transparent"
-          : "from-violet-500/20 via-cyan-500/10 to-transparent";
-
-  const activityStream = [
-    `Continuing ${context?.lastWorkflow ?? "new"} session`,
-    ambientCheckpoint,
-    recent[0] ? `Latest draft: ${recent[0].title}` : "No latest draft persisted yet",
-    `${recent.filter((item) => /ready|complete|published/i.test(item.status)).length} outputs ready for packaging`,
-    `Last active workspace: ${context?.lastRoute ?? "Command Home"}`,
-    context?.pendingTasks[0] ? `Next checkpoint: ${context.pendingTasks[0].label}` : "No pending checkpoints detected",
-    context?.interruptedWorkflow ? `Interrupted flow detected: ${context.interruptedWorkflow}` : "No interrupted workflow",
-    `Recent instruction interpreted as: ${interpreted.intent}`,
-    `Workspace rhythm: ${context?.adaptiveMode ?? "balanced"}`,
-    `Continuity: ${context?.operationalGraph?.continuityWeather.pattern?.replaceAll("_", " ") ?? "calm"} · intensity ${context?.operationalGraph?.continuityWeather.intensity ?? 0}`,
-  ];
-  const calmMode = environmentReactivity.operationalWeather.pattern === "cinematic_stabilization" || environmentReactivity.dormantCooling > 62;
-
-  const compressionClass = environmentalField.focusCompression > 58 ? "space-y-4" : environmentalField.pacing.breathingRhythm > 62 ? "space-y-7" : "space-y-6";
-  const railDensityClass = environmentalField.pacing.compressionRhythm > 58 ? "space-y-1.5" : environmentalField.pacing.recoveryRhythm > 62 ? "space-y-2.5" : "space-y-2";
-
-  return <div className={`relative pb-6 ${compressionClass}`}>
-    <div className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-gradient-to-br ${cinematicAuraClass} blur-3xl transition-all duration-700`} />
-    <section className={`relative overflow-hidden rounded-[2rem] bg-gradient-to-b p-5 shadow-[0_40px_90px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-xl md:p-7 ${environmentalField.escalationBias > 64 ? "from-white/[0.06] to-black/[0.18]" : environmentalField.recoveryStabilization > 60 ? "from-emerald-100/[0.08] to-white/[0.02]" : "from-white/[0.07] to-white/[0.02]"}`}>
-      <div className="pointer-events-none absolute -right-12 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="pointer-events-none absolute -left-14 bottom-0 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
-      <div className="relative">
-        <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">ShopReel Command</div>
-        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Tell ShopReel what you want to create.</h1>
-        <p className="mt-3 max-w-3xl text-sm text-white/70 md:text-base">ShopReel turns your intent into a campaign plan, asks for approval, executes the next step, and learns your creative preferences over time.</p>
-        <p className="mt-2 text-xs text-white/60">Active flow: {ecosystemSnapshot.ecosystemMode} · workflow status {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
-        <p className="mt-2 text-xs text-white/55">Next move: {ecosystemSnapshot.suggestedSurfaceAction} · recovery path {ecosystemSnapshot.recoveryPriority}</p>
-        <p className="mt-1 text-xs text-cyan-100/80">Likely next: {execution.nextOperationalMove} → {execution.recommendedSurface}</p>
-        <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
-          <AiCommandInput value={command} onChange={setCommand} placeholder="Try: launch a campaign for this offer, create content from this idea, refine my active campaign, or review pending approvals" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
+  return (
+    <div className="space-y-6 pb-8">
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.09] to-white/[0.02] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.55)] md:p-8">
+        <div className="text-xs uppercase tracking-[0.2em] text-cyan-100/70">ShopReel Operator</div>
+        <h1 className="mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">Tell ShopReel what you want to create.</h1>
+        <p className="mt-3 max-w-3xl text-sm text-white/75 md:text-base">Describe the outcome. ShopReel will shape the campaign, ask for approval, execute the next step, and learn your creative taste over time.</p>
+        <div className="mt-6">
+          <AiCommandInput
+            value={command}
+            onChange={setCommand}
+            placeholder="Launch a campaign for…&#10;Turn this idea into 5 short-form posts…&#10;Refine my active campaign to feel less corporate…&#10;Review what needs my approval…"
+            className="min-h-36"
+          />
         </div>
-        <div className="mt-2 text-xs text-cyan-100/80">Rhythm {rhythm.cadence} · strategy {operatorAdaptation.priorityBias} · continuity {ecosystemSnapshot.continuityHealth}</div>
-        <div className="mt-3 flex flex-wrap gap-2">{rhythmCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button onClick={() => setShowRail((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showRail ? "Collapse updates" : "Show updates"}</button>
-          <button onClick={() => setShowSystemDetails((v) => !v)} className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80">{showSystemDetails ? "Hide system details" : "System details"}</button>
-          <button onClick={runCommand} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} className="rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-5 py-3 text-sm font-medium text-white">Run next move</button>
-          <span className="text-xs text-white/60">Command bar first · navigation always available</span>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button onClick={runCommand} className="rounded-2xl bg-gradient-to-r from-violet-500/80 to-cyan-400/80 px-5 py-3 text-sm font-semibold text-white">Plan next move</button>
+          <Link href="/shopreel/review" className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-white/80 hover:bg-white/10">Review approvals</Link>
         </div>
-      </div>
-    </section>
-    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {[
-        { title: "Start with an idea", description: "Launch a fresh campaign from a product, hook, or raw concept.", href: "/shopreel/create" },
-        { title: "Continue a campaign", description: "Jump back into active campaign planning and execution.", href: "/shopreel/campaigns" },
-        { title: "Review pending approvals", description: "Approve, refine, or reject the AI's next proposed actions.", href: "/shopreel/review" },
-        { title: "Add assets to the library", description: "Upload source material so the operator can reuse brand assets.", href: "/shopreel/library" },
-      ].map((card) => (
-        <Link key={card.title} href={card.href} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.07]">
-          <div className="text-sm font-semibold text-white">{card.title}</div>
-          <p className="mt-2 text-xs text-white/65">{card.description}</p>
-          <div className="mt-3 text-xs text-cyan-100/80">Open →</div>
-        </Link>
-      ))}
-    </section>
+      </section>
 
-    <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-      <AiWorkspaceStage title="Next actions" className="border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
-        <p className="text-sm text-cyan-50/90">{assistantText}</p>
-        <div className={`mt-4 ${railDensityClass}`}>{showRail ? activityStream.map((entry) => <div key={entry} className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/80">{entry}</div>) : <div className="rounded-2xl bg-black/25 px-3 py-2 text-sm text-white/70">Compressed rail · {activityStream[0]}</div>}</div>
-        <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Why this is suggested: {environmentReactivity.operationalWeather.descriptor}</div>
-        {!calmMode ? <div className="mt-3 rounded-2xl bg-black/25 px-3 py-2 text-xs text-white/75">Render pressure {environmentalField.topology.instabilityZones} · Ready to publish {environmentalField.topology.exportFronts} · Recovery {environmentalField.topology.continuityRidges}</div> : null}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {interpreted.nextActions.map((action) => (
-            <AiIntentChip key={action.href + action.label} label={action.label} href={action.href} className="px-3 py-1.5 text-[11px]" />
-          ))}
-        </div>
-      </AiWorkspaceStage>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          { title: "Start with an idea", description: "Move from concept to campaign plan in one guided flow.", href: "/shopreel/create" },
+          { title: "Continue a campaign", description: "Return to active campaign work and keep momentum.", href: "/shopreel/campaigns" },
+          { title: "Review approvals", description: "Approve or refine ShopReel’s next decisions.", href: "/shopreel/review" },
+          { title: "Add brand assets", description: "Upload source material ShopReel can learn from.", href: "/shopreel/upload" },
+        ].map((card) => (
+          <Link key={card.title} href={card.href} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.07]">
+            <div className="text-sm font-semibold text-white">{card.title}</div>
+            <p className="mt-2 text-xs text-white/65">{card.description}</p>
+          </Link>
+        ))}
+      </section>
 
-      <AiWorkspaceStage title="Operational queue" className={`border-0 bg-white/[0.015] shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${environmentReactivity.structuralInstability > 65 ? "ring-1 ring-rose-300/20" : environmentReactivity.recoveryWarmth > 65 ? "ring-1 ring-emerald-300/20" : ""}`}>
-        <div className="space-y-2 text-sm text-white/75">
-          <div>Current intent: {interpreted.intent}</div>
-          <div>Last workflow: {context?.lastWorkflow ?? "none"}</div>
-          <div>Last route: {context?.lastRoute ?? "none"}</div>
-          <div className="mt-2 rounded-xl bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50/90">{cognitiveFocusLine}</div>
-        </div>
-        {context?.pendingTasks && context.pendingTasks.length > 0 ? <div className="mt-4">
-          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Pending tasks</div>
-          <div className="space-y-2">{context.pendingTasks.map((task) => <Link key={task.id} href={task.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{task.label}</span><span className="text-cyan-100/70">{task.done ? "done" : "next"}</span></Link>)}</div>
-        </div> : null}
-        {context?.recoveryInbox?.length ? <div className="mt-4">
-          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-amber-100/80">Recovery inbox</div>
-          <div className="space-y-2">{context.recoveryInbox.slice(0, 4).map((item) => <Link key={item.id} href={item.resume_route} className="flex items-center justify-between rounded-xl bg-amber-300/10 px-3 py-2 text-xs text-amber-50 hover:bg-amber-300/20"><span>{item.recommended_next_action}</span><span className="text-amber-100/80">{item.current_stage.replaceAll("_", " ")} · resume</span></Link>)}</div>
-        </div> : null}
-        {context?.continuityThreads?.length ? <div className="mt-4">
-          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recovery links</div>
-          <div className="space-y-2">{context.continuityThreads.slice(0, 4).map((thread) => <Link key={thread.id} href={thread.route} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 hover:bg-white/10"><span>{thread.label}</span><span className="text-cyan-100/70">{thread.status} · {thread.priority}</span></Link>)}</div>
-        </div> : null}
-        {showSystemDetails && context?.intentSignals ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
-          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Creative pattern</div>
-          <div>Pacing: {context.intentSignals.pacingBias} · CTA: {context.intentSignals.ctaBias}</div>
-          <div>Hook density: {context.intentSignals.hookDensityBias} · Export style: {context.intentSignals.exportStyleBias}</div>
-          <div>Variant direction: {context.intentSignals.variantDirectionBias}</div>
-        </div> : null}
-        {showSystemDetails && context?.ecosystemState ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
-          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">System state</div>
-          <div>Energy: {context.ecosystemState.environmentalEnergy.replaceAll("_", " ")} · Temporal: {context.ecosystemState.temporalRailState.replaceAll("_", " ")}</div>
-          <div>Saturation: {context.ecosystemState.operationalSaturation} · Entropy: {context.ecosystemState.focusEntropy} · Telemetry: {context.ecosystemState.telemetryDensityPressure}</div>
-        </div> : null}
-        {showSystemDetails && context?.operationalGraph ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
-          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Execution state</div>
-          <div>Active chain depth: {context.operationalGraph.activeChain.length} · continuity pressure: {context.operationalGraph.continuityPressure} · readiness propagation: {context.operationalGraph.readinessPropagation}</div>
-          <div>Recovery candidates: {context.operationalGraph.recoveryCandidates.join(", ")}</div>
-          <div>Last execution mode: {context.lastExecutionPlan?.mode?.replaceAll("_", " ") ?? "default"}</div>
-        </div> : null}
-        {showSystemDetails && context?.productionConsciousness ? <div className="mt-4 rounded-2xl bg-black/25 p-3 text-xs text-white/75">
-          <div className="mb-1 uppercase tracking-[0.14em] text-white/50">Production state</div>
-          <div>Awareness: ops {context.productionConsciousness.operationalAwareness} · momentum {context.productionConsciousness.momentumAwareness} · friction {context.productionConsciousness.frictionAwareness}</div>
-          <div>Attention economy: blocker {context.productionConsciousness.attentionEconomy.blockerPressure} · telemetry decay {context.productionConsciousness.attentionEconomy.staleTelemetryDecay} · export focus {context.productionConsciousness.attentionEconomy.exportFocusShare}</div>
-          <div>Topology: breathing {context.productionConsciousness.selfSteeringTopology.activeBreathingRoom} · compression {context.productionConsciousness.selfSteeringTopology.inactiveCompression} · stabilization {context.productionConsciousness.selfSteeringTopology.exportStabilization}</div>
-          <div>Drift/recovery: coherence {context.productionConsciousness.creativeCoherenceAwareness} · recovery {context.productionConsciousness.recoveryProbability} · interruption sensitivity {context.productionConsciousness.interruptionSensitivity}</div>
-        </div> : null}
-        {history.length > 0 ? <div className="mt-4">
-          <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
-          <div className="flex flex-wrap gap-2">{history.map((item) => <button key={item} onClick={() => setCommand(item)} className="rounded-full bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-50 hover:bg-cyan-400/20">{item}</button>)}</div>
-        </div> : null}
-      </AiWorkspaceStage>
-    </section>
+      <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 md:p-6">
+        <div className="mb-4 text-lg font-semibold text-white">Active work</div>
+        {recent.length === 0 ? (
+          <div className="rounded-2xl bg-white/[0.04] p-4 text-sm text-white/70">No active drafts yet. Start with a new idea or continue a campaign.</div>
+        ) : (
+          <div className="space-y-3">
+            {recent.slice(0, 5).map((item) => (
+              <article key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-base font-semibold text-white">{item.title}</div>
+                <div className="mt-1 text-xs text-cyan-100/80">{stageLabel(item.status)}</div>
+                <div className="mt-2 text-sm text-white/70">Next recommended action: {stageLabel(item.status) === "Needs approval" ? "Review next decision" : "Continue campaign"}.</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link href={`/shopreel/generations/${item.id}`} className="rounded-full bg-cyan-400/25 px-4 py-2 text-xs font-semibold text-cyan-50">Continue campaign</Link>
+                  <Link href="/shopreel/review" className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/75">Review next decision</Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
-    <AiWorkspaceStage title="Recent drafts" className="border-0 bg-white/[0.03] shadow-[0_24px_70px_rgba(0,0,0,0.5)]">
-      {recent.length === 0 ? <div className="rounded-2xl bg-white/[0.04] p-4 text-sm text-white/70">No recent drafts yet. Start a new draft in Create content, or open the library to seed one from assets.</div> : <div className="space-y-3">{recent.map((r) => <div key={r.id} className="flex min-h-[94px] flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/90">
-        <div>
-          <Link href={`/shopreel/generations/${r.id}`} className="block text-base font-semibold">{r.title}</Link>
-          <div className="mt-1 text-xs text-white/70">Status: {r.status} · Updated recently · Targets: multi-platform</div>
-          <div className="mt-1 text-xs text-white/60">Summary: Continue this draft toward review, render, and publish readiness.</div>
+      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-sm text-white/75">
+        <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Adaptive memory</div>
+        <p className="mt-2">ShopReel is learning your preferred tone, pacing, and hook style. Recent feedback will shape future campaign plans and reduce generic AI phrasing.</p>
+      </section>
+
+      <details className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
+        <summary className="cursor-pointer text-white">Advanced tools</summary>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link href="/shopreel/render-jobs" className="rounded-full bg-white/5 px-3 py-1.5">Render jobs</Link>
+          <Link href="/shopreel/publish-center" className="rounded-full bg-white/5 px-3 py-1.5">Publish center</Link>
+          <Link href="/shopreel/operations" className="rounded-full bg-white/5 px-3 py-1.5">Operations</Link>
+          <Link href="/shopreel/automation" className="rounded-full bg-white/5 px-3 py-1.5">Automation</Link>
         </div>
-        <div className="flex flex-wrap gap-2 md:justify-end">
-          <Link href={`/shopreel/generations/${r.id}`} className="rounded-full bg-cyan-400/25 px-4 py-2 text-xs font-semibold text-cyan-50">Continue work</Link>
-          <Link href={`/shopreel/editor?id=${r.id}`} className="rounded-full bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50">Open editor</Link>
-          <Link href="/shopreel/render-queue" className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/75">Review outputs</Link>
-          <Link href="/shopreel/exports" className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/75">Package & publish</Link>
-          <Link href="/shopreel/create" className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/75">Duplicate</Link>
-          <Link href="/shopreel/generations" className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/75">Sync</Link>
-        </div>
-      </div>)}</div>}
-    </AiWorkspaceStage>
-  </div>;
+      </details>
+    </div>
+  );
 }
