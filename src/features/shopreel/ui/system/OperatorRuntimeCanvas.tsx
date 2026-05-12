@@ -8,8 +8,8 @@ import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/
 import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { approveRuntimeReviewDecision, rejectRuntimeReviewDecision, requestRuntimeReviewChanges, type RuntimeReviewActionError } from "@/features/shopreel/ui/system/operatorRuntimeReviewActions";
 import type { PersistedChamberMemory } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+import type { OperatorWorldCard } from "@/features/shopreel/operator/operatorWorlds";
 
-type RuntimeRecentItem = { id: string; title: string; status: string };
 type RuntimeCampaignContext = {
   id: string;
   title: string;
@@ -39,7 +39,7 @@ export default function OperatorRuntimeCanvas({
   onInterruptManual: () => void;
   onRunCommand: (command: string) => void;
   context: WorkspaceMemory | null;
-  recent: RuntimeRecentItem[];
+  recent: OperatorWorldCard[];
   campaignContext: RuntimeCampaignContext | null;
   onDecisionSaved: (summary: string) => void;
   reducedMotion: boolean;
@@ -65,7 +65,7 @@ export default function OperatorRuntimeCanvas({
     { id: "completed_export_ready", label: "Ready" },
   ];
   const activeProgressIndex = progression.findIndex((step) => step.id === session.runtimeState);
-  const pendingApprovals = recent.filter((item) => /review|approval|needs/i.test(item.status));
+  const pendingApprovals = recent.filter((item) => /review|approval/.test(item.normalizedStatus));
   const refinementDepth = campaignContext?.refinementHistory.length ?? 0;
   const choreography = deriveRuntimeChoreography({
     session,
@@ -79,7 +79,8 @@ export default function OperatorRuntimeCanvas({
 
   const [decisionState, setDecisionState] = useState<Record<string, { status: "idle" | "pending" | "success" | "error"; message?: string }>>({});
 
-  async function mutateInlineDecision(item: RuntimeRecentItem, action: "approve" | "reject" | "refine"): Promise<void> {
+  async function mutateInlineDecision(item: OperatorWorldCard, action: "approve" | "reject" | "refine"): Promise<void> {
+    if (item.kind !== "generation" && item.kind !== "review_item") return;
     setDecisionState((prev) => ({ ...prev, [item.id]: { status: "pending" } }));
     try {
       const reason = action === "refine" ? "Request changes from runtime inline review." : null;
@@ -204,7 +205,10 @@ export default function OperatorRuntimeCanvas({
               <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Active objective · inline review handoff</div>
               <p className="mt-2 text-sm text-white/75">Operator explanation: this needs approval because it changes campaign voice and publish readiness.</p>
               <div className="mt-3 grid gap-2">
-                {pendingApprovals.length === 0 ? <p className="text-sm text-white/60">No pending review cards currently. You can still open full review workspace.</p> : pendingApprovals.slice(0, 3).map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="text-sm font-medium text-white">{item.title}</p><p className="text-xs text-white/65">Status: {item.status}</p><div className="mt-2 flex gap-2"><button onClick={() => void mutateInlineDecision(item, "approve")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-cyan-200/35 px-2 py-1 text-xs text-cyan-100">Approve</button><button onClick={() => void mutateInlineDecision(item, "refine")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/80">Refine</button><button onClick={() => void mutateInlineDecision(item, "reject")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-rose-200/35 px-2 py-1 text-xs text-rose-100">Reject</button></div>{decisionState[item.id]?.status === "error" ? <div className="mt-2 text-xs text-rose-200">{decisionState[item.id]?.message} <button onClick={() => void mutateInlineDecision(item, "approve")} className="underline">Retry approve</button></div> : null}{decisionState[item.id]?.status === "success" ? <p className="mt-2 text-xs text-emerald-200">{decisionState[item.id]?.message}</p> : null}</div>)}
+                {pendingApprovals.length === 0 ? <p className="text-sm text-white/60">No pending review cards currently. You can still open full review workspace.</p> : pendingApprovals.slice(0, 3).map((item) => {
+                  const canMutateReview = item.kind === "generation" || item.kind === "review_item";
+                  return <div key={`${item.kind}-${item.id}`} className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="text-sm font-medium text-white">{item.title}</p><p className="text-xs text-white/65">Status: {item.status} · {item.sourceLabel}</p>{canMutateReview ? <div className="mt-2 flex gap-2"><button onClick={() => void mutateInlineDecision(item, "approve")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-cyan-200/35 px-2 py-1 text-xs text-cyan-100">Approve</button><button onClick={() => void mutateInlineDecision(item, "refine")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/80">Refine</button><button onClick={() => void mutateInlineDecision(item, "reject")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-rose-200/35 px-2 py-1 text-xs text-rose-100">Reject</button></div> : <p className="mt-2 text-xs text-white/60">Open this world for review actions.</p>}{decisionState[item.id]?.status === "error" ? <div className="mt-2 text-xs text-rose-200">{decisionState[item.id]?.message} <button onClick={() => void mutateInlineDecision(item, "approve")} className="underline">Retry approve</button></div> : null}{decisionState[item.id]?.status === "success" ? <p className="mt-2 text-xs text-emerald-200">{decisionState[item.id]?.message}</p> : null}</div>;
+                })}
               </div>
             </article>
           ) : activeSurface.render()}

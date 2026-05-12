@@ -27,8 +27,8 @@ import {
   readPersistedRuntimeSession,
   type PersistedChamberMemory,
 } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+import type { OperatorWorldCard } from "@/features/shopreel/operator/operatorWorlds";
 
-type RecentItem = { id: string; title: string; status: string };
 
 type RuntimeCampaignContext = {
   id: string;
@@ -52,14 +52,14 @@ const chamberNav = [
 ] as const;
 
 function statusTone(status: string) {
-  if (/await|review|needs/i.test(status)) return "Awaiting review";
-  if (/interrupt|pause|block/i.test(status)) return "Interrupted";
-  if (/restore|recover|resume/i.test(status)) return "Restored";
-  if (/active|running|draft|plan|build/i.test(status)) return "Active";
+  if (/review|approval/i.test(status)) return "Awaiting review";
+  if (/block|failed|error|interrupted/i.test(status)) return "Interrupted";
+  if (/in_progress|running|draft|active/i.test(status)) return "Active";
+  if (/completed|published/i.test(status)) return "Complete";
   return "Stable";
 }
 
-export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
+export default function HomeCommandClient({ recent }: { recent: OperatorWorldCard[] }) {
   const router = useRouter();
   const [command, setCommand] = useState("");
   const [context, setContext] = useState<WorkspaceMemory | null>(null);
@@ -69,7 +69,10 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [chamberMemory, setChamberMemory] = useState<PersistedChamberMemory | null>(null);
 
-  const unresolvedCount = recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length;
+  const unresolvedCount = recent.filter((item) => item.priority === "critical" || /review|approval/.test(item.normalizedStatus)).length;
+  const hasPendingApprovals = recent.some((item) => /review|approval/.test(item.normalizedStatus));
+  const hasActiveCampaign = recent.some((item) => item.kind === "campaign");
+  const hasRecentWorlds = recent.length > 0;
   const activeWorld = recent[0] ?? null;
 
   useEffect(() => {
@@ -107,8 +110,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           rawCommand: parsed.lastCommand ?? "",
           interpretedIntent: "unknown",
           selectedCampaignId: persistedRuntime.activeCampaignId,
-          hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)),
-          hasActiveCampaign: recent.length > 0,
+          hasPendingApprovals,
+          hasActiveCampaign,
           hasAssetsContext: Boolean(parsed.creativeContinuity),
         },
       },
@@ -137,11 +140,11 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const persistContext = (route: string) => {
     const pendingTasks = buildPendingTasks(interpreted.intent);
     const operationalGraph = buildOperationalGraph({
-      generationId: recent[0]?.id,
+      generationId: recent.find((item) => item.kind === "generation")?.id,
       campaignId: context?.lastCampaignId,
       pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
       blockerCount: pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length,
-      readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+      readyTaskCount: recent.filter((item) => item.normalizedStatus === "completed").length,
       interrupted: false,
       continuityThreadCount: 0,
       lastRoute: route,
@@ -179,8 +182,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       classifiedIntent: execution.commandIntent,
       currentPath: context?.lastRoute ?? "/shopreel",
       selectedCampaignId: context?.lastCampaignId ?? null,
-      hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)),
-      hasActiveCampaign: recent.length > 0,
+      hasPendingApprovals,
+      hasActiveCampaign: hasActiveCampaign || hasRecentWorlds,
       hasAssetsContext: Boolean(context?.creativeContinuity),
     });
 
@@ -340,8 +343,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                   return (
                     <button
                       type="button"
-                      key={item.id}
-                      onClick={() => router.push(`/shopreel/campaigns/${item.id}`)}
+                      key={`${item.kind}-${item.id}`}
+                      onClick={() => router.push(item.href)}
                       className={`group absolute top-4 h-[450px] w-[260px] overflow-hidden rounded-[2rem] border p-6 text-left transition hover:-translate-y-2 ${
                         active
                           ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))] shadow-[0_0_65px_rgba(255,174,80,.24),0_34px_90px_rgba(0,0,0,.62)]"
@@ -360,12 +363,12 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
                       <div className="relative">
                         <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-amber-100/82">
-                          <span>{active ? "Active" : statusTone(item.status)}</span>
-                          <span>{active ? "Current" : item.status.replaceAll("_", " ")}</span>
+                          <span>{active ? "Active" : statusTone(item.normalizedStatus)}</span>
+                          <span>{active ? "Current" : item.sourceLabel}</span>
                         </div>
                         <h2 className="mt-8 line-clamp-3 text-2xl leading-tight tracking-[-0.03em] text-white">{item.title}</h2>
                         <div className="mt-7 inline-flex rounded-full bg-violet-400/18 px-4 py-2 text-sm text-violet-100">
-                          {item.status.replaceAll("_", " ")}
+                          {item.stageLabel}
                         </div>
                       </div>
 
@@ -374,7 +377,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                           <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-amber-300 to-cyan-300" />
                         </div>
                         <div className="flex justify-between text-xs text-white/72">
-                          <span>{active ? "Continue latest" : `World ${index + 1}`}</span>
+                          <span>{active ? item.actionLabel : `World ${index + 1} · ${item.kind.replaceAll("_", " ")}`}</span>
                           <span>Open →</span>
                         </div>
                       </div>

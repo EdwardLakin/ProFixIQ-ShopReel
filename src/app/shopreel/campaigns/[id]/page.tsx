@@ -15,6 +15,7 @@ import { listCampaignItemsWithMediaJobs } from "@/features/shopreel/campaigns/li
 import { ShopReelActionRail } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import CampaignWorkflowContinuityRail from "@/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail";
 import { buildAdaptiveCreativeMemory } from "@/features/shopreel/learning/adaptiveCreativeMemory";
+import { notFound } from "next/navigation";
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -50,7 +51,7 @@ export default async function ShopReelCampaignDetailPage(
   }
 
   if (!campaign) {
-    throw new Error("Campaign not found");
+    notFound();
   }
 
   const items = await listCampaignItemsWithMediaJobs(campaign.id);
