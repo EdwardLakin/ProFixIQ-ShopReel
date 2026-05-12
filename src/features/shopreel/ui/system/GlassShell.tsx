@@ -35,7 +35,7 @@ export default function GlassShell({
         <div className="shopreel-orb shopreel-orb-b" />
         <div className="shopreel-orb shopreel-orb-c" />
         <div className="absolute inset-0 transition-opacity duration-500 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.1),transparent_30%),linear-gradient(180deg,rgba(5,8,18,0.52),rgba(2,4,12,0.9))]" style={{ opacity: shellOpacity }} />
-        <div className="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.5)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.5)_1px,transparent_1px)] [background-size:44px_44px]" style={{ opacity: 0.015 + dynamics.quieting / 2600 }} />
+        <div className="absolute inset-0 [background-image:linear-gradient(rgba(148,163,184,.45)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.45)_1px,transparent_1px)] [background-size:44px_44px]" style={{ opacity: 0.008 + dynamics.quieting / 3200 }} />
       </div>
 
       <div className={`relative z-10 mx-auto w-full max-w-[1540px] ${className}`}>

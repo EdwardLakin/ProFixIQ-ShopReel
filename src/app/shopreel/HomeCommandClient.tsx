@@ -71,9 +71,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   };
 
   return (
-    <div className="space-y-6 pb-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-violet-200/24 bg-[linear-gradient(145deg,rgba(12,18,42,.92),rgba(5,8,22,.95))] p-5 shadow-[0_34px_110px_rgba(0,0,0,0.62)] md:p-7 lg:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(139,92,246,.22),transparent_34%),radial-gradient(circle_at_90%_10%,rgba(34,211,238,.15),transparent_38%)]" />
+    <div className="space-y-7 pb-10">
+      <section className="relative overflow-hidden rounded-[2.2rem] border border-violet-200/28 bg-[linear-gradient(145deg,rgba(10,16,38,.92),rgba(4,7,19,.97))] p-6 shadow-[0_40px_130px_rgba(0,0,0,0.66)] md:p-8 lg:p-9">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(139,92,246,.3),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(34,211,238,.2),transparent_42%),radial-gradient(circle_at_50%_120%,rgba(14,165,233,.12),transparent_38%)]" />
         <div className="relative z-10 grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] xl:items-start">
           <div>
             <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.22em] text-cyan-100/75"><span>SHOPREEL OPERATOR</span><span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-0.5 text-[10px] tracking-[0.14em] text-cyan-100/80">Operator ready</span></div>
@@ -86,17 +86,17 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               <span className="text-white/35">•</span>
               <span>Approval gates enabled</span>
             </div>
-            <div className="mt-5 rounded-3xl border border-violet-300/35 bg-[#090f25]/92 p-3 shadow-[inset_0_0_0_1px_rgba(34,211,238,.17),0_16px_36px_rgba(0,0,0,.32)]">
-              <AiCommandInput value={command} onChange={setCommand} placeholder="Describe what you want to create or accomplish…" className="min-h-32 border-transparent bg-transparent shadow-none focus-visible:ring-0" />
+            <div className="mt-5 group/console rounded-[1.7rem] border border-violet-300/45 bg-[#090f25]/94 p-3.5 shadow-[inset_0_0_0_1px_rgba(34,211,238,.2),inset_0_-20px_44px_rgba(3,7,18,.75),0_22px_46px_rgba(0,0,0,.4)] transition-all duration-300 hover:border-cyan-300/40 focus-within:border-cyan-300/60 focus-within:shadow-[inset_0_0_0_1px_rgba(34,211,238,.34),0_0_0_1px_rgba(56,189,248,.35),0_28px_64px_rgba(0,0,0,.48),0_0_48px_rgba(56,189,248,.16)]">
+              <AiCommandInput value={command} onChange={setCommand} placeholder="Describe what you want to create or accomplish…" className="min-h-36 border-transparent bg-transparent shadow-none focus-visible:ring-0 transition-all duration-300" />
               <div className="mt-3 flex flex-wrap gap-2 px-2 pb-2">
                 {quickPrompts.map((prompt) => (
-                  <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 transition hover:border-violet-200/35 hover:bg-white/10">{prompt}</button>
+                  <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs text-white/82 transition-all duration-300 hover:-translate-y-0.5 hover:border-violet-200/45 hover:bg-white/12">{prompt}</button>
                 ))}
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button onClick={runCommand} className="rounded-2xl bg-gradient-to-r from-violet-500/85 to-cyan-400/80 px-5 py-3 text-sm font-semibold text-white">Plan next move</button>
-              <Link href="/shopreel/review" className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-white/80 hover:bg-white/10">Review approvals</Link>
+              <button onClick={runCommand} className="rounded-2xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_26px_rgba(76,29,149,.45)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(45,212,191,.28)]">Plan next move</button>
+              <Link href="/shopreel/review" className="rounded-2xl border border-white/18 bg-white/[0.06] px-5 py-3 text-sm text-white/82 transition-all duration-300 hover:border-cyan-200/30 hover:bg-white/12">Review approvals</Link>
               <Link href="/shopreel/campaigns" className="rounded-2xl px-4 py-3 text-sm text-white/55 transition hover:text-white/80">Open campaigns</Link>
               <div className="ml-auto"><ShopReelNotificationsBell /></div>
             </div>
@@ -137,22 +137,20 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         ))}
       </section>
 
-      <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 md:p-6">
-        <div className="mb-4 flex items-center justify-between gap-3"><div className="text-lg font-semibold text-white">Active work</div><Link href="/shopreel/campaigns" className="text-sm text-violet-200/80 hover:text-violet-100">View all campaigns →</Link></div>
+      <section className="rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(9,14,31,.72),rgba(5,9,24,.64))] p-5 md:p-6">
+        <div className="mb-5 flex items-center justify-between gap-3"><div><div className="text-xs uppercase tracking-[0.18em] text-cyan-100/65">Active work</div><div className="mt-1 text-lg font-semibold text-white">Campaigns in motion</div></div><Link href="/shopreel/campaigns" className="text-sm text-violet-200/80 hover:text-violet-100">View all campaigns →</Link></div>
         {recent.length === 0 ? <div className="rounded-2xl bg-white/[0.04] p-4 text-sm text-white/70">No active drafts yet. Start with a new idea or continue a campaign.</div> : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {recent.slice(0, 4).map((item, index) => {
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+            {recent.slice(0, 1).map((item) => {
               const stage = stageLabel(item.status);
-              return <article key={item.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#070d1f]">
-                <div className={`h-24 bg-gradient-to-br ${index % 4 === 0 ? "from-cyan-300/45 via-violet-400/30 to-slate-900" : index % 4 === 1 ? "from-amber-300/35 via-violet-400/25 to-slate-900" : index % 4 === 2 ? "from-violet-400/45 via-cyan-300/20 to-slate-900" : "from-rose-300/35 via-cyan-300/15 to-slate-900"}`} />
-                <div className="space-y-3 p-4">
-                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] ${stage.tone} ring-1 ${stage.ring}`}>{stage.label}</span>
-                  <div className="text-lg font-semibold text-white">{item.title}</div>
-                  <p className="text-sm text-white/70">Next action: {stage.helper}</p>
-                  <div className="flex gap-2"><Link href={`/shopreel/generations/${item.id}`} className="rounded-xl bg-violet-500/85 px-3 py-2 text-xs font-medium text-white">{stage.cta}</Link><Link href="/shopreel/review" className="rounded-xl border border-white/15 px-3 py-2 text-xs text-white/75">Review flow</Link></div>
-                </div>
-              </article>;
+              return <article key={item.id} className="group relative overflow-hidden rounded-[1.7rem] border border-white/12 bg-[#070d1f] p-5 shadow-[0_20px_60px_rgba(0,0,0,.45)] transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-300/28"><div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(34,211,238,.2),transparent_38%),radial-gradient(circle_at_84%_0%,rgba(139,92,246,.2),transparent_36%)]"/><div className="relative z-10"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] ${stage.tone} ring-1 ${stage.ring}`}>{stage.label}</span><h3 className="mt-3 text-2xl font-semibold text-white">{item.title}</h3><p className="mt-2 max-w-xl text-sm text-white/72">{stage.helper} ShopReel is holding context and prepared to advance as soon as you approve the next move.</p><div className="mt-5 flex gap-2"><Link href={`/shopreel/generations/${item.id}`} className="rounded-xl bg-violet-500/90 px-3.5 py-2 text-xs font-medium text-white">{stage.cta}</Link><Link href="/shopreel/review" className="rounded-xl border border-white/15 px-3.5 py-2 text-xs text-white/75">Review flow</Link></div></div></article>;
             })}
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              {recent.slice(1, 4).map((item, index) => {
+                const stage = stageLabel(item.status);
+                return <article key={item.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#070d1f]/92 p-4 transition-all duration-300 hover:border-violet-300/30"><div className={`mb-3 h-1.5 rounded-full bg-gradient-to-r ${index % 2 === 0 ? "from-cyan-300/70 to-violet-400/70" : "from-amber-300/65 to-violet-400/65"}`} /><div className="text-sm font-semibold text-white">{item.title}</div><p className="mt-1 text-xs text-white/68">{stage.label} · {stage.helper}</p></article>;
+              })}
+            </div>
           </div>
         )}
       </section>
@@ -164,8 +162,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
             <div className="h-16 w-16 shrink-0 rounded-full bg-[radial-gradient(circle_at_35%_35%,rgba(56,189,248,.85),rgba(139,92,246,.45),rgba(15,23,42,.95))] shadow-[0_0_24px_rgba(56,189,248,.35)]" />
             <ul className="space-y-2 text-sm text-white/80">
               <li className="flex gap-2"><span className="text-emerald-300">✓</span><span>You usually prefer stronger emotional hooks for TikTok.</span></li>
-              <li className="flex gap-2"><span className="text-emerald-300">✓</span><span>Recent refinements help ShopReel avoid corporate phrasing.</span></li>
-              <li className="flex gap-2"><span className="text-emerald-300">✓</span><span>Approved pacing patterns will shape the next campaign plan.</span></li>
+              <li className="flex gap-2"><span className="text-emerald-300">✓</span><span>ShopReel is mirroring your preferred plainspoken and emotional tone.</span></li>
+              <li className="flex gap-2"><span className="text-emerald-300">✓</span><span>Recent approvals are reinforcing your preferred pacing and scene rhythm.</span></li>
             </ul>
           </div>
         </div>
