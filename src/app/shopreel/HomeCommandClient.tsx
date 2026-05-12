@@ -124,25 +124,25 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(120%_90%_at_52%_-12%,rgba(95,69,218,.34),transparent_55%),radial-gradient(70%_65%_at_2%_90%,rgba(31,161,222,.18),transparent_68%),linear-gradient(145deg,#030610,#060a18_40%,#080b1a)] px-4 pb-4 pt-3 lg:h-[100svh] lg:px-5 lg:pb-5">
+    <div className="relative h-[100svh] w-full overflow-hidden bg-[radial-gradient(120%_90%_at_52%_-12%,rgba(95,69,218,.34),transparent_55%),radial-gradient(70%_65%_at_2%_90%,rgba(31,161,222,.18),transparent_68%),linear-gradient(145deg,#030610,#060a18_40%,#080b1a)] px-2 pb-2 pt-2 md:px-3 md:pb-3 md:pt-2">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(110deg,rgba(6,11,32,.92),rgba(6,9,25,.74)_35%,rgba(15,13,32,.72)_66%,rgba(15,10,24,.92))]" />
-      <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[84px_minmax(0,1fr)_340px]">
-        <aside className="hidden min-h-0 flex-col py-4 lg:flex">
+      <div className="grid h-full min-h-0 gap-2.5 lg:grid-cols-[80px_minmax(0,1fr)_320px] xl:grid-cols-[84px_minmax(0,1fr)_340px]">
+        <aside className="hidden min-h-0 flex-col py-2 lg:flex">
           <div className="space-y-2">
             {chamberNav.map((item) => (
-              <Link key={item.href} href={item.href} aria-label={item.label} title={item.label} className="group flex items-center gap-2 rounded-xl px-2 py-2 text-xs text-white/70 transition hover:bg-white/10 hover:text-cyan-100">
+              <Link key={item.href} href={item.href} aria-label={item.label} title={item.label} className="group flex items-center gap-2 rounded-xl px-1.5 py-2 text-xs text-white/64 transition hover:bg-white/10 hover:text-cyan-100">
                 <span className="text-sm text-cyan-200/75">{item.icon}</span>
-                <span className="text-[11px]">{item.label}</span>
+                <span className="text-[10px]">{item.label}</span>
               </Link>
             ))}
           </div>
           <Link href="/shopreel/operations" className="mt-auto inline-flex items-center gap-2 px-2 py-2 text-[11px] uppercase tracking-[0.12em] text-amber-100/85"><span className="text-amber-200">≡</span>Operations</Link>
         </aside>
 
-        <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2.5">
-          <section className="relative min-h-0 overflow-hidden rounded-[1.8rem] bg-[linear-gradient(140deg,rgba(9,14,33,.8),rgba(4,8,21,.9)_48%,rgba(12,11,25,.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_18px_48px_rgba(1,3,10,.5)]">
-            <div className="pointer-events-none absolute right-[2.2rem] top-[6.4rem] h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(251,146,60,.35),rgba(124,58,237,.28)_45%,transparent_72%)]" />
-            <div className={`${prefersReducedMotion ? "" : "animate-[spin_26s_linear_infinite]"} pointer-events-none absolute right-[3.2rem] top-[7.1rem] h-20 w-20 rounded-full border border-cyan-100/25`} />
+        <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2">
+          <section className="relative min-h-0 overflow-hidden rounded-[1.6rem] bg-[linear-gradient(140deg,rgba(9,14,33,.75),rgba(4,8,21,.9)_48%,rgba(12,11,25,.8))] px-4 pb-3 pt-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_24px_56px_rgba(1,3,10,.58)]">
+            <div className="pointer-events-none absolute left-[44%] top-[26%] h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(251,146,60,.32),rgba(124,58,237,.24)_38%,rgba(22,78,99,.18)_58%,transparent_76%)]" />
+            <div className={`${prefersReducedMotion ? "" : "animate-[spin_26s_linear_infinite]"} pointer-events-none absolute left-[44%] top-[32%] h-28 w-28 -translate-x-1/2 rounded-full border border-cyan-100/25`} />
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-100/70">Operator online</div>
@@ -151,9 +151,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               </div>
               <ShopReelNotificationsBell />
             </div>
-            <div className="relative mt-3 rounded-[1.15rem] bg-[linear-gradient(145deg,rgba(14,21,44,.68),rgba(8,12,30,.82))] p-3 shadow-[inset_0_0_0_1px_rgba(139,92,246,.16),inset_0_12px_40px_rgba(34,211,238,.08)]">
+            <div className="relative mt-2.5 rounded-[1.05rem] bg-[linear-gradient(145deg,rgba(14,21,44,.58),rgba(8,12,30,.72))] px-3 py-2.5 shadow-[inset_0_12px_40px_rgba(34,211,238,.08)]">
               <div className="mb-2 text-xs text-cyan-100/75">Operator prompt</div>
-              <AiCommandInput value={command} onChange={setCommand} placeholder="What should the operator run next?" className="min-h-16 border-transparent bg-transparent shadow-none focus-visible:ring-0" />
+              <AiCommandInput value={command} onChange={setCommand} placeholder="What should the operator run next?" className="min-h-14 border-transparent bg-transparent shadow-none focus-visible:ring-0" />
               <div className="mt-2 flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full bg-white/[0.08] px-3 py-1 text-xs text-white/82">{prompt}</button>)}</div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -177,7 +177,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
             />
           </section>
 
-          <section className="grid grid-cols-5 gap-2 border-t border-white/10 px-2 py-2 text-xs">
+          <section className="grid grid-cols-5 gap-1.5 border-t border-white/10 px-1.5 py-1.5 text-xs">
             {[
               ["Runtime pulse", "Calm"],
               ["Continuity signal", "Stable"],
@@ -194,15 +194,15 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
         </div>
 
-        <aside className="min-h-0 h-full max-h-full overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(150deg,rgba(10,14,32,.74),rgba(8,11,27,.96))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
+        <aside className="min-h-0 h-full max-h-full overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(150deg,rgba(10,14,32,.62),rgba(8,11,27,.9))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.03)]">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-medium text-white">Operational Worlds</h3>
             <span className="text-[11px] text-white/55">Recent continuity</span>
           </div>
-          <div className="h-[calc(100%-2rem)] min-h-0 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:rgba(103,232,249,.35)_transparent] [scrollbar-width:thin]">
-            <div className="grid gap-2.5">
+          <div className="h-[calc(100%-2rem)] min-h-0 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-color:rgba(103,232,249,.3)_transparent] [scrollbar-width:thin]">
+            <div className="grid gap-2">
             {recent.slice(0, 12).map((item) => (
-              <button key={item.id} onClick={() => router.push(`/shopreel/content/${item.id}`)} className="relative block min-h-[220px] w-full overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(88%_60%_at_84%_14%,rgba(251,146,60,.3),transparent_58%),radial-gradient(120%_90%_at_60%_100%,rgba(99,102,241,.28),rgba(5,8,22,.92)_70%)] p-3.5 text-left shadow-[0_16px_45px_rgba(0,0,0,.42)]">
+              <button key={item.id} onClick={() => router.push(`/shopreel/content/${item.id}`)} className="relative block min-h-[198px] w-full overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(88%_60%_at_84%_14%,rgba(251,146,60,.2),transparent_58%),radial-gradient(120%_90%_at_60%_100%,rgba(99,102,241,.2),rgba(5,8,22,.96)_70%)] p-3 text-left shadow-[0_10px_28px_rgba(0,0,0,.34)]">
                 <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(5,10,26,.9)_74%)]" />
                 <div className="pointer-events-none absolute -right-8 top-8 h-24 w-24 rounded-full bg-amber-200/20 blur-2xl" />
                 <div className="pointer-events-none absolute left-0 top-[42%] h-px w-full bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />

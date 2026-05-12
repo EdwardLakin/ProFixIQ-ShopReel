@@ -12,5 +12,5 @@ export default async function ShopReelPage() {
   const { data: recentData } = await supabase.from("shopreel_story_generations").select("id,status,created_at,story_draft").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(10);
   const recent = (recentData ?? []).map((row) => ({ id: row.id, status: row.status ?? "unknown", title: typeof (row.story_draft as StoryDraft | null)?.title === "string" ? String((row.story_draft as StoryDraft).title) : "Untitled generation" }));
 
-  return <GlassShell title="ShopReel Command Center" hidePageIntro hideNotificationsBell className="space-y-4"><HomeCommandClient recent={recent} /></GlassShell>;
+  return <GlassShell title="ShopReel Command Center" hidePageIntro hideNotificationsBell fullBleed className="space-y-0"><HomeCommandClient recent={recent} /></GlassShell>;
 }
