@@ -18,6 +18,9 @@ export type RuntimeChoreographySnapshot = {
     futureLayerClass: string;
     shellLightingClass: string;
     continuityRailClass: string;
+    objectiveGlowClass: string;
+    backdropClass: string;
+    supportSurfaceClass: string;
   };
   staleState: null | {
     reason: "restored_from_persistence" | "campaign_archived" | "review_resolved_elsewhere" | "entity_unavailable";
@@ -115,6 +118,23 @@ export function deriveRuntimeChoreography(input: {
               ? "from-violet-500/15 via-slate-900/75 to-[#050813]/95"
               : "from-blue-500/10 via-slate-950/70 to-[#03050f]/95",
       continuityRailClass: input.reducedMotion ? "opacity-90" : "opacity-95",
+      objectiveGlowClass:
+        action === "interrupt"
+          ? "from-amber-300/25 via-amber-100/10 to-transparent"
+          : action === "restore"
+            ? "from-cyan-300/30 via-indigo-200/10 to-transparent"
+            : action === "compress"
+              ? "from-violet-300/28 via-violet-100/10 to-transparent"
+              : "from-cyan-300/25 via-blue-200/10 to-transparent",
+      backdropClass:
+        action === "interrupt"
+          ? "bg-[radial-gradient(90%_65%_at_84%_8%,rgba(251,191,36,0.14),transparent_68%),radial-gradient(82%_80%_at_0%_100%,rgba(124,58,237,0.12),transparent_66%)]"
+          : action === "restore"
+            ? "bg-[radial-gradient(95%_68%_at_80%_4%,rgba(34,211,238,0.14),transparent_66%),radial-gradient(88%_88%_at_5%_92%,rgba(99,102,241,0.13),transparent_70%)]"
+            : action === "compress"
+              ? "bg-[radial-gradient(92%_64%_at_85%_5%,rgba(196,181,253,0.14),transparent_67%),radial-gradient(78%_92%_at_8%_90%,rgba(56,189,248,0.09),transparent_68%)]"
+              : "bg-[radial-gradient(95%_70%_at_84%_5%,rgba(96,165,250,0.15),transparent_68%),radial-gradient(70%_90%_at_5%_86%,rgba(167,139,250,0.12),transparent_66%)]",
+      supportSurfaceClass: input.reducedMotion ? "opacity-90" : "opacity-80 saturate-[0.88]",
     },
     staleState,
   };
