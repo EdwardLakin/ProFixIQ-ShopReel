@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import ShopReelSidebar from "@/features/shopreel/ui/ShopReelSidebar";
 import GlobalCommandLauncher from "@/features/shopreel/ui/GlobalCommandLauncher";
-import { GlobalEnvironmentAmbientLine, GlobalEnvironmentContinuityProvider, useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
+import { GlobalEnvironmentContinuityProvider, useGlobalEnvironmentContinuity } from "@/features/shopreel/ui/system/GlobalEnvironmentContinuityClient";
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
@@ -73,8 +73,7 @@ function ShellScaffold({ children }: { children: ReactNode }) {
         <div className={`${navProminence} ${navModeClass} ${navBiasClass} ${intuitionNavBias} ${routePull} transition-all duration-300 ${embodiment.continuityPresence === "anchored" ? "sticky top-0" : ""}`}><ShopReelSidebar /></div>
         
         <section className={`relative min-w-0 flex-1 ${shellPadding} ${spatial.recoveryExpansion >= 70 || embodiment.recoveryBreathingRoom === "wide" ? "pt-3 pb-5" : spatial.instabilityCompression >= 70 || embodiment.unstableCompression === "active" ? "pt-1 pb-3" : "py-4"} ${transition?.safeLoading === "soft_continuity" ? "opacity-[0.97]" : transition?.mode === "continuity" ? "opacity-[0.97]" : embodiment.transitionPosture === "cooled" ? "opacity-[0.94]" : "opacity-100"} ${transition?.safeLoading === "soft_continuity" ? "transition-opacity duration-500" : ""} transition-[padding,opacity,transform] duration-300`}>
-          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}><div className="pointer-events-none relative z-10 flex flex-wrap items-center justify-between gap-2"><div className="min-w-0 flex-1 space-y-1"><GlobalEnvironmentAmbientLine />{transition ? <div className="text-[11px] text-cyan-100/70">{transition.routeCarryover} · {transition.descriptor.workflow_type}/{transition.descriptor.current_stage} → {transition.descriptor.next_stage} · Next: {transition.nextActionLabel}</div> : null}</div><div className="pointer-events-auto shrink-0"><GlobalCommandLauncher /></div></div>
-            {children}</div>
+          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}>{pathname !== "/shopreel" ? <div className="relative z-10 flex justify-end"><div className="pointer-events-auto shrink-0"><GlobalCommandLauncher /></div></div> : null}{children}</div>
         </section>
       </div>
     </div>
