@@ -96,3 +96,14 @@ The `/shopreel` command page now uses a clear AI operator structure:
   - iPad portrait/landscape line breaks and CTA wrapping.
   - mobile CTA row + notifications bell spacing when command text is long.
   - left-edge swipe navigation behavior on non-home ShopReel routes after `/shopreel` gating.
+
+
+## Operator surface refinement pass
+
+- Experience goals: shift the `/shopreel` home from a dashboard grid feel toward a calm AI operator surface with command-first hierarchy and stronger cinematic depth.
+- Dashboard reduction: replaced equal-weight active-work tiles with a hero campaign surface plus smaller supporting campaign items to reduce card repetition.
+- Command-console evolution: improved console glass layering, focus/hover glow interpolation, CTA contrast, and chip micro-motion so idle feels calm while focused feels alive.
+- Active-work redesign direction: one primary campaign card now anchors attention; supporting cards are compact progress surfaces with distinct visual cadence.
+- Motion philosophy: use subtle easing, short depth transforms, and restrained glow transitions; avoid bouncy or gimmicky animation.
+- Adaptive-memory philosophy: memory copy now reads as continuity intelligence from approvals and tone preference learning rather than settings language.
+- Atmosphere refinements: strengthened radial lighting composition, softened vignette edges, and lowered grid visibility in shell backgrounds for a more immersive operator ambience.

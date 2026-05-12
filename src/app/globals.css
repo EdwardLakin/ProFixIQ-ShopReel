@@ -317,3 +317,11 @@ a {
     animation: none;
   }
 }
+
+
+@media (prefers-reduced-motion: reduce) {
+  .shopreel-route-shell * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
