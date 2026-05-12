@@ -6,5 +6,5 @@ export default async function ShopReelBlogReviewPage(
   props: { params: Promise<{ id: string }> },
 ) {
   const { id } = await props.params;
-  redirect(`/shopreel/generations/${id}`);
+  redirect(`/shopreel/review/${id}?source=blog`);
 }
