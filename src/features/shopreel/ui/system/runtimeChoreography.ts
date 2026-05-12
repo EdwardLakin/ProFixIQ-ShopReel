@@ -1,6 +1,7 @@
 import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
 import type { OperatorSurfaceId } from "@/features/shopreel/ui/system/operatorRuntime";
 import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import type { PersistedChamberMemory } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 export type RuntimeChoreographyAction = "morph" | "compress" | "expand" | "stack" | "resolve" | "interrupt" | "restore";
 export type RuntimeContinuityRelation = "same_surface" | "adjacent_flow" | "handoff" | "interruption" | "recovery" | "cold_start";
@@ -12,6 +13,9 @@ export type RuntimeChoreographySnapshot = {
   reducedMotionClass: string;
   motionClass: string;
   message: string;
+  chamberIdentityLabel: string;
+  memoryResidue: string[];
+  densityMode: "focused" | "weighted" | "recessed";
   depthModel: {
     activeLayerClass: string;
     previousLayerClass: string;
@@ -21,6 +25,8 @@ export type RuntimeChoreographySnapshot = {
     objectiveGlowClass: string;
     backdropClass: string;
     supportSurfaceClass: string;
+    chamberAtmosphereClass: string;
+    memoryResidueClass: string;
   };
   staleState: null | {
     reason: "restored_from_persistence" | "campaign_archived" | "review_resolved_elsewhere" | "entity_unavailable";
@@ -48,6 +54,7 @@ export function deriveRuntimeChoreography(input: {
   refinementDepth: number;
   campaignUnavailable: boolean;
   reducedMotion: boolean;
+  chamberMemory: PersistedChamberMemory | null;
 }): RuntimeChoreographySnapshot {
   const relation = relationForTransition(input.session.previousSurface, input.session.activeSurface, Boolean(input.session.interruption));
   const interrupted = Boolean(input.session.interruption);
@@ -78,6 +85,26 @@ export function deriveRuntimeChoreography(input: {
     action === "interrupt" ? "Manual operations layered over active runtime context." :
     action === "expand" ? "Packaging is growing from current campaign progression." :
     "Maintaining workflow continuity across operator surfaces.";
+
+  const chamberIdentityLabel =
+    input.session.runtimeState === "planning_campaign" ? "Planning chamber" :
+    input.session.runtimeState === "generating_draft" ? "Drafting chamber" :
+    input.session.runtimeState === "refining_output" ? "Refinement chamber" :
+    input.session.runtimeState === "awaiting_approval" ? "Approval threshold" :
+    input.session.runtimeState === "assembling_package" ? "Packaging corridor" :
+    input.session.runtimeState === "completed_export_ready" ? "Resolved chamber" :
+    interrupted ? "Interrupted chamber" : "Active chamber";
+
+  const memoryResidue = (input.chamberMemory?.traces ?? [])
+    .slice(0, 3)
+    .map((trace) => `${trace.runtimeState.replaceAll("_", " ")} · ${trace.interruptionReason ? "interrupted" : "stable"}`);
+
+  const densityMode: "focused" | "weighted" | "recessed" =
+    interrupted || input.session.runtimeState === "awaiting_approval"
+      ? "weighted"
+      : input.session.runtimeState === "completed_export_ready"
+        ? "recessed"
+        : "focused";
 
   const staleState = (() => {
     if (input.campaignUnavailable && input.session.selectedEntityIds.campaignId) {
@@ -135,7 +162,17 @@ export function deriveRuntimeChoreography(input: {
               ? "bg-[radial-gradient(92%_64%_at_85%_5%,rgba(196,181,253,0.14),transparent_67%),radial-gradient(78%_92%_at_8%_90%,rgba(56,189,248,0.09),transparent_68%)]"
               : "bg-[radial-gradient(95%_70%_at_84%_5%,rgba(96,165,250,0.15),transparent_68%),radial-gradient(70%_90%_at_5%_86%,rgba(167,139,250,0.12),transparent_66%)]",
       supportSurfaceClass: input.reducedMotion ? "opacity-90" : "opacity-80 saturate-[0.88]",
+      chamberAtmosphereClass:
+        densityMode === "weighted"
+          ? "bg-[radial-gradient(80%_55%_at_52%_40%,rgba(248,250,252,0.1),transparent_72%)]"
+          : densityMode === "recessed"
+            ? "bg-[radial-gradient(76%_52%_at_52%_38%,rgba(125,211,252,0.06),transparent_75%)]"
+            : "bg-[radial-gradient(84%_58%_at_52%_36%,rgba(103,232,249,0.1),transparent_72%)]",
+      memoryResidueClass: input.reducedMotion ? "opacity-70" : "opacity-65 blur-[0.2px]",
     },
+    chamberIdentityLabel,
+    memoryResidue,
+    densityMode,
     staleState,
   };
 }
