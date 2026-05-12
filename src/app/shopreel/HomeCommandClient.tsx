@@ -9,6 +9,8 @@ import { readWorkspaceMemory, type WorkspaceMemory, writeWorkspaceMemory } from 
 import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
 import { buildPendingTasks, buildContinuityThreads } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { executeShopReelCommand } from "@/features/shopreel/ui/system/executeShopReelCommand";
+import { resolveOperatorRuntime } from "@/features/shopreel/ui/system/resolveOperatorRuntime";
+import type { OperatorRuntimeResolution, OperatorSurfaceId } from "@/features/shopreel/ui/system/operatorRuntime";
 
 type RecentItem = { id: string; title: string; status: string };
 
@@ -20,6 +22,30 @@ const stageLabel = (status: string): StageTone => {
   if (/(ready|completed|published)/.test(normalized)) return { label: "Draft ready", tone: "text-cyan-100 bg-cyan-400/20", ring: "ring-cyan-300/40", cta: "View draft", helper: "Ready for your feedback." };
   if (/(fail|error|blocked)/.test(normalized)) return { label: "Needs attention", tone: "text-rose-100 bg-rose-400/20", ring: "ring-rose-300/40", cta: "Open task", helper: "One item needs revision." };
   return { label: "Ready to plan", tone: "text-emerald-100 bg-emerald-400/20", ring: "ring-emerald-300/40", cta: "Continue campaign", helper: "Momentum is good—keep moving." };
+};
+
+const runtimeSurfaceCopy: Record<OperatorSurfaceId, string> = {
+  idle_command: "Operator console is standing by.",
+  campaign_planning: "Campaign planning is ready to materialize here.",
+  review_inbox: "Review inbox can render here next.",
+  asset_intake: "Asset intake can render here next.",
+  publish_package_review: "Publish package review can render here next.",
+  manual_operations: "Manual operations can open from here.",
+  campaign_workspace: "Campaign workspace can render here next.",
+  blocked_recovery: "Operator needs more input before this workflow can continue.",
+  export_ready: "Export-ready handoff can render here next.",
+};
+
+const runtimeSurfaceTitle: Record<OperatorSurfaceId, string> = {
+  idle_command: "Idle command surface",
+  campaign_planning: "Campaign planning",
+  review_inbox: "Review inbox",
+  asset_intake: "Asset intake",
+  publish_package_review: "Publish package review",
+  manual_operations: "Manual operations",
+  campaign_workspace: "Campaign workspace",
+  blocked_recovery: "Blocked recovery",
+  export_ready: "Export ready",
 };
 
 const quickPrompts = [
@@ -35,6 +61,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const [command, setCommand] = useState("");
   const [context, setContext] = useState<WorkspaceMemory | null>(null);
   const interpreted = useMemo(() => interpretCommand(command), [command]);
+  const [runtimeResolution, setRuntimeResolution] = useState<OperatorRuntimeResolution>(() => resolveOperatorRuntime({ rawCommand: "", currentPath: "/shopreel" }));
 
   useEffect(() => {
     const parsed = readWorkspaceMemory();
@@ -66,13 +93,23 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
   const runCommand = () => {
     const execution = executeShopReelCommand({ command, lastRoute: context?.lastRoute, source: "home_command" });
+    const runtime = resolveOperatorRuntime({
+      rawCommand: command,
+      classifiedIntent: execution.commandIntent,
+      currentPath: context?.lastRoute ?? "/shopreel",
+      selectedCampaignId: context?.lastCampaignId ?? null,
+      hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)),
+      hasActiveCampaign: recent.length > 0,
+      hasAssetsContext: Boolean(context?.creativeContinuity),
+    });
+    setRuntimeResolution(runtime);
     persistContext(execution.selectedRoute);
     router.push(execution.selectedRoute);
   };
 
   return (
     <div className="space-y-7 pb-10">
-      <section className="relative overflow-hidden rounded-[2.2rem] border border-violet-200/28 bg-[linear-gradient(145deg,rgba(10,16,38,.92),rgba(4,7,19,.97))] p-6 shadow-[0_40px_130px_rgba(0,0,0,0.66)] md:p-8 lg:p-9">
+      <section className={`relative overflow-hidden rounded-[2.2rem] border bg-[linear-gradient(145deg,rgba(10,16,38,.92),rgba(4,7,19,.97))] shadow-[0_40px_130px_rgba(0,0,0,0.66)] transition-all duration-300 ${runtimeResolution.state === "idle" ? "border-violet-200/28 p-6 md:p-8 lg:p-9" : "border-cyan-200/45 p-5 md:p-6 lg:p-7"}`}>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(139,92,246,.3),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(34,211,238,.2),transparent_42%),radial-gradient(circle_at_50%_120%,rgba(14,165,233,.12),transparent_38%)]" />
         <div className="relative z-10 grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] xl:items-start">
           <div>
@@ -118,6 +155,26 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
             </ul>
             <p className="mt-5 border-t border-white/10 pt-4 text-xs text-white/55">Intent in. Campaign-ready steps out.</p>
           </aside>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-cyan-200/20 bg-cyan-950/25 p-4 md:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/65">Active runtime surface (scaffold)</div>
+            <h2 className="mt-1 text-base font-semibold text-white">{runtimeSurfaceTitle[runtimeResolution.surfaceId]}</h2>
+          </div>
+          <span className="rounded-full border border-cyan-200/30 bg-cyan-300/10 px-2.5 py-1 text-xs text-cyan-100">{runtimeResolution.state}</span>
+        </div>
+        <p className="mt-2 text-sm text-white/75">{runtimeResolution.summary}</p>
+        <p className="mt-2 text-sm text-white/65">{runtimeSurfaceCopy[runtimeResolution.surfaceId]}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-white/65">
+          <span>Inline runtime is being prepared.</span>
+          <span className="text-white/30">•</span>
+          <span>Fallback route remains fully supported.</span>
+        </div>
+        <div className="mt-4">
+          <Link href={runtimeResolution.recommendedRouteFallback} className="inline-flex rounded-xl border border-white/20 bg-white/[0.06] px-3.5 py-2 text-sm text-white/85 transition hover:bg-white/[0.12]">Open full workspace</Link>
         </div>
       </section>
 
