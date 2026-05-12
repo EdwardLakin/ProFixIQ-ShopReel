@@ -61,3 +61,27 @@ The `/shopreel` command page now uses a clear AI operator structure:
 - Active work moved from flat list rows into responsive premium campaign cards with gradient art headers, status pills, next-action copy, and compact dual-action controls.
 - Adaptive memory was upgraded from a plain paragraph into a premium intelligence panel with a glowing orb treatment and calm, check-style learning bullets.
 - Still needs real-user testing on iPad/mobile gesture navigation overlap and card action prioritization under high-volume campaign queues.
+
+## Operator console enhancement
+
+- Hero command panel was upgraded into a two-column **Operator Console** on desktop:
+  - Left: headline, status strip, command input, intent chips, CTA hierarchy
+  - Right: compact operator intelligence glass panel
+  - Tablet/mobile: clean stacked flow with no route or behavior changes
+- Added an **Operator ready** intelligence card with calm capability lines:
+  - Plan campaign from raw intent
+  - Route approvals to review inbox
+  - Apply recent taste memory
+  - Prepare next execution step
+- Added a human-readable hero status strip:
+  - `Ready to plan • Taste memory active • Approval gates enabled`
+- Prompt chips now use clear intent wording:
+  - Launch campaign
+  - Generate hooks
+  - Refine tone
+  - Review approvals
+  - Build publish package
+- Active work on `/shopreel` is now capped to top-priority items only (max 4 cards), with a retained **View all campaigns →** path for full campaign access.
+- Testing notes remaining:
+  - Verify small-screen card density and CTA spacing across mobile breakpoints.
+  - Validate chip-to-input workflow feels natural for operator planning sessions.
