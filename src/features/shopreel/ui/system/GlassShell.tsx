@@ -13,6 +13,7 @@ type GlassShellProps = {
   className?: string;
   cognitiveState?: CognitiveState | null;
   hideNotificationsBell?: boolean;
+  fullBleed?: boolean;
 };
 
 export default function GlassShell({
@@ -25,11 +26,12 @@ export default function GlassShell({
   className = "",
   cognitiveState = null,
   hideNotificationsBell = false,
+  fullBleed = false,
 }: GlassShellProps) {
   const dynamics = deriveCognitiveShellDynamics(cognitiveState);
   const shellOpacity = 0.64 + dynamics.shellDensity / 500;
   return (
-    <main className="shopreel-route-shell relative min-h-screen overflow-hidden px-4 py-5 text-white sm:px-6 lg:px-8" style={{ letterSpacing: `${(dynamics.gravity - 50) * 0.0009}em` }}>
+    <main className={`shopreel-route-shell relative min-h-screen overflow-hidden text-white ${fullBleed ? "px-0 py-0" : "px-4 py-5 sm:px-6 lg:px-8"}`} style={{ letterSpacing: `${(dynamics.gravity - 50) * 0.0009}em` }}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="shopreel-orb shopreel-orb-a" />
         <div className="shopreel-orb shopreel-orb-b" />
@@ -38,8 +40,8 @@ export default function GlassShell({
         <div className="absolute inset-0 [background-image:linear-gradient(rgba(148,163,184,.45)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.45)_1px,transparent_1px)] [background-size:44px_44px]" style={{ opacity: 0.008 + dynamics.quieting / 3200 }} />
       </div>
 
-      <div className={`relative z-10 mx-auto w-full max-w-[1540px] ${className}`}>
-        <div className="mb-5 flex items-center justify-end gap-3 transition-all duration-300">
+      <div className={`relative z-10 ${fullBleed ? "w-full max-w-none" : "mx-auto w-full max-w-[1540px]"} ${className}`}>
+        <div className={`${fullBleed ? "mb-0" : "mb-5"} flex items-center justify-end gap-3 transition-all duration-300`}>
           <div className="ml-auto flex items-center gap-2">
             {actions}
             {!hideNotificationsBell ? <ShopReelNotificationsBell /> : null}
@@ -67,7 +69,7 @@ export default function GlassShell({
           </section>
         ) : null}
 
-        <div className="pb-10">{children}</div>
+        <div className={fullBleed ? "" : "pb-10"}>{children}</div>
       </div>
     </main>
   );

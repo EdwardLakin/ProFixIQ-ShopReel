@@ -120,7 +120,7 @@ export default function OperatorRuntimeCanvas({
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.backdropClass}`} />
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.chamberAtmosphereClass}`} />
       <div className="pointer-events-none absolute inset-x-[6%] top-[15%] h-[55%] rounded-[2rem] bg-gradient-to-b from-white/[0.05] via-transparent to-transparent blur-2xl" />
-      <div className={`relative mb-3 grid gap-2 rounded-xl p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass} ${compact ? "border border-white/10 bg-black/15" : ""}`}>
+      <div className={`relative mb-2 grid gap-2 rounded-xl p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass} ${compact ? "border border-white/10 bg-black/10" : ""}`}>
         <div>Current objective: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
         <div>Active campaign: <span className="text-white/80">{campaignContext?.title ?? (session.selectedEntityIds.campaignId ? "Campaign context unavailable" : "No active campaign selected")}</span></div>
         <div>Lifecycle stage: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
@@ -133,8 +133,8 @@ export default function OperatorRuntimeCanvas({
         </div>
         <span className="rounded-full border border-cyan-100/25 px-2 py-1 text-xs text-cyan-100">{session.runtimeState}</span>
       </div>
-      <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-cyan-100/62">Progress continuity</div>
-      <div className={`mt-3 rounded-2xl bg-black/20 px-3 py-2 ${choreography.depthModel.continuityRailClass}`}>
+      <div className="mt-1.5 text-[11px] uppercase tracking-[0.14em] text-cyan-100/62">Progress continuity</div>
+      <div className={`mt-2 rounded-2xl bg-black/20 px-3 py-2 ${choreography.depthModel.continuityRailClass}`}>
         <div className="flex flex-wrap gap-2">
         {progression.map((step, index) => <span key={step.id} className={`rounded-full px-2 py-1 text-[11px] ${activeProgressIndex >= index && activeProgressIndex !== -1 ? "bg-cyan-400/20 text-cyan-100" : "bg-white/5 text-white/55"}`}>{step.label}</span>)}
         </div>
@@ -146,7 +146,7 @@ export default function OperatorRuntimeCanvas({
       </div>
 
       {isThinking ? <div className="mt-3 rounded-xl bg-violet-400/10 px-3 py-2 text-xs text-violet-100">Operator is interpreting and preparing the next surface. {transitionCopy}</div> : null}
-      <div className="mt-2 rounded-xl border border-cyan-200/16 bg-cyan-400/[0.08] px-3 py-2 text-xs text-cyan-100/88">
+      <div className="mt-2 rounded-xl border border-cyan-200/14 bg-cyan-400/[0.06] px-3 py-2 text-xs text-cyan-100/88">
         {choreography.message}
       </div>
       {choreography.staleState ? (
@@ -155,7 +155,7 @@ export default function OperatorRuntimeCanvas({
         </div>
       ) : null}
 
-      <div className="relative mt-4 grid gap-3">
+      <div className="relative mt-2.5 grid gap-2.5">
         {previousSurface ? <div className={`rounded-xl bg-white/[0.03] p-3 text-xs text-white/55 transition-all duration-300 ${choreography.depthModel.previousLayerClass}`}>Previous: {previousSurface.label}</div> : null}
         {progressionAhead.length > 0 ? (
           <div className={`rounded-xl bg-white/[0.02] p-3 text-xs text-white/60 transition-all duration-300 ${choreography.depthModel.futureLayerClass} ${choreography.depthModel.supportSurfaceClass} ${reducedMotion ? "" : anticipationClass}`}>
@@ -167,7 +167,13 @@ export default function OperatorRuntimeCanvas({
         <div className={`${reducedMotion ? "" : "animate-pulse"} pointer-events-none absolute right-[4.2rem] top-[3rem] h-5 w-5 rounded-full bg-amber-200/90 shadow-[0_0_22px_rgba(251,146,60,.8)]`} />
         <div className={`${choreography.motionClass} ${choreography.reducedMotionClass} ${choreography.depthModel.activeLayerClass} relative`}>
           <div className={`pointer-events-none absolute inset-x-8 -top-5 h-16 rounded-full bg-gradient-to-r ${choreography.depthModel.objectiveGlowClass} blur-xl`} />
-          {session.activeSurface === "campaign_planning" ? (
+          {compact && session.runtimeState === "idle" ? (
+            <article className="relative rounded-[1.5rem] border border-cyan-100/14 bg-[linear-gradient(145deg,rgba(14,21,46,.56),rgba(8,12,27,.76))] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.46)] backdrop-blur-xl">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Idle continuity</div>
+              <p className="mt-2 text-base font-medium text-white">Operator standing by with continuity context loaded.</p>
+              <p className="mt-1 text-sm text-white/72">Ready for next move: {progressionAhead.map((step) => step.label).join(" → ") || "Planning"}</p>
+            </article>
+          ) : session.activeSurface === "campaign_planning" ? (
             <article className="relative rounded-[1.7rem] border border-cyan-100/16 bg-[linear-gradient(145deg,rgba(14,21,46,.72),rgba(8,12,27,.9))] p-5 shadow-[0_36px_100px_rgba(0,0,0,0.58)] backdrop-blur-xl">
               <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Current objective</div>
               <p className="mt-2 text-sm text-white/80">Interpreted intent: {session.activeCommand || "No campaign intent entered yet."}</p>
@@ -211,7 +217,7 @@ export default function OperatorRuntimeCanvas({
         </div>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap gap-2">
         <button onClick={onInterruptManual} className="rounded-xl border border-white/15 bg-white/[0.03] px-2.5 py-1.5 text-xs text-white/70 hover:bg-white/10">Manual tools</button>
         <button onClick={onRecover} disabled={!session.recoverableContext} className="rounded-xl border border-cyan-200/35 px-3 py-2 text-sm text-cyan-100 disabled:opacity-50">Resume where we were</button>
         <Link href={fallbackRoute} className="rounded-xl border border-white/20 bg-white/[0.06] px-3 py-2 text-sm text-white/85">Open full workspace</Link>
