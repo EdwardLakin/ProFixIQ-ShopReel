@@ -37,10 +37,7 @@ export default function GlassShell({
       </div>
 
       <div className={`relative z-10 mx-auto w-full max-w-[1540px] ${className}`}>
-        <div className="mb-5 flex items-center justify-between gap-3 transition-all duration-300">
-          <div className="hidden rounded-full border border-slate-400/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-white/55 shadow-2xl backdrop-blur md:block">
-            Active path
-          </div>
+        <div className="mb-5 flex items-center justify-end gap-3 transition-all duration-300">
           <div className="ml-auto flex items-center gap-2">
             {actions}
             <ShopReelNotificationsBell />

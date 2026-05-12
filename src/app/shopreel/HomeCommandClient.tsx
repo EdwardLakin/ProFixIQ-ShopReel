@@ -11,14 +11,17 @@ import { executeShopReelCommand } from "@/features/shopreel/ui/system/executeSho
 
 type RecentItem = { id: string; title: string; status: string };
 
-const stageLabel = (status: string) => {
+type StageTone = { label: string; tone: string; ring: string; cta: string; helper: string };
+
+const stageLabel = (status: string): StageTone => {
   const normalized = status.toLowerCase();
-  if (/(review|approval|needs)/.test(normalized)) return "Needs approval";
-  if (/(ready|completed|published)/.test(normalized)) return "Draft ready";
-  if (/(render|processing|queued)/.test(normalized)) return "In production";
-  if (/(fail|error|blocked)/.test(normalized)) return "Needs attention";
-  return "Ready to plan";
+  if (/(review|approval|needs)/.test(normalized)) return { label: "Needs approval", tone: "text-amber-100 bg-amber-400/20", ring: "ring-amber-300/40", cta: "Review now", helper: "Final review before publishing." };
+  if (/(ready|completed|published)/.test(normalized)) return { label: "Draft ready", tone: "text-cyan-100 bg-cyan-400/20", ring: "ring-cyan-300/40", cta: "View draft", helper: "Ready for your feedback." };
+  if (/(fail|error|blocked)/.test(normalized)) return { label: "Needs attention", tone: "text-rose-100 bg-rose-400/20", ring: "ring-rose-300/40", cta: "Open task", helper: "One item needs revision." };
+  return { label: "Ready to plan", tone: "text-emerald-100 bg-emerald-400/20", ring: "ring-emerald-300/40", cta: "Continue campaign", helper: "Momentum is good—keep moving." };
 };
+
+const quickPrompts = ["Launch a product campaign", "Create 5 TikTok hooks", "Refine last draft", "Review pending approvals"];
 
 export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
   const router = useRouter();
@@ -35,16 +38,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
   const persistContext = (route: string) => {
     const pendingTasks = buildPendingTasks(interpreted.intent);
-    const operationalGraph = buildOperationalGraph({
-      generationId: recent[0]?.id,
-      campaignId: context?.lastCampaignId,
-      pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
-      blockerCount: pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length,
-      readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
-      interrupted: false,
-      continuityThreadCount: 0,
-      lastRoute: route,
-    });
+    const operationalGraph = buildOperationalGraph({ generationId: recent[0]?.id, campaignId: context?.lastCampaignId, pendingTaskCount: pendingTasks.filter((task) => !task.done).length, blockerCount: pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length, readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length, interrupted: false, continuityThreadCount: 0, lastRoute: route });
 
     const base = context ?? readWorkspaceMemory();
     if (!base) return;
@@ -71,73 +65,85 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
   return (
     <div className="space-y-6 pb-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-white/[0.09] to-white/[0.02] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.55)] md:p-8">
-        <div className="text-xs uppercase tracking-[0.2em] text-cyan-100/70">ShopReel Operator</div>
-        <h1 className="mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">Tell ShopReel what you want to create.</h1>
-        <p className="mt-3 max-w-3xl text-sm text-white/75 md:text-base">Describe the outcome. ShopReel will shape the campaign, ask for approval, execute the next step, and learn your creative taste over time.</p>
-        <div className="mt-6">
-          <AiCommandInput
-            value={command}
-            onChange={setCommand}
-            placeholder="Launch a campaign for…&#10;Turn this idea into 5 short-form posts…&#10;Refine my active campaign to feel less corporate…&#10;Review what needs my approval…"
-            className="min-h-36"
-          />
+      <section className="relative overflow-hidden rounded-[2rem] border border-violet-200/20 bg-[linear-gradient(145deg,rgba(13,19,44,.9),rgba(6,9,24,.92))] p-5 shadow-[0_34px_110px_rgba(0,0,0,0.62)] md:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(139,92,246,.22),transparent_34%),radial-gradient(circle_at_90%_10%,rgba(34,211,238,.15),transparent_38%)]" />
+        <div className="relative z-10 text-xs uppercase tracking-[0.22em] text-cyan-100/75">SHOPREEL OPERATOR</div>
+        <h1 className="relative z-10 mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">What do you want ShopReel to do next?</h1>
+        <p className="relative z-10 mt-3 max-w-3xl text-sm text-white/75 md:text-base">Plan campaigns, create content, refine drafts, get approvals, and learn your creative preferences. ShopReel handles the execution — you keep the vision.</p>
+        <div className="relative z-10 mt-6 rounded-3xl border border-violet-300/35 bg-[#090f25]/90 p-3 shadow-[inset_0_0_0_1px_rgba(34,211,238,.15)]">
+          <AiCommandInput value={command} onChange={setCommand} placeholder="Describe what you want to create or accomplish…" className="min-h-32 border-transparent bg-transparent shadow-none focus-visible:ring-0" />
+          <div className="mt-3 flex flex-wrap gap-2 px-2 pb-2">
+            {quickPrompts.map((prompt) => (
+              <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 transition hover:bg-white/10">{prompt}</button>
+            ))}
+          </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button onClick={runCommand} className="rounded-2xl bg-gradient-to-r from-violet-500/80 to-cyan-400/80 px-5 py-3 text-sm font-semibold text-white">Plan next move</button>
+        <div className="relative z-10 mt-4 flex flex-wrap gap-3">
+          <button onClick={runCommand} className="rounded-2xl bg-gradient-to-r from-violet-500/85 to-cyan-400/80 px-5 py-3 text-sm font-semibold text-white">Plan next move</button>
           <Link href="/shopreel/review" className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-white/80 hover:bg-white/10">Review approvals</Link>
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[
-          { title: "Start with an idea", description: "Move from concept to campaign plan in one guided flow.", href: "/shopreel/create" },
-          { title: "Continue a campaign", description: "Return to active campaign work and keep momentum.", href: "/shopreel/campaigns" },
-          { title: "Review approvals", description: "Approve or refine ShopReel’s next decisions.", href: "/shopreel/review" },
-          { title: "Add brand assets", description: "Upload source material ShopReel can learn from.", href: "/shopreel/upload" },
+          { title: "Start with an idea", description: "Turn a concept into a full campaign plan.", href: "/shopreel/create" },
+          { title: "Continue a campaign", description: "Pick up where you left off and keep momentum.", href: "/shopreel/campaigns" },
+          { title: "Review approvals", description: "Approve, refine, or reject ShopReel proposals.", href: "/shopreel/review" },
+          { title: "Add brand assets", description: "Upload and manage brand references.", href: "/shopreel/upload" },
         ].map((card) => (
-          <Link key={card.title} href={card.href} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.07]">
-            <div className="text-sm font-semibold text-white">{card.title}</div>
-            <p className="mt-2 text-xs text-white/65">{card.description}</p>
+          <Link key={card.title} href={card.href} className="group rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-violet-300/30 hover:bg-white/[0.07]">
+            <div className="mb-3 h-10 w-10 rounded-xl border border-white/10 bg-gradient-to-br from-violet-400/25 to-cyan-400/25" />
+            <div className="text-base font-semibold text-white">{card.title}</div>
+            <p className="mt-1 text-sm text-white/65">{card.description}</p>
+            <div className="mt-3 text-white/40 transition group-hover:translate-x-0.5 group-hover:text-white/70">→</div>
           </Link>
         ))}
       </section>
 
       <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 md:p-6">
-        <div className="mb-4 text-lg font-semibold text-white">Active work</div>
-        {recent.length === 0 ? (
-          <div className="rounded-2xl bg-white/[0.04] p-4 text-sm text-white/70">No active drafts yet. Start with a new idea or continue a campaign.</div>
-        ) : (
-          <div className="space-y-3">
-            {recent.slice(0, 5).map((item) => (
-              <article key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <div className="text-base font-semibold text-white">{item.title}</div>
-                <div className="mt-1 text-xs text-cyan-100/80">{stageLabel(item.status)}</div>
-                <div className="mt-2 text-sm text-white/70">Next recommended action: {stageLabel(item.status) === "Needs approval" ? "Review next decision" : "Continue campaign"}.</div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link href={`/shopreel/generations/${item.id}`} className="rounded-full bg-cyan-400/25 px-4 py-2 text-xs font-semibold text-cyan-50">Continue campaign</Link>
-                  <Link href="/shopreel/review" className="rounded-full border border-white/15 px-3 py-2 text-xs text-white/75">Review next decision</Link>
+        <div className="mb-4 flex items-center justify-between gap-3"><div className="text-lg font-semibold text-white">Active work</div><Link href="/shopreel/campaigns" className="text-sm text-violet-200/80 hover:text-violet-100">View all campaigns →</Link></div>
+        {recent.length === 0 ? <div className="rounded-2xl bg-white/[0.04] p-4 text-sm text-white/70">No active drafts yet. Start with a new idea or continue a campaign.</div> : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {recent.slice(0, 8).map((item, index) => {
+              const stage = stageLabel(item.status);
+              return <article key={item.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#070d1f]">
+                <div className={`h-24 bg-gradient-to-br ${index % 4 === 0 ? "from-cyan-300/40 to-slate-900" : index % 4 === 1 ? "from-amber-300/35 to-slate-900" : index % 4 === 2 ? "from-violet-400/35 to-slate-900" : "from-rose-300/35 to-slate-900"}`} />
+                <div className="space-y-3 p-4">
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] ${stage.tone} ring-1 ${stage.ring}`}>{stage.label}</span>
+                  <div className="text-lg font-semibold text-white">{item.title}</div>
+                  <div className="text-xs text-white/55">Updated recently</div>
+                  <p className="text-sm text-white/70">{stage.helper}</p>
+                  <div className="flex gap-2"><Link href={`/shopreel/generations/${item.id}`} className="rounded-xl bg-violet-500/85 px-3 py-2 text-xs font-medium text-white">{stage.cta}</Link><Link href="/shopreel/review" className="rounded-xl border border-white/15 px-3 py-2 text-xs text-white/75">View details</Link></div>
                 </div>
-              </article>
-            ))}
+              </article>;
+            })}
           </div>
         )}
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-sm text-white/75">
-        <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Adaptive memory</div>
-        <p className="mt-2">ShopReel is learning your preferred tone, pacing, and hook style. Recent feedback will shape future campaign plans and reduce generic AI phrasing.</p>
-      </section>
-
-      <details className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/70">
-        <summary className="cursor-pointer text-white">Advanced tools</summary>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link href="/shopreel/render-jobs" className="rounded-full bg-white/5 px-3 py-1.5">Render jobs</Link>
-          <Link href="/shopreel/publish-center" className="rounded-full bg-white/5 px-3 py-1.5">Publish center</Link>
-          <Link href="/shopreel/operations" className="rounded-full bg-white/5 px-3 py-1.5">Operations</Link>
-          <Link href="/shopreel/automation" className="rounded-full bg-white/5 px-3 py-1.5">Automation</Link>
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <div className="rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(8,14,34,.95),rgba(8,11,24,.92))] p-5">
+          <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Adaptive memory</div>
+          <div className="mt-4 flex gap-4">
+            <div className="h-16 w-16 shrink-0 rounded-full bg-[radial-gradient(circle_at_35%_35%,rgba(56,189,248,.85),rgba(139,92,246,.45),rgba(15,23,42,.95))] shadow-[0_0_24px_rgba(56,189,248,.35)]" />
+            <ul className="space-y-2 text-sm text-white/80">
+              <li className="flex gap-2"><span className="text-emerald-300">✓</span><span>You usually prefer stronger emotional hooks for TikTok.</span></li>
+              <li className="flex gap-2"><span className="text-emerald-300">✓</span><span>Recent refinements help ShopReel avoid corporate phrasing.</span></li>
+              <li className="flex gap-2"><span className="text-emerald-300">✓</span><span>Approved pacing patterns will shape the next campaign plan.</span></li>
+            </ul>
+          </div>
         </div>
-      </details>
+
+        <div className="rounded-2xl border border-white/10 bg-black/25 p-5">
+          <div className="mb-3 text-sm font-semibold text-white">Advanced tools</div>
+          <div className="grid gap-2 text-sm text-white/80">
+            <Link href="/shopreel/render-jobs" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10">Render jobs</Link>
+            <Link href="/shopreel/publish-center" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10">Publish center</Link>
+            <Link href="/shopreel/operations" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10">Operations</Link>
+            <Link href="/shopreel/automation" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10">Automation</Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

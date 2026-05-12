@@ -53,3 +53,11 @@ The `/shopreel` command page now uses a clear AI operator structure:
 - Validate command-to-route handoff quality for nuanced natural-language prompts across campaign and review routes.
 - Validate approval copy consistency between `/shopreel` cards and `/shopreel/review` inbox states.
 - Collect real user feedback on active-work prioritization logic before further ranking refinements.
+
+## Premium visual pass
+
+- Gated and removed user-facing `Active path` UI from the `/shopreel` experience by deleting the remaining GlassShell pill and preserving home-route launcher gating in the shell so no top continuity overlay renders on command home.
+- Launch/menu clickability was hardened by ensuring the menu trigger keeps a higher stacking order (`z-[180]`) and by eliminating the interfering top status pill region.
+- Active work moved from flat list rows into responsive premium campaign cards with gradient art headers, status pills, next-action copy, and compact dual-action controls.
+- Adaptive memory was upgraded from a plain paragraph into a premium intelligence panel with a glowing orb treatment and calm, check-style learning bullets.
+- Still needs real-user testing on iPad/mobile gesture navigation overlap and card action prioritization under high-volume campaign queues.
