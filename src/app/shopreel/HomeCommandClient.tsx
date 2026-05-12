@@ -16,8 +16,19 @@ import {
   initialOperatorRuntimeSession,
   operatorRuntimeSessionReducer,
 } from "@/features/shopreel/ui/system/operatorRuntimeSession";
+import { persistRuntimeSession, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 type RecentItem = { id: string; title: string; status: string };
+type RuntimeCampaignContext = {
+  id: string;
+  title: string;
+  status: string;
+  channels: string[];
+  updated_at: string;
+  reviewStatus: string;
+  refinementHistory: Array<{ action: string; reason: string | null; createdAt: string }>;
+  continuity: { lastDecisionAt: string; lastUpdatedAt: string };
+};
 
 const quickPrompts = ["Launch campaign", "Generate hooks", "Refine tone", "Review approvals", "Build publish package"];
 
@@ -27,12 +38,26 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const [context, setContext] = useState<WorkspaceMemory | null>(null);
   const interpreted = useMemo(() => interpretCommand(command), [command]);
   const [runtimeSession, dispatch] = useReducer(operatorRuntimeSessionReducer, initialOperatorRuntimeSession);
+  const [campaignContext, setCampaignContext] = useState<RuntimeCampaignContext | null>(null);
 
   useEffect(() => {
     const parsed = readWorkspaceMemory();
     if (!parsed) return;
     setContext(parsed);
     setCommand(parsed.lastCommand);
+    const persistedRuntime = readPersistedRuntimeSession();
+    if (persistedRuntime) {
+      dispatch({ type: "START_RUNTIME", command: parsed.lastCommand ?? "", resolution: {
+        state: persistedRuntime.progressionStage,
+        surfaceId: persistedRuntime.activeSurface,
+        transitionMode: "restore_previous",
+        confidence: "high",
+        summary: "Restored runtime continuity from last workspace.",
+        recommendedRouteFallback: persistedRuntime.returnTarget,
+        contextCarryover: { rawCommand: parsed.lastCommand ?? "", interpretedIntent: "unknown", selectedCampaignId: persistedRuntime.activeCampaignId, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(parsed.creativeContinuity) },
+      }});
+    }
+
   }, []);
 
   const persistContext = (route: string) => {
@@ -44,6 +69,22 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     writeWorkspaceMemory(next);
     setContext(next);
   };
+
+  useEffect(() => {
+    persistRuntimeSession(runtimeSession);
+  }, [runtimeSession]);
+
+  useEffect(() => {
+    const campaignId = runtimeSession.selectedEntityIds.campaignId;
+    if (!campaignId) {
+      setCampaignContext(null);
+      return;
+    }
+    void fetch(`/api/shopreel/campaigns/${campaignId}/runtime-context`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json) => setCampaignContext(json?.campaign ?? null))
+      .catch(() => setCampaignContext(null));
+  }, [runtimeSession.selectedEntityIds.campaignId]);
 
   const runCommand = (overrideCommand?: string) => {
     const nextCommand = overrideCommand ?? command;
@@ -80,6 +121,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         onRunCommand={(next) => runCommand(next)}
         context={context}
         recent={recent}
+        campaignContext={campaignContext}
       />
 
       <section className="rounded-2xl border border-white/10 bg-black/20 p-4">

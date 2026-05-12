@@ -7,6 +7,16 @@ import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/
 import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 
 type RuntimeRecentItem = { id: string; title: string; status: string };
+type RuntimeCampaignContext = {
+  id: string;
+  title: string;
+  status: string;
+  channels: string[];
+  updated_at: string;
+  reviewStatus: string;
+  refinementHistory: Array<{ action: string; reason: string | null; createdAt: string }>;
+  continuity: { lastDecisionAt: string; lastUpdatedAt: string };
+};
 
 export default function OperatorRuntimeCanvas({
   session,
@@ -15,6 +25,7 @@ export default function OperatorRuntimeCanvas({
   onRunCommand,
   context,
   recent,
+  campaignContext,
 }: {
   session: OperatorRuntimeSessionState;
   onRecover: () => void;
@@ -22,6 +33,7 @@ export default function OperatorRuntimeCanvas({
   onRunCommand: (command: string) => void;
   context: WorkspaceMemory | null;
   recent: RuntimeRecentItem[];
+  campaignContext: RuntimeCampaignContext | null;
 }) {
   const activeSurface = operatorSurfaceRegistry[session.activeSurface];
   const previousSurface = session.previousSurface ? operatorSurfaceRegistry[session.previousSurface] : null;
@@ -73,12 +85,15 @@ export default function OperatorRuntimeCanvas({
               <div className="text-xs uppercase tracking-[0.15em] text-cyan-100/70">Inline campaign planning</div>
               <p className="mt-2 text-sm text-white/80">Interpreted intent: {session.activeCommand || "No campaign intent entered yet."}</p>
               <p className="mt-1 text-sm text-white/70">Objective: launch campaign with operator-managed continuity and fast review handoff.</p>
-              <p className="mt-1 text-sm text-white/70">Target channel: {context?.creativeContinuity?.platformBias?.replaceAll("_", " ") ?? "Not selected"}</p>
+              <p className="mt-1 text-sm text-white/70">Target channel: {campaignContext?.channels?.join(", ") || context?.creativeContinuity?.platformBias?.replaceAll("_", " ") || "Not selected"}</p>
+              {campaignContext ? <p className="mt-1 text-sm text-white/70">Hydrated campaign: {campaignContext.title} · {campaignContext.status} · review {campaignContext.reviewStatus}</p> : null}
+              {campaignContext?.refinementHistory?.[0] ? <p className="mt-1 text-xs text-cyan-100/85">Latest refinement: {campaignContext.refinementHistory[0].reason ?? campaignContext.refinementHistory[0].action}</p> : null}
               <div className="mt-3 flex flex-wrap gap-2">{continuityNotices.map((notice) => <span key={notice} className="rounded-full border border-cyan-100/30 bg-cyan-400/10 px-2 py-1 text-xs text-cyan-100">{notice}</span>)}</div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button onClick={() => onRunCommand(`${session.activeCommand} refined with stronger hook and founder tone`)} className="rounded-xl border border-white/20 px-3 py-2 text-sm text-white/85">Refine intent</button>
                 <button onClick={() => onRunCommand("continue active campaign workspace") } className="rounded-xl border border-cyan-200/35 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100">Continue existing campaign</button>
                 <button onClick={() => onRunCommand("approve and start campaign draft") } className="rounded-xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-3 py-2 text-sm font-semibold text-white">Approve + start</button>
+                {campaignContext ? <button onClick={() => void fetch(`/api/shopreel/agents/plan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaignId: campaignContext.id, agentType: "content_strategist" }) })} className="rounded-xl border border-emerald-300/35 px-3 py-2 text-sm text-emerald-100">Plan next mutation</button> : null}
               </div>
             </article>
           ) : session.activeSurface === "campaign_workspace" ? (
