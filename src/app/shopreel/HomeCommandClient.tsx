@@ -54,183 +54,227 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     setPrefersReducedMotion(media.matches);
     const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
     media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-
-  useEffect(() => {
-    const parsed = readWorkspaceMemory();
-    if (!parsed) return;
-    setContext(parsed);
-    setCommand(parsed.lastCommand);
-    const persistedRuntime = readPersistedRuntimeSession();
-    if (persistedRuntime) {
-      setChamberMemory(persistedRuntime.chamberMemory);
-      dispatch({ type: "START_RUNTIME", command: parsed.lastCommand ?? "", resolution: {
-        state: persistedRuntime.progressionStage,
-        surfaceId: persistedRuntime.activeSurface,
-        transitionMode: "restore_previous",
-        confidence: "high",
-        summary: "Restored runtime continuity from last workspace.",
-        recommendedRouteFallback: persistedRuntime.returnTarget,
-        contextCarryover: { rawCommand: parsed.lastCommand ?? "", interpretedIntent: "unknown", selectedCampaignId: persistedRuntime.activeCampaignId, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(parsed.creativeContinuity) },
-      }});
-    }
-
-  }, [recent]);
-
-  const persistContext = (route: string) => {
-    const pendingTasks = buildPendingTasks(interpreted.intent);
-    const operationalGraph = buildOperationalGraph({ generationId: recent[0]?.id, campaignId: context?.lastCampaignId, pendingTaskCount: pendingTasks.filter((task) => !task.done).length, blockerCount: pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length, readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length, interrupted: false, continuityThreadCount: 0, lastRoute: route });
-    const base = context ?? readWorkspaceMemory();
-    if (!base) return;
-    const next: WorkspaceMemory = { ...base, lastWorkflow: interpreted.intent, lastCommand: command, lastRoute: route, pendingTasks, continuityThreads: buildContinuityThreads({ intent: interpreted.intent, pendingTasks, lastRoute: route }), operationalGraph, lastExecutionPlan: planCommandExecution(command, operationalGraph, route, interpreted.intent), updatedAt: new Date().toISOString() };
-    writeWorkspaceMemory(next);
-    setContext(next);
-  };
-
-  useEffect(() => {
-    persistRuntimeSession(runtimeSession);
-    const persistedRuntime = readPersistedRuntimeSession();
-    setChamberMemory(persistedRuntime?.chamberMemory ?? null);
-  }, [runtimeSession]);
-
-  useEffect(() => {
-    const campaignId = runtimeSession.selectedEntityIds.campaignId;
-    if (!campaignId) {
-      setCampaignContext(null);
-      return;
-    }
-    void fetch(`/api/shopreel/campaigns/${campaignId}/runtime-context`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((json) => setCampaignContext(json?.campaign ?? null))
-      .catch(() => setCampaignContext(null));
-  }, [runtimeSession.selectedEntityIds.campaignId]);
-
-  const runCommand = (overrideCommand?: string) => {
-    const nextCommand = overrideCommand ?? command;
-    const execution = executeShopReelCommand({ command: nextCommand, lastRoute: context?.lastRoute, source: "home_command" });
-    const runtime = resolveOperatorRuntime({ rawCommand: nextCommand, classifiedIntent: execution.commandIntent, currentPath: context?.lastRoute ?? "/shopreel", selectedCampaignId: context?.lastCampaignId ?? null, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(context?.creativeContinuity) });
-    dispatch(buildRuntimeStartAction(runtime, nextCommand));
-    persistContext(execution.selectedRoute);
-    if (overrideCommand) setCommand(overrideCommand);
-  };
-
-  const statusTone = (status: string) => {
-    if (/await|review|needs/i.test(status)) return "Awaiting Review";
-    if (/interrupt|pause|block/i.test(status)) return "Interrupted";
-    if (/restore|recover|resume/i.test(status)) return "Restored";
-    if (/active|running|draft|plan|build/i.test(status)) return "Active";
-    return "Stable";
-  };
+    const unresolvedCount = recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length;
+  const activeWorld = recent[0] ?? null;
 
   return (
-    <div className="relative h-[100svh] w-full overflow-hidden bg-[radial-gradient(140%_130%_at_40%_25%,rgba(76,66,199,.36),transparent_60%),radial-gradient(95%_95%_at_85%_85%,rgba(43,148,196,.22),transparent_70%),linear-gradient(150deg,#02050f,#040915_42%,#090b1b)] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_45%_35%,rgba(251,146,60,.22),transparent_35%),radial-gradient(circle_at_58%_62%,rgba(99,102,241,.22),transparent_45%)]" />
-      <div className="grid h-full min-h-0 grid-cols-1 gap-3 px-3 py-2 lg:grid-cols-[88px_minmax(0,1fr)_410px] xl:grid-cols-[94px_minmax(0,1fr)_460px]">
-        <aside className="hidden min-h-0 flex-col py-3 lg:flex">
-          <div className="space-y-1.5">
-            {chamberNav.map((item) => (
-              <Link key={item.href} href={item.href} className="group flex items-center gap-2 rounded-xl px-2 py-2 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-cyan-100">
-                <span className="text-sm text-cyan-100/75">{item.icon}</span>{item.label}
+    <div className="relative h-[100svh] w-full overflow-hidden bg-[#02040c] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_42%_36%,rgba(255,171,75,.24),transparent_18%),radial-gradient(circle_at_50%_52%,rgba(111,76,255,.28),transparent_32%),radial-gradient(circle_at_86%_38%,rgba(70,160,255,.15),transparent_30%),linear-gradient(135deg,#02040c_0%,#060815_48%,#04030b_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
+
+      <div className="relative z-10 grid h-full min-h-0 grid-cols-[150px_minmax(0,1fr)] xl:grid-cols-[170px_minmax(0,1fr)]">
+        <aside className="hidden border-r border-white/[0.06] bg-black/10 px-7 py-7 lg:flex lg:flex-col">
+          <div className="flex items-center gap-4">
+            <div className="text-sm font-bold tracking-[0.1em]">PROFIXIQ</div>
+            <div className="text-[11px] uppercase tracking-[0.28em] text-white/58">ShopReel Operator</div>
+          </div>
+
+          <div className="mt-14 h-24 w-24 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.95)_0_7%,rgba(255,177,76,.22)_8%_16%,transparent_17%),repeating-radial-gradient(circle,rgba(255,177,76,.25)_0_1px,transparent_1px_13px)] shadow-[0_0_45px_rgba(255,150,60,.35)]" />
+
+          <nav className="mt-14 space-y-4">
+            {chamberNav.map((item, index) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm transition ${
+                  index === 0
+                    ? "bg-indigo-400/12 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.06),0_0_34px_rgba(124,58,237,.18)]"
+                    : "text-white/52 hover:bg-white/[0.055] hover:text-white"
+                }`}
+              >
+                <span className="text-base text-cyan-100/75">{item.icon}</span>
+                <span>{item.label}</span>
+                {index === 0 ? <span className="ml-auto h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_16px_rgba(251,146,60,.9)]" /> : null}
               </Link>
             ))}
-          </div>
-          <Link href="/shopreel/operations" className="mt-auto inline-flex items-center gap-1 px-2 py-2 text-[11px] uppercase tracking-[0.15em] text-amber-100/85"><span className="text-amber-200">≡</span>Operations</Link>
+          </nav>
+
+          <Link href="/shopreel/operations" className="mt-auto flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-amber-100/88">
+            <span className="text-lg">≡</span>
+            Operations
+          </Link>
         </aside>
 
-        <main className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(130deg,rgba(6,10,29,.7),rgba(4,8,20,.88)_45%,rgba(11,11,28,.74))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_40px_80px_rgba(1,2,8,.6)] lg:px-6">
+        <main className="relative grid h-full min-h-0 grid-rows-[72px_minmax(0,1fr)_128px] overflow-hidden px-6 py-5 lg:px-8 xl:px-10">
           <header className="flex items-center justify-between">
-            <div className="text-[11px] uppercase tracking-[0.2em] text-amber-100/80">● Operator chamber online</div>
-            <ShopReelNotificationsBell />
+            <div className="hidden items-center gap-3 text-[12px] uppercase tracking-[0.26em] text-amber-100/88 md:flex">
+              <span className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,.95)]" />
+              Operator chamber online
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <button type="button" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-white/72">⌕</button>
+              <ShopReelNotificationsBell />
+              <button type="button" onClick={() => dispatch({ type: "RECOVER" })} className="rounded-2xl border border-white/10 bg-white/[0.055] px-5 py-3 text-sm font-semibold text-white">
+                Resume
+              </button>
+            </div>
           </header>
 
-          <section className="relative min-h-0 overflow-hidden">
-            <div className="pointer-events-none absolute left-[43%] top-[40%] h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(251,146,60,.38),rgba(99,102,241,.2)_35%,transparent_65%)]" />
-            <div className={`${prefersReducedMotion ? "" : "animate-[spin_34s_linear_infinite]"} pointer-events-none absolute left-[43%] top-[41%] h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-100/25`} />
-            <div className={`${prefersReducedMotion ? "" : "animate-pulse"} pointer-events-none absolute left-[43%] top-[41%] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-200 shadow-[0_0_28px_rgba(251,146,60,.8)]`} />
-
+          <section className="relative grid min-h-0 items-center gap-8 overflow-hidden lg:grid-cols-[minmax(420px,.78fr)_minmax(560px,1fr)] xl:grid-cols-[minmax(480px,.78fr)_minmax(680px,1fr)]">
             <div className="relative z-10 max-w-3xl">
-              <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/72">Operator online</p>
-              <h1 className="mt-2 text-5xl font-semibold leading-[0.95] text-white md:text-6xl">Operator<br />Online</h1>
-              <p className="mt-4 max-w-xl text-2xl text-white/70">Continuity intact. Systems nominal. Focus your next move.</p>
+              <div className="pointer-events-none absolute left-[86%] top-[-8%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.85)_0_1.6%,rgba(255,177,76,.25)_2.5%_5%,transparent_8%),repeating-radial-gradient(circle,rgba(255,177,76,.18)_0_1px,transparent_1px_20px)] opacity-90" />
+              <div className={`${prefersReducedMotion ? "" : "animate-[spin_38s_linear_infinite]"} pointer-events-none absolute left-[86%] top-[12%] h-80 w-80 -translate-x-1/2 rounded-full border border-violet-200/10`} />
+              <div className="pointer-events-none absolute left-[86%] top-[19%] h-3 w-3 -translate-x-1/2 rounded-full bg-amber-200 shadow-[0_0_42px_rgba(251,146,60,.95)]" />
 
-              <div className="mt-5 rounded-2xl border border-white/15 bg-black/20 p-3 backdrop-blur-md">
-                <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-cyan-100/75">Operator prompt</div>
-                <AiCommandInput value={command} onChange={setCommand} placeholder="What should the operator run next?" className="min-h-14 rounded-full border border-white/10 bg-white/[0.02] px-4 shadow-none focus-visible:ring-0" />
-                <div className="mt-3 flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/85">{prompt}</button>)}</div>
-              </div>
+              <div className="relative">
+                <div className="text-[12px] uppercase tracking-[0.26em] text-indigo-200/88">Operator online</div>
+                <h1 className="mt-5 text-[clamp(4.8rem,9vw,8.8rem)] font-semibold leading-[0.88] tracking-[-0.075em] text-white">
+                  Operator<br />
+                  <span className="bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">Online</span>
+                </h1>
+                <p className="mt-7 max-w-2xl text-[clamp(1.2rem,1.7vw,1.8rem)] leading-snug text-white/64">
+                  Continuity intact. Systems nominal. Focus your next move.
+                </p>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                <button onClick={() => runCommand()} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-6 py-2.5 text-sm font-semibold text-white">Continue</button>
-                <Link href="/shopreel/review" className="rounded-xl border border-white/18 px-4 py-2.5 text-sm text-white/85">Review approvals</Link>
-                <button onClick={() => dispatch({ type: "RECOVER" })} disabled={!runtimeSession.recoverableContext} className="rounded-xl border border-cyan-200/35 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100 disabled:opacity-50">Resume</button>
-                <Link href="/shopreel/operations" className="text-xs text-white/65 underline-offset-2 hover:underline">Manual / Operations</Link>
+                <div className="mt-8 max-w-3xl">
+                  <div className="mb-3 text-[11px] uppercase tracking-[0.24em] text-white/50">Operator prompt</div>
+                  <div className="flex items-center rounded-3xl border border-white/14 bg-[#071024]/60 px-5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]">
+                    <AiCommandInput
+                      value={command}
+                      onChange={setCommand}
+                      placeholder="What should the operator run next?"
+                      className="min-h-16 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                    />
+                    <button type="button" onClick={() => runCommand()} className="text-3xl text-white/48 transition hover:text-white">→</button>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    {quickPrompts.map((prompt) => (
+                      <button
+                        type="button"
+                        key={prompt}
+                        onClick={() => setCommand(prompt)}
+                        className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/78 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-7 flex flex-wrap items-center gap-4">
+                    <button type="button" onClick={() => runCommand()} className="group rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-8 py-4 text-sm font-semibold text-white shadow-[0_0_42px_rgba(124,58,237,.36)]">
+                      Continue <span className="ml-4 inline-block transition group-hover:translate-x-1">→</span>
+                    </button>
+                    <Link href="/shopreel/review" className="rounded-2xl border border-white/12 bg-white/[0.035] px-6 py-4 text-sm text-white/80">
+                      Review approvals {unresolvedCount ? <span className="ml-2 rounded-full bg-violet-500 px-2 py-0.5 text-xs">{unresolvedCount}</span> : null}
+                    </Link>
+                    <Link href="/shopreel/operations" className="text-sm text-white/46 hover:text-white">Manual / Operations →</Link>
+                  </div>
+                </div>
               </div>
             </div>
-          </section>
 
-          <section className="grid grid-cols-5 gap-2 border-t border-white/10 pt-2 text-xs">
-            {[["Runtime pulse", "Calm"],["Continuity signal", "Stable"],["Atmosphere", "Focused"],["Momentum", "Building"],["Unresolved", `${recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length} items`]].map(([label, value]) => (
-              <div key={label} className="rounded-lg bg-white/[0.02] px-2 py-1.5">
-                <div className="text-[10px] uppercase tracking-[0.13em] text-white/55">{label}</div>
-                <div className="mt-0.5 text-sm text-cyan-100">{value}</div>
+            <aside className="relative z-20 min-h-0 overflow-visible">
+              <div className="mb-8 flex items-end justify-between pl-4">
+                <div>
+                  <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">Operational Worlds</div>
+                  <p className="mt-3 text-sm text-white/48">Your runtime environments. Alive and remembered.</p>
+                </div>
+                <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">View all →</Link>
               </div>
-            ))}
-          </section>
-        </main>
 
-        <aside className="flex min-h-0 flex-col overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(155deg,rgba(8,12,30,.75),rgba(6,9,22,.92))] p-3 shadow-[0_20px_50px_rgba(2,3,10,.5)]">
-          <div className="mb-2 flex items-end justify-between">
-            <div>
-              <h3 className="text-sm uppercase tracking-[0.16em] text-white/90">Operational worlds</h3>
-              <p className="text-xs text-white/55">Your runtime environments. Alive and remembered.</p>
+              <div className="relative h-[520px] overflow-visible">
+                {recent.slice(0, 5).map((item, index) => {
+                  const active = index === 0;
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() => router.push(`/shopreel/campaigns/${item.id}`)}
+                      className={`group absolute top-4 h-[450px] w-[260px] overflow-hidden rounded-[2rem] border p-6 text-left transition hover:-translate-y-2 ${
+                        active
+                          ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))] shadow-[0_0_65px_rgba(255,174,80,.24),0_34px_90px_rgba(0,0,0,.62)]"
+                          : "border-white/12 bg-[linear-gradient(180deg,rgba(17,20,43,.9),rgba(5,8,22,.98))] shadow-[0_28px_70px_rgba(0,0,0,.58)]"
+                      }`}
+                      style={{
+                        left: `${index * 118}px`,
+                        zIndex: 20 - index,
+                        transform: `scale(${1 - index * 0.055}) rotate(${index === 0 ? -1.5 : index * 1.8}deg)`,
+                        opacity: Math.max(1 - index * 0.14, 0.46),
+                      }}
+                    >
+                      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_72%,rgba(255,164,72,.64),transparent_15%),radial-gradient(circle_at_55%_82%,rgba(102,226,255,.28),transparent_28%),linear-gradient(180deg,transparent_0_38%,rgba(23,16,34,.32)_39%,rgba(4,7,19,.96)_100%)]" />
+                      <div className="pointer-events-none absolute bottom-24 left-0 right-0 h-36 bg-[linear-gradient(135deg,transparent_28%,rgba(255,176,77,.28)_31%,transparent_55%),linear-gradient(40deg,rgba(255,255,255,.07)_20%,transparent_21%)]" />
+                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-cyan-300/10 to-transparent" />
+                      <div className="relative">
+                        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-amber-100/82">
+                          <span>{active ? "Active" : statusTone(item.status)}</span>
+                          <span>{active ? "Current" : item.status.replaceAll("_", " ")}</span>
+                        </div>
+                        <h2 className="mt-8 line-clamp-3 text-2xl leading-tight tracking-[-0.03em] text-white">
+                          {item.title}
+                        </h2>
+                        <div className="mt-7 inline-flex rounded-full bg-violet-400/18 px-4 py-2 text-sm text-violet-100">
+                          {item.status.replaceAll("_", " ")}
+                        </div>
+                      </div>
+                      <div className="absolute bottom-8 left-6 right-6">
+                        <div className="mb-3 h-1 rounded-full bg-white/10">
+                          <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-amber-300 to-cyan-300" />
+                        </div>
+                        <div className="flex justify-between text-xs text-white/72">
+                          <span>{active ? "Continue latest" : `World ${index + 1}`}</span>
+                          <span>Open →</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {!activeWorld ? (
+                  <div className="rounded-[2rem] border border-white/12 bg-white/[0.04] p-8 text-white/65">
+                    No active worlds yet. Launch a campaign to create one.
+                  </div>
+                ) : null}
+
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-20 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(75,120,255,.22),transparent_65%)] blur-sm" />
+              </div>
+            </aside>
+          </section>
+
+          <footer className="grid min-h-0 gap-3 border-t border-white/[0.065] pt-4 lg:grid-cols-[minmax(280px,.7fr)_1fr_300px]">
+            <div className="flex items-center gap-4 rounded-[1.6rem] bg-white/[0.025] px-5 py-4">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-violet-400/20 text-violet-100 shadow-[0_0_28px_rgba(139,92,246,.35)]">✦</div>
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-white/50">Operator presence</div>
+                <div className="mt-1 text-sm text-white/75">Online and synchronized.</div>
+              </div>
             </div>
-            <Link href="/shopreel/campaigns" className="text-xs text-white/70">View all</Link>
-          </div>
-          <div className="relative min-h-0 flex-1 overflow-hidden">
-            <div className="h-full overflow-y-auto pr-1">
-              <div className="relative mx-auto mt-2 h-[640px] max-w-[320px]">
-                {recent.slice(0, 5).map((item, index) => (
-                  <button
-                    key={item.id}
-                    onClick={() => router.push(`/shopreel/campaigns/${item.id}`)}
-                    className="absolute left-0 right-0 w-full overflow-hidden rounded-[1.6rem] border border-white/14 bg-[radial-gradient(95%_70%_at_60%_12%,rgba(251,146,60,.25),transparent_62%),linear-gradient(170deg,rgba(12,17,40,.92),rgba(5,9,24,.98))] p-4 text-left shadow-[0_20px_45px_rgba(0,0,0,.48)]"
-                    style={{ top: `${index * 36}px`, transform: `scale(${1 - index * 0.06}) translateX(${index * 16}px)`, zIndex: 12 - index, opacity: Math.max(1 - index * 0.13, 0.44) }}
-                  >
-                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(5,10,26,.95)_76%)]" />
-                    <div className="pointer-events-none absolute left-0 top-[55%] h-px w-full bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />
-                    <div className="pointer-events-none absolute right-8 top-12 h-20 w-[2px] bg-gradient-to-b from-amber-200/90 via-cyan-100/60 to-transparent" />
-                    <div className="relative flex items-center justify-between">
-                      <span className="text-[10px] uppercase tracking-[0.15em] text-cyan-100/75">{statusTone(item.status)}</span>
-                      <span className="text-[10px] text-white/45">{index === 0 ? "Current" : `${index + 1}`}</span>
-                    </div>
-                    <p className="relative mt-3 line-clamp-2 text-2xl leading-tight text-white">{item.title}</p>
-                    <p className="relative mt-5 text-xs text-white/66">{item.status.replaceAll("_", " ")}</p>
-                  </button>
+
+            <div className="grid grid-cols-4 gap-2 rounded-[1.6rem] bg-white/[0.025] px-4 py-4">
+              {[
+                ["Runtime pulse", "Calm · Focused · Steady"],
+                ["Continuity signal", "Stable"],
+                ["Atmosphere", "Focused"],
+                ["Momentum", "Building"],
+              ].map(([label, value]) => (
+                <div key={label} className="border-r border-white/8 last:border-r-0 px-2">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/42">{label}</div>
+                  <div className="mt-3 text-sm text-cyan-100">{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-[1.6rem] bg-white/[0.025] px-5 py-4">
+              <div className="text-[11px] uppercase tracking-[0.22em] text-white/50">Operations</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  ["Campaigns", "/shopreel/campaigns"],
+                  ["Review", "/shopreel/review"],
+                  ["Library", "/shopreel/library"],
+                  ["Ops", "/shopreel/operations"],
+                ].map(([title, href]) => (
+                  <Link key={href} href={href} className="rounded-xl border border-white/8 bg-white/[0.035] px-3 py-2 text-xs text-white/70 hover:bg-white/[0.07]">
+                    {title}
+                  </Link>
                 ))}
               </div>
             </div>
-          </div>
-        </aside>
+          </footer>
+        </main>
       </div>
-
 
       <div className="px-3 pb-2 lg:hidden">
-        <OperatorRuntimeCanvas
-          session={runtimeSession}
-          onRecover={() => dispatch({ type: "RECOVER" })}
-          onInterruptManual={() => dispatch(buildInterruptAction({ reason: "Manual tools requested", requestedSurface: "manual_operations", returnSurface: runtimeSession.activeSurface, returnState: runtimeSession.runtimeState, fallbackRoute: "/shopreel/operations" }))}
-          onRunCommand={(next) => runCommand(next)}
-          context={context}
-          recent={recent}
-          campaignContext={campaignContext}
-          onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
-          reducedMotion={prefersReducedMotion}
-          chamberMemory={chamberMemory}
-          compact
-        />
-      </div>
-      <div className="absolute bottom-[6.4rem] left-[7.2rem] right-[30rem] hidden lg:block">
         <OperatorRuntimeCanvas
           session={runtimeSession}
           onRecover={() => dispatch({ type: "RECOVER" })}

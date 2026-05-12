@@ -1,0 +1,2040 @@
+===== GIT STATUS =====
+?? tsconfig.tsbuildinfo
+
+===== RECENT COMMITS =====
+a3945f7 Trigger Vercel redeploy
+e4c35a8 Fix ShopReel world cards to open campaign workspace
+a710307 Merge pull request #191 from EdwardLakin/codex/implement-operator-first-ui-redesign-for-/shopreel
+6497e5c Redesign /shopreel into operator-first chamber layout
+5475d49 Merge pull request #190 from EdwardLakin/codex/implement-full-viewport-operator-focal-plane
+ea037ab PR15: make /shopreel a full-viewport operator focal plane
+fc0058a Merge pull request #189 from EdwardLakin/codex/implement-pr14-to-improve-shopreel-layout
+8540c0e Refactor shopreel operator into immersive full-screen layout
+
+===== SHOPREEL FILE TREE =====
+src/app/shopreel/HomeCommandClient.tsx
+src/app/shopreel/account/page.tsx
+src/app/shopreel/analytics/page.tsx
+src/app/shopreel/automation/page.tsx
+src/app/shopreel/billing/page.tsx
+src/app/shopreel/calendar/page.tsx
+src/app/shopreel/campaigns/[id]/page.tsx
+src/app/shopreel/campaigns/[id]/production/page.tsx
+src/app/shopreel/campaigns/[id]/review/page.tsx
+src/app/shopreel/campaigns/items/[id]/page.tsx
+src/app/shopreel/campaigns/new/page.tsx
+src/app/shopreel/campaigns/page.tsx
+src/app/shopreel/content/[id]/page.tsx
+src/app/shopreel/content/page.tsx
+src/app/shopreel/create/page.tsx
+src/app/shopreel/create/page.tsx.bak.20260505042607
+src/app/shopreel/creator-requests/page.tsx
+src/app/shopreel/dashboard/page.tsx
+src/app/shopreel/editor/[id]/page.tsx
+src/app/shopreel/editor/blog/[id]/page.tsx
+src/app/shopreel/editor/email/[id]/page.tsx
+src/app/shopreel/editor/page.tsx
+src/app/shopreel/editor/post/[id]/page.tsx
+src/app/shopreel/editor/video/[id]/page.tsx
+src/app/shopreel/editor/vlog/[id]/page.tsx
+src/app/shopreel/exports/[id]/PackageDetailClient.tsx
+src/app/shopreel/exports/[id]/page.tsx
+src/app/shopreel/exports/page.tsx
+src/app/shopreel/generations/[id]/page.tsx
+src/app/shopreel/generations/page.tsx
+src/app/shopreel/ideas/page.tsx
+src/app/shopreel/layout.tsx
+src/app/shopreel/library/page.tsx
+src/app/shopreel/notifications/page.tsx
+src/app/shopreel/operations/page.tsx
+src/app/shopreel/operator/page.tsx
+src/app/shopreel/opportunities/[id]/page.tsx
+src/app/shopreel/opportunities/page.tsx
+src/app/shopreel/page.tsx
+src/app/shopreel/publish-center/page.tsx
+src/app/shopreel/publish-queue/page.tsx
+src/app/shopreel/published/page.tsx
+src/app/shopreel/render-jobs/page.tsx
+src/app/shopreel/render-queue/page.tsx
+src/app/shopreel/review/[id]/page.tsx
+src/app/shopreel/review/blog/[id]/page.tsx
+src/app/shopreel/review/page.tsx
+src/app/shopreel/review/vlog/[id]/page.tsx
+src/app/shopreel/settings/developer/growth-agent/page.tsx
+src/app/shopreel/settings/page.tsx
+src/app/shopreel/storyboards/page.tsx
+src/app/shopreel/upload/page.tsx
+src/app/shopreel/video-creation/advanced/page.tsx
+src/app/shopreel/video-creation/jobs/[id]/page.tsx
+src/app/shopreel/video-creation/page.tsx
+src/app/shopreel/video-creation/series/[seriesKey]/page.tsx
+src/features/shopreel/agents/approval.ts
+src/features/shopreel/agents/context.ts
+src/features/shopreel/agents/execution-events.ts
+src/features/shopreel/agents/execution.ts
+src/features/shopreel/agents/planner.ts
+src/features/shopreel/agents/readiness.ts
+src/features/shopreel/agents/repository.ts
+src/features/shopreel/agents/types.ts
+src/features/shopreel/ai/modelConfig.ts
+src/features/shopreel/analytics/analyzePerformance.ts
+src/features/shopreel/analytics/runAnalyticsFeedbackLoop.ts
+src/features/shopreel/analytics/syncPlatformMetrics.ts
+src/features/shopreel/architecture/README.md
+src/features/shopreel/architecture/canonicalRouteMap.ts
+src/features/shopreel/automation/components/AutomationRunner.tsx
+src/features/shopreel/automation/lib/server.ts
+src/features/shopreel/automation/runAutomationLoop.ts
+src/features/shopreel/automation/runShopReelAutopilot.ts
+src/features/shopreel/brain/context.ts
+src/features/shopreel/brain/repository.ts
+src/features/shopreel/brain/types.ts
+src/features/shopreel/calendar/components/CalendarItemActions.tsx
+src/features/shopreel/calendar/components/GenerateCalendarButton.tsx
+src/features/shopreel/calendar/components/PipelineControls.tsx
+src/features/shopreel/calendar/generateContentCalendar.ts
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx
+src/features/shopreel/campaigns/components/CampaignFlowShell.tsx
+src/features/shopreel/campaigns/components/CampaignGenerator.tsx
+src/features/shopreel/campaigns/components/CampaignItemClient.tsx
+src/features/shopreel/campaigns/components/CampaignPageHeader.tsx
+src/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail.tsx
+src/features/shopreel/campaigns/lib/automation.ts
+src/features/shopreel/campaigns/lib/campaignIntelligence.ts
+src/features/shopreel/campaigns/lib/campaignWorkflow.ts
+src/features/shopreel/campaigns/lib/defaultCampaignAngles.ts
+src/features/shopreel/campaigns/lib/getCampaignNextAction.ts
+src/features/shopreel/campaigns/lib/getCampaignProgressSummary.ts
+src/features/shopreel/campaigns/lib/multiscene.ts
+src/features/shopreel/campaigns/lib/narrativeIntelligence.ts
+src/features/shopreel/campaigns/lib/premiumAssembly.ts
+src/features/shopreel/campaigns/lib/premiumRunway.ts
+src/features/shopreel/campaigns/lib/premiumRunwaySync.ts
+src/features/shopreel/campaigns/lib/promptSeeding.ts
+src/features/shopreel/campaigns/lib/sceneFramePrompt.ts
+src/features/shopreel/campaigns/lib/sceneStatus.ts
+src/features/shopreel/campaigns/lib/server.ts
+src/features/shopreel/campaigns/lib/voiceover.ts
+src/features/shopreel/components/Input.tsx
+src/features/shopreel/components/ShopReelOpportunitiesClient.tsx
+src/features/shopreel/components/StatusBadge.tsx
+src/features/shopreel/components/TextArea.tsx
+src/features/shopreel/components/Toggle.tsx
+src/features/shopreel/config/featureFlags.ts
+src/features/shopreel/content/actions/contentActions.ts
+src/features/shopreel/content/actions/regenerateContent.ts
+src/features/shopreel/content/components/ContentActions.tsx
+src/features/shopreel/content/components/ContentLibraryClient.tsx
+src/features/shopreel/content/components/OutputTypeSelector.tsx
+src/features/shopreel/content/editors/ContentEditorShell.tsx
+src/features/shopreel/content/server/loadGenerationForEditor.ts
+src/features/shopreel/creator/buildCreatorOutputs.ts
+src/features/shopreel/creator/buildCreatorResearchDraft.ts
+src/features/shopreel/creator/components/CreatorRequestsClient.tsx
+src/features/shopreel/creator/generateBlogSection.ts
+src/features/shopreel/creator/generateCreatorContentOutputs.ts
+src/features/shopreel/creator/generateCreatorScript.ts
+src/features/shopreel/dashboard/components/RunAutomationButton.tsx
+src/features/shopreel/dashboard/getDashboardData.ts
+src/features/shopreel/discovery/discoverContent.ts
+src/features/shopreel/discovery/discoverStorySources.ts
+src/features/shopreel/discovery/generateOpportunities.ts
+src/features/shopreel/editing/buildAutoEditPlan.ts
+src/features/shopreel/editor/components/BlogEditorClient.tsx
+src/features/shopreel/editor/components/EditorClient.tsx
+src/features/shopreel/editor/components/EditorStudioPrimitives.tsx
+src/features/shopreel/editor/components/MediaBin.tsx
+src/features/shopreel/editor/components/TimelineLane.tsx
+src/features/shopreel/editor/components/TimelineRuler.tsx
+src/features/shopreel/editor/lib/commands.ts
+src/features/shopreel/editor/lib/preflight.ts
+src/features/shopreel/editor/lib/session.ts
+src/features/shopreel/editor/lib/sessionPersistence.ts
+src/features/shopreel/editor/lib/timeline.ts
+src/features/shopreel/export/components/CopyButton.tsx
+src/features/shopreel/export/exportPackage.ts
+src/features/shopreel/generations/components/GenerationDeleteButton.tsx
+src/features/shopreel/generations/components/GenerationTimelineEditor.tsx
+src/features/shopreel/hooks/generateHooks.ts
+src/features/shopreel/hooks/generateViralHooks.ts
+src/features/shopreel/ideas/components/IdeasChatClient.tsx
+src/features/shopreel/integrations/blog/connect.ts
+src/features/shopreel/integrations/email/connect.ts
+src/features/shopreel/integrations/facebook/connect.ts
+src/features/shopreel/integrations/facebook/publish.ts
+src/features/shopreel/integrations/google-business/connect.ts
+src/features/shopreel/integrations/instagram/connect.ts
+src/features/shopreel/integrations/instagram/publish.ts
+src/features/shopreel/integrations/linkedin/connect.ts
+src/features/shopreel/integrations/profixiq/mapEventToStorySource.ts
+src/features/shopreel/integrations/profixiq/types.ts
+src/features/shopreel/integrations/profixiq/upsertIngestedOpportunity.ts
+src/features/shopreel/integrations/profixiq/verifySignature.ts
+src/features/shopreel/integrations/shared/baseUrl.ts
+src/features/shopreel/integrations/shared/env.ts
+src/features/shopreel/integrations/shared/lifecycleTruth.ts
+src/features/shopreel/integrations/shared/platformRegistry.ts
+src/features/shopreel/integrations/shared/types.ts
+src/features/shopreel/integrations/tiktok/connect.ts
+src/features/shopreel/integrations/tiktok/publish.ts
+src/features/shopreel/integrations/youtube/connect.ts
+src/features/shopreel/integrations/youtube/publish.ts
+src/features/shopreel/intelligence/calculateContentScores.ts
+src/features/shopreel/intelligence/getTopContent.ts
+src/features/shopreel/learning/adaptiveCreativeMemory.ts
+src/features/shopreel/learning/scoreContentPerformance.ts
+src/features/shopreel/learning/updateLearningSignals.ts
+src/features/shopreel/lib/contracts/lifecycle.ts
+src/features/shopreel/lib/contracts/sourceRefs.ts
+src/features/shopreel/lib/contracts/tenant.ts
+src/features/shopreel/lib/editorPaths.ts
+src/features/shopreel/lib/getBaseUrl.ts
+src/features/shopreel/lib/integrations/constants.ts
+src/features/shopreel/lib/normalizeDurationSeconds.ts
+src/features/shopreel/lib/productSurfaceMap.ts
+src/features/shopreel/lib/reviewPaths.ts
+src/features/shopreel/lib/uiLabels.ts
+src/features/shopreel/library/LibraryIndexClient.tsx
+src/features/shopreel/library/components/ManualAssetLibraryClient.tsx
+src/features/shopreel/library/libraryItem.ts
+src/features/shopreel/manual/components/ManualUploadClient.tsx
+src/features/shopreel/manual/lib/buildStoragePath.ts
+src/features/shopreel/manual/lib/createOpportunityFromManualAsset.ts
+src/features/shopreel/manual/lib/creativeBrief.ts
+src/features/shopreel/manual/lib/detectFileType.ts
+src/features/shopreel/manual/lib/uploadLimits.ts
+src/features/shopreel/manual/types/manualAssets.ts
+src/features/shopreel/media/selectMediaForReel.ts
+src/features/shopreel/media/types.ts
+src/features/shopreel/memory/updateMarketingMemory.ts
+src/features/shopreel/metrics/recordContentAnalytics.ts
+src/features/shopreel/metrics/trackMetrics.ts
+src/features/shopreel/moments/detectViralMoments.ts
+src/features/shopreel/moments/scoreViralMoment.ts
+src/features/shopreel/notifications/scope.ts
+src/features/shopreel/notifications/server.ts
+src/features/shopreel/operations/components/EnqueuePublicationButton.tsx
+src/features/shopreel/operations/components/RetryRenderButton.tsx
+src/features/shopreel/operations/components/ReviewApprovalActions.tsx
+src/features/shopreel/operations/lib/lifecycleBoard.ts
+src/features/shopreel/operations/lib/publishFailureDiagnostics.ts
+src/features/shopreel/operations/lib/publishReadiness.ts
+src/features/shopreel/operator/components/OperatorDashboard.tsx
+src/features/shopreel/opportunities/autoCreateCampaigns.ts
+src/features/shopreel/opportunities/createOpportunities.ts
+src/features/shopreel/opportunities/lib/isSourceSuppressed.ts
+src/features/shopreel/opportunities/lib/status.ts
+src/features/shopreel/opportunities/lib/suppressStorySource.ts
+src/features/shopreel/opportunities/lib/upsertOpportunity.ts
+src/features/shopreel/opportunities/scoreStorySource.ts
+src/features/shopreel/opportunities/scoring/refreshOpportunityScores.ts
+src/features/shopreel/opportunities/scoring/scoreStorySource.ts
+src/features/shopreel/opportunities/scoring/updateOpportunityScore.ts
+src/features/shopreel/optimization/buildPrePublishRanking.ts
+src/features/shopreel/optimization/getOptimizationSnapshot.ts
+src/features/shopreel/optimization/mutatePromptStrategy.ts
+src/features/shopreel/optimization/updateGlobalBenchmarks.ts
+src/features/shopreel/platforms/facebook.ts
+src/features/shopreel/platforms/instagram.ts
+src/features/shopreel/platforms/instagramAdapter.ts
+src/features/shopreel/platforms/platformRegistry.ts
+src/features/shopreel/platforms/presets.ts
+src/features/shopreel/platforms/tiktok.ts
+src/features/shopreel/platforms/youtube.ts
+src/features/shopreel/production/mediaGraph.ts
+src/features/shopreel/publish/lifecycle.ts
+src/features/shopreel/publish/lifecycleReadModel.ts
+src/features/shopreel/publish/publishVideo.ts
+src/features/shopreel/publish/runPublishWorker.ts
+src/features/shopreel/publishing/components/PublishPlatformButtons.tsx
+src/features/shopreel/publishing/components/PublishQueueClient.tsx
+src/features/shopreel/publishing/components/PublishingHistoryClient.tsx
+src/features/shopreel/publishing/lib/createPublication.ts
+src/features/shopreel/publishing/lib/createPublicationBundle.ts
+src/features/shopreel/publishing/lib/enqueuePublishJob.ts
+src/features/shopreel/publishing/lib/getPublicationPayload.ts
+src/features/shopreel/publishing/lib/processPublishJob.ts
+src/features/shopreel/publishing/publishReadinessModel.ts
+src/features/shopreel/publishing/types/index.ts
+src/features/shopreel/reelbuilder/buildReelPlan.ts
+src/features/shopreel/reels/buildReelPlan.ts
+src/features/shopreel/render/buildRenderPayload.ts
+src/features/shopreel/render/createRenderJob.ts
+src/features/shopreel/render/renderJob.ts
+src/features/shopreel/render/runRenderWorker.ts
+src/features/shopreel/render/startRenderForGeneration.ts
+src/features/shopreel/review/components/ReviewInboxClient.tsx
+src/features/shopreel/review/components/ReviewWorkspaceClient.tsx
+src/features/shopreel/review/reviewDraft.ts
+src/features/shopreel/scheduler/queueScheduledContent.ts
+src/features/shopreel/scheduler/runScheduledPublishWorker.ts
+src/features/shopreel/server/apiOwnership.ts
+src/features/shopreel/server/endpointPolicy.ts
+src/features/shopreel/server/getCurrentShopId.ts
+src/features/shopreel/server/requireShopId.ts
+src/features/shopreel/server/scheduler.ts
+src/features/shopreel/settings/getShopReelSettings.ts
+src/features/shopreel/settings/saveShopReelSettings.ts
+src/features/shopreel/story-builder/buildContentPieceInsertFromDraft.ts
+src/features/shopreel/story-builder/buildStoryDraftFromSource.ts
+src/features/shopreel/story-builder/createContentPieceFromStoryDraft.ts
+src/features/shopreel/story-builder/generateStoryPipeline.ts
+src/features/shopreel/story-builder/index.ts
+src/features/shopreel/story-builder/types.ts
+src/features/shopreel/story-sources/buildStorySourceKey.ts
+src/features/shopreel/story-sources/constants.ts
+src/features/shopreel/story-sources/discoverAndGenerateStories.ts
+src/features/shopreel/story-sources/discoverStorySourceCandidates.ts
+src/features/shopreel/story-sources/fromOpportunity.ts
+src/features/shopreel/story-sources/generateContentPieceFromSource.ts
+src/features/shopreel/story-sources/index.ts
+src/features/shopreel/story-sources/server.ts
+src/features/shopreel/story-sources/server/getStorySourceWithAssets.ts
+src/features/shopreel/story-sources/server/index.ts
+src/features/shopreel/story-sources/server/listStoryGenerations.ts
+src/features/shopreel/story-sources/server/listStorySources.ts
+src/features/shopreel/story-sources/server/saveStoryGeneration.ts
+src/features/shopreel/story-sources/server/saveStorySource.ts
+src/features/shopreel/story-sources/types.ts
+src/features/shopreel/subtitles/buildSubtitleBlocks.ts
+src/features/shopreel/theme/shopreelTheme.ts
+src/features/shopreel/types/index.ts
+src/features/shopreel/ui/GlobalCommandLauncher.tsx
+src/features/shopreel/ui/PrimaryButton.tsx
+src/features/shopreel/ui/ShopReelAppShell.tsx
+src/features/shopreel/ui/ShopReelBadge.tsx
+src/features/shopreel/ui/ShopReelEmpty.tsx
+src/features/shopreel/ui/ShopReelInputPreview.tsx
+src/features/shopreel/ui/ShopReelJson.tsx
+src/features/shopreel/ui/ShopReelKeyValue.tsx
+src/features/shopreel/ui/ShopReelListItem.tsx
+src/features/shopreel/ui/ShopReelNav.tsx
+src/features/shopreel/ui/ShopReelNotificationsBell.tsx
+src/features/shopreel/ui/ShopReelSectionGrid.tsx
+src/features/shopreel/ui/ShopReelSettingsBlock.tsx
+src/features/shopreel/ui/ShopReelSettingsClient.tsx
+src/features/shopreel/ui/ShopReelSidebar.tsx
+src/features/shopreel/ui/ShopReelTemplateCard.tsx
+src/features/shopreel/ui/ShopReelToggleRow.tsx
+src/features/shopreel/ui/system/AiCommandPrimitives.tsx
+src/features/shopreel/ui/system/EcosystemStateRail.tsx
+src/features/shopreel/ui/system/GlassBadge.tsx
+src/features/shopreel/ui/system/GlassButton.tsx
+src/features/shopreel/ui/system/GlassCard.tsx
+src/features/shopreel/ui/system/GlassInput.tsx
+src/features/shopreel/ui/system/GlassNav.tsx
+src/features/shopreel/ui/system/GlassSelect.tsx
+src/features/shopreel/ui/system/GlassShell.tsx
+src/features/shopreel/ui/system/GlassStat.tsx
+src/features/shopreel/ui/system/GlassTextarea.tsx
+src/features/shopreel/ui/system/GlassToggle.tsx
+src/features/shopreel/ui/system/GlobalEnvironmentContinuityClient.tsx
+src/features/shopreel/ui/system/OperatorRuntimeCanvas.tsx
+src/features/shopreel/ui/system/RecoveryInboxRail.tsx
+src/features/shopreel/ui/system/RuntimeRouteContinuityTracker.tsx
+src/features/shopreel/ui/system/ShopReelPagePrimitives.tsx
+src/features/shopreel/ui/system/SurfaceExecutionHint.tsx
+src/features/shopreel/ui/system/adaptiveProductionAtmosphere.ts
+src/features/shopreel/ui/system/aiWorkspaceMemory.ts
+src/features/shopreel/ui/system/campaignCommandHandoff.ts
+src/features/shopreel/ui/system/cognitiveState.ts
+src/features/shopreel/ui/system/commandInputIntent.ts
+src/features/shopreel/ui/system/commandIntentClassifier.ts
+src/features/shopreel/ui/system/continuousEcosystemEvolution.ts
+src/features/shopreel/ui/system/ecosystemState.ts
+src/features/shopreel/ui/system/environmentField.ts
+src/features/shopreel/ui/system/environmentReactivity.ts
+src/features/shopreel/ui/system/environmentalEmbodiment.ts
+src/features/shopreel/ui/system/executeShopReelCommand.ts
+src/features/shopreel/ui/system/glassTheme.ts
+src/features/shopreel/ui/system/globalEnvironmentContinuity.ts
+src/features/shopreel/ui/system/operationalGraph.ts
+src/features/shopreel/ui/system/operatorBehaviorAdaptation.ts
+src/features/shopreel/ui/system/operatorRhythm.ts
+src/features/shopreel/ui/system/operatorRuntime.ts
+src/features/shopreel/ui/system/operatorRuntimeReviewActions.ts
+src/features/shopreel/ui/system/operatorRuntimeSession.ts
+src/features/shopreel/ui/system/operatorSurfaceRegistry.tsx
+src/features/shopreel/ui/system/productionExecutionIntelligence.ts
+src/features/shopreel/ui/system/productionIntuition.ts
+src/features/shopreel/ui/system/recoveryInbox.ts
+src/features/shopreel/ui/system/resolveOperatorRuntime.ts
+src/features/shopreel/ui/system/runtimeChoreography.ts
+src/features/shopreel/ui/system/runtimeSessionPersistence.ts
+src/features/shopreel/ui/system/shopReelRouteRegistry.ts
+src/features/shopreel/ui/system/spatialWorkspaceBehavior.ts
+src/features/shopreel/ui/system/strategicAdaptation.ts
+src/features/shopreel/ui/system/transitionEngine.ts
+src/features/shopreel/ui/system/workflowEmbodiment.ts
+src/features/shopreel/ui/system/workflowTransitionModel.ts
+src/features/shopreel/video-creation/components/SeriesDetailClient.tsx
+src/features/shopreel/video-creation/components/VideoBriefWizard.tsx
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx
+src/features/shopreel/video-creation/lib/assembly.ts
+src/features/shopreel/video-creation/lib/assets.ts
+src/features/shopreel/video-creation/lib/automation.ts
+src/features/shopreel/video-creation/lib/contentPieces.ts
+src/features/shopreel/video-creation/lib/convertToStoryGeneration.ts
+src/features/shopreel/video-creation/lib/ctaComposition.ts
+src/features/shopreel/video-creation/lib/editor.ts
+src/features/shopreel/video-creation/lib/enhancement.ts
+src/features/shopreel/video-creation/lib/enhancer.ts
+src/features/shopreel/video-creation/lib/env.ts
+src/features/shopreel/video-creation/lib/finalizeVideo.ts
+src/features/shopreel/video-creation/lib/normalizeOpenAIVideoSeconds.ts
+src/features/shopreel/video-creation/lib/openaiVideo.ts
+src/features/shopreel/video-creation/lib/presets.ts
+src/features/shopreel/video-creation/lib/promptBuilder.ts
+src/features/shopreel/video-creation/lib/railwayClient.ts
+src/features/shopreel/video-creation/lib/sceneDirector.ts
+src/features/shopreel/video-creation/lib/series.ts
+src/features/shopreel/video-creation/lib/seriesClient.ts
+src/features/shopreel/video-creation/lib/seriesServer.ts
+src/features/shopreel/video-creation/lib/server.ts
+src/features/shopreel/video-creation/lib/status.ts
+src/features/shopreel/video-creation/lib/storyboardPresets.ts
+src/features/shopreel/video-creation/lib/storyboards.ts
+src/features/shopreel/video-creation/lib/types.ts
+src/features/shopreel/video-creation/providers/assembly.ts
+src/features/shopreel/video-creation/providers/fal.ts
+src/features/shopreel/video-creation/providers/index.ts
+src/features/shopreel/video-creation/providers/luma.ts
+src/features/shopreel/video-creation/providers/openai.ts
+src/features/shopreel/video-creation/providers/pika.ts
+src/features/shopreel/video-creation/providers/runway.ts
+src/features/shopreel/video-creation/providers/runwayAdapter.ts
+src/features/shopreel/video-creation/providers/types.ts
+src/features/shopreel/worker/processPremiumCampaignJobs.ts
+src/features/shopreel/worker/processRenderJobs.ts
+
+===== TARGET FILES =====
+
+===== FILE: src/app/shopreel/page.tsx =====
+export const dynamic = "force-dynamic";
+import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import HomeCommandClient from "./HomeCommandClient";
+
+type StoryDraft = { title?: unknown };
+
+export default async function ShopReelPage() {
+  const shopId = await getCurrentShopId();
+  const supabase = createAdminClient();
+  const { data: recentData } = await supabase.from("shopreel_story_generations").select("id,status,created_at,story_draft").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(10);
+  const recent = (recentData ?? []).map((row) => ({ id: row.id, status: row.status ?? "unknown", title: typeof (row.story_draft as StoryDraft | null)?.title === "string" ? String((row.story_draft as StoryDraft).title) : "Untitled generation" }));
+
+  return <GlassShell title="ShopReel Command Center" hidePageIntro hideNotificationsBell fullBleed className="space-y-0"><HomeCommandClient recent={recent} /></GlassShell>;
+}
+
+===== FILE: src/app/shopreel/layout.tsx =====
+import type { ReactNode } from "react";
+import ShopReelAppShell from "@/features/shopreel/ui/ShopReelAppShell";
+import RuntimeRouteContinuityTracker from "@/features/shopreel/ui/system/RuntimeRouteContinuityTracker";
+
+export default function ShopReelLayout(props: { children: ReactNode }) {
+  return <ShopReelAppShell><RuntimeRouteContinuityTracker />{props.children}</ShopReelAppShell>;
+}
+
+===== FILE: src/app/shopreel/HomeCommandClient.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useReducer, useState } from "react";
+import { useRouter } from "next/navigation";
+import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
+import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
+import { readWorkspaceMemory, type WorkspaceMemory, writeWorkspaceMemory, buildPendingTasks, buildContinuityThreads } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
+import { executeShopReelCommand } from "@/features/shopreel/ui/system/executeShopReelCommand";
+import { resolveOperatorRuntime } from "@/features/shopreel/ui/system/resolveOperatorRuntime";
+import OperatorRuntimeCanvas from "@/features/shopreel/ui/system/OperatorRuntimeCanvas";
+import {
+  buildInterruptAction,
+  buildRuntimeStartAction,
+  initialOperatorRuntimeSession,
+  operatorRuntimeSessionReducer,
+} from "@/features/shopreel/ui/system/operatorRuntimeSession";
+import { persistRuntimeSession, readPersistedRuntimeSession, type PersistedChamberMemory } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+
+type RecentItem = { id: string; title: string; status: string };
+type RuntimeCampaignContext = {
+  id: string;
+  title: string;
+  status: string;
+  channels: string[];
+  updated_at: string;
+  reviewStatus: string;
+  refinementHistory: Array<{ action: string; reason: string | null; createdAt: string }>;
+  continuity: { lastDecisionAt: string; lastUpdatedAt: string };
+};
+
+const quickPrompts = ["Launch campaign", "Refine direction", "Review approvals", "Open workspace"];
+const chamberNav = [
+  { label: "Home", icon: "⌂", href: "/shopreel" },
+  { label: "Workspace", icon: "◫", href: "/shopreel/campaigns" },
+  { label: "Continuity", icon: "◌", href: "/shopreel/operator" },
+  { label: "Approvals", icon: "✓", href: "/shopreel/review" },
+  { label: "Reports", icon: "◴", href: "/shopreel/analytics" },
+] as const;
+
+export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
+  const router = useRouter();
+  const [command, setCommand] = useState("");
+  const [context, setContext] = useState<WorkspaceMemory | null>(null);
+  const interpreted = useMemo(() => interpretCommand(command), [command]);
+  const [runtimeSession, dispatch] = useReducer(operatorRuntimeSessionReducer, initialOperatorRuntimeSession);
+  const [campaignContext, setCampaignContext] = useState<RuntimeCampaignContext | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [chamberMemory, setChamberMemory] = useState<PersistedChamberMemory | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(media.matches);
+    const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    const parsed = readWorkspaceMemory();
+    if (!parsed) return;
+    setContext(parsed);
+    setCommand(parsed.lastCommand);
+    const persistedRuntime = readPersistedRuntimeSession();
+    if (persistedRuntime) {
+      setChamberMemory(persistedRuntime.chamberMemory);
+      dispatch({ type: "START_RUNTIME", command: parsed.lastCommand ?? "", resolution: {
+        state: persistedRuntime.progressionStage,
+        surfaceId: persistedRuntime.activeSurface,
+        transitionMode: "restore_previous",
+        confidence: "high",
+        summary: "Restored runtime continuity from last workspace.",
+        recommendedRouteFallback: persistedRuntime.returnTarget,
+        contextCarryover: { rawCommand: parsed.lastCommand ?? "", interpretedIntent: "unknown", selectedCampaignId: persistedRuntime.activeCampaignId, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(parsed.creativeContinuity) },
+      }});
+    }
+
+  }, [recent]);
+
+  const persistContext = (route: string) => {
+    const pendingTasks = buildPendingTasks(interpreted.intent);
+    const operationalGraph = buildOperationalGraph({ generationId: recent[0]?.id, campaignId: context?.lastCampaignId, pendingTaskCount: pendingTasks.filter((task) => !task.done).length, blockerCount: pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length, readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length, interrupted: false, continuityThreadCount: 0, lastRoute: route });
+    const base = context ?? readWorkspaceMemory();
+    if (!base) return;
+    const next: WorkspaceMemory = { ...base, lastWorkflow: interpreted.intent, lastCommand: command, lastRoute: route, pendingTasks, continuityThreads: buildContinuityThreads({ intent: interpreted.intent, pendingTasks, lastRoute: route }), operationalGraph, lastExecutionPlan: planCommandExecution(command, operationalGraph, route, interpreted.intent), updatedAt: new Date().toISOString() };
+    writeWorkspaceMemory(next);
+    setContext(next);
+  };
+
+  useEffect(() => {
+    persistRuntimeSession(runtimeSession);
+    const persistedRuntime = readPersistedRuntimeSession();
+    setChamberMemory(persistedRuntime?.chamberMemory ?? null);
+  }, [runtimeSession]);
+
+  useEffect(() => {
+    const campaignId = runtimeSession.selectedEntityIds.campaignId;
+    if (!campaignId) {
+      setCampaignContext(null);
+      return;
+    }
+    void fetch(`/api/shopreel/campaigns/${campaignId}/runtime-context`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json) => setCampaignContext(json?.campaign ?? null))
+      .catch(() => setCampaignContext(null));
+  }, [runtimeSession.selectedEntityIds.campaignId]);
+
+  const runCommand = (overrideCommand?: string) => {
+    const nextCommand = overrideCommand ?? command;
+    const execution = executeShopReelCommand({ command: nextCommand, lastRoute: context?.lastRoute, source: "home_command" });
+    const runtime = resolveOperatorRuntime({ rawCommand: nextCommand, classifiedIntent: execution.commandIntent, currentPath: context?.lastRoute ?? "/shopreel", selectedCampaignId: context?.lastCampaignId ?? null, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(context?.creativeContinuity) });
+    dispatch(buildRuntimeStartAction(runtime, nextCommand));
+    persistContext(execution.selectedRoute);
+    if (overrideCommand) setCommand(overrideCommand);
+  };
+
+  const statusTone = (status: string) => {
+    if (/await|review|needs/i.test(status)) return "Awaiting Review";
+    if (/interrupt|pause|block/i.test(status)) return "Interrupted";
+    if (/restore|recover|resume/i.test(status)) return "Restored";
+    if (/active|running|draft|plan|build/i.test(status)) return "Active";
+    return "Stable";
+  };
+
+  return (
+    <div className="relative h-[100svh] w-full overflow-hidden bg-[radial-gradient(140%_130%_at_40%_25%,rgba(76,66,199,.36),transparent_60%),radial-gradient(95%_95%_at_85%_85%,rgba(43,148,196,.22),transparent_70%),linear-gradient(150deg,#02050f,#040915_42%,#090b1b)] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_45%_35%,rgba(251,146,60,.22),transparent_35%),radial-gradient(circle_at_58%_62%,rgba(99,102,241,.22),transparent_45%)]" />
+      <div className="grid h-full min-h-0 grid-cols-1 gap-3 px-3 py-2 lg:grid-cols-[88px_minmax(0,1fr)_410px] xl:grid-cols-[94px_minmax(0,1fr)_460px]">
+        <aside className="hidden min-h-0 flex-col py-3 lg:flex">
+          <div className="space-y-1.5">
+            {chamberNav.map((item) => (
+              <Link key={item.href} href={item.href} className="group flex items-center gap-2 rounded-xl px-2 py-2 text-[11px] text-white/65 transition hover:bg-white/10 hover:text-cyan-100">
+                <span className="text-sm text-cyan-100/75">{item.icon}</span>{item.label}
+              </Link>
+            ))}
+          </div>
+          <Link href="/shopreel/operations" className="mt-auto inline-flex items-center gap-1 px-2 py-2 text-[11px] uppercase tracking-[0.15em] text-amber-100/85"><span className="text-amber-200">≡</span>Operations</Link>
+        </aside>
+
+        <main className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-2 overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(130deg,rgba(6,10,29,.7),rgba(4,8,20,.88)_45%,rgba(11,11,28,.74))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_40px_80px_rgba(1,2,8,.6)] lg:px-6">
+          <header className="flex items-center justify-between">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-amber-100/80">● Operator chamber online</div>
+            <ShopReelNotificationsBell />
+          </header>
+
+          <section className="relative min-h-0 overflow-hidden">
+            <div className="pointer-events-none absolute left-[43%] top-[40%] h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(251,146,60,.38),rgba(99,102,241,.2)_35%,transparent_65%)]" />
+            <div className={`${prefersReducedMotion ? "" : "animate-[spin_34s_linear_infinite]"} pointer-events-none absolute left-[43%] top-[41%] h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-100/25`} />
+            <div className={`${prefersReducedMotion ? "" : "animate-pulse"} pointer-events-none absolute left-[43%] top-[41%] h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-200 shadow-[0_0_28px_rgba(251,146,60,.8)]`} />
+
+            <div className="relative z-10 max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/72">Operator online</p>
+              <h1 className="mt-2 text-5xl font-semibold leading-[0.95] text-white md:text-6xl">Operator<br />Online</h1>
+              <p className="mt-4 max-w-xl text-2xl text-white/70">Continuity intact. Systems nominal. Focus your next move.</p>
+
+              <div className="mt-5 rounded-2xl border border-white/15 bg-black/20 p-3 backdrop-blur-md">
+                <div className="mb-2 text-[11px] uppercase tracking-[0.16em] text-cyan-100/75">Operator prompt</div>
+                <AiCommandInput value={command} onChange={setCommand} placeholder="What should the operator run next?" className="min-h-14 rounded-full border border-white/10 bg-white/[0.02] px-4 shadow-none focus-visible:ring-0" />
+                <div className="mt-3 flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/85">{prompt}</button>)}</div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                <button onClick={() => runCommand()} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-400 px-6 py-2.5 text-sm font-semibold text-white">Continue</button>
+                <Link href="/shopreel/review" className="rounded-xl border border-white/18 px-4 py-2.5 text-sm text-white/85">Review approvals</Link>
+                <button onClick={() => dispatch({ type: "RECOVER" })} disabled={!runtimeSession.recoverableContext} className="rounded-xl border border-cyan-200/35 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100 disabled:opacity-50">Resume</button>
+                <Link href="/shopreel/operations" className="text-xs text-white/65 underline-offset-2 hover:underline">Manual / Operations</Link>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-5 gap-2 border-t border-white/10 pt-2 text-xs">
+            {[["Runtime pulse", "Calm"],["Continuity signal", "Stable"],["Atmosphere", "Focused"],["Momentum", "Building"],["Unresolved", `${recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length} items`]].map(([label, value]) => (
+              <div key={label} className="rounded-lg bg-white/[0.02] px-2 py-1.5">
+                <div className="text-[10px] uppercase tracking-[0.13em] text-white/55">{label}</div>
+                <div className="mt-0.5 text-sm text-cyan-100">{value}</div>
+              </div>
+            ))}
+          </section>
+        </main>
+
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-[1.8rem] border border-white/10 bg-[linear-gradient(155deg,rgba(8,12,30,.75),rgba(6,9,22,.92))] p-3 shadow-[0_20px_50px_rgba(2,3,10,.5)]">
+          <div className="mb-2 flex items-end justify-between">
+            <div>
+              <h3 className="text-sm uppercase tracking-[0.16em] text-white/90">Operational worlds</h3>
+              <p className="text-xs text-white/55">Your runtime environments. Alive and remembered.</p>
+            </div>
+            <Link href="/shopreel/campaigns" className="text-xs text-white/70">View all</Link>
+          </div>
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            <div className="h-full overflow-y-auto pr-1">
+              <div className="relative mx-auto mt-2 h-[640px] max-w-[320px]">
+                {recent.slice(0, 5).map((item, index) => (
+                  <button
+                    key={item.id}
+                    onClick={() => router.push(`/shopreel/campaigns/${item.id}`)}
+                    className="absolute left-0 right-0 w-full overflow-hidden rounded-[1.6rem] border border-white/14 bg-[radial-gradient(95%_70%_at_60%_12%,rgba(251,146,60,.25),transparent_62%),linear-gradient(170deg,rgba(12,17,40,.92),rgba(5,9,24,.98))] p-4 text-left shadow-[0_20px_45px_rgba(0,0,0,.48)]"
+                    style={{ top: `${index * 36}px`, transform: `scale(${1 - index * 0.06}) translateX(${index * 16}px)`, zIndex: 12 - index, opacity: Math.max(1 - index * 0.13, 0.44) }}
+                  >
+                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(5,10,26,.95)_76%)]" />
+                    <div className="pointer-events-none absolute left-0 top-[55%] h-px w-full bg-gradient-to-r from-transparent via-cyan-100/30 to-transparent" />
+                    <div className="pointer-events-none absolute right-8 top-12 h-20 w-[2px] bg-gradient-to-b from-amber-200/90 via-cyan-100/60 to-transparent" />
+                    <div className="relative flex items-center justify-between">
+                      <span className="text-[10px] uppercase tracking-[0.15em] text-cyan-100/75">{statusTone(item.status)}</span>
+                      <span className="text-[10px] text-white/45">{index === 0 ? "Current" : `${index + 1}`}</span>
+                    </div>
+                    <p className="relative mt-3 line-clamp-2 text-2xl leading-tight text-white">{item.title}</p>
+                    <p className="relative mt-5 text-xs text-white/66">{item.status.replaceAll("_", " ")}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+
+      <div className="px-3 pb-2 lg:hidden">
+        <OperatorRuntimeCanvas
+          session={runtimeSession}
+          onRecover={() => dispatch({ type: "RECOVER" })}
+          onInterruptManual={() => dispatch(buildInterruptAction({ reason: "Manual tools requested", requestedSurface: "manual_operations", returnSurface: runtimeSession.activeSurface, returnState: runtimeSession.runtimeState, fallbackRoute: "/shopreel/operations" }))}
+          onRunCommand={(next) => runCommand(next)}
+          context={context}
+          recent={recent}
+          campaignContext={campaignContext}
+          onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
+          reducedMotion={prefersReducedMotion}
+          chamberMemory={chamberMemory}
+          compact
+        />
+      </div>
+      <div className="absolute bottom-[6.4rem] left-[7.2rem] right-[30rem] hidden lg:block">
+        <OperatorRuntimeCanvas
+          session={runtimeSession}
+          onRecover={() => dispatch({ type: "RECOVER" })}
+          onInterruptManual={() => dispatch(buildInterruptAction({ reason: "Manual tools requested", requestedSurface: "manual_operations", returnSurface: runtimeSession.activeSurface, returnState: runtimeSession.runtimeState, fallbackRoute: "/shopreel/operations" }))}
+          onRunCommand={(next) => runCommand(next)}
+          context={context}
+          recent={recent}
+          campaignContext={campaignContext}
+          onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
+          reducedMotion={prefersReducedMotion}
+          chamberMemory={chamberMemory}
+          compact
+        />
+      </div>
+    </div>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/system/OperatorRuntimeCanvas.tsx =====
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { deriveRuntimeChoreography } from "@/features/shopreel/ui/system/runtimeChoreography";
+import { operatorSurfaceRegistry, resolveRuntimeFallbackRoute } from "@/features/shopreel/ui/system/operatorSurfaceRegistry";
+import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
+import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { approveRuntimeReviewDecision, rejectRuntimeReviewDecision, requestRuntimeReviewChanges, type RuntimeReviewActionError } from "@/features/shopreel/ui/system/operatorRuntimeReviewActions";
+import type { PersistedChamberMemory } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+
+type RuntimeRecentItem = { id: string; title: string; status: string };
+type RuntimeCampaignContext = {
+  id: string;
+  title: string;
+  status: string;
+  channels: string[];
+  updated_at: string;
+  reviewStatus: string;
+  refinementHistory: Array<{ action: string; reason: string | null; createdAt: string }>;
+  continuity: { lastDecisionAt: string; lastUpdatedAt: string };
+};
+
+export default function OperatorRuntimeCanvas({
+  session,
+  onRecover,
+  onInterruptManual,
+  onRunCommand,
+  context,
+  recent,
+  campaignContext,
+  onDecisionSaved,
+  reducedMotion,
+  chamberMemory,
+  compact = false,
+}: {
+  session: OperatorRuntimeSessionState;
+  onRecover: () => void;
+  onInterruptManual: () => void;
+  onRunCommand: (command: string) => void;
+  context: WorkspaceMemory | null;
+  recent: RuntimeRecentItem[];
+  campaignContext: RuntimeCampaignContext | null;
+  onDecisionSaved: (summary: string) => void;
+  reducedMotion: boolean;
+  chamberMemory: PersistedChamberMemory | null;
+  compact?: boolean;
+}) {
+  const activeSurface = operatorSurfaceRegistry[session.activeSurface];
+  const previousSurface = session.previousSurface ? operatorSurfaceRegistry[session.previousSurface] : null;
+  const isThinking = session.pendingTransition !== null;
+  const fallbackRoute = resolveRuntimeFallbackRoute(session.activeSurface, session.fallbackRoute);
+
+  const transitionCopy = useMemo(() => {
+    if (!session.pendingTransition) return "";
+    return `Transition mode: ${session.pendingTransition.replaceAll("_", " ")}`;
+  }, [session.pendingTransition]);
+
+  const progression: { id: string; label: string }[] = [
+    { id: "planning_campaign", label: "Planning" },
+    { id: "generating_draft", label: "Drafting" },
+    { id: "refining_output", label: "Refining" },
+    { id: "awaiting_approval", label: "Awaiting approval" },
+    { id: "assembling_package", label: "Packaging" },
+    { id: "completed_export_ready", label: "Ready" },
+  ];
+  const activeProgressIndex = progression.findIndex((step) => step.id === session.runtimeState);
+  const pendingApprovals = recent.filter((item) => /review|approval|needs/i.test(item.status));
+  const refinementDepth = campaignContext?.refinementHistory.length ?? 0;
+  const choreography = deriveRuntimeChoreography({
+    session,
+    memory: context,
+    pendingApprovals: pendingApprovals.length,
+    refinementDepth,
+    campaignUnavailable: Boolean(session.selectedEntityIds.campaignId && !campaignContext),
+    reducedMotion,
+    chamberMemory,
+  });
+
+  const [decisionState, setDecisionState] = useState<Record<string, { status: "idle" | "pending" | "success" | "error"; message?: string }>>({});
+
+  async function mutateInlineDecision(item: RuntimeRecentItem, action: "approve" | "reject" | "refine"): Promise<void> {
+    setDecisionState((prev) => ({ ...prev, [item.id]: { status: "pending" } }));
+    try {
+      const reason = action === "refine" ? "Request changes from runtime inline review." : null;
+      if (action === "approve") await approveRuntimeReviewDecision({ taskId: item.id, reason });
+      if (action === "reject") await rejectRuntimeReviewDecision({ taskId: item.id, reason: "Rejected from runtime inline review." });
+      if (action === "refine") await requestRuntimeReviewChanges({ taskId: item.id, reason });
+      setDecisionState((prev) => ({ ...prev, [item.id]: { status: "success", message: "Decision saved. ShopReel will carry that feedback into the next step." } }));
+      onDecisionSaved("Decision saved. ShopReel will carry that feedback into the next step.");
+    } catch (error) {
+      const normalized = error as RuntimeReviewActionError;
+      setDecisionState((prev) => ({ ...prev, [item.id]: { status: "error", message: normalized.message ?? "Decision failed." } }));
+    }
+  }
+
+  const continuityNotices = [
+    context?.continuityThreads?.[0] ? `Continuing from ${context.continuityThreads[0].label.toLowerCase()}.` : null,
+    context?.creativeContinuity?.tonePreference ? `Recent approval changed tone bias toward ${context.creativeContinuity.tonePreference.replaceAll("_", " ")}.` : null,
+    context?.creativeContinuity?.pacingPreference ? `Using preferred pacing profile: ${context.creativeContinuity.pacingPreference.replaceAll("_", " ")}.` : null,
+  ].filter(Boolean) as string[];
+  const progressionAhead = progression.slice(Math.max(activeProgressIndex + 1, 0), Math.max(activeProgressIndex + 3, 0));
+  const atmosphericFrameClass =
+    choreography.atmosphere.tension === "interrupted"
+      ? "border-amber-200/22 bg-amber-400/[0.03]"
+      : choreography.atmosphere.tension === "unresolved"
+        ? "border-violet-200/25 bg-violet-400/[0.03]"
+        : choreography.atmosphere.continuityPressure === "high"
+          ? "border-cyan-200/24 bg-cyan-400/[0.03]"
+          : "border-white/10 bg-white/[0.02]";
+  const anticipationClass =
+    choreography.atmosphere.anticipation === "forward"
+      ? "opacity-80 translate-y-0"
+      : choreography.atmosphere.anticipation === "forming"
+        ? "opacity-70 translate-y-[1px]"
+        : "opacity-60 translate-y-[2px]";
+
+  return (
+    <section className={`relative min-h-0 ${compact ? "mt-4" : "mt-3"} ${compact ? "overflow-visible" : "overflow-y-auto"} rounded-[1.2rem] bg-gradient-to-br ${choreography.depthModel.shellLightingClass} ${compact ? "px-0 pb-0 pt-2" : "p-4 md:p-5"}`}>
+      <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.backdropClass}`} />
+      <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.chamberAtmosphereClass}`} />
+      <div className="pointer-events-none absolute inset-x-[6%] top-[15%] h-[55%] rounded-[2rem] bg-gradient-to-b from-white/[0.05] via-transparent to-transparent blur-2xl" />
+      <div className={`relative mb-2 grid gap-2 rounded-xl p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass} ${compact ? "border border-white/10 bg-black/10" : ""}`}>
+        <div>Current objective: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
+        <div>Active campaign: <span className="text-white/80">{campaignContext?.title ?? (session.selectedEntityIds.campaignId ? "Campaign context unavailable" : "No active campaign selected")}</span></div>
+        <div>Lifecycle stage: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
+        <div>Latest decision: <span className="text-white/80">{campaignContext?.refinementHistory?.[0]?.action ?? "No recent decision yet."}</span></div>
+      </div>
+      <div className="relative flex items-center justify-between gap-2">
+        <div>
+          <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Ready for next move</div>
+          <h2 className="text-xl font-semibold text-white">{activeSurface.label}</h2>
+        </div>
+        <span className="rounded-full border border-cyan-100/25 px-2 py-1 text-xs text-cyan-100">{session.runtimeState}</span>
+      </div>
+      <div className="mt-1.5 text-[11px] uppercase tracking-[0.14em] text-cyan-100/62">Progress continuity</div>
+      <div className={`mt-2 rounded-2xl bg-black/20 px-3 py-2 ${choreography.depthModel.continuityRailClass}`}>
+        <div className="flex flex-wrap gap-2">
+        {progression.map((step, index) => <span key={step.id} className={`rounded-full px-2 py-1 text-[11px] ${activeProgressIndex >= index && activeProgressIndex !== -1 ? "bg-cyan-400/20 text-cyan-100" : "bg-white/5 text-white/55"}`}>{step.label}</span>)}
+        </div>
+        {choreography.memoryResidue.length > 0 ? (
+          <div className={`mt-2 flex flex-wrap gap-1.5 ${choreography.depthModel.memoryResidueClass}`}>
+            {choreography.memoryResidue.map((trace) => <span key={trace} className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/50">Residue: {trace}</span>)}
+          </div>
+        ) : null}
+      </div>
+
+      {isThinking ? <div className="mt-3 rounded-xl bg-violet-400/10 px-3 py-2 text-xs text-violet-100">Operator is interpreting and preparing the next surface. {transitionCopy}</div> : null}
+      <div className="mt-2 rounded-xl border border-cyan-200/14 bg-cyan-400/[0.06] px-3 py-2 text-xs text-cyan-100/88">
+        {choreography.message}
+      </div>
+      {choreography.staleState ? (
+        <div className="mt-2 rounded-xl border border-amber-200/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+          {choreography.staleState.detail} <Link href={choreography.staleState.fallbackRoute} className="underline">{choreography.staleState.actionLabel}</Link>
+        </div>
+      ) : null}
+
+      <div className="relative mt-2.5 grid gap-2.5">
+        {previousSurface ? <div className={`rounded-xl bg-white/[0.03] p-3 text-xs text-white/55 transition-all duration-300 ${choreography.depthModel.previousLayerClass}`}>Previous: {previousSurface.label}</div> : null}
+        {progressionAhead.length > 0 ? (
+          <div className={`rounded-xl bg-white/[0.02] p-3 text-xs text-white/60 transition-all duration-300 ${choreography.depthModel.futureLayerClass} ${choreography.depthModel.supportSurfaceClass} ${reducedMotion ? "" : anticipationClass}`}>
+            Ready for next move: {progressionAhead.map((step) => step.label).join(" → ")}
+          </div>
+        ) : null}
+        <div className="pointer-events-none absolute right-4 top-2 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(251,146,60,.45),rgba(139,92,246,.26)_40%,rgba(20,30,64,.1)_68%,transparent_76%)] blur-[1px]" />
+        <div className={`${reducedMotion ? "" : "animate-[spin_26s_linear_infinite]"} pointer-events-none absolute right-[3rem] top-[1.8rem] h-28 w-28 rounded-full border border-cyan-100/35`} />
+        <div className={`${reducedMotion ? "" : "animate-pulse"} pointer-events-none absolute right-[4.2rem] top-[3rem] h-5 w-5 rounded-full bg-amber-200/90 shadow-[0_0_22px_rgba(251,146,60,.8)]`} />
+        <div className={`${choreography.motionClass} ${choreography.reducedMotionClass} ${choreography.depthModel.activeLayerClass} relative`}>
+          <div className={`pointer-events-none absolute inset-x-8 -top-5 h-16 rounded-full bg-gradient-to-r ${choreography.depthModel.objectiveGlowClass} blur-xl`} />
+          {compact && session.runtimeState === "idle" ? (
+            <article className="relative rounded-[1.5rem] border border-cyan-100/14 bg-[linear-gradient(145deg,rgba(14,21,46,.56),rgba(8,12,27,.76))] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.46)] backdrop-blur-xl">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Idle continuity</div>
+              <p className="mt-2 text-base font-medium text-white">Operator standing by with continuity context loaded.</p>
+              <p className="mt-1 text-sm text-white/72">Ready for next move: {progressionAhead.map((step) => step.label).join(" → ") || "Planning"}</p>
+            </article>
+          ) : session.activeSurface === "campaign_planning" ? (
+            <article className="relative rounded-[1.7rem] border border-cyan-100/16 bg-[linear-gradient(145deg,rgba(14,21,46,.72),rgba(8,12,27,.9))] p-5 shadow-[0_36px_100px_rgba(0,0,0,0.58)] backdrop-blur-xl">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Current objective</div>
+              <p className="mt-2 text-sm text-white/80">Interpreted intent: {session.activeCommand || "No campaign intent entered yet."}</p>
+              <p className="mt-1 text-sm text-cyan-50">Objective: launch campaign with operator-managed continuity and fast review handoff.</p>
+              <p className="mt-1 text-sm text-white/70">Target channel: {campaignContext?.channels?.join(", ") || context?.creativeContinuity?.platformBias?.replaceAll("_", " ") || "Not selected"}</p>
+              {campaignContext ? <p className="mt-1 text-sm text-white/70">Hydrated campaign: {campaignContext.title} · {campaignContext.status} · review {campaignContext.reviewStatus}</p> : null}
+              {campaignContext?.refinementHistory?.[0] ? <p className="mt-1 text-xs text-cyan-100/85">Latest refinement: {campaignContext.refinementHistory[0].reason ?? campaignContext.refinementHistory[0].action}</p> : null}
+              <div className="mt-3 flex flex-wrap gap-2">{continuityNotices.map((notice) => <span key={notice} className="rounded-full border border-cyan-100/30 bg-cyan-400/10 px-2 py-1 text-xs text-cyan-100">{notice}</span>)}</div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={() => onRunCommand(`${session.activeCommand} refined with stronger hook and founder tone`)} className="rounded-xl border border-white/20 px-3 py-2 text-sm text-white/85">Refine intent</button>
+                <button onClick={() => onRunCommand("continue active campaign workspace") } className="rounded-xl border border-cyan-200/35 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100">Continue existing campaign</button>
+                <button onClick={() => onRunCommand("approve and start campaign draft") } className="rounded-xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-3 py-2 text-sm font-semibold text-white">Approve + start</button>
+                {campaignContext ? <button onClick={() => void fetch(`/api/shopreel/agents/plan`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ campaignId: campaignContext.id, agentType: "content_strategist" }) })} className="rounded-xl border border-emerald-300/35 px-3 py-2 text-sm text-emerald-100">Plan next mutation</button> : null}
+              </div>
+            </article>
+          ) : session.activeSurface === "campaign_workspace" ? (
+            <article className="relative rounded-[1.7rem] border border-cyan-100/20 bg-[linear-gradient(145deg,rgba(14,21,46,.8),rgba(8,12,27,.95))] p-5 shadow-[0_36px_100px_rgba(0,0,0,0.58)] backdrop-blur-xl">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Active objective · campaign continuity workspace</div>
+              <p className="mt-2 text-sm text-white/80">Surface morphed from planning into refinement while command context stays active.</p>
+              <div className="mt-3 grid gap-2 text-sm text-white/75">{continuityNotices.map((notice) => <p key={notice}>• {notice}</p>)}</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={() => onRunCommand("refine campaign tone for approval") } className="rounded-xl border border-white/20 px-3 py-2 text-sm text-white/85">Refine tone</button>
+                <button onClick={() => onRunCommand("send this to review approvals") } className="rounded-xl border border-cyan-200/35 px-3 py-2 text-sm text-cyan-100">Send to inline review</button>
+              </div>
+            </article>
+          ) : session.activeSurface === "review_inbox" ? (
+            <article className="relative rounded-[1.7rem] border border-cyan-100/20 bg-[linear-gradient(145deg,rgba(14,21,46,.8),rgba(8,12,27,.95))] p-5 shadow-[0_36px_100px_rgba(0,0,0,0.58)] backdrop-blur-xl">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Active objective · inline review handoff</div>
+              <p className="mt-2 text-sm text-white/75">Operator explanation: this needs approval because it changes campaign voice and publish readiness.</p>
+              <div className="mt-3 grid gap-2">
+                {pendingApprovals.length === 0 ? <p className="text-sm text-white/60">No pending review cards currently. You can still open full review workspace.</p> : pendingApprovals.slice(0, 3).map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="text-sm font-medium text-white">{item.title}</p><p className="text-xs text-white/65">Status: {item.status}</p><div className="mt-2 flex gap-2"><button onClick={() => void mutateInlineDecision(item, "approve")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-cyan-200/35 px-2 py-1 text-xs text-cyan-100">Approve</button><button onClick={() => void mutateInlineDecision(item, "refine")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/80">Refine</button><button onClick={() => void mutateInlineDecision(item, "reject")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-rose-200/35 px-2 py-1 text-xs text-rose-100">Reject</button></div>{decisionState[item.id]?.status === "error" ? <div className="mt-2 text-xs text-rose-200">{decisionState[item.id]?.message} <button onClick={() => void mutateInlineDecision(item, "approve")} className="underline">Retry approve</button></div> : null}{decisionState[item.id]?.status === "success" ? <p className="mt-2 text-xs text-emerald-200">{decisionState[item.id]?.message}</p> : null}</div>)}
+              </div>
+            </article>
+          ) : activeSurface.render()}
+        </div>
+      </div>
+
+      {session.interruption ? (
+        <div className="mt-4 rounded-xl border border-amber-200/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+          Interrupted: {session.interruption.reason}. You can recover previous workflow context anytime.
+        </div>
+      ) : null}
+
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button onClick={onInterruptManual} className="rounded-xl border border-white/15 bg-white/[0.03] px-2.5 py-1.5 text-xs text-white/70 hover:bg-white/10">Manual tools</button>
+        <button onClick={onRecover} disabled={!session.recoverableContext} className="rounded-xl border border-cyan-200/35 px-3 py-2 text-sm text-cyan-100 disabled:opacity-50">Resume where we were</button>
+        <Link href={fallbackRoute} className="rounded-xl border border-white/20 bg-white/[0.06] px-3 py-2 text-sm text-white/85">Open full workspace</Link>
+      </div>
+    </section>
+  );
+}
+
+===== FILE: src/features/shopreel/ui/system/runtimeChoreography.ts =====
+import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
+import type { OperatorSurfaceId } from "@/features/shopreel/ui/system/operatorRuntime";
+import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import type { PersistedChamberMemory } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+
+export type RuntimeChoreographyAction = "morph" | "compress" | "expand" | "stack" | "resolve" | "interrupt" | "restore";
+export type RuntimeContinuityRelation = "same_surface" | "adjacent_flow" | "handoff" | "interruption" | "recovery" | "cold_start";
+
+export type RuntimeChoreographySnapshot = {
+  action: RuntimeChoreographyAction;
+  relation: RuntimeContinuityRelation;
+  intensity: number;
+  reducedMotionClass: string;
+  motionClass: string;
+  message: string;
+  chamberIdentityLabel: string;
+  memoryResidue: string[];
+  densityMode: "focused" | "weighted" | "recessed";
+  atmosphere: {
+    pulseTempo: "steady" | "elevated" | "compressed" | "recovering";
+    tension: "calm" | "active" | "unresolved" | "interrupted";
+    continuityPressure: "low" | "medium" | "high";
+    anticipation: "soft" | "forming" | "forward";
+  };
+  depthModel: {
+    activeLayerClass: string;
+    previousLayerClass: string;
+    futureLayerClass: string;
+    shellLightingClass: string;
+    continuityRailClass: string;
+    objectiveGlowClass: string;
+    backdropClass: string;
+    supportSurfaceClass: string;
+    chamberAtmosphereClass: string;
+    memoryResidueClass: string;
+  };
+  staleState: null | {
+    reason: "restored_from_persistence" | "campaign_archived" | "review_resolved_elsewhere" | "entity_unavailable";
+    detail: string;
+    fallbackRoute: string;
+    actionLabel: string;
+  };
+};
+
+const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+
+function relationForTransition(previous: OperatorSurfaceId | null, next: OperatorSurfaceId, interrupted: boolean): RuntimeContinuityRelation {
+  if (!previous) return "cold_start";
+  if (interrupted) return "interruption";
+  if (previous === next) return "same_surface";
+  if (previous === "review_inbox" && next === "campaign_workspace") return "handoff";
+  if (previous === "campaign_planning" && next === "campaign_workspace") return "adjacent_flow";
+  return "adjacent_flow";
+}
+
+export function deriveRuntimeChoreography(input: {
+  session: OperatorRuntimeSessionState;
+  memory: WorkspaceMemory | null;
+  pendingApprovals: number;
+  refinementDepth: number;
+  campaignUnavailable: boolean;
+  reducedMotion: boolean;
+  chamberMemory: PersistedChamberMemory | null;
+}): RuntimeChoreographySnapshot {
+  const relation = relationForTransition(input.session.previousSurface, input.session.activeSurface, Boolean(input.session.interruption));
+  const interrupted = Boolean(input.session.interruption);
+  const recovered = input.session.pendingTransition === "restore_previous";
+
+  const intensity = clamp(
+    (input.session.pendingTransition ? 35 : 18) +
+      input.pendingApprovals * 8 +
+      input.refinementDepth * 6 +
+      (interrupted ? 26 : 0) +
+      (recovered ? 10 : 0),
+  );
+
+  let action: RuntimeChoreographyAction = "morph";
+  if (interrupted) action = "interrupt";
+  else if (recovered || relation === "recovery") action = "restore";
+  else if (input.session.activeSurface === "review_inbox" && input.pendingApprovals === 0) action = "resolve";
+  else if (input.session.activeSurface === "publish_package_review") action = "expand";
+  else if (input.session.activeSurface === "campaign_workspace" && input.session.previousSurface === "campaign_planning") action = "morph";
+  else if (input.session.runtimeState === "awaiting_approval") action = "compress";
+  else if (relation === "handoff") action = "stack";
+
+  const message =
+    action === "morph" ? "Carrying approved direction into refinement…" :
+    action === "resolve" ? "Review resolved. Preparing next operational step." :
+    action === "restore" ? "Restoring previous workflow context…" :
+    action === "compress" ? "Waiting for approval before generation continues." :
+    action === "interrupt" ? "Manual operations layered over active runtime context." :
+    action === "expand" ? "Packaging is growing from current campaign progression." :
+    "Maintaining workflow continuity across operator surfaces.";
+
+  const chamberIdentityLabel =
+    input.session.runtimeState === "planning_campaign" ? "Planning chamber" :
+    input.session.runtimeState === "generating_draft" ? "Drafting chamber" :
+    input.session.runtimeState === "refining_output" ? "Refinement chamber" :
+    input.session.runtimeState === "awaiting_approval" ? "Approval threshold" :
+    input.session.runtimeState === "assembling_package" ? "Packaging corridor" :
+    input.session.runtimeState === "completed_export_ready" ? "Resolved chamber" :
+    interrupted ? "Interrupted chamber" : "Active chamber";
+
+  const memoryResidue = (input.chamberMemory?.traces ?? [])
+    .slice(0, 3)
+    .map((trace) => `${trace.runtimeState.replaceAll("_", " ")} · ${trace.interruptionReason ? "interrupted" : "stable"}`);
+
+  const densityMode: "focused" | "weighted" | "recessed" =
+    interrupted || input.session.runtimeState === "awaiting_approval"
+      ? "weighted"
+      : input.session.runtimeState === "completed_export_ready"
+        ? "recessed"
+        : "focused";
+  const atmosphere = {
+    pulseTempo: interrupted ? "compressed" : recovered ? "recovering" : input.pendingApprovals > 0 || input.session.runtimeState === "awaiting_approval" ? "elevated" : "steady",
+    tension: interrupted ? "interrupted" : input.session.runtimeState === "awaiting_approval" ? "unresolved" : input.pendingApprovals > 0 ? "active" : "calm",
+    continuityPressure: interrupted || input.pendingApprovals > 1 ? "high" : input.pendingApprovals > 0 || input.refinementDepth > 1 ? "medium" : "low",
+    anticipation: action === "expand" || action === "stack" ? "forward" : progressionLooksAhead(input.session.runtimeState) ? "forming" : "soft",
+  } satisfies RuntimeChoreographySnapshot["atmosphere"];
+
+  const staleState = (() => {
+    if (input.campaignUnavailable && input.session.selectedEntityIds.campaignId) {
+      return { reason: "entity_unavailable" as const, detail: "The active campaign is no longer available in persistence.", fallbackRoute: "/shopreel/campaigns", actionLabel: "Open campaigns" };
+    }
+    if (input.session.activeSurface === "review_inbox" && input.pendingApprovals === 0 && input.session.runtimeState === "reviewing_decision") {
+      return { reason: "review_resolved_elsewhere" as const, detail: "Review items were resolved outside this canvas.", fallbackRoute: "/shopreel/review", actionLabel: "Open review history" };
+    }
+    if (input.session.pendingTransition === "restore_previous") {
+      return { reason: "restored_from_persistence" as const, detail: "Runtime was restored from persisted session context.", fallbackRoute: input.session.fallbackRoute, actionLabel: "Open restored workspace" };
+    }
+    return null;
+  })();
+
+  return {
+    action,
+    relation,
+    intensity,
+    reducedMotionClass: "motion-reduce:transition-none motion-reduce:transform-none",
+    motionClass: input.reducedMotion ? "" : `transition-all duration-300 ${action === "stack" ? "md:translate-y-0" : ""}`,
+    message,
+    depthModel: {
+      activeLayerClass: input.reducedMotion
+        ? "opacity-100"
+        : "scale-100 opacity-100 shadow-[0_32px_80px_rgba(8,12,28,0.65)]",
+      previousLayerClass: input.reducedMotion
+        ? "opacity-70"
+        : "scale-[0.97] -translate-y-1 opacity-70 blur-[0.3px]",
+      futureLayerClass: input.reducedMotion
+        ? "opacity-80"
+        : "scale-[0.985] translate-y-1 opacity-80",
+      shellLightingClass:
+        action === "interrupt"
+          ? "from-amber-500/14 via-slate-900/75 to-[#050813]/95"
+          : action === "restore"
+            ? "from-cyan-400/16 via-indigo-950/70 to-[#040611]/95"
+            : action === "compress"
+              ? "from-violet-500/15 via-slate-900/75 to-[#050813]/95"
+              : "from-blue-500/10 via-slate-950/70 to-[#03050f]/95",
+      continuityRailClass: input.reducedMotion ? "opacity-90" : "opacity-95",
+      objectiveGlowClass:
+        action === "interrupt"
+          ? "from-amber-300/25 via-amber-100/10 to-transparent"
+          : action === "restore"
+            ? "from-cyan-300/30 via-indigo-200/10 to-transparent"
+            : action === "compress"
+              ? "from-violet-300/28 via-violet-100/10 to-transparent"
+              : "from-cyan-300/25 via-blue-200/10 to-transparent",
+      backdropClass:
+        action === "interrupt"
+          ? "bg-[radial-gradient(90%_65%_at_84%_8%,rgba(251,191,36,0.14),transparent_68%),radial-gradient(82%_80%_at_0%_100%,rgba(124,58,237,0.12),transparent_66%)]"
+          : action === "restore"
+            ? "bg-[radial-gradient(95%_68%_at_80%_4%,rgba(34,211,238,0.14),transparent_66%),radial-gradient(88%_88%_at_5%_92%,rgba(99,102,241,0.13),transparent_70%)]"
+            : action === "compress"
+              ? "bg-[radial-gradient(92%_64%_at_85%_5%,rgba(196,181,253,0.14),transparent_67%),radial-gradient(78%_92%_at_8%_90%,rgba(56,189,248,0.09),transparent_68%)]"
+              : "bg-[radial-gradient(95%_70%_at_84%_5%,rgba(96,165,250,0.15),transparent_68%),radial-gradient(70%_90%_at_5%_86%,rgba(167,139,250,0.12),transparent_66%)]",
+      supportSurfaceClass: input.reducedMotion ? "opacity-90" : "opacity-80 saturate-[0.88]",
+      chamberAtmosphereClass:
+        densityMode === "weighted"
+          ? "bg-[radial-gradient(80%_55%_at_52%_40%,rgba(248,250,252,0.1),transparent_72%)]"
+          : densityMode === "recessed"
+            ? "bg-[radial-gradient(76%_52%_at_52%_38%,rgba(125,211,252,0.06),transparent_75%)]"
+            : "bg-[radial-gradient(84%_58%_at_52%_36%,rgba(103,232,249,0.1),transparent_72%)]",
+      memoryResidueClass: input.reducedMotion ? "opacity-70" : "opacity-65 blur-[0.2px]",
+    },
+    chamberIdentityLabel,
+    memoryResidue,
+    densityMode,
+    atmosphere,
+    staleState,
+  };
+}
+
+function progressionLooksAhead(state: OperatorRuntimeSessionState["runtimeState"]): boolean {
+  return state === "planning_campaign" || state === "refining_output" || state === "assembling_package";
+}
+
+===== FILE: src/features/shopreel/ui/system/runtimeSessionPersistence.ts =====
+import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
+import type { OperatorRuntimeState, OperatorSurfaceId } from "@/features/shopreel/ui/system/operatorRuntime";
+
+export const RUNTIME_SESSION_KEY = "shopreel-operator-runtime-session-v1";
+
+export type PersistedChamberMemoryTrace = {
+  runtimeState: OperatorRuntimeState;
+  surface: OperatorSurfaceId;
+  interruptionReason: string | null;
+  timestamp: string;
+};
+
+export type PersistedChamberMemory = {
+  lastKnownRuntimeState: OperatorRuntimeState;
+  lastKnownSurface: OperatorSurfaceId;
+  interruptionCount: number;
+  restorationCount: number;
+  traces: PersistedChamberMemoryTrace[];
+};
+
+export type PersistedRuntimeSession = {
+  activeCampaignId: string | null;
+  activeSurface: OperatorSurfaceId;
+  previousSurface: OperatorSurfaceId | null;
+  progressionStage: OperatorRuntimeState;
+  interruptionReason: string | null;
+  returnTarget: string;
+  updatedAt: string;
+  chamberMemory: PersistedChamberMemory;
+};
+
+const MAX_MEMORY_TRACES = 6;
+
+export function persistRuntimeSession(session: OperatorRuntimeSessionState): void {
+  if (typeof window === "undefined") return;
+  const previous = readPersistedRuntimeSession();
+  const previousMemory = previous?.chamberMemory;
+  const nextTrace: PersistedChamberMemoryTrace = {
+    runtimeState: session.runtimeState,
+    surface: session.activeSurface,
+    interruptionReason: session.interruption?.reason ?? null,
+    timestamp: new Date().toISOString(),
+  };
+  const traces = [nextTrace, ...(previousMemory?.traces ?? [])]
+    .filter((trace, index, arr) => arr.findIndex((candidate) => candidate.runtimeState === trace.runtimeState && candidate.surface === trace.surface && candidate.interruptionReason === trace.interruptionReason) === index)
+    .slice(0, MAX_MEMORY_TRACES);
+
+  const payload: PersistedRuntimeSession = {
+    activeCampaignId: session.selectedEntityIds.campaignId,
+    activeSurface: session.activeSurface,
+    previousSurface: session.previousSurface,
+    progressionStage: session.runtimeState,
+    interruptionReason: session.interruption?.reason ?? null,
+    returnTarget: session.fallbackRoute,
+    updatedAt: new Date().toISOString(),
+    chamberMemory: {
+      lastKnownRuntimeState: session.runtimeState,
+      lastKnownSurface: session.activeSurface,
+      interruptionCount: (previousMemory?.interruptionCount ?? 0) + (session.interruption ? 1 : 0),
+      restorationCount: (previousMemory?.restorationCount ?? 0) + (session.pendingTransition === "restore_previous" ? 1 : 0),
+      traces,
+    },
+  };
+  window.localStorage.setItem(RUNTIME_SESSION_KEY, JSON.stringify(payload));
+}
+
+export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(RUNTIME_SESSION_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as PersistedRuntimeSession;
+    if (!parsed.chamberMemory) {
+      return {
+        ...parsed,
+        chamberMemory: {
+          lastKnownRuntimeState: parsed.progressionStage,
+          lastKnownSurface: parsed.activeSurface,
+          interruptionCount: parsed.interruptionReason ? 1 : 0,
+          restorationCount: 0,
+          traces: [{
+            runtimeState: parsed.progressionStage,
+            surface: parsed.activeSurface,
+            interruptionReason: parsed.interruptionReason,
+            timestamp: parsed.updatedAt,
+          }],
+        },
+      };
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+===== FILE: src/features/shopreel/ui/system/operatorRuntimeSession.ts =====
+import type {
+  OperatorRuntimeResolution,
+  OperatorRuntimeState,
+  OperatorSurfaceId,
+  OperatorTransitionMode,
+} from "@/features/shopreel/ui/system/operatorRuntime";
+
+export type RuntimeInterruption = {
+  reason: string;
+  requestedSurface: OperatorSurfaceId;
+  returnSurface: OperatorSurfaceId;
+  returnState: OperatorRuntimeState;
+  at: string;
+};
+
+export type RecoverableRuntimeContext = {
+  surfaceId: OperatorSurfaceId;
+  state: OperatorRuntimeState;
+  command: string;
+  summary: string;
+};
+
+export type OperatorRuntimeSessionState = {
+  runtimeState: OperatorRuntimeState;
+  activeSurface: OperatorSurfaceId;
+  previousSurface: OperatorSurfaceId | null;
+  pendingTransition: OperatorTransitionMode | null;
+  compressedHero: boolean;
+  activeCommand: string;
+  lastOperatorSummary: string;
+  interruption: RuntimeInterruption | null;
+  recoverableContext: RecoverableRuntimeContext | null;
+  selectedEntityIds: { campaignId: string | null; generationId: string | null };
+  fallbackRoute: string;
+};
+
+export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
+  runtimeState: "idle",
+  activeSurface: "idle_command",
+  previousSurface: null,
+  pendingTransition: null,
+  compressedHero: false,
+  activeCommand: "",
+  lastOperatorSummary: "Operator is ready.",
+  interruption: null,
+  recoverableContext: null,
+  selectedEntityIds: { campaignId: null, generationId: null },
+  fallbackRoute: "/shopreel",
+};
+
+type StartRuntimeAction = { type: "START_RUNTIME"; resolution: OperatorRuntimeResolution; command: string };
+type StartTransitionAction = { type: "START_TRANSITION"; mode: OperatorTransitionMode };
+type CompleteTransitionAction = { type: "COMPLETE_TRANSITION" };
+type SetCompressedHeroAction = { type: "SET_COMPRESSED_HERO"; compressed: boolean };
+type InterruptAction = { type: "INTERRUPT"; interruption: RuntimeInterruption; fallbackRoute: string };
+type RecoverAction = { type: "RECOVER" };
+type SelectEntityAction = { type: "SELECT_ENTITY"; campaignId?: string | null; generationId?: string | null };
+type ApplyReviewDecisionAction = {
+  type: "APPLY_REVIEW_DECISION";
+  decisionSummary: string;
+  nextState: OperatorRuntimeState;
+};
+
+export type OperatorRuntimeSessionAction =
+  | StartRuntimeAction
+  | StartTransitionAction
+  | CompleteTransitionAction
+  | SetCompressedHeroAction
+  | InterruptAction
+  | RecoverAction
+  | SelectEntityAction
+  | ApplyReviewDecisionAction;
+
+export function operatorRuntimeSessionReducer(
+  state: OperatorRuntimeSessionState,
+  action: OperatorRuntimeSessionAction,
+): OperatorRuntimeSessionState {
+  switch (action.type) {
+    case "START_RUNTIME": {
+      return {
+        ...state,
+        runtimeState: action.resolution.state,
+        previousSurface: state.activeSurface,
+        activeSurface: action.resolution.surfaceId,
+        pendingTransition: action.resolution.transitionMode,
+        compressedHero: action.resolution.state !== "idle",
+        activeCommand: action.command,
+        lastOperatorSummary: action.resolution.summary,
+        interruption: null,
+        fallbackRoute: action.resolution.recommendedRouteFallback,
+        selectedEntityIds: {
+          ...state.selectedEntityIds,
+          campaignId: action.resolution.contextCarryover.selectedCampaignId,
+        },
+      };
+    }
+    case "START_TRANSITION":
+      return { ...state, pendingTransition: action.mode };
+    case "COMPLETE_TRANSITION":
+      return { ...state, pendingTransition: null };
+    case "SET_COMPRESSED_HERO":
+      return { ...state, compressedHero: action.compressed };
+    case "INTERRUPT":
+      return {
+        ...state,
+        interruption: action.interruption,
+        recoverableContext: {
+          surfaceId: state.activeSurface,
+          state: state.runtimeState,
+          command: state.activeCommand,
+          summary: state.lastOperatorSummary,
+        },
+        runtimeState: "manual_operations_mode",
+        previousSurface: state.activeSurface,
+        activeSurface: action.interruption.requestedSurface,
+        pendingTransition: "guided_handoff",
+        fallbackRoute: action.fallbackRoute,
+      };
+    case "RECOVER": {
+      if (!state.recoverableContext) return state;
+      return {
+        ...state,
+        runtimeState: state.interruption?.returnState ?? state.recoverableContext.state,
+        previousSurface: state.activeSurface,
+        activeSurface: state.interruption?.returnSurface ?? state.recoverableContext.surfaceId,
+        pendingTransition: "inline_materialize",
+        lastOperatorSummary: `Recovered previous workflow: ${state.recoverableContext.summary}`,
+        interruption: null,
+      };
+    }
+    case "SELECT_ENTITY":
+      return {
+        ...state,
+        selectedEntityIds: {
+          campaignId: action.campaignId ?? state.selectedEntityIds.campaignId,
+          generationId: action.generationId ?? state.selectedEntityIds.generationId,
+        },
+      };
+    case "APPLY_REVIEW_DECISION":
+      return {
+        ...state,
+        previousSurface: state.activeSurface,
+        runtimeState: action.nextState,
+        lastOperatorSummary: action.decisionSummary,
+      };
+    default:
+      return state;
+  }
+}
+
+export const runtimeSessionSelectors = {
+  isIdle: (state: OperatorRuntimeSessionState) => state.runtimeState === "idle",
+  isInterrupted: (state: OperatorRuntimeSessionState) => Boolean(state.interruption),
+  canRecover: (state: OperatorRuntimeSessionState) => Boolean(state.recoverableContext),
+};
+
+export function buildRuntimeStartAction(resolution: OperatorRuntimeResolution, command: string): StartRuntimeAction {
+  return { type: "START_RUNTIME", resolution, command };
+}
+
+export function buildInterruptAction(input: {
+  reason: string;
+  requestedSurface: OperatorSurfaceId;
+  returnSurface: OperatorSurfaceId;
+  returnState: OperatorRuntimeState;
+  fallbackRoute: string;
+}): InterruptAction {
+  return {
+    type: "INTERRUPT",
+    interruption: {
+      reason: input.reason,
+      requestedSurface: input.requestedSurface,
+      returnSurface: input.returnSurface,
+      returnState: input.returnState,
+      at: new Date().toISOString(),
+    },
+    fallbackRoute: input.fallbackRoute,
+  };
+}
+
+===== FILE: src/features/shopreel/ui/system/GlassShell.tsx =====
+import type { ReactNode } from "react";
+import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
+import type { CognitiveState } from "@/features/shopreel/ui/system/cognitiveState";
+import { deriveCognitiveShellDynamics } from "@/features/shopreel/ui/system/cognitiveState";
+
+type GlassShellProps = {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  hidePageIntro?: boolean;
+  className?: string;
+  cognitiveState?: CognitiveState | null;
+  hideNotificationsBell?: boolean;
+  fullBleed?: boolean;
+};
+
+export default function GlassShell({
+  eyebrow = "ShopReel",
+  title,
+  subtitle,
+  actions,
+  children,
+  hidePageIntro = false,
+  className = "",
+  cognitiveState = null,
+  hideNotificationsBell = false,
+  fullBleed = false,
+}: GlassShellProps) {
+  const dynamics = deriveCognitiveShellDynamics(cognitiveState);
+  const shellOpacity = 0.64 + dynamics.shellDensity / 500;
+  return (
+    <main className={`shopreel-route-shell relative min-h-screen overflow-hidden text-white ${fullBleed ? "px-0 py-0" : "px-4 py-5 sm:px-6 lg:px-8"}`} style={{ letterSpacing: `${(dynamics.gravity - 50) * 0.0009}em` }}>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="shopreel-orb shopreel-orb-a" />
+        <div className="shopreel-orb shopreel-orb-b" />
+        <div className="shopreel-orb shopreel-orb-c" />
+        <div className="absolute inset-0 transition-opacity duration-500 bg-[radial-gradient(circle_at_top,rgba(122,92,255,0.1),transparent_30%),linear-gradient(180deg,rgba(5,8,18,0.52),rgba(2,4,12,0.9))]" style={{ opacity: shellOpacity }} />
+        <div className="absolute inset-0 [background-image:linear-gradient(rgba(148,163,184,.45)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.45)_1px,transparent_1px)] [background-size:44px_44px]" style={{ opacity: 0.008 + dynamics.quieting / 3200 }} />
+      </div>
+
+      <div className={`relative z-10 ${fullBleed ? "w-full max-w-none" : "mx-auto w-full max-w-[1540px]"} ${className}`}>
+        <div className={`${fullBleed ? "mb-0" : "mb-5"} flex items-center justify-end gap-3 transition-all duration-300`}>
+          <div className="ml-auto flex items-center gap-2">
+            {actions}
+            {!hideNotificationsBell ? <ShopReelNotificationsBell /> : null}
+          </div>
+        </div>
+
+        {!hidePageIntro ? (
+          <section className="mb-6 overflow-hidden rounded-[2rem] border border-slate-400/10 bg-white/[0.055] p-5 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-2xl transition-all duration-300 sm:p-7">
+            <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(139,92,246,.24),transparent_34%),radial-gradient(circle_at_95%_12%,rgba(34,211,238,.18),transparent_30%)]" />
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-200/75">
+              {eyebrow}
+            </p>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <h1 className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
+                  {title}
+                </h1>
+                {subtitle ? (
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-white/68 sm:text-base">
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <div className={fullBleed ? "" : "pb-10"}>{children}</div>
+      </div>
+    </main>
+  );
+}
+
+===== FILE: src/app/globals.css =====
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  --app-bg: #070707;
+  --app-bg-mid: #0d0d0d;
+  --app-bg-top: #181310;
+  --app-text: #f5eee7;
+  --app-text-muted: rgba(245, 238, 231, 0.72);
+  --app-selection: rgba(184, 115, 75, 0.28);
+
+  --glass-panel-top: rgba(255, 255, 255, 0.1);
+  --glass-panel-bottom: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --copper-1: rgba(184, 115, 75, 0.20);
+  --copper-2: rgba(184, 115, 75, 0.10);
+  --cyan-1: rgba(54, 191, 216, 0.10);
+  --cyan-2: rgba(54, 191, 216, 0.05);
+  --violet-1: rgba(37, 99, 235, 0.10);
+  --violet-2: rgba(34, 211, 238, 0.06);
+
+  --font-sans: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Arial Black", Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% -10%, var(--copper-1), transparent 0 24%),
+    radial-gradient(circle at 100% 0%, var(--cyan-1), transparent 0 22%),
+    radial-gradient(circle at 0% 100%, var(--copper-2), transparent 0 18%),
+    linear-gradient(180deg, var(--app-bg-top) 0%, var(--app-bg-mid) 38%, var(--app-bg) 100%);
+  color: var(--app-text);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--app-selection);
+  color: var(--app-text);
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+input.auth-input:-webkit-autofill,
+input.auth-input:-webkit-autofill:hover,
+input.auth-input:-webkit-autofill:focus,
+input.auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #e2e8f0;
+  -webkit-box-shadow: 0 0 0 1000px rgba(7, 11, 24, 0.96) inset;
+  box-shadow: 0 0 0 1000px rgba(7, 11, 24, 0.96) inset;
+  transition: background-color 99999s ease-in-out 0s;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.font-display {
+  font-family: var(--font-display), Impact, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+@keyframes navGlow {
+  0% {
+    transform: translateX(-30%);
+  }
+  50% {
+    transform: translateX(30%);
+  }
+  100% {
+    transform: translateX(-30%);
+  }
+}
+
+@keyframes floatLightA {
+  0% {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+    opacity: 0.30;
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+    opacity: 0.50;
+  }
+  100% {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+    opacity: 0.30;
+  }
+}
+
+@keyframes floatLightB {
+  0% {
+    transform: translate3d(2%, -1%, 0) scale(1);
+    opacity: 0.22;
+  }
+  50% {
+    transform: translate3d(-4%, 4%, 0) scale(1.12);
+    opacity: 0.42;
+  }
+  100% {
+    transform: translate3d(2%, -1%, 0) scale(1);
+    opacity: 0.22;
+  }
+}
+
+@keyframes floatLightC {
+  0% {
+    transform: translate3d(0%, 0%, 0) scale(1);
+    opacity: 0.18;
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0) scale(1.06);
+    opacity: 0.34;
+  }
+  100% {
+    transform: translate3d(0%, 0%, 0) scale(1);
+    opacity: 0.18;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.10),
+      rgba(255, 255, 255, 0.045)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    box-shadow:
+      0 12px 30px rgba(0, 0, 0, 0.30),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .glass-panel-strong {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.13),
+      rgba(255, 255, 255, 0.05)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(26px);
+    -webkit-backdrop-filter: blur(26px);
+    box-shadow:
+      0 18px 48px rgba(0, 0, 0, 0.40),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-input {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-copper-glow {
+    box-shadow:
+      0 0 0 1px rgba(184, 115, 75, 0.20),
+      0 16px 40px rgba(0, 0, 0, 0.34),
+      0 0 40px rgba(184, 115, 75, 0.08);
+  }
+
+  .shopreel-floating-light-a {
+    position: absolute;
+    inset: auto;
+    top: -8rem;
+    left: -6rem;
+    width: 34rem;
+    height: 34rem;
+    border-radius: 9999px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, rgba(37, 99, 235, 0.07) 28%, transparent 68%);
+    filter: blur(60px);
+    animation: floatLightA 18s ease-in-out infinite;
+  }
+
+  .shopreel-floating-light-b {
+    position: absolute;
+    inset: auto;
+    top: 12rem;
+    right: -10rem;
+    width: 30rem;
+    height: 30rem;
+    border-radius: 9999px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle, rgba(34, 211, 238, 0.14) 0%, rgba(34, 211, 238, 0.06) 30%, transparent 70%);
+    filter: blur(70px);
+    animation: floatLightB 22s ease-in-out infinite;
+  }
+
+  .shopreel-floating-light-c {
+    position: absolute;
+    inset: auto;
+    bottom: -8rem;
+    left: 28%;
+    width: 28rem;
+    height: 28rem;
+    border-radius: 9999px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.05) 32%, transparent 72%);
+    filter: blur(72px);
+    animation: floatLightC 20s ease-in-out infinite;
+  }
+}
+
+@keyframes shopreelOrbDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: .45; }
+  50% { transform: translate3d(4%, -3%, 0) scale(1.08); opacity: .72; }
+}
+
+.shopreel-orb {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(72px);
+  animation: shopreelOrbDrift 22s ease-in-out infinite;
+}
+
+.shopreel-orb-a {
+  top: -12rem;
+
+===== FILE: tailwind.config.ts =====
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./features/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  darkMode: "class",
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: [
+          "var(--font-inter)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
+        display: [
+          "var(--font-blackops)",
+          "var(--font-inter)",
+          "system-ui",
+          "sans-serif",
+        ],
+        roboto: [
+          "var(--font-roboto)",
+          "system-ui",
+          "sans-serif",
+        ],
+      },
+      colors: {
+        copper: {
+          50: "#fff8f2",
+          100: "#f8ede3",
+          200: "#edd1bb",
+          300: "#dfb089",
+          400: "#cf8f61",
+          500: "#b8734b",
+          600: "#9c5b39",
+          700: "#7b452d",
+          800: "#5b311f",
+          900: "#3b1e13",
+        },
+        ember: {
+          400: "#d9986a",
+          500: "#c47a4d",
+          600: "#a45f39",
+        },
+        cyan: {
+          400: "#67d4e7",
+          500: "#36bfd8",
+          600: "#2197ab",
+        },
+      },
+      boxShadow: {
+        copper:
+          "0 0 0 1px rgba(184,115,75,0.24), 0 14px 40px rgba(0,0,0,0.38)",
+        glass:
+          "0 10px 30px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04)",
+        "glass-strong":
+          "0 18px 48px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05)",
+      },
+      backgroundImage: {
+        "shopreel-radial":
+          "radial-gradient(circle at top, rgba(184,109,63,0.18), transparent 30%), radial-gradient(circle at bottom right, rgba(54,191,216,0.10), transparent 28%)",
+        "shopreel-panel":
+          "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.04))",
+        "shopreel-panel-strong":
+          "linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
+
+===== SHOPREEL IMPORTS / COMPONENTS REFERENCES =====
+src/app/shopreel/video-creation/jobs/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/video-creation/jobs/[id]/page.tsx:15:  if (!job) return <GlassShell title="Generation not found" subtitle="This job could not be found."><div /></GlassShell>;
+src/app/shopreel/video-creation/jobs/[id]/page.tsx:21:  return <GlassShell title="Generation job" subtitle="Lifecycle, output preview, and retry actions.">
+src/app/shopreel/video-creation/jobs/[id]/page.tsx:44:  </GlassShell>;
+src/app/shopreel/video-creation/advanced/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/video-creation/advanced/page.tsx:13:  const [recentJobs, selectableAssets] = await Promise.all([
+src/app/shopreel/video-creation/advanced/page.tsx:21:    <GlassShell
+src/app/shopreel/video-creation/advanced/page.tsx:35:      <VideoCreationStudio recentJobs={recentJobs} selectableAssets={selectableAssets} envHealth={envHealth} />
+src/app/shopreel/video-creation/advanced/page.tsx:36:    </GlassShell>
+src/app/shopreel/video-creation/series/[seriesKey]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/video-creation/series/[seriesKey]/page.tsx:21:    <GlassShell
+src/app/shopreel/video-creation/series/[seriesKey]/page.tsx:27:    </GlassShell>
+src/app/shopreel/video-creation/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/video-creation/page.tsx:11:  let recentJobs: RecentMediaJob[] = [];
+src/app/shopreel/video-creation/page.tsx:13:    recentJobs = await listRecentMediaGenerationJobs(24);
+src/app/shopreel/video-creation/page.tsx:15:    recentJobs = [];
+src/app/shopreel/video-creation/page.tsx:19:    <GlassShell
+src/app/shopreel/video-creation/page.tsx:24:      <VideoBriefWizard recentJobs={recentJobs} />
+src/app/shopreel/video-creation/page.tsx:25:    </GlassShell>
+src/app/shopreel/storyboards/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/storyboards/page.tsx:34:    <GlassShell
+src/app/shopreel/storyboards/page.tsx:87:    </GlassShell>
+src/app/shopreel/operator/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/operator/page.tsx:12:    <GlassShell
+src/app/shopreel/operator/page.tsx:19:    </GlassShell>
+src/app/shopreel/account/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/account/page.tsx:96:    <GlassShell
+src/app/shopreel/account/page.tsx:346:    </GlassShell>
+src/app/shopreel/published/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/published/page.tsx:20:    <GlassShell
+src/app/shopreel/published/page.tsx:27:    </GlassShell>
+src/app/shopreel/opportunities/[id]/page.tsx:7:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/opportunities/[id]/page.tsx:160:    <GlassShell
+src/app/shopreel/opportunities/[id]/page.tsx:339:    </GlassShell>
+src/app/shopreel/opportunities/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/opportunities/page.tsx:21:  return <GlassShell title="Ideas" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Ideas" subtitle="Capture prompts, campaign angles, and content opportunities." actions={[{label:"Create from idea",href:"/shopreel/create",primary:true},{label:"Discover ideas",href:"/shopreel/opportunities?status=active"}]}/><ShopReelSurface title="Prompt starters"><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{STARTERS.map((s)=><div key={s} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/80">{s}</div>)}</div></ShopReelSurface><ShopReelSurface title="Idea board"><ShopReelOpportunitiesClient opportunities={normalized} activeTab={status} /></ShopReelSurface></div></GlassShell>;
+src/app/shopreel/publish-queue/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/publish-queue/page.tsx:131:    <GlassShell
+src/app/shopreel/publish-queue/page.tsx:143:    </GlassShell>
+src/app/shopreel/campaigns/new/page.tsx:5:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/campaigns/new/page.tsx:14:    <GlassShell title="New campaign" hidePageIntro>
+src/app/shopreel/campaigns/new/page.tsx:36:    </GlassShell>
+src/app/shopreel/campaigns/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/campaigns/page.tsx:13:    <GlassShell title="Campaigns" hidePageIntro>
+src/app/shopreel/campaigns/page.tsx:35:    </GlassShell>
+src/app/shopreel/analytics/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/analytics/page.tsx:120:    <GlassShell
+src/app/shopreel/analytics/page.tsx:219:          description="Winning angle and totals from recent campaign analytics."
+src/app/shopreel/analytics/page.tsx:276:    </GlassShell>
+src/app/shopreel/HomeCommandClient.tsx:6:import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
+src/app/shopreel/HomeCommandClient.tsx:7:import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
+src/app/shopreel/HomeCommandClient.tsx:12:import OperatorRuntimeCanvas from "@/features/shopreel/ui/system/OperatorRuntimeCanvas";
+src/app/shopreel/HomeCommandClient.tsx:33:const quickPrompts = ["Launch campaign", "Refine direction", "Review approvals", "Open workspace"];
+src/app/shopreel/HomeCommandClient.tsx:34:const chamberNav = [
+src/app/shopreel/HomeCommandClient.tsx:42:export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
+src/app/shopreel/HomeCommandClient.tsx:75:        contextCarryover: { rawCommand: parsed.lastCommand ?? "", interpretedIntent: "unknown", selectedCampaignId: persistedRuntime.activeCampaignId, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(parsed.creativeContinuity) },
+src/app/shopreel/HomeCommandClient.tsx:79:  }, [recent]);
+src/app/shopreel/HomeCommandClient.tsx:83:    const operationalGraph = buildOperationalGraph({ generationId: recent[0]?.id, campaignId: context?.lastCampaignId, pendingTaskCount: pendingTasks.filter((task) => !task.done).length, blockerCount: pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length, readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length, interrupted: false, continuityThreadCount: 0, lastRoute: route });
+src/app/shopreel/HomeCommandClient.tsx:112:    const runtime = resolveOperatorRuntime({ rawCommand: nextCommand, classifiedIntent: execution.commandIntent, currentPath: context?.lastRoute ?? "/shopreel", selectedCampaignId: context?.lastCampaignId ?? null, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(context?.creativeContinuity) });
+src/app/shopreel/HomeCommandClient.tsx:132:            {chamberNav.map((item) => (
+src/app/shopreel/HomeCommandClient.tsx:144:            <ShopReelNotificationsBell />
+src/app/shopreel/HomeCommandClient.tsx:159:                <AiCommandInput value={command} onChange={setCommand} placeholder="What should the operator run next?" className="min-h-14 rounded-full border border-white/10 bg-white/[0.02] px-4 shadow-none focus-visible:ring-0" />
+src/app/shopreel/HomeCommandClient.tsx:160:                <div className="mt-3 flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/85">{prompt}</button>)}</div>
+src/app/shopreel/HomeCommandClient.tsx:173:            {[["Runtime pulse", "Calm"],["Continuity signal", "Stable"],["Atmosphere", "Focused"],["Momentum", "Building"],["Unresolved", `${recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length} items`]].map(([label, value]) => (
+src/app/shopreel/HomeCommandClient.tsx:193:                {recent.slice(0, 5).map((item, index) => (
+src/app/shopreel/HomeCommandClient.tsx:219:        <OperatorRuntimeCanvas
+src/app/shopreel/HomeCommandClient.tsx:225:          recent={recent}
+src/app/shopreel/HomeCommandClient.tsx:234:        <OperatorRuntimeCanvas
+src/app/shopreel/HomeCommandClient.tsx:240:          recent={recent}
+src/app/shopreel/ideas/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/ideas/page.tsx:9:    <GlassShell title="Ideas" hidePageIntro>
+src/app/shopreel/ideas/page.tsx:21:    </GlassShell>
+src/app/shopreel/render-queue/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/render-queue/page.tsx:13:  return <GlassShell title="Render queue" hidePageIntro><div className="space-y-4"><EcosystemStateRail surface="render" /><SurfaceExecutionHint surface="render" />{(["processing", "queued", "failed", "completed"] as const).map((status) => <ShopReelSurface key={status} title={status[0].toUpperCase() + status.slice(1)} description={`${by(status).length} jobs`}>{by(status).length ? <div className="space-y-2">{by(status).slice(0, 8).map((job) => <div key={job.id} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/20 p-2 text-sm text-white/80"><span>{job.id.slice(0, 8)}</span><span>{job.error_message ? "Retry needed" : "In progress"}</span></div>)}</div> : <p className="text-sm text-white/60">No jobs.</p>}</ShopReelSurface>)}</div></GlassShell>;
+src/app/shopreel/exports/[id]/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/exports/[id]/page.tsx:12:  if (!row) return <GlassShell title="Package not found"><div /></GlassShell>;
+src/app/shopreel/exports/[id]/page.tsx:18:  return <GlassShell title={`Package ${pkg.id.slice(0, 8)}`} subtitle="Operational publish package detail.">
+src/app/shopreel/exports/[id]/page.tsx:25:  </GlassShell>;
+src/app/shopreel/exports/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/exports/page.tsx:9:  return <GlassShell title="Exports" hidePageIntro><div className="space-y-4"><EcosystemStateRail surface="publish" /><SurfaceExecutionHint surface="publish" /><ShopReelSurface title="Ready assets" description="Package and publish approved outputs."><Link href="/shopreel/publish-center" className="inline-block rounded-lg bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950">Open publish center</Link></ShopReelSurface><ShopReelSurface title="Blocked publications" description="Resolve these before publish."><p className="text-sm text-white/65">No blocked publications.</p></ShopReelSurface><details className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white/70"><summary className="cursor-pointer">System details</summary><p className="mt-2 text-xs">View routing details and destination diagnostics only when needed.</p></details></div></GlassShell>;
+src/app/shopreel/calendar/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/calendar/page.tsx:11:export default async function ShopReelCalendarPage(){const shopId=await getCurrentShopId();const supabase=createAdminClient();const legacy=supabase as unknown as {from:(table:string)=>any};const {data:calendar}=await legacy.from("content_calendars").select("id").or(`tenant_shop_id.eq.${shopId},source_shop_id.eq.${shopId}`).order("created_at",{ascending:false}).limit(1).maybeSingle();let hasItems=false;if(calendar?.id){const {data}=await legacy.from("content_calendar_items").select("id").eq("calendar_id",calendar.id).limit(1);hasItems=(data??[]).length>0;}return <GlassShell title="Calendar" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Calendar" subtitle="Plan upcoming posts, campaigns, and publishing windows." actions={[{label:"Create content",href:"/shopreel/create",primary:true}]}><GenerateCalendarButton /></ShopReelPageHero><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ShopReelSurface title="7-day planning board" description="Planning slots only — these are not published posts."><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{WEEK_DAYS.map((d)=><div key={d} className="rounded-xl border border-white/10 bg-black/25 p-3"><div className="text-xs font-medium text-white/80">{d}</div><div className="mt-2 rounded-lg border border-dashed border-white/20 p-3 text-xs text-white/50">Open planning slot</div></div>)}</div></ShopReelSurface>{!hasItems&&<ShopReelEmptyState title="No scheduled content yet" description="Generate a calendar from projects or create content first." action={<Link href="/shopreel/create" className="inline-block rounded-lg border border-white/20 px-3 py-2 text-sm text-white/85 hover:bg-white/10">Create content</Link>} />}</div><ShopReelActionRail title="Recommended posting windows" items={WINDOWS.map((w)=>`${w} local audience window`)} /></div></div></GlassShell>}
+src/app/shopreel/settings/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/settings/page.tsx:10:    <GlassShell title="Settings" hidePageIntro>
+src/app/shopreel/settings/page.tsx:15:    </GlassShell>
+src/app/shopreel/settings/developer/growth-agent/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/settings/developer/growth-agent/page.tsx:9:    return <GlassShell title="Growth Agent"><ShopReelSurface title="Internal Growth Agent">Feature is disabled by SHOPREEL_INTERNAL_GROWTH_AGENT_ENABLED.</ShopReelSurface></GlassShell>;
+src/app/shopreel/settings/developer/growth-agent/page.tsx:11:  return <GlassShell title="Growth Agent"><ShopReelSurface title="Internal Growth Agent (Owner/Developer)"><InternalGrowthAgentPanel /></ShopReelSurface></GlassShell>;
+src/app/shopreel/creator-requests/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/creator-requests/page.tsx:56:    <GlassShell
+src/app/shopreel/creator-requests/page.tsx:63:    </GlassShell>
+src/app/shopreel/automation/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/automation/page.tsx:9:    <GlassShell
+src/app/shopreel/automation/page.tsx:16:    </GlassShell>
+src/app/shopreel/page.tsx:2:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/page.tsx:5:import HomeCommandClient from "./HomeCommandClient";
+src/app/shopreel/page.tsx:12:  const { data: recentData } = await supabase.from("shopreel_story_generations").select("id,status,created_at,story_draft").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(10);
+src/app/shopreel/page.tsx:13:  const recent = (recentData ?? []).map((row) => ({ id: row.id, status: row.status ?? "unknown", title: typeof (row.story_draft as StoryDraft | null)?.title === "string" ? String((row.story_draft as StoryDraft).title) : "Untitled generation" }));
+src/app/shopreel/page.tsx:15:  return <GlassShell title="ShopReel Command Center" hidePageIntro hideNotificationsBell fullBleed className="space-y-0"><HomeCommandClient recent={recent} /></GlassShell>;
+src/app/shopreel/content/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/content/[id]/page.tsx:50:      <GlassShell
+src/app/shopreel/content/[id]/page.tsx:59:      </GlassShell>
+src/app/shopreel/content/[id]/page.tsx:113:    <GlassShell
+src/app/shopreel/content/[id]/page.tsx:271:    </GlassShell>
+src/app/shopreel/content/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/content/page.tsx:63:    <GlassShell
+src/app/shopreel/content/page.tsx:75:    </GlassShell>
+src/app/shopreel/library/page.tsx:7:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/library/page.tsx:13:return <GlassShell title="Asset Intelligence Board" hidePageIntro><div className="space-y-4"><EcosystemStateRail surface="library" /><AiPanel title="AI Asset Stage"><div className="text-sm text-white/70">Group assets by use-case, campaign, and readiness while preserving persisted library records.</div></AiPanel><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]"><div className="space-y-4"><ManualAssetLibraryClient /><AiPanel title="Generated Assets">{items.length===0?<div className="text-sm text-white/60">No persisted generated assets yet.</div>:<LibraryIndexClient items={items} resultLimit={QUERY_LIMIT} />}</AiPanel></div><AiPanel title="Operator Guidance"><div className="space-y-2 text-xs text-white/65"><div className="rounded-xl bg-white/5 p-2">Use grouped assets to feed next prompt.</div><div className="rounded-xl bg-white/5 p-2">Exports and publish packaging stay manual approval.</div></div></AiPanel></div></div></GlassShell>; }
+src/app/shopreel/generations/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/generations/[id]/page.tsx:85:      <GlassShell
+src/app/shopreel/generations/[id]/page.tsx:95:      </GlassShell>
+src/app/shopreel/generations/[id]/page.tsx:183:    <GlassShell
+src/app/shopreel/generations/[id]/page.tsx:505:    </GlassShell>
+src/app/shopreel/generations/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/generations/page.tsx:27:  return <GlassShell title="Projects" hidePageIntro><div className="space-y-4"><ShopReelPageHero title="Generations" subtitle="Create, review, render, and publish from one queue." actions={[{ label: "Create content", href: "/shopreel/create", primary: true }, { label: "Render queue", href: "/shopreel/render-queue" }]} /><RecoveryInboxRail />{groups.map((name) => { const items = generations.filter((g) => bucket(norm(g.status)) === name); return <ShopReelSurface key={name} title={name} description={`${items.length} items`}>{items.length ? <div className="grid gap-4 lg:grid-cols-2">{items.map((g) => <Card key={g.id} g={g} />)}</div> : <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/65">{name === "Blocked" ? "No failed renders." : name === "Ready to publish" ? "Ready assets will appear here." : "Nothing waiting."}</div>}</ShopReelSurface>; })}</div></GlassShell>;
+src/app/shopreel/publish-center/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/publish-center/page.tsx:199:    <GlassShell
+src/app/shopreel/publish-center/page.tsx:202:      subtitle="Canonical daily board for review queues, blocked renders, publish readiness, scheduling, and recent publishing output."
+src/app/shopreel/publish-center/page.tsx:546:          description="Most recent successfully published records."
+src/app/shopreel/publish-center/page.tsx:549:          {buckets.recentlyPublished.length === 0 ? (
+src/app/shopreel/publish-center/page.tsx:562:              {buckets.recentlyPublished.map((publication) => (
+src/app/shopreel/publish-center/page.tsx:684:    </GlassShell>
+src/app/shopreel/upload/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/upload/page.tsx:9:    <GlassShell
+src/app/shopreel/upload/page.tsx:16:    </GlassShell>
+src/app/shopreel/editor/post/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/post/[id]/page.tsx:41:    <GlassShell
+src/app/shopreel/editor/post/[id]/page.tsx:77:    </GlassShell>
+src/app/shopreel/editor/video/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/video/[id]/page.tsx:34:      <GlassShell eyebrow="ShopReel" title="Editor unavailable" subtitle="No story draft exists for this generation.">
+src/app/shopreel/editor/video/[id]/page.tsx:36:      </GlassShell>
+src/app/shopreel/editor/video/[id]/page.tsx:60:    <GlassShell
+src/app/shopreel/editor/video/[id]/page.tsx:84:    </GlassShell>
+src/app/shopreel/editor/email/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/email/[id]/page.tsx:41:    <GlassShell
+src/app/shopreel/editor/email/[id]/page.tsx:77:    </GlassShell>
+src/app/shopreel/editor/vlog/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/vlog/[id]/page.tsx:49:    <GlassShell
+src/app/shopreel/editor/vlog/[id]/page.tsx:213:    </GlassShell>
+src/app/shopreel/editor/blog/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/blog/[id]/page.tsx:71:    <GlassShell
+src/app/shopreel/editor/blog/[id]/page.tsx:105:    </GlassShell>
+src/app/shopreel/editor/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/editor/page.tsx:13:  return <GlassShell title="AI Creative Workstation" hidePageIntro>
+src/app/shopreel/editor/page.tsx:23:  </GlassShell>;
+src/app/shopreel/review/[id]/page.tsx:4:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/review/[id]/page.tsx:125:    <GlassShell
+src/app/shopreel/review/[id]/page.tsx:138:    </GlassShell>
+src/app/shopreel/review/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/review/page.tsx:71:    <GlassShell
+src/app/shopreel/review/page.tsx:79:    </GlassShell>
+src/app/shopreel/create/page.tsx.bak.20260505042607:5:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/create/page.tsx.bak.20260505042607:200:    <GlassShell
+src/app/shopreel/create/page.tsx.bak.20260505042607:437:    </GlassShell>
+src/app/shopreel/create/page.tsx:5:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/create/page.tsx:156:    <GlassShell eyebrow="Create" title="Create your next piece of content" subtitle="Guided studio flow: choose format, upload media, brief AI, select channels, then generate draft.">
+src/app/shopreel/create/page.tsx:251:    </GlassShell>
+src/app/shopreel/billing/page.tsx:3:import GlassShell from "@/features/shopreel/ui/system/GlassShell";
+src/app/shopreel/billing/page.tsx:9:    <GlassShell title="Billing" hidePageIntro>
+src/app/shopreel/billing/page.tsx:21:    </GlassShell>
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:107:  recentJobs,
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:111:  recentJobs: MediaJob[];
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:182:    () => groupMediaJobsIntoSeries(recentJobs),
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:183:    [recentJobs]
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:187:    () => recentJobs.filter((job) => !getMediaJobSeriesInfo(job).seriesKey),
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:188:    [recentJobs]
+src/features/shopreel/video-creation/components/VideoCreationStudio.tsx:1111:        {recentJobs.length === 0 ? (
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:36:  recentStoryboards,
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:39:  recentStoryboards: StoryboardWithScenes[];
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:159:          {recentStoryboards.length > 0 ? (
+src/features/shopreel/video-creation/components/VideoCreationAdvancedTools.tsx:161:              {recentStoryboards.slice(0, 3).map((storyboard) => (
+src/features/shopreel/video-creation/components/VideoBriefWizard.tsx:83:export default function VideoBriefWizard({ recentJobs }: { recentJobs: MediaJob[] }) {
+src/features/shopreel/video-creation/components/VideoBriefWizard.tsx:85:  const [jobs, setJobs] = useState<MediaJob[]>(recentJobs);
+src/features/shopreel/video-creation/components/VideoBriefWizard.tsx:103:    setJobs(recentJobs);
+src/features/shopreel/video-creation/components/VideoBriefWizard.tsx:104:  }, [recentJobs]);
+src/features/shopreel/video-creation/components/VideoBriefWizard.tsx:237:        throw new Error(json.error ?? "Failed to refresh recent jobs.");
+src/features/shopreel/video-creation/components/VideoBriefWizard.tsx:247:      setError(err instanceof Error ? err.message : "Failed to refresh recent jobs.");
+src/features/shopreel/learning/adaptiveCreativeMemory.ts:37:  const recent = [...events]
+src/features/shopreel/learning/adaptiveCreativeMemory.ts:45:  for (const event of recent) {
+src/features/shopreel/learning/adaptiveCreativeMemory.ts:65:  if (tasteSummary[0]) learnedNotices.push(`Adjusted from recent decisions: ${tasteSummary[0]}.`);
+src/features/shopreel/learning/adaptiveCreativeMemory.ts:70:    ? `Current proposal reflects your recent ${topSignals[0].label.toLowerCase()} feedback.`
+src/features/shopreel/learning/adaptiveCreativeMemory.ts:72:      ? "Current proposal follows patterns from your recent approvals."
+src/features/shopreel/campaigns/components/CampaignDetailClient.tsx:178:      {(adaptiveMemory.learnedNotices.length > 0 || adaptiveMemory.tasteSummary.length > 0) ? <GlassCard label="Adaptive continuity" title="AI learned from your recent direction" description="Preference-aware continuity is applied before each next proposal." strong>
+src/features/shopreel/campaigns/lib/promptSeeding.ts:8:  const { data: recentLearnings, error } = await supabase
+src/features/shopreel/campaigns/lib/promptSeeding.ts:20:  const winningAngles = (recentLearnings ?? []).map((row) => row.learning_key);
+src/features/shopreel/ui/GlobalCommandLauncher.tsx:5:import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
+src/features/shopreel/ui/GlobalCommandLauncher.tsx:56:    if (mode === "dormant") return ["resume latest work", "open most recent draft", "wake continuity threads"];
+src/features/shopreel/ui/GlobalCommandLauncher.tsx:111:        recentIntents: [decision.intent as any, ...existing.recentIntents].slice(0, 8),
+src/features/shopreel/ui/GlobalCommandLauncher.tsx:137:          <AiCommandInput value={value} onChange={setValue} placeholder={modePlaceholder} className="min-h-24 text-lg" />
+src/features/shopreel/ui/system/operatorBehaviorAdaptation.ts:26:  recentEvents: OperatorBehaviorEvent[];
+src/features/shopreel/ui/system/operatorBehaviorAdaptation.ts:63:  recentEvents: [], routeFrequency: {}, commandPatterns: {}, recoveryCount: 0, exportCount: 0, renderCheckCount: 0, campaignCount: 0, createCount: 0,
+src/features/shopreel/ui/system/operatorBehaviorAdaptation.ts:74:    return { ...defaultMemory(), ...parsed, recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents.slice(0, MAX_EVENTS) : [] };
+src/features/shopreel/ui/system/operatorBehaviorAdaptation.ts:82:  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...memory, recentEvents: memory.recentEvents.slice(0, MAX_EVENTS) }));
+src/features/shopreel/ui/system/operatorBehaviorAdaptation.ts:88:  const next: OperatorBehaviorMemory = { ...memory, recentEvents: [{ ...event, timestamp }, ...memory.recentEvents].slice(0, MAX_EVENTS), lastActiveAt: timestamp, explanation: [] };
+src/features/shopreel/ui/system/operatorBehaviorAdaptation.ts:130:  return memory.recentEvents.filter((event) => event.type === type).length;
+src/features/shopreel/ui/system/operatorBehaviorAdaptation.ts:175:    `Operator pattern: ${memory.preferredWorkflowBias.replace("_", " ")} priority bias from ${memory.recentEvents.length} recent events.`,
+src/features/shopreel/ui/system/OperatorRuntimeCanvas.tsx:24:export default function OperatorRuntimeCanvas({
+src/features/shopreel/ui/system/OperatorRuntimeCanvas.tsx:30:  recent,
+src/features/shopreel/ui/system/OperatorRuntimeCanvas.tsx:42:  recent: RuntimeRecentItem[];
+src/features/shopreel/ui/system/OperatorRuntimeCanvas.tsx:68:  const pendingApprovals = recent.filter((item) => /review|approval|needs/i.test(item.status));
+src/features/shopreel/ui/system/OperatorRuntimeCanvas.tsx:127:        <div>Latest decision: <span className="text-white/80">{campaignContext?.refinementHistory?.[0]?.action ?? "No recent decision yet."}</span></div>
+src/features/shopreel/ui/system/GlassShell.tsx:2:import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
+src/features/shopreel/ui/system/GlassShell.tsx:6:type GlassShellProps = {
+src/features/shopreel/ui/system/GlassShell.tsx:19:export default function GlassShell({
+src/features/shopreel/ui/system/GlassShell.tsx:30:}: GlassShellProps) {
+src/features/shopreel/ui/system/GlassShell.tsx:47:            {!hideNotificationsBell ? <ShopReelNotificationsBell /> : null}
+src/features/shopreel/ui/system/operatorRhythm.ts:19:type OperatorRhythmMemory = { recentEvents: OperatorRhythmEvent[]; lastActiveAt: string };
+src/features/shopreel/ui/system/operatorRhythm.ts:24:const defaultMemory = (): OperatorRhythmMemory => ({ recentEvents: [], lastActiveAt: new Date(0).toISOString() });
+src/features/shopreel/ui/system/operatorRhythm.ts:44:      recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents.slice(0, MAX_EVENTS) : [],
+src/features/shopreel/ui/system/operatorRhythm.ts:54:  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...memory, recentEvents: memory.recentEvents.slice(0, MAX_EVENTS) }));
+src/features/shopreel/ui/system/operatorRhythm.ts:61:    recentEvents: [{ ...event, timestamp }, ...memory.recentEvents].slice(0, MAX_EVENTS),
+src/features/shopreel/ui/system/operatorRhythm.ts:74:  const events = memory.recentEvents;
+src/features/shopreel/ui/system/operatorRhythm.ts:115:      `Preferred surface ${latestRoute} from most recent navigation context.`,
+src/features/shopreel/ui/system/commandIntentClassifier.ts:22:  /\brecent\b/,
+src/features/shopreel/ui/system/AiCommandPrimitives.tsx:35:export function AiCommandInput(props: { value: string; placeholder?: string; onChange?: (value: string) => void; readOnly?: boolean; className?: string }) {
+src/features/shopreel/ui/system/AiCommandPrimitives.tsx:68:  return <div className="space-y-4"><AiCommandInput value={value} onChange={setValue} placeholder="Describe your intent. Example: Continue the campaign we were working on." />
+src/features/shopreel/ui/system/GlobalEnvironmentContinuityClient.tsx:37:    const hadPriorActivity = behaviorMemory.recentEvents.length > 0;
+src/features/shopreel/ui/system/aiWorkspaceMemory.ts:21:  recentIntents: AiIntent[];
+src/features/shopreel/ui/system/aiWorkspaceMemory.ts:72:export type TemporalRailState = "active_now" | "recent" | "stale" | "archived" | "interrupted" | "resumed" | "escalating";
+src/features/shopreel/ui/system/aiWorkspaceMemory.ts:358:    input.minutesSinceUpdate <= 120 ? "recent" :
+src/features/shopreel/ui/system/productionIntuition.ts:40:  const recent = args.operator.recentEvents;
+src/features/shopreel/ui/system/productionIntuition.ts:41:  const byType = (type: string) => recent.filter((event) => event.type === type).length;
+src/features/shopreel/ui/ShopReelNotificationsBell.tsx:3:export default function ShopReelNotificationsBell() {
+src/features/shopreel/library/LibraryIndexClient.tsx:31:    <div className="text-xs text-white/60">Showing {filtered.length} of {items.length} recent records (limit {resultLimit}).</div>
+src/features/shopreel/operations/lib/lifecycleBoard.ts:188:  const recentlyPublished = publications
+src/features/shopreel/operations/lib/lifecycleBoard.ts:259:    recentlyPublished,
