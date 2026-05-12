@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { deriveRuntimeChoreography } from "@/features/shopreel/ui/system/runtimeChoreography";
 import { operatorSurfaceRegistry, resolveRuntimeFallbackRoute } from "@/features/shopreel/ui/system/operatorSurfaceRegistry";
 import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
 import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
@@ -58,7 +59,15 @@ export default function OperatorRuntimeCanvas({
   ];
   const activeProgressIndex = progression.findIndex((step) => step.id === session.runtimeState);
   const pendingApprovals = recent.filter((item) => /review|approval|needs/i.test(item.status));
-
+  const refinementDepth = campaignContext?.refinementHistory.length ?? 0;
+  const choreography = deriveRuntimeChoreography({
+    session,
+    memory: context,
+    pendingApprovals: pendingApprovals.length,
+    refinementDepth,
+    campaignUnavailable: Boolean(session.selectedEntityIds.campaignId && !campaignContext),
+    reducedMotion: false,
+  });
 
   const [decisionState, setDecisionState] = useState<Record<string, { status: "idle" | "pending" | "success" | "error"; message?: string }>>({});
 
@@ -85,6 +94,12 @@ export default function OperatorRuntimeCanvas({
 
   return (
     <section className="relative rounded-[1.8rem] border border-cyan-200/25 bg-[#071023]/80 p-5 md:p-6">
+      <div className="mb-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-cyan-100/90 md:grid-cols-2">
+        <div>Operator presence: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
+        <div>Active campaign identity: <span className="text-white/80">{campaignContext?.title ?? (session.selectedEntityIds.campaignId ? "Campaign context unavailable" : "No active campaign selected")}</span></div>
+        <div>Workflow progression: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
+        <div>Recent decision trail: <span className="text-white/80">{campaignContext?.refinementHistory?.[0]?.action ?? "No recent inline mutation."}</span></div>
+      </div>
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Active workflow region</div>
@@ -97,10 +112,18 @@ export default function OperatorRuntimeCanvas({
       </div>
 
       {isThinking ? <div className="mt-3 rounded-xl border border-violet-200/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-100">Operator is interpreting and preparing the next surface. {transitionCopy}</div> : null}
+      <div className="mt-2 rounded-xl border border-cyan-200/20 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100">
+        {choreography.message} · transition {choreography.action.replaceAll("_", " ")} · intensity {choreography.intensity}
+      </div>
+      {choreography.staleState ? (
+        <div className="mt-2 rounded-xl border border-amber-200/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+          {choreography.staleState.detail} <Link href={choreography.staleState.fallbackRoute} className="underline">{choreography.staleState.actionLabel}</Link>
+        </div>
+      ) : null}
 
       <div className="mt-4 grid gap-3">
         {previousSurface ? <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/55">Previous: {previousSurface.label}</div> : null}
-        <div className="transition-all duration-300 motion-reduce:transition-none">
+        <div className={`${choreography.motionClass} ${choreography.reducedMotionClass}`}>
           {session.activeSurface === "campaign_planning" ? (
             <article className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 backdrop-blur-sm">
               <div className="text-xs uppercase tracking-[0.15em] text-cyan-100/70">Inline campaign planning</div>
