@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { operatorSurfaceRegistry, resolveRuntimeFallbackRoute } from "@/features/shopreel/ui/system/operatorSurfaceRegistry";
 import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
 import type { WorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import { approveRuntimeReviewDecision, rejectRuntimeReviewDecision, requestRuntimeReviewChanges, type RuntimeReviewActionError } from "@/features/shopreel/ui/system/operatorRuntimeReviewActions";
 
 type RuntimeRecentItem = { id: string; title: string; status: string };
 type RuntimeCampaignContext = {
@@ -26,6 +27,7 @@ export default function OperatorRuntimeCanvas({
   context,
   recent,
   campaignContext,
+  onDecisionSaved,
 }: {
   session: OperatorRuntimeSessionState;
   onRecover: () => void;
@@ -34,6 +36,7 @@ export default function OperatorRuntimeCanvas({
   context: WorkspaceMemory | null;
   recent: RuntimeRecentItem[];
   campaignContext: RuntimeCampaignContext | null;
+  onDecisionSaved: (summary: string) => void;
 }) {
   const activeSurface = operatorSurfaceRegistry[session.activeSurface];
   const previousSurface = session.previousSurface ? operatorSurfaceRegistry[session.previousSurface] : null;
@@ -55,6 +58,24 @@ export default function OperatorRuntimeCanvas({
   ];
   const activeProgressIndex = progression.findIndex((step) => step.id === session.runtimeState);
   const pendingApprovals = recent.filter((item) => /review|approval|needs/i.test(item.status));
+
+
+  const [decisionState, setDecisionState] = useState<Record<string, { status: "idle" | "pending" | "success" | "error"; message?: string }>>({});
+
+  async function mutateInlineDecision(item: RuntimeRecentItem, action: "approve" | "reject" | "refine"): Promise<void> {
+    setDecisionState((prev) => ({ ...prev, [item.id]: { status: "pending" } }));
+    try {
+      const reason = action === "refine" ? "Request changes from runtime inline review." : null;
+      if (action === "approve") await approveRuntimeReviewDecision({ taskId: item.id, reason });
+      if (action === "reject") await rejectRuntimeReviewDecision({ taskId: item.id, reason: "Rejected from runtime inline review." });
+      if (action === "refine") await requestRuntimeReviewChanges({ taskId: item.id, reason });
+      setDecisionState((prev) => ({ ...prev, [item.id]: { status: "success", message: "Decision saved. ShopReel will carry that feedback into the next step." } }));
+      onDecisionSaved("Decision saved. ShopReel will carry that feedback into the next step.");
+    } catch (error) {
+      const normalized = error as RuntimeReviewActionError;
+      setDecisionState((prev) => ({ ...prev, [item.id]: { status: "error", message: normalized.message ?? "Decision failed." } }));
+    }
+  }
 
   const continuityNotices = [
     context?.continuityThreads?.[0] ? `Continuing from ${context.continuityThreads[0].label.toLowerCase()}.` : null,
@@ -111,7 +132,7 @@ export default function OperatorRuntimeCanvas({
               <div className="text-xs uppercase tracking-[0.15em] text-cyan-100/70">Inline review handoff</div>
               <p className="mt-2 text-sm text-white/75">Operator explanation: this needs approval because it changes campaign voice and publish readiness.</p>
               <div className="mt-3 grid gap-2">
-                {pendingApprovals.length === 0 ? <p className="text-sm text-white/60">No pending review cards currently. You can still open full review workspace.</p> : pendingApprovals.slice(0, 3).map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="text-sm font-medium text-white">{item.title}</p><p className="text-xs text-white/65">Status: {item.status}</p><div className="mt-2 flex gap-2"><button onClick={() => onRunCommand(`approve ${item.title}`)} className="rounded-lg border border-cyan-200/35 px-2 py-1 text-xs text-cyan-100">Approve</button><button onClick={() => onRunCommand(`refine ${item.title} tone`)} className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/80">Refine</button><button onClick={() => onRunCommand(`reject ${item.title}`)} className="rounded-lg border border-rose-200/35 px-2 py-1 text-xs text-rose-100">Reject</button></div></div>)}
+                {pendingApprovals.length === 0 ? <p className="text-sm text-white/60">No pending review cards currently. You can still open full review workspace.</p> : pendingApprovals.slice(0, 3).map((item) => <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="text-sm font-medium text-white">{item.title}</p><p className="text-xs text-white/65">Status: {item.status}</p><div className="mt-2 flex gap-2"><button onClick={() => void mutateInlineDecision(item, "approve")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-cyan-200/35 px-2 py-1 text-xs text-cyan-100">Approve</button><button onClick={() => void mutateInlineDecision(item, "refine")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/80">Refine</button><button onClick={() => void mutateInlineDecision(item, "reject")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-rose-200/35 px-2 py-1 text-xs text-rose-100">Reject</button></div>{decisionState[item.id]?.status === "error" ? <div className="mt-2 text-xs text-rose-200">{decisionState[item.id]?.message} <button onClick={() => void mutateInlineDecision(item, "approve")} className="underline">Retry approve</button></div> : null}{decisionState[item.id]?.status === "success" ? <p className="mt-2 text-xs text-emerald-200">{decisionState[item.id]?.message}</p> : null}</div>)}
               </div>
             </article>
           ) : activeSurface.render()}

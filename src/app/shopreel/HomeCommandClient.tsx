@@ -122,6 +122,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         context={context}
         recent={recent}
         campaignContext={campaignContext}
+        onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
       />
 
       <section className="rounded-2xl border border-white/10 bg-black/20 p-4">

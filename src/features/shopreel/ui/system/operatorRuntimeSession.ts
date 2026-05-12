@@ -55,6 +55,11 @@ type SetCompressedHeroAction = { type: "SET_COMPRESSED_HERO"; compressed: boolea
 type InterruptAction = { type: "INTERRUPT"; interruption: RuntimeInterruption; fallbackRoute: string };
 type RecoverAction = { type: "RECOVER" };
 type SelectEntityAction = { type: "SELECT_ENTITY"; campaignId?: string | null; generationId?: string | null };
+type ApplyReviewDecisionAction = {
+  type: "APPLY_REVIEW_DECISION";
+  decisionSummary: string;
+  nextState: OperatorRuntimeState;
+};
 
 export type OperatorRuntimeSessionAction =
   | StartRuntimeAction
@@ -63,7 +68,8 @@ export type OperatorRuntimeSessionAction =
   | SetCompressedHeroAction
   | InterruptAction
   | RecoverAction
-  | SelectEntityAction;
+  | SelectEntityAction
+  | ApplyReviewDecisionAction;
 
 export function operatorRuntimeSessionReducer(
   state: OperatorRuntimeSessionState,
@@ -129,6 +135,13 @@ export function operatorRuntimeSessionReducer(
           campaignId: action.campaignId ?? state.selectedEntityIds.campaignId,
           generationId: action.generationId ?? state.selectedEntityIds.generationId,
         },
+      };
+    case "APPLY_REVIEW_DECISION":
+      return {
+        ...state,
+        previousSurface: state.activeSurface,
+        runtimeState: action.nextState,
+        lastOperatorSummary: action.decisionSummary,
       };
     default:
       return state;
