@@ -12,6 +12,7 @@ type GlassShellProps = {
   hidePageIntro?: boolean;
   className?: string;
   cognitiveState?: CognitiveState | null;
+  hideNotificationsBell?: boolean;
 };
 
 export default function GlassShell({
@@ -23,6 +24,7 @@ export default function GlassShell({
   hidePageIntro = false,
   className = "",
   cognitiveState = null,
+  hideNotificationsBell = false,
 }: GlassShellProps) {
   const dynamics = deriveCognitiveShellDynamics(cognitiveState);
   const shellOpacity = 0.64 + dynamics.shellDensity / 500;
@@ -40,7 +42,7 @@ export default function GlassShell({
         <div className="mb-5 flex items-center justify-end gap-3 transition-all duration-300">
           <div className="ml-auto flex items-center gap-2">
             {actions}
-            <ShopReelNotificationsBell />
+            {!hideNotificationsBell ? <ShopReelNotificationsBell /> : null}
           </div>
         </div>
 
