@@ -85,3 +85,14 @@ The `/shopreel` command page now uses a clear AI operator structure:
 - Testing notes remaining:
   - Verify small-screen card density and CTA spacing across mobile breakpoints.
   - Validate chip-to-input workflow feels natural for operator planning sessions.
+
+## Final command surface cleanup
+
+- **Broken Launch control source:** the floating Launch pill came from `ShopReelSidebar` as a fixed-position mobile/menu trigger intended for shell navigation. On `/shopreel`, it stayed visible even though command home now uses the hero console as the primary surface.
+- **Removal/gating on `/shopreel`:** the Launch button and its associated left-edge touch trigger region are now gated by pathname and do not render when `pathname === "/shopreel"`. This removes visual clutter and avoids invisible click/touch layers on command home.
+- **Notification placement change:** the global top-right notification bell is hidden on `/shopreel` by passing `hideNotificationsBell` into `GlassShell` for that route, and notifications are now exposed as a secondary control inside the hero command CTA row to keep all command controls anchored in one console.
+- **Hero balance refinement:** the hero grid was tightened (`1.2fr / 0.8fr`), heading width was constrained to prevent awkward tablet wrapping, the right intelligence panel was visually integrated with stronger glass depth and border contrast, and the command console now has improved spacing/shadow hierarchy so input/status/intelligence read as one cohesive operator surface.
+- **Still needs browser/device testing:**
+  - iPad portrait/landscape line breaks and CTA wrapping.
+  - mobile CTA row + notifications bell spacing when command text is long.
+  - left-edge swipe navigation behavior on non-home ShopReel routes after `/shopreel` gating.

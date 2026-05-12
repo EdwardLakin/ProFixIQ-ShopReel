@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
 import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 import { readWorkspaceMemory, type WorkspaceMemory, writeWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
@@ -71,13 +72,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
   return (
     <div className="space-y-6 pb-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-violet-200/20 bg-[linear-gradient(145deg,rgba(13,19,44,.9),rgba(6,9,24,.92))] p-5 shadow-[0_34px_110px_rgba(0,0,0,0.62)] md:p-8">
+      <section className="relative overflow-hidden rounded-[2rem] border border-violet-200/24 bg-[linear-gradient(145deg,rgba(12,18,42,.92),rgba(5,8,22,.95))] p-5 shadow-[0_34px_110px_rgba(0,0,0,0.62)] md:p-7 lg:p-8">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(139,92,246,.22),transparent_34%),radial-gradient(circle_at_90%_10%,rgba(34,211,238,.15),transparent_38%)]" />
-        <div className="relative z-10 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] xl:items-end">
+        <div className="relative z-10 grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] xl:items-start">
           <div>
-            <div className="text-xs uppercase tracking-[0.22em] text-cyan-100/75">SHOPREEL OPERATOR</div>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight text-white md:text-5xl">What do you want ShopReel to do next?</h1>
-            <p className="mt-3 max-w-3xl text-sm text-white/75 md:text-base">Plan campaigns, create content, refine drafts, get approvals, and learn your creative preferences. ShopReel handles the execution — you keep the vision.</p>
+            <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.22em] text-cyan-100/75"><span>SHOPREEL OPERATOR</span><span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-0.5 text-[10px] tracking-[0.14em] text-cyan-100/80">Operator ready</span></div>
+            <h1 className="mt-3 max-w-[14ch] text-3xl font-semibold leading-[1.05] text-white md:text-5xl">What do you want ShopReel to do next?</h1>
+            <p className="mt-3 max-w-2xl text-sm text-white/75 md:text-base">Plan campaigns, create content, refine drafts, get approvals, and learn your creative preferences. ShopReel handles the execution — you keep the vision.</p>
             <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-2xl border border-white/12 bg-black/20 px-3 py-2 text-xs text-white/70 backdrop-blur">
               <span>Ready to plan</span>
               <span className="text-white/35">•</span>
@@ -85,7 +86,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               <span className="text-white/35">•</span>
               <span>Approval gates enabled</span>
             </div>
-            <div className="mt-6 rounded-3xl border border-violet-300/35 bg-[#090f25]/90 p-3 shadow-[inset_0_0_0_1px_rgba(34,211,238,.15)]">
+            <div className="mt-5 rounded-3xl border border-violet-300/35 bg-[#090f25]/92 p-3 shadow-[inset_0_0_0_1px_rgba(34,211,238,.17),0_16px_36px_rgba(0,0,0,.32)]">
               <AiCommandInput value={command} onChange={setCommand} placeholder="Describe what you want to create or accomplish…" className="min-h-32 border-transparent bg-transparent shadow-none focus-visible:ring-0" />
               <div className="mt-3 flex flex-wrap gap-2 px-2 pb-2">
                 {quickPrompts.map((prompt) => (
@@ -93,13 +94,14 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                 ))}
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <button onClick={runCommand} className="rounded-2xl bg-gradient-to-r from-violet-500/85 to-cyan-400/80 px-5 py-3 text-sm font-semibold text-white">Plan next move</button>
               <Link href="/shopreel/review" className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm text-white/80 hover:bg-white/10">Review approvals</Link>
               <Link href="/shopreel/campaigns" className="rounded-2xl px-4 py-3 text-sm text-white/55 transition hover:text-white/80">Open campaigns</Link>
+              <div className="ml-auto"><ShopReelNotificationsBell /></div>
             </div>
           </div>
-          <aside className="relative rounded-3xl border border-white/12 bg-[linear-gradient(180deg,rgba(12,16,35,.9),rgba(8,12,24,.86))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_25px_55px_rgba(0,0,0,.45)]">
+          <aside className="relative rounded-3xl border border-white/14 bg-[linear-gradient(180deg,rgba(12,16,35,.95),rgba(8,12,24,.9))] p-5 lg:p-6 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_25px_55px_rgba(0,0,0,.45)]">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-violet-300/70 via-cyan-300/60 to-transparent" />
             <div className="flex items-start gap-3">
               <div className="mt-1 h-10 w-10 rounded-full bg-[radial-gradient(circle_at_35%_35%,rgba(34,211,238,.85),rgba(139,92,246,.5),rgba(8,12,24,.95))] shadow-[0_0_26px_rgba(34,211,238,.35)] animate-pulse" />
@@ -108,12 +110,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                 <div className="mt-1 text-lg font-semibold text-white">Operator ready</div>
               </div>
             </div>
-            <ul className="mt-4 space-y-2 text-sm text-white/78">
+            <ul className="mt-4 space-y-2 text-sm text-white/80">
               <li>Plan campaign from raw intent</li>
               <li>Route approvals to review inbox</li>
               <li>Apply recent taste memory</li>
               <li>Prepare next execution step</li>
             </ul>
+            <p className="mt-5 border-t border-white/10 pt-4 text-xs text-white/55">Intent in. Campaign-ready steps out.</p>
           </aside>
         </div>
       </section>

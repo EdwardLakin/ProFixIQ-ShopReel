@@ -46,6 +46,7 @@ const isActivePath = (pathname: string, href: string) =>
 
 export default function ShopReelSidebar() {
   const pathname = usePathname();
+  const isShopReelHome = pathname === "/shopreel";
   const [open, setOpen] = useState(false);
   const [startX, setStartX] = useState<number | null>(null);
 
@@ -59,23 +60,27 @@ export default function ShopReelSidebar() {
 
   return (
     <>
-      <div
-        className="pointer-events-auto fixed left-0 top-0 z-[65] h-full w-10 touch-pan-y sm:w-12"
-        onTouchStart={(e) => setStartX(e.touches[0]?.clientX ?? null)}
-        onTouchMove={(e) => {
-          const currentX = e.touches[0]?.clientX;
-          if (startX !== null && currentX > startX + 28) setOpen(true);
-        }}
-        onTouchEnd={() => setStartX(null)}
-      />
-      <button
-        type="button"
-        aria-label={open ? "Close navigation menu" : "Open navigation menu"}
-        onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-4 left-3 z-[180] flex h-12 min-w-[92px] items-center justify-center gap-2 rounded-full border border-white/15 bg-[#090f21]/90 px-3 text-xs font-medium tracking-[0.08em] text-cyan-50/90 shadow-[0_8px_30px_rgba(0,0,0,.42),0_0_24px_rgba(56,189,248,.2)] touch-manipulation backdrop-blur-xl sm:bottom-auto sm:left-4 sm:top-4"
-      >
-        <span className="text-sm leading-none">☰</span><span>Launch</span>
-      </button>
+      {!isShopReelHome ? (
+        <>
+          <div
+            className="pointer-events-auto fixed left-0 top-0 z-[65] h-full w-10 touch-pan-y sm:w-12"
+            onTouchStart={(e) => setStartX(e.touches[0]?.clientX ?? null)}
+            onTouchMove={(e) => {
+              const currentX = e.touches[0]?.clientX;
+              if (startX !== null && currentX > startX + 28) setOpen(true);
+            }}
+            onTouchEnd={() => setStartX(null)}
+          />
+          <button
+            type="button"
+            aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+            onClick={() => setOpen((v) => !v)}
+            className="fixed bottom-4 left-3 z-[180] flex h-12 min-w-[92px] items-center justify-center gap-2 rounded-full border border-white/15 bg-[#090f21]/90 px-3 text-xs font-medium tracking-[0.08em] text-cyan-50/90 shadow-[0_8px_30px_rgba(0,0,0,.42),0_0_24px_rgba(56,189,248,.2)] touch-manipulation backdrop-blur-xl sm:bottom-auto sm:left-4 sm:top-4"
+          >
+            <span className="text-sm leading-none">☰</span><span>Launch</span>
+          </button>
+        </>
+      ) : null}
 
       {open ? <button type="button" aria-label="Close navigation menu" className="fixed inset-0 z-[85] bg-[#02040b]/65 backdrop-blur-[1px]" onClick={() => setOpen(false)} /> : null}
 
