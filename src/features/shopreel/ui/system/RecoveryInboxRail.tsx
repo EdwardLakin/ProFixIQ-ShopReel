@@ -39,7 +39,7 @@ export default function RecoveryInboxRail() {
   return (
     <section className="rounded-2xl border border-amber-200/20 bg-amber-400/[0.06] p-3 text-xs text-amber-50">
       <div className="mb-2 flex items-center justify-between">
-        <div className="font-medium">Recovery inbox</div>
+        <div className="font-medium">Continuity follow-up</div>
         <div className="text-amber-100/80">{items.length} active</div>
       </div>
       <div className="space-y-2">
@@ -49,13 +49,13 @@ export default function RecoveryInboxRail() {
               <div className="text-[11px] uppercase tracking-[0.12em] text-amber-100/75">{item.workflow_type} · {item.current_stage}</div>
               <div>{item.recommended_next_action}</div>
             </div>
-            <button onClick={() => resume(item.resume_route)} className="rounded-full border border-white/20 px-2 py-1 hover:bg-white/10">Resume workflow</button>
+            <button onClick={() => resume(item.resume_route)} className="rounded-full border border-white/20 px-2 py-1 hover:bg-white/10">Continue</button>
           </div>
         ))}
       </div>
       <div className="mt-2 text-[11px] text-amber-100/70">
-        <Link href="/shopreel/generations" className="underline decoration-dotted underline-offset-2">Open generation queue</Link> ·{" "}
-        <Link href="/shopreel/publish-queue" className="underline decoration-dotted underline-offset-2">Open publish queue</Link>
+        <Link href="/shopreel/review" className="underline decoration-dotted underline-offset-2">Open review inbox</Link> ·{" "}
+        <Link href="/shopreel/publish-queue" className="underline decoration-dotted underline-offset-2">Open publish readiness</Link>
       </div>
     </section>
   );
