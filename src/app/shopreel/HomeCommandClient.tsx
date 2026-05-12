@@ -193,7 +193,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                 {recent.slice(0, 5).map((item, index) => (
                   <button
                     key={item.id}
-                    onClick={() => router.push(`/shopreel/content/${item.id}`)}
+                    onClick={() => router.push(`/shopreel/campaigns/${item.id}`)}
                     className="absolute left-0 right-0 w-full overflow-hidden rounded-[1.6rem] border border-white/14 bg-[radial-gradient(95%_70%_at_60%_12%,rgba(251,146,60,.25),transparent_62%),linear-gradient(170deg,rgba(12,17,40,.92),rgba(5,9,24,.98))] p-4 text-left shadow-[0_20px_45px_rgba(0,0,0,.48)]"
                     style={{ top: `${index * 36}px`, transform: `scale(${1 - index * 0.06}) translateX(${index * 16}px)`, zIndex: 12 - index, opacity: Math.max(1 - index * 0.13, 0.44) }}
                   >
