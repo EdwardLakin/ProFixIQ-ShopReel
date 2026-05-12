@@ -114,7 +114,7 @@ export default function OperatorRuntimeCanvas({
         : "opacity-60 translate-y-[2px]";
 
   return (
-    <section className={`relative h-full overflow-y-auto rounded-[2rem] bg-gradient-to-br ${choreography.depthModel.shellLightingClass} p-4 md:p-5`}>
+    <section className={`relative mt-3 h-[calc(100%-12.75rem)] min-h-0 overflow-y-auto rounded-[1.4rem] bg-gradient-to-br ${choreography.depthModel.shellLightingClass} p-4 md:p-5`}>
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.backdropClass}`} />
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.chamberAtmosphereClass}`} />
       <div className="pointer-events-none absolute inset-x-[6%] top-[15%] h-[55%] rounded-[2rem] bg-gradient-to-b from-white/[0.05] via-transparent to-transparent blur-2xl" />
@@ -126,14 +126,13 @@ export default function OperatorRuntimeCanvas({
       </div>
       <div className="relative flex items-center justify-between gap-2">
         <div>
-          <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Runtime pulse</div>
+          <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Ready for next move</div>
           <h2 className="text-xl font-semibold text-white">{activeSurface.label}</h2>
         </div>
         <span className="rounded-full border border-cyan-100/25 px-2 py-1 text-xs text-cyan-100">{session.runtimeState}</span>
       </div>
-      <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-cyan-100/62">{choreography.chamberIdentityLabel}</div>
+      <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-cyan-100/62">Progress continuity</div>
       <div className={`mt-3 rounded-2xl bg-black/20 px-3 py-2 ${choreography.depthModel.continuityRailClass}`}>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.17em] text-cyan-100/55">Continuity memory spine</div>
         <div className="flex flex-wrap gap-2">
         {progression.map((step, index) => <span key={step.id} className={`rounded-full px-2 py-1 text-[11px] ${activeProgressIndex >= index && activeProgressIndex !== -1 ? "bg-cyan-400/20 text-cyan-100" : "bg-white/5 text-white/55"}`}>{step.label}</span>)}
         </div>
@@ -167,8 +166,8 @@ export default function OperatorRuntimeCanvas({
         <div className={`${choreography.motionClass} ${choreography.reducedMotionClass} ${choreography.depthModel.activeLayerClass} relative`}>
           <div className={`pointer-events-none absolute inset-x-8 -top-5 h-16 rounded-full bg-gradient-to-r ${choreography.depthModel.objectiveGlowClass} blur-xl`} />
           {session.activeSurface === "campaign_planning" ? (
-            <article className="relative rounded-[1.7rem] border border-cyan-100/20 bg-[linear-gradient(145deg,rgba(14,21,46,.8),rgba(8,12,27,.95))] p-5 shadow-[0_36px_100px_rgba(0,0,0,0.58)] backdrop-blur-xl">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Active objective · inline campaign planning</div>
+            <article className="relative rounded-[1.7rem] border border-cyan-100/16 bg-[linear-gradient(145deg,rgba(14,21,46,.72),rgba(8,12,27,.9))] p-5 shadow-[0_36px_100px_rgba(0,0,0,0.58)] backdrop-blur-xl">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Current objective</div>
               <p className="mt-2 text-sm text-white/80">Interpreted intent: {session.activeCommand || "No campaign intent entered yet."}</p>
               <p className="mt-1 text-sm text-cyan-50">Objective: launch campaign with operator-managed continuity and fast review handoff.</p>
               <p className="mt-1 text-sm text-white/70">Target channel: {campaignContext?.channels?.join(", ") || context?.creativeContinuity?.platformBias?.replaceAll("_", " ") || "Not selected"}</p>
@@ -210,7 +209,7 @@ export default function OperatorRuntimeCanvas({
         </div>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <button onClick={onInterruptManual} className="rounded-xl border border-white/15 bg-white/[0.03] px-2.5 py-1.5 text-xs text-white/70 hover:bg-white/10">Manual tools</button>
         <button onClick={onRecover} disabled={!session.recoverableContext} className="rounded-xl border border-cyan-200/35 px-3 py-2 text-sm text-cyan-100 disabled:opacity-50">Resume where we were</button>
         <Link href={fallbackRoute} className="rounded-xl border border-white/20 bg-white/[0.06] px-3 py-2 text-sm text-white/85">Open full workspace</Link>
