@@ -6,5 +6,5 @@ export default async function ShopReelCampaignProductionRedirectPage(props: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await props.params;
-  redirect(`/shopreel/campaigns/${id}`);
+  redirect(`/shopreel/campaigns/${id}?panel=production`);
 }
