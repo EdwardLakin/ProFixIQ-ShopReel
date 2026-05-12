@@ -93,8 +93,8 @@ export default async function ShopReelCampaignItemPage(props: {
       <CampaignPageHeader
         title={item.title}
         subtitle="Shape the storyboard, generate scene frames, and move this campaign into production."
-        backHref={`/shopreel/campaigns/${item.campaign_id}/production`}
-        backLabel="Back to Campaign"
+        backHref={`/shopreel/campaigns/${item.campaign_id}?panel=production&item=${item.id}`}
+        backLabel="Back to campaign workspace"
       />
 
       <CampaignItemClient item={item} scenes={normalizedScenes} />

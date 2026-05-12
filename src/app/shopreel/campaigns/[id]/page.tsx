@@ -65,15 +65,6 @@ export default async function ShopReelCampaignDetailPage(
   }
 
   const totalItems = items.length;
-  const primaryItem =
-    items.find((item) => !item.final_output_asset_id) ??
-    [...items].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )[0] ??
-    null;
-  const productionWorkspaceHref = primaryItem
-    ? `/shopreel/campaigns/items/${primaryItem.id}`
-    : `/shopreel/campaigns/${campaign.id}`;
   const completedItems = items.filter((item) => !!item.final_output_asset_id).length;
 
   const progressPercent =
@@ -94,14 +85,20 @@ export default async function ShopReelCampaignDetailPage(
   return (
     <CampaignFlowShell>
       <CampaignPageHeader
-        title={`${campaign.title} — Campaign overview`}
-        subtitle="Use this page for summary context and operations. Do production work in the storyboard workspace."
+        title={campaign.title}
+        subtitle="Mission → AI planning → approval → execution → review. Supervise key decisions while the operator advances the campaign."
         backHref="/shopreel/campaigns"
         backLabel="Back to Campaigns"
       />
-      <div className="mb-4">
-        <Link href={productionWorkspaceHref}>
-          <GlassButton variant="primary">Open production workspace</GlassButton>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Link href={`/shopreel/campaigns/${campaign.id}`}>
+          <GlassButton variant="primary">Workspace</GlassButton>
+        </Link>
+        <Link href={`/shopreel/campaigns/${campaign.id}/review`}>
+          <GlassButton variant="ghost">Review panel</GlassButton>
+        </Link>
+        <Link href={`/shopreel/campaigns/${campaign.id}/production`}>
+          <GlassButton variant="ghost">Production panel</GlassButton>
         </Link>
       </div>
 
@@ -110,8 +107,8 @@ export default async function ShopReelCampaignDetailPage(
       <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
         <GlassCard
           label="Campaign"
-          title="Campaign summary"
-          description="The core idea driving the whole content batch."
+          title="Mission context"
+          description="Strategic brief and campaign intent guiding AI orchestration."
           strong
         >
           <div className="space-y-3">
@@ -161,10 +158,10 @@ export default async function ShopReelCampaignDetailPage(
                   glassTheme.text.muted
                 )}
               >
-                Offer
+                Emotional positioning
               </div>
               <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
-                {campaign.offer ?? "—"}
+                {campaign.offer ?? "No emotional positioning captured yet."}
               </div>
             </div>
 
@@ -181,7 +178,7 @@ export default async function ShopReelCampaignDetailPage(
                   glassTheme.text.muted
                 )}
               >
-                Goal
+                Campaign objective
               </div>
               <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
                 {campaign.campaign_goal ?? "—"}
@@ -209,7 +206,7 @@ export default async function ShopReelCampaignDetailPage(
           }}
         />
       </section>
-      <ShopReelActionRail title="Overview rail" items={["Use the production workspace as the primary storyboard surface","Review campaign summary inputs and audience context","Prioritize failed scenes before final assembly","Track completed outputs before export or publish"]} />
+      <ShopReelActionRail title="Workspace rhythm" items={["Set mission context so AI planning stays on strategy","Approve one decision at a time to maintain momentum","Use review and production panels for deep context without leaving campaign ownership","Publish only after outputs and approvals are complete"]} />
     </CampaignFlowShell>
   );
 }
