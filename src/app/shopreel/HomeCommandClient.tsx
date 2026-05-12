@@ -107,14 +107,22 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     persistContext(execution.selectedRoute);
     if (overrideCommand) setCommand(overrideCommand);
   };
+  const runtimeAtmosphereClass =
+    runtimeSession.interruption
+      ? "bg-[radial-gradient(120%_80%_at_85%_0%,rgba(251,191,36,0.13),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(139,92,246,0.1),transparent_58%)]"
+      : runtimeSession.pendingTransition === "restore_previous"
+        ? "bg-[radial-gradient(120%_80%_at_85%_0%,rgba(34,211,238,0.13),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(99,102,241,0.1),transparent_58%)]"
+        : runtimeSession.runtimeState === "awaiting_approval"
+          ? "bg-[radial-gradient(120%_80%_at_85%_0%,rgba(196,181,253,0.14),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(56,189,248,0.1),transparent_58%)]"
+          : "bg-[radial-gradient(120%_80%_at_85%_0%,rgba(102,146,255,0.17),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(181,126,255,0.14),transparent_58%)]";
 
   return (
     <div className="relative space-y-6 overflow-hidden pb-10">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(90%_70%_at_82%_4%,rgba(99,102,241,0.18),transparent_70%),radial-gradient(85%_80%_at_3%_96%,rgba(56,189,248,0.12),transparent_72%)]" />
       <section className={`relative overflow-hidden rounded-[2.3rem] border bg-[linear-gradient(145deg,rgba(7,11,28,.95),rgba(3,6,17,.98))] shadow-[0_40px_130px_rgba(0,0,0,0.66)] transition-all duration-300 motion-reduce:transition-none ${runtimeSession.compressedHero ? "border-cyan-200/40 p-4 md:p-5" : "border-violet-200/25 p-6 md:p-7"}`}>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_85%_0%,rgba(102,146,255,0.17),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(181,126,255,0.14),transparent_58%)]" />
+        <div className={`pointer-events-none absolute inset-0 ${runtimeAtmosphereClass}`} />
         <div className="relative z-10">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-cyan-100/75"><span>SHOPREEL OPERATOR</span><span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-0.5 text-[10px]">{runtimeSession.compressedHero ? "Runtime active" : "Operator ready"}</span></div>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-cyan-100/75"><span>SHOPREEL OPERATOR</span></div>
           {!runtimeSession.compressedHero ? <h1 className="mt-3 max-w-[14ch] text-3xl font-semibold text-white md:text-5xl">What should the operator run next?</h1> : <p className="mt-2 text-sm text-cyan-100/80">{runtimeSession.lastOperatorSummary}</p>}
           <div className={`mt-4 rounded-[1.5rem] border border-violet-300/45 bg-[#090f25]/94 p-3 transition-all duration-300 ${runtimeSession.compressedHero ? "max-w-4xl" : "max-w-5xl"}`}>
             <AiCommandInput value={command} onChange={setCommand} placeholder="Describe what you want to create or accomplish…" className={`${runtimeSession.compressedHero ? "min-h-20" : "min-h-32"} border-transparent bg-transparent shadow-none focus-visible:ring-0`} />
