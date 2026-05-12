@@ -30,7 +30,14 @@ type RuntimeCampaignContext = {
   continuity: { lastDecisionAt: string; lastUpdatedAt: string };
 };
 
-const quickPrompts = ["Launch campaign", "Generate hooks", "Refine tone", "Review approvals", "Build publish package"];
+const quickPrompts = ["Launch campaign", "Refine direction", "Review approvals", "Open workspace"];
+const chamberNav = [
+  { label: "Home", href: "/shopreel" },
+  { label: "Workspace", href: "/shopreel/campaigns" },
+  { label: "Continuity", href: "/shopreel/operator" },
+  { label: "Approvals", href: "/shopreel/review" },
+  { label: "Reports", href: "/shopreel/analytics" },
+] as const;
 
 export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
   const router = useRouter();
@@ -69,7 +76,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       }});
     }
 
-  }, []);
+  }, [recent]);
 
   const persistContext = (route: string) => {
     const pendingTasks = buildPendingTasks(interpreted.intent);
@@ -107,86 +114,106 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     persistContext(execution.selectedRoute);
     if (overrideCommand) setCommand(overrideCommand);
   };
-  const runtimeAtmosphereClass =
-    runtimeSession.interruption
-      ? "bg-[radial-gradient(120%_80%_at_85%_0%,rgba(251,191,36,0.13),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(139,92,246,0.1),transparent_58%)]"
-      : runtimeSession.pendingTransition === "restore_previous"
-        ? "bg-[radial-gradient(120%_80%_at_85%_0%,rgba(34,211,238,0.13),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(99,102,241,0.1),transparent_58%)]"
-        : runtimeSession.runtimeState === "awaiting_approval"
-          ? "bg-[radial-gradient(120%_80%_at_85%_0%,rgba(196,181,253,0.14),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(56,189,248,0.1),transparent_58%)]"
-          : "bg-[radial-gradient(120%_80%_at_85%_0%,rgba(102,146,255,0.17),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(181,126,255,0.14),transparent_58%)]";
+
+  const statusTone = (status: string) => {
+    if (/await|review|needs/i.test(status)) return "Awaiting Review";
+    if (/interrupt|pause|block/i.test(status)) return "Interrupted";
+    if (/restore|recover|resume/i.test(status)) return "Restored";
+    if (/active|running|draft|plan|build/i.test(status)) return "Active";
+    return "Stable";
+  };
 
   return (
-    <div className="relative space-y-6 overflow-hidden pb-10">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(90%_70%_at_82%_4%,rgba(99,102,241,0.18),transparent_70%),radial-gradient(85%_80%_at_3%_96%,rgba(56,189,248,0.12),transparent_72%)]" />
-      <section className={`relative overflow-hidden rounded-[2.3rem] border bg-[linear-gradient(145deg,rgba(7,11,28,.95),rgba(3,6,17,.98))] shadow-[0_40px_130px_rgba(0,0,0,0.66)] transition-all duration-300 motion-reduce:transition-none ${runtimeSession.compressedHero ? "border-cyan-200/40 p-4 md:p-5" : "border-violet-200/25 p-6 md:p-7"}`}>
-        <div className={`pointer-events-none absolute inset-0 ${runtimeAtmosphereClass}`} />
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-cyan-100/75"><span>SHOPREEL OPERATOR</span></div>
-          {!runtimeSession.compressedHero ? <h1 className="mt-3 max-w-[14ch] text-3xl font-semibold text-white md:text-5xl">What should the operator run next?</h1> : <p className="mt-2 text-sm text-cyan-100/80">{runtimeSession.lastOperatorSummary}</p>}
-          <div className={`mt-4 rounded-[1.5rem] border border-violet-300/45 bg-[#090f25]/94 p-3 transition-all duration-300 ${runtimeSession.compressedHero ? "max-w-4xl" : "max-w-5xl"}`}>
-            <AiCommandInput value={command} onChange={setCommand} placeholder="Describe what you want to create or accomplish…" className={`${runtimeSession.compressedHero ? "min-h-20" : "min-h-32"} border-transparent bg-transparent shadow-none focus-visible:ring-0`} />
-            <div className="mt-2 flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs text-white/82">{prompt}</button>)}</div>
+    <div className="relative h-[calc(100vh-8.5rem)] min-h-[760px] overflow-hidden rounded-[2.1rem] border border-violet-200/20 bg-[linear-gradient(140deg,rgba(4,8,20,.98),rgba(6,10,26,.95))] p-3 md:p-4">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(95%_60%_at_65%_2%,rgba(99,102,241,0.2),transparent_70%),radial-gradient(75%_75%_at_0%_100%,rgba(56,189,248,0.13),transparent_75%)]" />
+      <div className="grid h-full min-h-0 gap-3 lg:grid-cols-[72px_minmax(0,1fr)_340px]">
+        <aside className="hidden min-h-0 flex-col rounded-2xl border border-white/10 bg-black/25 p-2 lg:flex">
+          <div className="space-y-2">
+            {chamberNav.map((item) => (
+              <Link key={item.href} href={item.href} className="block rounded-lg border border-white/10 px-2 py-2 text-center text-xs text-white/75 hover:border-cyan-200/35 hover:text-cyan-100">{item.label}</Link>
+            ))}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button onClick={() => runCommand()} className="rounded-xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-4 py-2 text-sm font-semibold text-white">Plan next move</button>
-            <button onClick={() => dispatch({ type: "RECOVER" })} disabled={!runtimeSession.recoverableContext} className="rounded-xl border border-cyan-200/35 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-100 disabled:opacity-50">Continue where you left off</button>
-            <button onClick={() => dispatch({ type: "SET_COMPRESSED_HERO", compressed: false })} className="rounded-xl border border-white/20 px-4 py-2 text-sm text-white/80">Restore hero</button>
-            <Link href="/shopreel/review" className="rounded-xl border border-white/18 px-4 py-2 text-sm text-white/80">Review approvals</Link>
-            <div className="ml-auto"><ShopReelNotificationsBell /></div>
+          <div className="mt-auto rounded-lg border border-cyan-300/35 bg-cyan-400/12 px-2 py-2 text-center text-xs font-medium text-cyan-100">Operations</div>
+        </aside>
+
+        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-3">
+          <section className="rounded-2xl border border-white/12 bg-black/25 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.16em] text-cyan-100/70">Operator Online</div>
+                <p className="mt-1 text-sm text-white/75">Current Objective: {runtimeSession.lastOperatorSummary || "Focused"}</p>
+              </div>
+              <ShopReelNotificationsBell />
+            </div>
+            <div className="mt-3 rounded-xl border border-violet-300/35 bg-[#090f25]/85 p-3">
+              <div className="mb-2 text-xs text-cyan-100/75">Operator prompt</div>
+              <AiCommandInput value={command} onChange={setCommand} placeholder="What should the operator run next?" className="min-h-16 border-transparent bg-transparent shadow-none focus-visible:ring-0" />
+              <div className="mt-2 flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs text-white/82">{prompt}</button>)}</div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={() => runCommand()} className="rounded-xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-4 py-2 text-sm font-semibold text-white">Continue</button>
+              <button onClick={() => dispatch({ type: "RECOVER" })} disabled={!runtimeSession.recoverableContext} className="rounded-xl border border-cyan-200/35 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100 disabled:opacity-50">Continue where you left off</button>
+              <Link href="/shopreel/review" className="rounded-xl border border-white/18 px-3 py-2 text-sm text-white/80">Review approvals</Link>
+            </div>
+          </section>
+
+          <div className="min-h-0 overflow-hidden">
+            <OperatorRuntimeCanvas
+              session={runtimeSession}
+              onRecover={() => dispatch({ type: "RECOVER" })}
+              onInterruptManual={() => dispatch(buildInterruptAction({ reason: "Manual tools requested", requestedSurface: "manual_operations", returnSurface: runtimeSession.activeSurface, returnState: runtimeSession.runtimeState, fallbackRoute: "/shopreel/operations" }))}
+              onRunCommand={(next) => runCommand(next)}
+              context={context}
+              recent={recent}
+              campaignContext={campaignContext}
+              onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
+              reducedMotion={prefersReducedMotion}
+              chamberMemory={chamberMemory}
+            />
           </div>
-        </div>
-      </section>
 
-      <OperatorRuntimeCanvas
-        session={runtimeSession}
-        onRecover={() => dispatch({ type: "RECOVER" })}
-        onInterruptManual={() => dispatch(buildInterruptAction({ reason: "Manual tools requested", requestedSurface: "manual_operations", returnSurface: runtimeSession.activeSurface, returnState: runtimeSession.runtimeState, fallbackRoute: "/shopreel/operations" }))}
-        onRunCommand={(next) => runCommand(next)}
-        context={context}
-        recent={recent}
-        campaignContext={campaignContext}
-        onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
-        reducedMotion={prefersReducedMotion}
-        chamberMemory={chamberMemory}
-      />
+          <section className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs md:grid-cols-5">
+            {[
+              ["Runtime pulse", "Stable"],
+              ["Continuity signal", "Focused"],
+              ["Atmosphere", "Building"],
+              ["Momentum", "Forward"],
+              ["Unresolved", `${recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length}`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-white/55">{label}</div>
+                <div className="mt-0.5 text-sm text-cyan-100">{value}</div>
+              </div>
+            ))}
+          </section>
 
-      <section className="relative overflow-x-auto rounded-[1.6rem] border border-white/10 bg-[linear-gradient(135deg,rgba(8,11,23,.8),rgba(4,7,16,.7))] p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Recent operational worlds</div>
-          <div className="text-[11px] text-white/55">Compressed cinematic rail</div>
+          <section className="flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/20 p-2.5">
+            {["campaigns", "review", "library", "operations"].map((route) => (
+              <Link key={route} href={`/shopreel/${route}`} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/80 capitalize">{route}</Link>
+            ))}
+          </section>
         </div>
-        <div className="flex min-w-max gap-3 pb-1">
-          {recent.slice(0, 10).map((item, index) => {
-            const tone = /await|review|needs/i.test(item.status)
-              ? "border-amber-300/35 bg-amber-400/10 text-amber-100"
-              : /paused|interrupt/i.test(item.status)
-                ? "border-violet-300/35 bg-violet-400/10 text-violet-100"
-                : /active|running|draft/i.test(item.status)
-                  ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-100"
-                  : "border-emerald-300/30 bg-emerald-500/10 text-emerald-100";
-            return (
-              <article key={item.id} className={`w-[280px] rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(21,26,46,.6),rgba(7,11,24,.86))] p-3 shadow-[0_18px_45px_rgba(0,0,0,0.36)] transition-all duration-300 ${prefersReducedMotion ? "" : index === 0 ? "scale-100" : "scale-[0.96] opacity-80"}`}>
-                <div className="text-[11px] uppercase tracking-[0.12em] text-white/55">Standby world</div>
-                <p className="mt-1 line-clamp-2 text-sm font-medium text-white">{item.title}</p>
-                <div className={`mt-3 inline-flex rounded-full border px-2 py-0.5 text-[11px] ${tone}`}>{item.status}</div>
-                <div className="mt-2 text-[11px] text-white/50">Continuity retained for interruption-safe restoration.</div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
 
-      <section className="rounded-2xl border border-white/10 bg-black/15 p-4 opacity-85">
-        <div className="text-xs uppercase tracking-[0.15em] text-white/55">Runtime utilities</div>
-        <div className="mt-2 text-sm text-white/75">Manual operations stay compact as utility interruptions while operator continuity remains primary.</div>
-        <div className="mt-3 flex flex-wrap gap-2 text-sm">
-          <Link href="/shopreel/campaigns" className="rounded-lg border border-white/10 px-3 py-2 text-white/80">Campaigns</Link>
-          <Link href="/shopreel/review" className="rounded-lg border border-white/10 px-3 py-2 text-white/80">Review</Link>
-          <Link href="/shopreel/library" className="rounded-lg border border-white/10 px-3 py-2 text-white/80">Library</Link>
-          <Link href="/shopreel/operations" className="rounded-lg border border-white/10 px-3 py-2 text-white/80">Operations</Link>
-        </div>
-      </section>
+        <aside className="min-h-0 rounded-2xl border border-white/10 bg-black/25 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-white">Operational Worlds</h3>
+            <span className="text-[11px] text-white/55">Recent continuity</span>
+          </div>
+          <div className="h-[calc(100%-2rem)] min-h-0 space-y-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:rgba(103,232,249,.35)_transparent] [scrollbar-width:thin]">
+            {recent.slice(0, 12).map((item) => (
+              <button key={item.id} onClick={() => router.push(`/shopreel/content/${item.id}`)} className="block w-full rounded-xl border border-white/10 bg-[linear-gradient(145deg,rgba(21,26,46,.6),rgba(7,11,24,.86))] p-3 text-left">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] uppercase tracking-[0.14em] text-cyan-100/70">{statusTone(item.status)}</span>
+                  <span className="text-[10px] text-white/45">{item.id.slice(0, 8)}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-sm text-white">{item.title}</p>
+                <div className="mt-2 text-xs text-white/60">Stage: {item.status.replaceAll("_", " ")}</div>
+                <div className="text-xs text-white/45">Continue where you left off</div>
+              </button>
+            ))}
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
