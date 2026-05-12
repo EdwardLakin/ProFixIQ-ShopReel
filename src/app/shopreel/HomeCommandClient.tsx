@@ -5,7 +5,13 @@ import { useEffect, useMemo, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
 import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
-import { readWorkspaceMemory, type WorkspaceMemory, writeWorkspaceMemory, buildPendingTasks, buildContinuityThreads } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
+import {
+  buildContinuityThreads,
+  buildPendingTasks,
+  readWorkspaceMemory,
+  type WorkspaceMemory,
+  writeWorkspaceMemory,
+} from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
 import { executeShopReelCommand } from "@/features/shopreel/ui/system/executeShopReelCommand";
 import { resolveOperatorRuntime } from "@/features/shopreel/ui/system/resolveOperatorRuntime";
@@ -16,9 +22,14 @@ import {
   initialOperatorRuntimeSession,
   operatorRuntimeSessionReducer,
 } from "@/features/shopreel/ui/system/operatorRuntimeSession";
-import { persistRuntimeSession, readPersistedRuntimeSession, type PersistedChamberMemory } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+import {
+  persistRuntimeSession,
+  readPersistedRuntimeSession,
+  type PersistedChamberMemory,
+} from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 type RecentItem = { id: string; title: string; status: string };
+
 type RuntimeCampaignContext = {
   id: string;
   title: string;
@@ -31,6 +42,7 @@ type RuntimeCampaignContext = {
 };
 
 const quickPrompts = ["Launch campaign", "Refine direction", "Review approvals", "Open workspace"];
+
 const chamberNav = [
   { label: "Home", icon: "⌂", href: "/shopreel" },
   { label: "Workspace", icon: "◫", href: "/shopreel/campaigns" },
@@ -38,6 +50,14 @@ const chamberNav = [
   { label: "Approvals", icon: "✓", href: "/shopreel/review" },
   { label: "Reports", icon: "◴", href: "/shopreel/analytics" },
 ] as const;
+
+function statusTone(status: string) {
+  if (/await|review|needs/i.test(status)) return "Awaiting review";
+  if (/interrupt|pause|block/i.test(status)) return "Interrupted";
+  if (/restore|recover|resume/i.test(status)) return "Restored";
+  if (/active|running|draft|plan|build/i.test(status)) return "Active";
+  return "Stable";
+}
 
 export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) {
   const router = useRouter();
@@ -49,20 +69,132 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [chamberMemory, setChamberMemory] = useState<PersistedChamberMemory | null>(null);
 
+  const unresolvedCount = recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length;
+  const activeWorld = recent[0] ?? null;
+
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     setPrefersReducedMotion(media.matches);
+
     const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
     media.addEventListener("change", onChange);
-    const unresolvedCount = recent.filter((item) => /needs|review|block|interrupt/i.test(item.status)).length;
-  const activeWorld = recent[0] ?? null;
+
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    const parsed = readWorkspaceMemory();
+    if (!parsed) return;
+
+    setContext(parsed);
+    setCommand(parsed.lastCommand);
+
+    const persistedRuntime = readPersistedRuntimeSession();
+    if (!persistedRuntime) return;
+
+    setChamberMemory(persistedRuntime.chamberMemory);
+    dispatch({
+      type: "START_RUNTIME",
+      command: parsed.lastCommand ?? "",
+      resolution: {
+        state: persistedRuntime.progressionStage,
+        surfaceId: persistedRuntime.activeSurface,
+        transitionMode: "restore_previous",
+        confidence: "high",
+        summary: "Restored runtime continuity from last workspace.",
+        recommendedRouteFallback: persistedRuntime.returnTarget,
+        contextCarryover: {
+          rawCommand: parsed.lastCommand ?? "",
+          interpretedIntent: "unknown",
+          selectedCampaignId: persistedRuntime.activeCampaignId,
+          hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)),
+          hasActiveCampaign: recent.length > 0,
+          hasAssetsContext: Boolean(parsed.creativeContinuity),
+        },
+      },
+    });
+  }, [recent]);
+
+  useEffect(() => {
+    persistRuntimeSession(runtimeSession);
+    const persistedRuntime = readPersistedRuntimeSession();
+    setChamberMemory(persistedRuntime?.chamberMemory ?? null);
+  }, [runtimeSession]);
+
+  useEffect(() => {
+    const campaignId = runtimeSession.selectedEntityIds.campaignId;
+    if (!campaignId) {
+      setCampaignContext(null);
+      return;
+    }
+
+    void fetch(`/api/shopreel/campaigns/${campaignId}/runtime-context`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json) => setCampaignContext(json?.campaign ?? null))
+      .catch(() => setCampaignContext(null));
+  }, [runtimeSession.selectedEntityIds.campaignId]);
+
+  const persistContext = (route: string) => {
+    const pendingTasks = buildPendingTasks(interpreted.intent);
+    const operationalGraph = buildOperationalGraph({
+      generationId: recent[0]?.id,
+      campaignId: context?.lastCampaignId,
+      pendingTaskCount: pendingTasks.filter((task) => !task.done).length,
+      blockerCount: pendingTasks.filter((task) => /review|render|verify/i.test(task.label) && !task.done).length,
+      readyTaskCount: recent.filter((item) => /ready|complete|published/i.test(item.status)).length,
+      interrupted: false,
+      continuityThreadCount: 0,
+      lastRoute: route,
+    });
+
+    const base = context ?? readWorkspaceMemory();
+    if (!base) return;
+
+    const next: WorkspaceMemory = {
+      ...base,
+      lastWorkflow: interpreted.intent,
+      lastCommand: command,
+      lastRoute: route,
+      pendingTasks,
+      continuityThreads: buildContinuityThreads({ intent: interpreted.intent, pendingTasks, lastRoute: route }),
+      operationalGraph,
+      lastExecutionPlan: planCommandExecution(command, operationalGraph, route, interpreted.intent),
+      updatedAt: new Date().toISOString(),
+    };
+
+    writeWorkspaceMemory(next);
+    setContext(next);
+  };
+
+  const runCommand = (overrideCommand?: string) => {
+    const nextCommand = overrideCommand ?? command;
+    const execution = executeShopReelCommand({
+      command: nextCommand,
+      lastRoute: context?.lastRoute,
+      source: "home_command",
+    });
+
+    const runtime = resolveOperatorRuntime({
+      rawCommand: nextCommand,
+      classifiedIntent: execution.commandIntent,
+      currentPath: context?.lastRoute ?? "/shopreel",
+      selectedCampaignId: context?.lastCampaignId ?? null,
+      hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)),
+      hasActiveCampaign: recent.length > 0,
+      hasAssetsContext: Boolean(context?.creativeContinuity),
+    });
+
+    dispatch(buildRuntimeStartAction(runtime, nextCommand));
+    persistContext(execution.selectedRoute);
+    if (overrideCommand) setCommand(overrideCommand);
+  };
 
   return (
     <div className="relative h-[100svh] w-full overflow-hidden bg-[#02040c] text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_42%_36%,rgba(255,171,75,.24),transparent_18%),radial-gradient(circle_at_50%_52%,rgba(111,76,255,.28),transparent_32%),radial-gradient(circle_at_86%_38%,rgba(70,160,255,.15),transparent_30%),linear-gradient(135deg,#02040c_0%,#060815_48%,#04030b_100%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
 
-      <div className="relative z-10 grid h-full min-h-0 grid-cols-[150px_minmax(0,1fr)] xl:grid-cols-[170px_minmax(0,1fr)]">
+      <div className="relative z-10 grid h-full min-h-0 grid-cols-1 lg:grid-cols-[170px_minmax(0,1fr)]">
         <aside className="hidden border-r border-white/[0.06] bg-black/10 px-7 py-7 lg:flex lg:flex-col">
           <div className="flex items-center gap-4">
             <div className="text-sm font-bold tracking-[0.1em]">PROFIXIQ</div>
@@ -84,12 +216,17 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               >
                 <span className="text-base text-cyan-100/75">{item.icon}</span>
                 <span>{item.label}</span>
-                {index === 0 ? <span className="ml-auto h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_16px_rgba(251,146,60,.9)]" /> : null}
+                {index === 0 ? (
+                  <span className="ml-auto h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_16px_rgba(251,146,60,.9)]" />
+                ) : null}
               </Link>
             ))}
           </nav>
 
-          <Link href="/shopreel/operations" className="mt-auto flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-amber-100/88">
+          <Link
+            href="/shopreel/operations"
+            className="mt-auto flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-amber-100/88"
+          >
             <span className="text-lg">≡</span>
             Operations
           </Link>
@@ -102,9 +239,15 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
               Operator chamber online
             </div>
             <div className="ml-auto flex items-center gap-3">
-              <button type="button" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-white/72">⌕</button>
+              <button type="button" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-white/72">
+                ⌕
+              </button>
               <ShopReelNotificationsBell />
-              <button type="button" onClick={() => dispatch({ type: "RECOVER" })} className="rounded-2xl border border-white/10 bg-white/[0.055] px-5 py-3 text-sm font-semibold text-white">
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "RECOVER" })}
+                className="rounded-2xl border border-white/10 bg-white/[0.055] px-5 py-3 text-sm font-semibold text-white"
+              >
                 Resume
               </button>
             </div>
@@ -113,14 +256,21 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <section className="relative grid min-h-0 items-center gap-8 overflow-hidden lg:grid-cols-[minmax(420px,.78fr)_minmax(560px,1fr)] xl:grid-cols-[minmax(480px,.78fr)_minmax(680px,1fr)]">
             <div className="relative z-10 max-w-3xl">
               <div className="pointer-events-none absolute left-[86%] top-[-8%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.85)_0_1.6%,rgba(255,177,76,.25)_2.5%_5%,transparent_8%),repeating-radial-gradient(circle,rgba(255,177,76,.18)_0_1px,transparent_1px_20px)] opacity-90" />
-              <div className={`${prefersReducedMotion ? "" : "animate-[spin_38s_linear_infinite]"} pointer-events-none absolute left-[86%] top-[12%] h-80 w-80 -translate-x-1/2 rounded-full border border-violet-200/10`} />
+              <div
+                className={`${
+                  prefersReducedMotion ? "" : "animate-[spin_38s_linear_infinite]"
+                } pointer-events-none absolute left-[86%] top-[12%] h-80 w-80 -translate-x-1/2 rounded-full border border-violet-200/10`}
+              />
               <div className="pointer-events-none absolute left-[86%] top-[19%] h-3 w-3 -translate-x-1/2 rounded-full bg-amber-200 shadow-[0_0_42px_rgba(251,146,60,.95)]" />
 
               <div className="relative">
                 <div className="text-[12px] uppercase tracking-[0.26em] text-indigo-200/88">Operator online</div>
                 <h1 className="mt-5 text-[clamp(4.8rem,9vw,8.8rem)] font-semibold leading-[0.88] tracking-[-0.075em] text-white">
-                  Operator<br />
-                  <span className="bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">Online</span>
+                  Operator
+                  <br />
+                  <span className="bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
+                    Online
+                  </span>
                 </h1>
                 <p className="mt-7 max-w-2xl text-[clamp(1.2rem,1.7vw,1.8rem)] leading-snug text-white/64">
                   Continuity intact. Systems nominal. Focus your next move.
@@ -135,7 +285,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                       placeholder="What should the operator run next?"
                       className="min-h-16 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
                     />
-                    <button type="button" onClick={() => runCommand()} className="text-3xl text-white/48 transition hover:text-white">→</button>
+                    <button type="button" onClick={() => runCommand()} className="text-3xl text-white/48 transition hover:text-white">
+                      →
+                    </button>
                   </div>
 
                   <div className="mt-5 flex flex-wrap gap-3">
@@ -152,13 +304,20 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                   </div>
 
                   <div className="mt-7 flex flex-wrap items-center gap-4">
-                    <button type="button" onClick={() => runCommand()} className="group rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-8 py-4 text-sm font-semibold text-white shadow-[0_0_42px_rgba(124,58,237,.36)]">
+                    <button
+                      type="button"
+                      onClick={() => runCommand()}
+                      className="group rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-8 py-4 text-sm font-semibold text-white shadow-[0_0_42px_rgba(124,58,237,.36)]"
+                    >
                       Continue <span className="ml-4 inline-block transition group-hover:translate-x-1">→</span>
                     </button>
                     <Link href="/shopreel/review" className="rounded-2xl border border-white/12 bg-white/[0.035] px-6 py-4 text-sm text-white/80">
-                      Review approvals {unresolvedCount ? <span className="ml-2 rounded-full bg-violet-500 px-2 py-0.5 text-xs">{unresolvedCount}</span> : null}
+                      Review approvals
+                      {unresolvedCount ? <span className="ml-2 rounded-full bg-violet-500 px-2 py-0.5 text-xs">{unresolvedCount}</span> : null}
                     </Link>
-                    <Link href="/shopreel/operations" className="text-sm text-white/46 hover:text-white">Manual / Operations →</Link>
+                    <Link href="/shopreel/operations" className="text-sm text-white/46 hover:text-white">
+                      Manual / Operations →
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -170,7 +329,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                   <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">Operational Worlds</div>
                   <p className="mt-3 text-sm text-white/48">Your runtime environments. Alive and remembered.</p>
                 </div>
-                <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">View all →</Link>
+                <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">
+                  View all →
+                </Link>
               </div>
 
               <div className="relative h-[520px] overflow-visible">
@@ -196,18 +357,18 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_72%,rgba(255,164,72,.64),transparent_15%),radial-gradient(circle_at_55%_82%,rgba(102,226,255,.28),transparent_28%),linear-gradient(180deg,transparent_0_38%,rgba(23,16,34,.32)_39%,rgba(4,7,19,.96)_100%)]" />
                       <div className="pointer-events-none absolute bottom-24 left-0 right-0 h-36 bg-[linear-gradient(135deg,transparent_28%,rgba(255,176,77,.28)_31%,transparent_55%),linear-gradient(40deg,rgba(255,255,255,.07)_20%,transparent_21%)]" />
                       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-cyan-300/10 to-transparent" />
+
                       <div className="relative">
                         <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-amber-100/82">
                           <span>{active ? "Active" : statusTone(item.status)}</span>
                           <span>{active ? "Current" : item.status.replaceAll("_", " ")}</span>
                         </div>
-                        <h2 className="mt-8 line-clamp-3 text-2xl leading-tight tracking-[-0.03em] text-white">
-                          {item.title}
-                        </h2>
+                        <h2 className="mt-8 line-clamp-3 text-2xl leading-tight tracking-[-0.03em] text-white">{item.title}</h2>
                         <div className="mt-7 inline-flex rounded-full bg-violet-400/18 px-4 py-2 text-sm text-violet-100">
                           {item.status.replaceAll("_", " ")}
                         </div>
                       </div>
+
                       <div className="absolute bottom-8 left-6 right-6">
                         <div className="mb-3 h-1 rounded-full bg-white/10">
                           <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-amber-300 to-cyan-300" />
@@ -234,7 +395,9 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
           <footer className="grid min-h-0 gap-3 border-t border-white/[0.065] pt-4 lg:grid-cols-[minmax(280px,.7fr)_1fr_300px]">
             <div className="flex items-center gap-4 rounded-[1.6rem] bg-white/[0.025] px-5 py-4">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-violet-400/20 text-violet-100 shadow-[0_0_28px_rgba(139,92,246,.35)]">✦</div>
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-violet-400/20 text-violet-100 shadow-[0_0_28px_rgba(139,92,246,.35)]">
+                ✦
+              </div>
               <div>
                 <div className="text-[11px] uppercase tracking-[0.22em] text-white/50">Operator presence</div>
                 <div className="mt-1 text-sm text-white/75">Online and synchronized.</div>
@@ -248,7 +411,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                 ["Atmosphere", "Focused"],
                 ["Momentum", "Building"],
               ].map(([label, value]) => (
-                <div key={label} className="border-r border-white/8 last:border-r-0 px-2">
+                <div key={label} className="border-r border-white/10 px-2 last:border-r-0">
                   <div className="text-[10px] uppercase tracking-[0.2em] text-white/42">{label}</div>
                   <div className="mt-3 text-sm text-cyan-100">{value}</div>
                 </div>
@@ -264,7 +427,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
                   ["Library", "/shopreel/library"],
                   ["Ops", "/shopreel/operations"],
                 ].map(([title, href]) => (
-                  <Link key={href} href={href} className="rounded-xl border border-white/8 bg-white/[0.035] px-3 py-2 text-xs text-white/70 hover:bg-white/[0.07]">
+                  <Link key={href} href={href} className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-white/70 hover:bg-white/[0.07]">
                     {title}
                   </Link>
                 ))}
@@ -278,12 +441,24 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         <OperatorRuntimeCanvas
           session={runtimeSession}
           onRecover={() => dispatch({ type: "RECOVER" })}
-          onInterruptManual={() => dispatch(buildInterruptAction({ reason: "Manual tools requested", requestedSurface: "manual_operations", returnSurface: runtimeSession.activeSurface, returnState: runtimeSession.runtimeState, fallbackRoute: "/shopreel/operations" }))}
+          onInterruptManual={() =>
+            dispatch(
+              buildInterruptAction({
+                reason: "Manual tools requested",
+                requestedSurface: "manual_operations",
+                returnSurface: runtimeSession.activeSurface,
+                returnState: runtimeSession.runtimeState,
+                fallbackRoute: "/shopreel/operations",
+              }),
+            )
+          }
           onRunCommand={(next) => runCommand(next)}
           context={context}
           recent={recent}
           campaignContext={campaignContext}
-          onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
+          onDecisionSaved={(summary) =>
+            dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })
+          }
           reducedMotion={prefersReducedMotion}
           chamberMemory={chamberMemory}
           compact
