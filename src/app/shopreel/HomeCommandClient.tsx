@@ -45,11 +45,13 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     setContext(next);
   };
 
-  const runCommand = () => {
-    const execution = executeShopReelCommand({ command, lastRoute: context?.lastRoute, source: "home_command" });
-    const runtime = resolveOperatorRuntime({ rawCommand: command, classifiedIntent: execution.commandIntent, currentPath: context?.lastRoute ?? "/shopreel", selectedCampaignId: context?.lastCampaignId ?? null, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(context?.creativeContinuity) });
-    dispatch(buildRuntimeStartAction(runtime, command));
+  const runCommand = (overrideCommand?: string) => {
+    const nextCommand = overrideCommand ?? command;
+    const execution = executeShopReelCommand({ command: nextCommand, lastRoute: context?.lastRoute, source: "home_command" });
+    const runtime = resolveOperatorRuntime({ rawCommand: nextCommand, classifiedIntent: execution.commandIntent, currentPath: context?.lastRoute ?? "/shopreel", selectedCampaignId: context?.lastCampaignId ?? null, hasPendingApprovals: recent.some((item) => /review|approval|needs/i.test(item.status)), hasActiveCampaign: recent.length > 0, hasAssetsContext: Boolean(context?.creativeContinuity) });
+    dispatch(buildRuntimeStartAction(runtime, nextCommand));
     persistContext(execution.selectedRoute);
+    if (overrideCommand) setCommand(overrideCommand);
   };
 
   return (
@@ -63,7 +65,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
             <div className="mt-2 flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} onClick={() => setCommand(prompt)} className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs text-white/82">{prompt}</button>)}</div>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button onClick={runCommand} className="rounded-xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-4 py-2 text-sm font-semibold text-white">Plan next move</button>
+            <button onClick={() => runCommand()} className="rounded-xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-4 py-2 text-sm font-semibold text-white">Plan next move</button>
             <button onClick={() => dispatch({ type: "SET_COMPRESSED_HERO", compressed: false })} className="rounded-xl border border-white/20 px-4 py-2 text-sm text-white/80">Restore hero</button>
             <Link href="/shopreel/review" className="rounded-xl border border-white/18 px-4 py-2 text-sm text-white/80">Review approvals</Link>
             <div className="ml-auto"><ShopReelNotificationsBell /></div>
@@ -75,10 +77,14 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         session={runtimeSession}
         onRecover={() => dispatch({ type: "RECOVER" })}
         onInterruptManual={() => dispatch(buildInterruptAction({ reason: "Manual tools requested", requestedSurface: "manual_operations", returnSurface: runtimeSession.activeSurface, returnState: runtimeSession.runtimeState, fallbackRoute: "/shopreel/operations" }))}
+        onRunCommand={(next) => runCommand(next)}
+        context={context}
+        recent={recent}
       />
 
-      <section className="rounded-2xl border border-white/10 bg-black/20 p-5">
-        <div className="text-sm text-white/75">Direct route access remains fully supported for compatibility.</div>
+      <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="text-xs uppercase tracking-[0.15em] text-white/55">Runtime utilities</div>
+        <div className="mt-2 text-sm text-white/75">Use direct routes as compact utility interruptions while the runtime session remains active.</div>
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
           <Link href="/shopreel/campaigns" className="rounded-lg border border-white/10 px-3 py-2 text-white/80">Campaigns</Link>
           <Link href="/shopreel/review" className="rounded-lg border border-white/10 px-3 py-2 text-white/80">Review</Link>
