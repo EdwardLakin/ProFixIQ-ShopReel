@@ -98,13 +98,27 @@ export default function OperatorRuntimeCanvas({
     context?.creativeContinuity?.pacingPreference ? `Using preferred pacing profile: ${context.creativeContinuity.pacingPreference.replaceAll("_", " ")}.` : null,
   ].filter(Boolean) as string[];
   const progressionAhead = progression.slice(Math.max(activeProgressIndex + 1, 0), Math.max(activeProgressIndex + 3, 0));
+  const atmosphericFrameClass =
+    choreography.atmosphere.tension === "interrupted"
+      ? "border-amber-200/22 bg-amber-400/[0.03]"
+      : choreography.atmosphere.tension === "unresolved"
+        ? "border-violet-200/25 bg-violet-400/[0.03]"
+        : choreography.atmosphere.continuityPressure === "high"
+          ? "border-cyan-200/24 bg-cyan-400/[0.03]"
+          : "border-white/10 bg-white/[0.02]";
+  const anticipationClass =
+    choreography.atmosphere.anticipation === "forward"
+      ? "opacity-80 translate-y-0"
+      : choreography.atmosphere.anticipation === "forming"
+        ? "opacity-70 translate-y-[1px]"
+        : "opacity-60 translate-y-[2px]";
 
   return (
     <section className={`relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br ${choreography.depthModel.shellLightingClass} p-4 md:p-6`}>
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.backdropClass}`} />
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.chamberAtmosphereClass}`} />
       <div className="pointer-events-none absolute inset-x-[6%] top-[15%] h-[55%] rounded-[2rem] bg-gradient-to-b from-white/[0.05] via-transparent to-transparent blur-2xl" />
-      <div className="relative mb-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-cyan-100/90 md:grid-cols-2">
+      <div className={`relative mb-3 grid gap-2 rounded-xl border p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass}`}>
         <div>Operator presence: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
         <div>Active campaign identity: <span className="text-white/80">{campaignContext?.title ?? (session.selectedEntityIds.campaignId ? "Campaign context unavailable" : "No active campaign selected")}</span></div>
         <div>Workflow progression: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
@@ -117,12 +131,9 @@ export default function OperatorRuntimeCanvas({
         </div>
         <span className="rounded-full border border-cyan-100/25 px-2 py-1 text-xs text-cyan-100">{session.runtimeState}</span>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-cyan-100/75">
-        <span className="rounded-full border border-cyan-100/20 bg-cyan-300/10 px-2 py-0.5">{choreography.chamberIdentityLabel}</span>
-        <span className="rounded-full border border-white/15 px-2 py-0.5 text-white/70">Density: {choreography.densityMode}</span>
-      </div>
+      <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-cyan-100/62">{choreography.chamberIdentityLabel}</div>
       <div className={`mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 ${choreography.depthModel.continuityRailClass}`}>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.17em] text-cyan-100/60">Continuity memory spine</div>
+        <div className="mb-2 text-[10px] uppercase tracking-[0.17em] text-cyan-100/55">Continuity memory spine</div>
         <div className="flex flex-wrap gap-2">
         {progression.map((step, index) => <span key={step.id} className={`rounded-full px-2 py-1 text-[11px] ${activeProgressIndex >= index && activeProgressIndex !== -1 ? "bg-cyan-400/20 text-cyan-100" : "bg-white/5 text-white/55"}`}>{step.label}</span>)}
         </div>
@@ -134,8 +145,8 @@ export default function OperatorRuntimeCanvas({
       </div>
 
       {isThinking ? <div className="mt-3 rounded-xl border border-violet-200/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-100">Operator is interpreting and preparing the next surface. {transitionCopy}</div> : null}
-      <div className="mt-2 rounded-xl border border-cyan-200/20 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100">
-        {choreography.message} · transition {choreography.action.replaceAll("_", " ")} · intensity {choreography.intensity}
+      <div className="mt-2 rounded-xl border border-cyan-200/16 bg-cyan-400/[0.08] px-3 py-2 text-xs text-cyan-100/88">
+        {choreography.message}
       </div>
       {choreography.staleState ? (
         <div className="mt-2 rounded-xl border border-amber-200/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
@@ -146,7 +157,7 @@ export default function OperatorRuntimeCanvas({
       <div className="relative mt-4 grid gap-3">
         {previousSurface ? <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/55 transition-all duration-300 ${choreography.depthModel.previousLayerClass}`}>Previous: {previousSurface.label}</div> : null}
         {progressionAhead.length > 0 ? (
-          <div className={`rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-white/60 transition-all duration-300 ${choreography.depthModel.futureLayerClass} ${choreography.depthModel.supportSurfaceClass}`}>
+          <div className={`rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-white/60 transition-all duration-300 ${choreography.depthModel.futureLayerClass} ${choreography.depthModel.supportSurfaceClass} ${reducedMotion ? "" : anticipationClass}`}>
             Next depth cues: {progressionAhead.map((step) => step.label).join(" → ")}
           </div>
         ) : null}

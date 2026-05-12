@@ -16,6 +16,12 @@ export type RuntimeChoreographySnapshot = {
   chamberIdentityLabel: string;
   memoryResidue: string[];
   densityMode: "focused" | "weighted" | "recessed";
+  atmosphere: {
+    pulseTempo: "steady" | "elevated" | "compressed" | "recovering";
+    tension: "calm" | "active" | "unresolved" | "interrupted";
+    continuityPressure: "low" | "medium" | "high";
+    anticipation: "soft" | "forming" | "forward";
+  };
   depthModel: {
     activeLayerClass: string;
     previousLayerClass: string;
@@ -105,6 +111,12 @@ export function deriveRuntimeChoreography(input: {
       : input.session.runtimeState === "completed_export_ready"
         ? "recessed"
         : "focused";
+  const atmosphere = {
+    pulseTempo: interrupted ? "compressed" : recovered ? "recovering" : input.pendingApprovals > 0 || input.session.runtimeState === "awaiting_approval" ? "elevated" : "steady",
+    tension: interrupted ? "interrupted" : input.session.runtimeState === "awaiting_approval" ? "unresolved" : input.pendingApprovals > 0 ? "active" : "calm",
+    continuityPressure: interrupted || input.pendingApprovals > 1 ? "high" : input.pendingApprovals > 0 || input.refinementDepth > 1 ? "medium" : "low",
+    anticipation: action === "expand" || action === "stack" ? "forward" : progressionLooksAhead(input.session.runtimeState) ? "forming" : "soft",
+  } satisfies RuntimeChoreographySnapshot["atmosphere"];
 
   const staleState = (() => {
     if (input.campaignUnavailable && input.session.selectedEntityIds.campaignId) {
@@ -173,6 +185,11 @@ export function deriveRuntimeChoreography(input: {
     chamberIdentityLabel,
     memoryResidue,
     densityMode,
+    atmosphere,
     staleState,
   };
+}
+
+function progressionLooksAhead(state: OperatorRuntimeSessionState["runtimeState"]): boolean {
+  return state === "planning_campaign" || state === "refining_output" || state === "assembling_package";
 }
