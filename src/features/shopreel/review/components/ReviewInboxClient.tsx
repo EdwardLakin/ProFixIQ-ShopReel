@@ -24,7 +24,9 @@ type ReviewItem = {
   workspaceHref: string;
 };
 
-export default function ReviewInboxClient({ items }: { items: ReviewItem[] }) {
+type AdaptiveMemory = { learnedNotices: string[]; tasteSummary: string[]; continuityNotice: string | null };
+
+export default function ReviewInboxClient({ items, adaptiveMemory }: { items: ReviewItem[]; adaptiveMemory: AdaptiveMemory }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refineReason, setRefineReason] = useState<Record<string, string>>({});
@@ -77,6 +79,7 @@ export default function ReviewInboxClient({ items }: { items: ReviewItem[] }) {
             </div>
             <h3 className="mt-2 text-base font-semibold text-white">{item.decisionTitle}</h3>
             <p className="mt-1 text-sm text-white/70">{item.aiSummary}</p>
+            {adaptiveMemory.continuityNotice ? <p className="mt-2 text-xs text-cyan-100/80">{adaptiveMemory.continuityNotice}</p> : null}
             <div className="mt-3 grid gap-1 text-sm">
               <p><span className="text-white/55">Campaign:</span> <span className="text-white">{item.campaignTitle}</span></p>
               <p><span className="text-white/55">Decision needed:</span> <span className="text-white">{item.decisionNeeded}</span></p>
@@ -103,6 +106,12 @@ export default function ReviewInboxClient({ items }: { items: ReviewItem[] }) {
 
   return (
     <div className="grid gap-4">
+      {(adaptiveMemory.learnedNotices.length > 0 || adaptiveMemory.tasteSummary.length > 0) ? <GlassCard label="Adaptive memory" title="AI is learning your creative taste" description="Subtle preference continuity from your approvals, rejections, and refinements." strong>
+        <div className="grid gap-3">
+          {adaptiveMemory.learnedNotices.map((notice) => <p key={notice} className="text-sm text-white/75">{notice}</p>)}
+          {adaptiveMemory.tasteSummary.length > 0 ? <div className="flex flex-wrap gap-2">{adaptiveMemory.tasteSummary.map((signal) => <GlassBadge key={signal} tone="muted">{signal}</GlassBadge>)}</div> : null}
+        </div>
+      </GlassCard> : null}
       <Section title="High-priority decisions" description="Approvals and blockers that unlock campaign momentum right now." data={grouped.highPriority} />
       <Section title="Active AI proposals" description="AI has prepared options and is waiting for your direction." data={grouped.activeProposals} />
       <Section title="Recent review activity" description="Previously resolved supervision decisions for continuity." data={grouped.history} />

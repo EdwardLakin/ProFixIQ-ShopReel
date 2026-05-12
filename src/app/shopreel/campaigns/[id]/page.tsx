@@ -14,6 +14,7 @@ import CampaignDetailClient from "@/features/shopreel/campaigns/components/Campa
 import { listCampaignItemsWithMediaJobs } from "@/features/shopreel/campaigns/lib/server";
 import { ShopReelActionRail } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import CampaignWorkflowContinuityRail from "@/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail";
+import { buildAdaptiveCreativeMemory } from "@/features/shopreel/learning/adaptiveCreativeMemory";
 
 function timeAgoLabel(value: string) {
   const now = Date.now();
@@ -63,6 +64,23 @@ export default async function ShopReelCampaignDetailPage(
   if (scenesError) {
     throw new Error(scenesError.message);
   }
+
+
+  const { data: approvalEvents } = await supabase
+    .from("shopreel_agent_task_approval_events")
+    .select("action, reason, metadata, created_at, campaign_id")
+    .eq("shop_id", shopId)
+    .eq("campaign_id", campaign.id)
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  const adaptiveMemory = buildAdaptiveCreativeMemory((approvalEvents ?? []).map((event) => ({
+    action: event.action as "approved" | "rejected" | "canceled",
+    reason: event.reason,
+    metadata: event.metadata as { decisionMode?: string; refinementSignal?: string | null } | null,
+    createdAt: event.created_at,
+    campaignId: event.campaign_id,
+  })));
 
   const totalItems = items.length;
   const completedItems = items.filter((item) => !!item.final_output_asset_id).length;
@@ -204,6 +222,7 @@ export default async function ShopReelCampaignDetailPage(
             completedScenes,
             failedScenes,
           }}
+          adaptiveMemory={adaptiveMemory}
         />
       </section>
       <ShopReelActionRail title="Workspace rhythm" items={["Set mission context so AI planning stays on strategy","Approve one decision at a time to maintain momentum","Use review and production panels for deep context without leaving campaign ownership","Publish only after outputs and approvals are complete"]} />
