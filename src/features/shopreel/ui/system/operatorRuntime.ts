@@ -24,7 +24,7 @@ export type OperatorSurfaceId =
   | "blocked_recovery"
   | "export_ready";
 
-export type OperatorTransitionMode = "inline_materialize" | "route_fallback" | "guided_handoff";
+export type OperatorTransitionMode = "inline_materialize" | "route_fallback" | "guided_handoff" | "inline_replace" | "inline_stack" | "overlay_focus" | "restore_previous" | "fallback_route";
 
 export type OperatorRuntimeIntent = CommandInputIntent | "review" | "refine" | "asset_intake" | "publish" | "manual_operations" | "unknown";
 
