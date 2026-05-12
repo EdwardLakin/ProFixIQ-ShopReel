@@ -15,7 +15,7 @@ export type TransitionIntent =
   | "restore_continuity"
   | "return_to_active_branch";
 
-export type TransitionMode = "progression" | "continuity" | "recovery" | "escalation";
+export type TransitionMode = "progression" | "continuity" | "recovery" | "escalation" | "inline_replace" | "inline_stack" | "overlay_focus" | "restore_previous" | "fallback_route";
 
 export type TransitionSnapshot = {
   previousSurface: string;
