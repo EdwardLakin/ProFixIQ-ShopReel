@@ -29,6 +29,7 @@ export default function OperatorRuntimeCanvas({
   recent,
   campaignContext,
   onDecisionSaved,
+  reducedMotion,
 }: {
   session: OperatorRuntimeSessionState;
   onRecover: () => void;
@@ -38,6 +39,7 @@ export default function OperatorRuntimeCanvas({
   recent: RuntimeRecentItem[];
   campaignContext: RuntimeCampaignContext | null;
   onDecisionSaved: (summary: string) => void;
+  reducedMotion: boolean;
 }) {
   const activeSurface = operatorSurfaceRegistry[session.activeSurface];
   const previousSurface = session.previousSurface ? operatorSurfaceRegistry[session.previousSurface] : null;
@@ -66,7 +68,7 @@ export default function OperatorRuntimeCanvas({
     pendingApprovals: pendingApprovals.length,
     refinementDepth,
     campaignUnavailable: Boolean(session.selectedEntityIds.campaignId && !campaignContext),
-    reducedMotion: false,
+    reducedMotion,
   });
 
   const [decisionState, setDecisionState] = useState<Record<string, { status: "idle" | "pending" | "success" | "error"; message?: string }>>({});
@@ -91,23 +93,25 @@ export default function OperatorRuntimeCanvas({
     context?.creativeContinuity?.tonePreference ? `Recent approval changed tone bias toward ${context.creativeContinuity.tonePreference.replaceAll("_", " ")}.` : null,
     context?.creativeContinuity?.pacingPreference ? `Using preferred pacing profile: ${context.creativeContinuity.pacingPreference.replaceAll("_", " ")}.` : null,
   ].filter(Boolean) as string[];
+  const progressionAhead = progression.slice(Math.max(activeProgressIndex + 1, 0), Math.max(activeProgressIndex + 3, 0));
 
   return (
-    <section className="relative rounded-[1.8rem] border border-cyan-200/25 bg-[#071023]/80 p-5 md:p-6">
-      <div className="mb-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-cyan-100/90 md:grid-cols-2">
+    <section className={`relative overflow-hidden rounded-[1.9rem] border border-cyan-200/25 bg-gradient-to-br ${choreography.depthModel.shellLightingClass} p-5 md:p-6`}>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(95%_75%_at_85%_5%,rgba(141,170,255,0.12),transparent_68%),radial-gradient(70%_95%_at_5%_85%,rgba(155,115,255,0.09),transparent_64%)]" />
+      <div className="relative mb-3 grid gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-cyan-100/90 md:grid-cols-2">
         <div>Operator presence: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
         <div>Active campaign identity: <span className="text-white/80">{campaignContext?.title ?? (session.selectedEntityIds.campaignId ? "Campaign context unavailable" : "No active campaign selected")}</span></div>
         <div>Workflow progression: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
         <div>Recent decision trail: <span className="text-white/80">{campaignContext?.refinementHistory?.[0]?.action ?? "No recent inline mutation."}</span></div>
       </div>
-      <div className="flex items-center justify-between gap-2">
+      <div className="relative flex items-center justify-between gap-2">
         <div>
           <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Active workflow region</div>
           <h2 className="text-xl font-semibold text-white">{activeSurface.label}</h2>
         </div>
         <span className="rounded-full border border-cyan-100/25 px-2 py-1 text-xs text-cyan-100">{session.runtimeState}</span>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className={`mt-3 flex flex-wrap gap-2 ${choreography.depthModel.continuityRailClass}`}>
         {progression.map((step, index) => <span key={step.id} className={`rounded-full px-2 py-1 text-[11px] ${activeProgressIndex >= index && activeProgressIndex !== -1 ? "bg-cyan-400/20 text-cyan-100" : "bg-white/5 text-white/55"}`}>{step.label}</span>)}
       </div>
 
@@ -121,9 +125,14 @@ export default function OperatorRuntimeCanvas({
         </div>
       ) : null}
 
-      <div className="mt-4 grid gap-3">
-        {previousSurface ? <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/55">Previous: {previousSurface.label}</div> : null}
-        <div className={`${choreography.motionClass} ${choreography.reducedMotionClass}`}>
+      <div className="relative mt-4 grid gap-3">
+        {previousSurface ? <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/55 transition-all duration-300 ${choreography.depthModel.previousLayerClass}`}>Previous: {previousSurface.label}</div> : null}
+        {progressionAhead.length > 0 ? (
+          <div className={`rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-white/60 transition-all duration-300 ${choreography.depthModel.futureLayerClass}`}>
+            Next depth cues: {progressionAhead.map((step) => step.label).join(" → ")}
+          </div>
+        ) : null}
+        <div className={`${choreography.motionClass} ${choreography.reducedMotionClass} ${choreography.depthModel.activeLayerClass}`}>
           {session.activeSurface === "campaign_planning" ? (
             <article className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 backdrop-blur-sm">
               <div className="text-xs uppercase tracking-[0.15em] text-cyan-100/70">Inline campaign planning</div>
@@ -169,7 +178,7 @@ export default function OperatorRuntimeCanvas({
       ) : null}
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <button onClick={onInterruptManual} className="rounded-xl border border-white/20 px-3 py-2 text-sm text-white/80 hover:bg-white/10">Open manual tools</button>
+        <button onClick={onInterruptManual} className="rounded-xl border border-white/15 bg-white/[0.03] px-2.5 py-1.5 text-xs text-white/70 hover:bg-white/10">Manual tools</button>
         <button onClick={onRecover} disabled={!session.recoverableContext} className="rounded-xl border border-cyan-200/35 px-3 py-2 text-sm text-cyan-100 disabled:opacity-50">Resume where we were</button>
         <Link href={fallbackRoute} className="rounded-xl border border-white/20 bg-white/[0.06] px-3 py-2 text-sm text-white/85">Open full workspace</Link>
       </div>

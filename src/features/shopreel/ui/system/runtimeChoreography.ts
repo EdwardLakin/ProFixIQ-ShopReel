@@ -12,6 +12,13 @@ export type RuntimeChoreographySnapshot = {
   reducedMotionClass: string;
   motionClass: string;
   message: string;
+  depthModel: {
+    activeLayerClass: string;
+    previousLayerClass: string;
+    futureLayerClass: string;
+    shellLightingClass: string;
+    continuityRailClass: string;
+  };
   staleState: null | {
     reason: "restored_from_persistence" | "campaign_archived" | "review_resolved_elsewhere" | "entity_unavailable";
     detail: string;
@@ -89,6 +96,26 @@ export function deriveRuntimeChoreography(input: {
     reducedMotionClass: "motion-reduce:transition-none motion-reduce:transform-none",
     motionClass: input.reducedMotion ? "" : `transition-all duration-300 ${action === "stack" ? "md:translate-y-0" : ""}`,
     message,
+    depthModel: {
+      activeLayerClass: input.reducedMotion
+        ? "opacity-100"
+        : "scale-100 opacity-100 shadow-[0_32px_80px_rgba(8,12,28,0.65)]",
+      previousLayerClass: input.reducedMotion
+        ? "opacity-70"
+        : "scale-[0.97] -translate-y-1 opacity-70 blur-[0.3px]",
+      futureLayerClass: input.reducedMotion
+        ? "opacity-80"
+        : "scale-[0.985] translate-y-1 opacity-80",
+      shellLightingClass:
+        action === "interrupt"
+          ? "from-amber-500/14 via-slate-900/75 to-[#050813]/95"
+          : action === "restore"
+            ? "from-cyan-400/16 via-indigo-950/70 to-[#040611]/95"
+            : action === "compress"
+              ? "from-violet-500/15 via-slate-900/75 to-[#050813]/95"
+              : "from-blue-500/10 via-slate-950/70 to-[#03050f]/95",
+      continuityRailClass: input.reducedMotion ? "opacity-90" : "opacity-95",
+    },
     staleState,
   };
 }

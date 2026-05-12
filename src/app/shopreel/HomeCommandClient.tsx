@@ -39,6 +39,15 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
   const interpreted = useMemo(() => interpretCommand(command), [command]);
   const [runtimeSession, dispatch] = useReducer(operatorRuntimeSessionReducer, initialOperatorRuntimeSession);
   const [campaignContext, setCampaignContext] = useState<RuntimeCampaignContext | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(media.matches);
+    const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     const parsed = readWorkspaceMemory();
@@ -97,7 +106,8 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
 
   return (
     <div className="space-y-6 pb-10">
-      <section className={`relative overflow-hidden rounded-[2.1rem] border bg-[linear-gradient(145deg,rgba(10,16,38,.92),rgba(4,7,19,.97))] shadow-[0_40px_130px_rgba(0,0,0,0.66)] transition-all duration-300 motion-reduce:transition-none ${runtimeSession.compressedHero ? "border-cyan-200/45 p-4 md:p-5" : "border-violet-200/28 p-7 md:p-8"}`}>
+      <section className={`relative overflow-hidden rounded-[2.1rem] border bg-[linear-gradient(145deg,rgba(7,11,28,.95),rgba(3,6,17,.98))] shadow-[0_40px_130px_rgba(0,0,0,0.66)] transition-all duration-300 motion-reduce:transition-none ${runtimeSession.compressedHero ? "border-cyan-200/45 p-4 md:p-5" : "border-violet-200/28 p-7 md:p-8"}`}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_85%_0%,rgba(102,146,255,0.17),transparent_62%),radial-gradient(95%_75%_at_0%_100%,rgba(181,126,255,0.14),transparent_58%)]" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-cyan-100/75"><span>SHOPREEL OPERATOR</span><span className="rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-0.5 text-[10px]">{runtimeSession.compressedHero ? "Runtime active" : "Operator ready"}</span></div>
           {!runtimeSession.compressedHero ? <h1 className="mt-3 max-w-[14ch] text-3xl font-semibold text-white md:text-5xl">What should the operator run next?</h1> : <p className="mt-2 text-sm text-cyan-100/80">{runtimeSession.lastOperatorSummary}</p>}
@@ -107,6 +117,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button onClick={() => runCommand()} className="rounded-xl bg-gradient-to-r from-violet-500/90 to-cyan-400/85 px-4 py-2 text-sm font-semibold text-white">Plan next move</button>
+            <button onClick={() => dispatch({ type: "RECOVER" })} disabled={!runtimeSession.recoverableContext} className="rounded-xl border border-cyan-200/35 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-100 disabled:opacity-50">Continue where you left off</button>
             <button onClick={() => dispatch({ type: "SET_COMPRESSED_HERO", compressed: false })} className="rounded-xl border border-white/20 px-4 py-2 text-sm text-white/80">Restore hero</button>
             <Link href="/shopreel/review" className="rounded-xl border border-white/18 px-4 py-2 text-sm text-white/80">Review approvals</Link>
             <div className="ml-auto"><ShopReelNotificationsBell /></div>
@@ -123,11 +134,37 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
         recent={recent}
         campaignContext={campaignContext}
         onDecisionSaved={(summary) => dispatch({ type: "APPLY_REVIEW_DECISION", decisionSummary: summary, nextState: "refining_output" })}
+        reducedMotion={prefersReducedMotion}
       />
+
+      <section className="relative overflow-x-auto rounded-[1.6rem] border border-white/10 bg-[linear-gradient(135deg,rgba(8,11,23,.94),rgba(4,7,16,.92))] p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Recent operational worlds</div>
+          <div className="text-[11px] text-white/55">Compressed cinematic rail</div>
+        </div>
+        <div className="flex min-w-max gap-3 pb-1">
+          {recent.slice(0, 10).map((item, index) => {
+            const tone = /await|review|needs/i.test(item.status)
+              ? "border-amber-300/35 bg-amber-400/10 text-amber-100"
+              : /paused|interrupt/i.test(item.status)
+                ? "border-violet-300/35 bg-violet-400/10 text-violet-100"
+                : /active|running|draft/i.test(item.status)
+                  ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-100"
+                  : "border-emerald-300/30 bg-emerald-500/10 text-emerald-100";
+            return (
+              <article key={item.id} className={`w-[270px] rounded-2xl border border-white/12 bg-white/[0.03] p-3 transition-all duration-300 ${prefersReducedMotion ? "" : index === 0 ? "scale-100" : "scale-[0.965] opacity-85"}`}>
+                <div className="text-[11px] uppercase tracking-[0.12em] text-white/55">Project surface</div>
+                <p className="mt-1 line-clamp-2 text-sm font-medium text-white">{item.title}</p>
+                <div className={`mt-3 inline-flex rounded-full border px-2 py-0.5 text-[11px] ${tone}`}>{item.status}</div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
         <div className="text-xs uppercase tracking-[0.15em] text-white/55">Runtime utilities</div>
-        <div className="mt-2 text-sm text-white/75">Use direct routes as compact utility interruptions while the runtime session remains active.</div>
+        <div className="mt-2 text-sm text-white/75">Manual operations stay compact as utility interruptions while operator continuity remains primary.</div>
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
           <Link href="/shopreel/campaigns" className="rounded-lg border border-white/10 px-3 py-2 text-white/80">Campaigns</Link>
           <Link href="/shopreel/review" className="rounded-lg border border-white/10 px-3 py-2 text-white/80">Review</Link>
