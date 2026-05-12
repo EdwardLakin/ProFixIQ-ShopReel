@@ -33,6 +33,8 @@ type CampaignItemRow = {
   final_output_asset_id?: string | null;
 };
 
+type AdaptiveMemory = { learnedNotices: string[]; tasteSummary: string[]; continuityNotice: string | null };
+
 type ApprovalTask = {
   id: string;
   status: string;
@@ -46,6 +48,7 @@ export default function CampaignDetailClient({
   campaign,
   items,
   progress,
+  adaptiveMemory,
 }: {
   campaign: CampaignRow;
   items: CampaignItemRow[];
@@ -59,6 +62,7 @@ export default function CampaignDetailClient({
     completedScenes: number;
     failedScenes: number;
   };
+  adaptiveMemory: AdaptiveMemory;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -66,6 +70,7 @@ export default function CampaignDetailClient({
   const [campaignBrain, setCampaignBrain] = useState({ campaignObjective: "", targetAudience: "", channelPriorities: "", contentPillars: "" });
   const [agentRuns, setAgentRuns] = useState<Array<{ id: string; agent_type: string; status: string; confidence: number | null; requires_approval: boolean; updated_at: string }>>([]);
   const [runTasks, setRunTasks] = useState<Record<string, ApprovalTask[]>>({});
+  const [taskReason, setTaskReason] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void (async () => {
@@ -87,6 +92,19 @@ export default function CampaignDetailClient({
     })();
   }, [campaign.id]);
 
+
+  function detectRefinementSignal(reason: string): string[] {
+    const source = reason.toLowerCase();
+    const signals: string[] = [];
+    if (/(corporate|scripted|stiff|too ai)/.test(source)) signals.push("authenticity");
+    if (/(calm|slower|soften|gentle)/.test(source)) signals.push("calmer pacing");
+    if (/(more energy|faster|punchier)/.test(source)) signals.push("higher energy");
+    if (/(hook|opening|first seconds)/.test(source)) signals.push("stronger hook");
+    if (/(formal)/.test(source)) signals.push("less formal");
+    if (/(tiktok|reels|shorts)/.test(source)) signals.push("platform alignment");
+    return signals;
+  }
+
   const pendingTasks = useMemo(
     () => Object.values(runTasks).flat().filter((task) => task.status === "proposed" && task.requires_approval),
     [runTasks]
@@ -97,10 +115,19 @@ export default function CampaignDetailClient({
     try {
       setBusy(`${action}-${taskId}`);
       setError(null);
+      const reason = taskReason[taskId]?.trim() ?? "";
       const res = await fetch(`/api/shopreel/agents/tasks/${taskId}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metadata: { source: "campaign_workspace_decision_panel" } }),
+        body: JSON.stringify({
+          reason: reason || null,
+          metadata: {
+            source: "campaign_workspace_decision_panel",
+            decisionMode: action === "approve" ? "approve" : reason ? "refine" : "reject",
+            refinementSignal: action === "reject" ? reason || null : null,
+            refinementTags: action === "reject" ? detectRefinementSignal(reason) : [],
+          },
+        }),
       });
       const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; task?: { status: string } };
       if (!res.ok || json?.ok === false || !json.task) throw new Error(json?.error ?? `Failed to ${action} task`);
@@ -148,6 +175,14 @@ export default function CampaignDetailClient({
         </div>
       </GlassCard>
 
+      {(adaptiveMemory.learnedNotices.length > 0 || adaptiveMemory.tasteSummary.length > 0) ? <GlassCard label="Adaptive continuity" title="AI learned from your recent direction" description="Preference-aware continuity is applied before each next proposal." strong>
+        <div className="grid gap-2">
+          {adaptiveMemory.learnedNotices.map((notice) => <p key={notice} className="text-sm text-white/75">{notice}</p>)}
+          {adaptiveMemory.tasteSummary.length > 0 ? <div className="flex flex-wrap gap-2">{adaptiveMemory.tasteSummary.map((signal) => <GlassBadge key={signal} tone="muted">{signal}</GlassBadge>)}</div> : null}
+          {adaptiveMemory.continuityNotice ? <p className="text-xs text-cyan-100/80">{adaptiveMemory.continuityNotice}</p> : null}
+        </div>
+      </GlassCard> : null}
+
       <GlassCard label="Approval panel" title="Decisions that need your direction" description="Approve, reject, or refine AI proposals. These decisions guide the next execution step." strong>
         <div className="grid gap-3">
           {pendingTasks.length === 0 ? <div className="text-sm text-white/70">No blocking approvals right now. You can continue execution or ask AI to draft the next plan.</div> : pendingTasks.slice(0, 5).map((task) => (
@@ -157,6 +192,12 @@ export default function CampaignDetailClient({
                 <GlassBadge tone="muted">Confidence {task.confidence ?? "n/a"}</GlassBadge>
               </div>
               {task.details ? <div className="mt-2 text-sm text-white/70">{task.details}</div> : null}
+              <textarea
+                value={taskReason[task.id] ?? ""}
+                onChange={(event) => setTaskReason((prev) => ({ ...prev, [task.id]: event.target.value }))}
+                className="mt-2 w-full rounded-xl border border-white/15 bg-black/30 p-2 text-sm"
+                placeholder="Optional refinement note (e.g., less scripted, calmer pacing, stronger TikTok hook)."
+              />
               <div className="mt-3 flex gap-2">
                 <GlassButton variant="secondary" onClick={() => void transitionTask(task.id, "approve")} disabled={busy === `approve-${task.id}`}>Approve</GlassButton>
                 <GlassButton variant="ghost" onClick={() => void transitionTask(task.id, "reject")} disabled={busy === `reject-${task.id}`}>Reject / refine</GlassButton>

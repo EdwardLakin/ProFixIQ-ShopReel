@@ -5,9 +5,11 @@ import EcosystemStateRail from "@/features/shopreel/ui/system/EcosystemStateRail
 import RecoveryInboxRail from "@/features/shopreel/ui/system/RecoveryInboxRail";
 import { createAdminClient } from "@/lib/supabase/server";
 import ReviewInboxClient from "@/features/shopreel/review/components/ReviewInboxClient";
+import { buildAdaptiveCreativeMemory } from "@/features/shopreel/learning/adaptiveCreativeMemory";
 
 type AgentRun = { id: string; campaign_id: string | null; agent_type: string; status: string; updated_at: string; confidence: number | null };
 type AgentTask = { id: string; title: string; details: string | null; status: string; confidence: number | null; requires_approval: boolean; campaign_id: string | null; run_id: string | null; updated_at: string };
+type ApprovalEvent = { action: "approved" | "rejected" | "canceled"; reason: string | null; metadata: { decisionMode?: string; refinementSignal?: string | null } | null; created_at: string; campaign_id: string | null; };
 
 type CampaignLite = { id: string; title: string };
 
@@ -22,6 +24,21 @@ export default async function ShopReelReviewInboxPage() {
   const { data: tasks } = runIds.length
     ? await supabase.from("shopreel_agent_tasks").select("id, title, details, status, confidence, requires_approval, campaign_id, run_id, updated_at").in("run_id", runIds).order("updated_at", { ascending: false }).limit(120)
     : { data: [] as AgentTask[] };
+
+
+  const { data: approvalEvents } = await supabase
+    .from("shopreel_agent_task_approval_events")
+    .select("action, reason, metadata, created_at, campaign_id")
+    .order("created_at", { ascending: false })
+    .limit(120);
+
+  const adaptiveMemory = buildAdaptiveCreativeMemory(((approvalEvents ?? []) as ApprovalEvent[]).map((event) => ({
+    action: event.action as "approved" | "rejected" | "canceled",
+    reason: event.reason,
+    metadata: event.metadata,
+    createdAt: event.created_at,
+    campaignId: event.campaign_id,
+  })));
 
   const campaignMap = new Map((campaigns ?? []).map((campaign: CampaignLite) => [campaign.id, campaign.title]));
   const runMap = new Map((runs ?? []).map((run: AgentRun) => [run.id, run]));
@@ -58,7 +75,7 @@ export default async function ShopReelReviewInboxPage() {
     >
       <EcosystemStateRail surface="review" />
       <RecoveryInboxRail />
-      <ReviewInboxClient items={items} />
+      <ReviewInboxClient items={items} adaptiveMemory={adaptiveMemory} />
     </GlassShell>
   );
 }
