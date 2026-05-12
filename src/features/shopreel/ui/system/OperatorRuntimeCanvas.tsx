@@ -114,11 +114,11 @@ export default function OperatorRuntimeCanvas({
         : "opacity-60 translate-y-[2px]";
 
   return (
-    <section className={`relative h-full overflow-y-auto rounded-[2rem] border border-white/10 bg-gradient-to-br ${choreography.depthModel.shellLightingClass} p-4 md:p-5`}>
+    <section className={`relative h-full overflow-y-auto rounded-[2rem] bg-gradient-to-br ${choreography.depthModel.shellLightingClass} p-4 md:p-5`}>
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.backdropClass}`} />
       <div className={`pointer-events-none absolute inset-0 ${choreography.depthModel.chamberAtmosphereClass}`} />
       <div className="pointer-events-none absolute inset-x-[6%] top-[15%] h-[55%] rounded-[2rem] bg-gradient-to-b from-white/[0.05] via-transparent to-transparent blur-2xl" />
-      <div className={`relative mb-3 grid gap-2 rounded-xl border p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass}`}>
+      <div className={`relative mb-3 grid gap-2 rounded-xl p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass}`}>
         <div>Current objective: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
         <div>Active campaign: <span className="text-white/80">{campaignContext?.title ?? (session.selectedEntityIds.campaignId ? "Campaign context unavailable" : "No active campaign selected")}</span></div>
         <div>Lifecycle stage: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
@@ -126,13 +126,13 @@ export default function OperatorRuntimeCanvas({
       </div>
       <div className="relative flex items-center justify-between gap-2">
         <div>
-          <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Active workflow region</div>
+          <div className="text-xs uppercase tracking-[0.16em] text-cyan-100/70">Runtime pulse</div>
           <h2 className="text-xl font-semibold text-white">{activeSurface.label}</h2>
         </div>
         <span className="rounded-full border border-cyan-100/25 px-2 py-1 text-xs text-cyan-100">{session.runtimeState}</span>
       </div>
       <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-cyan-100/62">{choreography.chamberIdentityLabel}</div>
-      <div className={`mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 ${choreography.depthModel.continuityRailClass}`}>
+      <div className={`mt-3 rounded-2xl bg-black/20 px-3 py-2 ${choreography.depthModel.continuityRailClass}`}>
         <div className="mb-2 text-[10px] uppercase tracking-[0.17em] text-cyan-100/55">Continuity memory spine</div>
         <div className="flex flex-wrap gap-2">
         {progression.map((step, index) => <span key={step.id} className={`rounded-full px-2 py-1 text-[11px] ${activeProgressIndex >= index && activeProgressIndex !== -1 ? "bg-cyan-400/20 text-cyan-100" : "bg-white/5 text-white/55"}`}>{step.label}</span>)}
@@ -144,7 +144,7 @@ export default function OperatorRuntimeCanvas({
         ) : null}
       </div>
 
-      {isThinking ? <div className="mt-3 rounded-xl border border-violet-200/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-100">Operator is interpreting and preparing the next surface. {transitionCopy}</div> : null}
+      {isThinking ? <div className="mt-3 rounded-xl bg-violet-400/10 px-3 py-2 text-xs text-violet-100">Operator is interpreting and preparing the next surface. {transitionCopy}</div> : null}
       <div className="mt-2 rounded-xl border border-cyan-200/16 bg-cyan-400/[0.08] px-3 py-2 text-xs text-cyan-100/88">
         {choreography.message}
       </div>
@@ -155,12 +155,15 @@ export default function OperatorRuntimeCanvas({
       ) : null}
 
       <div className="relative mt-4 grid gap-3">
-        {previousSurface ? <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-white/55 transition-all duration-300 ${choreography.depthModel.previousLayerClass}`}>Previous: {previousSurface.label}</div> : null}
+        {previousSurface ? <div className={`rounded-xl bg-white/[0.03] p-3 text-xs text-white/55 transition-all duration-300 ${choreography.depthModel.previousLayerClass}`}>Previous: {previousSurface.label}</div> : null}
         {progressionAhead.length > 0 ? (
-          <div className={`rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-white/60 transition-all duration-300 ${choreography.depthModel.futureLayerClass} ${choreography.depthModel.supportSurfaceClass} ${reducedMotion ? "" : anticipationClass}`}>
-            Next depth cues: {progressionAhead.map((step) => step.label).join(" → ")}
+          <div className={`rounded-xl bg-white/[0.02] p-3 text-xs text-white/60 transition-all duration-300 ${choreography.depthModel.futureLayerClass} ${choreography.depthModel.supportSurfaceClass} ${reducedMotion ? "" : anticipationClass}`}>
+            Ready for next move: {progressionAhead.map((step) => step.label).join(" → ")}
           </div>
         ) : null}
+        <div className="pointer-events-none absolute right-4 top-2 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(251,146,60,.45),rgba(139,92,246,.26)_40%,rgba(20,30,64,.1)_68%,transparent_76%)] blur-[1px]" />
+        <div className={`${reducedMotion ? "" : "animate-[spin_26s_linear_infinite]"} pointer-events-none absolute right-[3rem] top-[1.8rem] h-28 w-28 rounded-full border border-cyan-100/35`} />
+        <div className={`${reducedMotion ? "" : "animate-pulse"} pointer-events-none absolute right-[4.2rem] top-[3rem] h-5 w-5 rounded-full bg-amber-200/90 shadow-[0_0_22px_rgba(251,146,60,.8)]`} />
         <div className={`${choreography.motionClass} ${choreography.reducedMotionClass} ${choreography.depthModel.activeLayerClass} relative`}>
           <div className={`pointer-events-none absolute inset-x-8 -top-5 h-16 rounded-full bg-gradient-to-r ${choreography.depthModel.objectiveGlowClass} blur-xl`} />
           {session.activeSurface === "campaign_planning" ? (
