@@ -278,7 +278,7 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
     "/shopreel/review": ["restore continuity and recover interrupted flow", "review blockers", "continue what we were working on"],
     "/shopreel/create": ["create next draft", "open create flow", "continue what we were working on"],
   };
-  const quickCommands = surfaceCommandMap[execution.recommendedSurface] ?? ["show me my latest", "continue what we were working on", "review + package"];
+  const quickCommands = surfaceCommandMap[execution.recommendedSurface] ?? ["launch a new campaign from this idea", "continue my active campaign", "review pending approvals"];
   const rhythmCommands = reorderSuggestionsByRhythm(quickCommands, rhythm);
 
   const cinematicAuraClass = environmentReactivity.operationalWeather.pattern === "escalation_storm"
@@ -320,14 +320,14 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
       <div className="pointer-events-none absolute -right-12 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="pointer-events-none absolute -left-14 bottom-0 h-52 w-52 rounded-full bg-violet-500/10 blur-3xl" />
       <div className="relative">
-        <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">Command home</div>
-        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Calm command center. Keep moving.</h1>
-        <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">See what needs attention, what is ready, and what to do next.</p>
+        <div className="text-xs uppercase tracking-[0.18em] text-cyan-100/70">ShopReel Command</div>
+        <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Tell ShopReel what you want to create.</h1>
+        <p className="mt-3 max-w-3xl text-sm text-white/70 md:text-base">ShopReel turns your intent into a campaign plan, asks for approval, executes the next step, and learns your creative preferences over time.</p>
         <p className="mt-2 text-xs text-white/60">Active flow: {ecosystemSnapshot.ecosystemMode} · workflow status {ecosystemSnapshot.operationalPressure} · continuity {ecosystemSnapshot.continuityHealth}</p>
         <p className="mt-2 text-xs text-white/55">Next move: {ecosystemSnapshot.suggestedSurfaceAction} · recovery path {ecosystemSnapshot.recoveryPriority}</p>
         <p className="mt-1 text-xs text-cyan-100/80">Likely next: {execution.nextOperationalMove} → {execution.recommendedSurface}</p>
         <div className={`mt-5 transition-all duration-300 ${isFocused ? "scale-[1.01]" : "scale-100"}`}>
-          <AiCommandInput value={command} onChange={setCommand} placeholder="Try: show me my latest and package what is ready" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
+          <AiCommandInput value={command} onChange={setCommand} placeholder="Try: launch a campaign for this offer, create content from this idea, refine my active campaign, or review pending approvals" className={`transition-all ${isFocused ? "min-h-40" : "min-h-28"}`} />
         </div>
         <div className="mt-2 text-xs text-cyan-100/80">Rhythm {rhythm.cadence} · strategy {operatorAdaptation.priorityBias} · continuity {ecosystemSnapshot.continuityHealth}</div>
         <div className="mt-3 flex flex-wrap gap-2">{rhythmCommands.map((x) => <button key={x} onClick={() => setCommand(x)} className="rounded-full bg-white/5 px-4 py-2 text-sm text-white/75 hover:bg-white/10">{x}</button>)}</div>
@@ -338,6 +338,20 @@ export default function HomeCommandClient({ recent }: { recent: RecentItem[] }) 
           <span className="text-xs text-white/60">Command bar first · navigation always available</span>
         </div>
       </div>
+    </section>
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {[
+        { title: "Start with an idea", description: "Launch a fresh campaign from a product, hook, or raw concept.", href: "/shopreel/create" },
+        { title: "Continue a campaign", description: "Jump back into active campaign planning and execution.", href: "/shopreel/campaigns" },
+        { title: "Review pending approvals", description: "Approve, refine, or reject the AI's next proposed actions.", href: "/shopreel/review" },
+        { title: "Add assets to the library", description: "Upload source material so the operator can reuse brand assets.", href: "/shopreel/library" },
+      ].map((card) => (
+        <Link key={card.title} href={card.href} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:bg-white/[0.07]">
+          <div className="text-sm font-semibold text-white">{card.title}</div>
+          <p className="mt-2 text-xs text-white/65">{card.description}</p>
+          <div className="mt-3 text-xs text-cyan-100/80">Open →</div>
+        </Link>
+      ))}
     </section>
 
     <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">

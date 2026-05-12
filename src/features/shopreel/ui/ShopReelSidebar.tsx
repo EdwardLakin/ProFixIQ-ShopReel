@@ -8,20 +8,38 @@ import { getManualNavRoutes } from "@/features/shopreel/ui/system/shopReelRouteR
 
 const iconByPath: Record<string, string> = {
   "/shopreel": "⌂",
-  "/shopreel/create": "✦",
   "/shopreel/campaigns": "◎",
-  "/shopreel/ideas": "◇",
-  "/shopreel/opportunities": "◈",
-  "/shopreel/upload": "⤴",
-  "/shopreel/video-creation": "◉",
-  "/shopreel/render-queue": "◌",
-  "/shopreel/exports": "↥",
+  "/shopreel/review": "✓",
   "/shopreel/library": "◫",
+  "/shopreel/settings": "⚙",
+  "/shopreel/create": "✦",
+  "/shopreel/render-jobs": "◍",
+  "/shopreel/render-queue": "◌",
   "/shopreel/publish-center": "⇪",
   "/shopreel/publish-queue": "☰",
-  "/shopreel/editor": "✎",
-  "/shopreel/review": "✓",
+  "/shopreel/automation": "⟲",
+  "/shopreel/operations": "⚐",
+  "/shopreel/operator": "⌘",
+  "/shopreel/video-creation": "◉",
+  "/shopreel/video-creation/advanced": "⋯",
+  "/shopreel/storyboards": "▤",
+  "/shopreel/opportunities": "◈",
+  "/shopreel/generations": "◧",
 };
+const advancedItems = [
+  { path: "/shopreel/render-jobs", label: "Render jobs" },
+  { path: "/shopreel/render-queue", label: "Render queue" },
+  { path: "/shopreel/publish-center", label: "Publish center" },
+  { path: "/shopreel/publish-queue", label: "Publish queue" },
+  { path: "/shopreel/automation", label: "Automation" },
+  { path: "/shopreel/operations", label: "Operations" },
+  { path: "/shopreel/operator", label: "Operator console" },
+  { path: "/shopreel/video-creation", label: "Video creation" },
+  { path: "/shopreel/video-creation/advanced", label: "Video advanced" },
+  { path: "/shopreel/storyboards", label: "Storyboards" },
+  { path: "/shopreel/opportunities", label: "Opportunities" },
+  { path: "/shopreel/generations", label: "Generations" },
+];
 
 const isActivePath = (pathname: string, href: string) =>
   href === "/shopreel" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -68,6 +86,15 @@ export default function ShopReelSidebar() {
             const active = isActivePath(pathname, item.path);
             return <Link key={item.path} href={item.path} className={`flex min-h-[50px] items-center justify-between gap-3 rounded-2xl px-4 py-3 text-[15px] transition ${active ? "bg-gradient-to-r from-cyan-400/18 to-violet-400/16 text-cyan-50" : "text-white/78 hover:bg-white/8 hover:text-white"}`}><span className="flex items-center gap-3"><span className="text-base leading-none">{iconByPath[item.path] ?? "•"}</span><span>{item.label}</span></span>{item.lifecycleStatus === "usable_but_partial" ? <span className="rounded-full border border-amber-300/40 px-2 py-0.5 text-[10px] uppercase text-amber-100">Partial</span> : null}</Link>;
           })}
+          <div className="mt-6 border-t border-white/10 pt-4">
+            <div className="mb-2 px-2 text-[10px] uppercase tracking-[0.18em] text-white/40">Advanced</div>
+            <div className="space-y-1">
+              {advancedItems.map((item) => {
+                const active = isActivePath(pathname, item.path);
+                return <Link key={item.path} href={item.path} className={`flex min-h-[38px] items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${active ? "bg-white/10 text-cyan-50" : "text-white/50 hover:bg-white/5 hover:text-white/80"}`}><span className="text-xs leading-none">{iconByPath[item.path] ?? "•"}</span><span>{item.label}</span></Link>;
+              })}
+            </div>
+          </div>
         </nav>
       </aside>
     </>
