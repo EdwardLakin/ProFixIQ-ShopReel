@@ -1,5 +1,5 @@
 import type { OperatorWorldCard } from "@/features/shopreel/operator/operatorWorlds";
-import { resolveWorldFromEntityKind, resolveWorldFromPath } from "@/features/shopreel/ui/system/pageToWorldAdapter";
+import { resolveRuntimeWorldId, resolveWorldFromEntityKind, resolveWorldFromPath } from "@/features/shopreel/ui/system/pageToWorldAdapter";
 import { RUNTIME_WORLD_MAP, type RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 import { buildWorldSnapshot } from "@/features/shopreel/ui/system/worldSnapshot";
 
@@ -26,7 +26,7 @@ export type RuntimeWorldAction = { id: string; label: string; href: string; desc
 export type RuntimeWorldPanel = { title: string; summary: string; href?: string };
 export type RuntimeWorldEnvironment = {
   worldId: RuntimeWorldId;
-  worldKind: string;
+  worldKind: RuntimeWorldId;
   title: string;
   status: string;
   stageLabel: string;
@@ -72,7 +72,7 @@ export function buildRuntimeWorldEntry(input: { card?: OperatorWorldCard | null;
   const status = card?.normalizedStatus ?? snapshot.progress.status;
   return {
     worldId,
-    worldKind: def.shortLabel,
+    worldKind: resolveRuntimeWorldId(def.worldId),
     entityKind: card?.kind ?? null,
     entityId: card?.id ?? null,
     href: card?.href ?? def.canonicalRoute,

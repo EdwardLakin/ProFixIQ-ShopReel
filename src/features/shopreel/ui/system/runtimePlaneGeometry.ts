@@ -1,6 +1,7 @@
 import type { RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
 import type { RuntimeChamberGeometry } from "@/features/shopreel/ui/system/runtimeChamberGeometry";
 import type { RuntimeTraversalState } from "@/features/shopreel/ui/system/runtimeTraversalEngine";
+import type { RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 
 type RuntimeWorldKind = RuntimeWorldEntry["worldKind"];
 
@@ -28,7 +29,7 @@ export type RuntimeScenePlane = {
 };
 
 const DEPTH_INDEX: Record<RuntimePlaneDepth, number> = { foreground: 0.95, midground: 0.64, operator: 0.56, peripheral: 0.42, background: 0.22, distant: 0.08 };
-const WORLD_BIAS: Record<RuntimeWorldKind, number> = { campaign: 0.03, review: -0.02, generation: 0.06, render: 0.05, publish: 0.02, analytics: -0.01, operations: 0.01, library: -0.03, upload: 0 };
+const WORLD_BIAS: Record<RuntimeWorldId, number> = { campaign: 0.03, idea: 0.04, upload: 0, asset_library: -0.03, generation: 0.06, video_creation: 0.05, review: -0.02, render: 0.05, publish: 0.02, calendar: 0.01, analytics: -0.01, automation: -0.02, operations: 0.01 };
 
 function plane(depth: RuntimePlaneDepth, worldKind: RuntimeWorldKind, chamber: RuntimeChamberGeometry, traversal: RuntimeTraversalState): RuntimeScenePlane {
   const depthUnit = DEPTH_INDEX[depth];
