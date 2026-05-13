@@ -4,6 +4,8 @@ import type {
   OperatorSurfaceId,
   OperatorTransitionMode,
 } from "@/features/shopreel/ui/system/operatorRuntime";
+import type { RuntimeEntity, RuntimeWorkspaceState } from "@/features/shopreel/runtime/entities";
+import { focusEntity, openEntity, pinEntity, queueEntity, transitionToEntity } from "@/features/shopreel/runtime/entities";
 
 export type RuntimeInterruption = {
   reason: string;
@@ -32,6 +34,7 @@ export type OperatorRuntimeSessionState = {
   recoverableContext: RecoverableRuntimeContext | null;
   selectedEntityIds: { campaignId: string | null; generationId: string | null };
   fallbackRoute: string;
+  workspace: RuntimeWorkspaceState;
 };
 
 export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
@@ -46,6 +49,7 @@ export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
   recoverableContext: null,
   selectedEntityIds: { campaignId: null, generationId: null },
   fallbackRoute: "/shopreel",
+  workspace: { entities: [], focusedEntityId: null, pinnedEntityIds: [], queuedEntityIds: [], panels: [] },
 };
 
 type StartRuntimeAction = { type: "START_RUNTIME"; resolution: OperatorRuntimeResolution; command: string };
@@ -60,6 +64,11 @@ type ApplyReviewDecisionAction = {
   decisionSummary: string;
   nextState: OperatorRuntimeState;
 };
+type OpenEntityAction = { type: "OPEN_ENTITY"; entity: RuntimeEntity };
+type FocusEntityAction = { type: "FOCUS_ENTITY"; entityId: string };
+type PinEntityAction = { type: "PIN_ENTITY"; entityId: string };
+type QueueEntityAction = { type: "QUEUE_ENTITY"; entityId: string };
+type TransitionToEntityAction = { type: "TRANSITION_TO_ENTITY"; entityId: string };
 
 export type OperatorRuntimeSessionAction =
   | StartRuntimeAction
@@ -69,7 +78,12 @@ export type OperatorRuntimeSessionAction =
   | InterruptAction
   | RecoverAction
   | SelectEntityAction
-  | ApplyReviewDecisionAction;
+  | ApplyReviewDecisionAction
+  | OpenEntityAction
+  | FocusEntityAction
+  | PinEntityAction
+  | QueueEntityAction
+  | TransitionToEntityAction;
 
 export function operatorRuntimeSessionReducer(
   state: OperatorRuntimeSessionState,
@@ -143,6 +157,16 @@ export function operatorRuntimeSessionReducer(
         runtimeState: action.nextState,
         lastOperatorSummary: action.decisionSummary,
       };
+    case "OPEN_ENTITY":
+      return { ...state, workspace: openEntity(state.workspace, action.entity) };
+    case "FOCUS_ENTITY":
+      return { ...state, workspace: focusEntity(state.workspace, action.entityId) };
+    case "PIN_ENTITY":
+      return { ...state, workspace: pinEntity(state.workspace, action.entityId) };
+    case "QUEUE_ENTITY":
+      return { ...state, workspace: queueEntity(state.workspace, action.entityId) };
+    case "TRANSITION_TO_ENTITY":
+      return { ...state, workspace: transitionToEntity(state.workspace, action.entityId) };
     default:
       return state;
   }
