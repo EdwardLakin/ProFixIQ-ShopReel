@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTransitionRouter } from "@/features/shopreel/ui/system/TransitionProvider";
 import { persistRuntimeReturnState, readRuntimeSpatialTransition } from "@/features/shopreel/ui/system/runtimeSpatialTransition";
+import { deriveRuntimeWorldCamera } from "@/features/shopreel/ui/system/runtimeWorldSpatialModel";
 import RuntimeWorldWorkspaceCanvas from "@/features/shopreel/ui/system/RuntimeWorldWorkspaceCanvas";
 import { resolveGuidedFlowStep, resolveWorldGuidedPrompt } from "@/features/shopreel/ui/system/guidedWorldFlow";
 import type { RuntimeWorldAction, RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
@@ -157,13 +158,14 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   </aside>;
 
   const inheritedAtmosphere = inheritedSeed.includes(":") ? inheritedSeed.split(":")[0] : entry.worldId;
+  const cameraState = deriveRuntimeWorldCamera(resolvedTransition?.camera ?? "immersed", Boolean(resolvedTransition?.reducedMotion));
 
   return <div className={`relative min-h-screen text-white ${entry.transitionClass} ${transitionClass.container}`} data-world-seed={ambientState.visualSeed}>
-    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${entry.tonalClass} ${inheritedAtmosphere === "campaign" ? "opacity-100" : "opacity-95"}`} style={{ opacity: 0.88 + immersion.atmosphere.ambientGlow * 0.22 }} />
-    <div className={`pointer-events-none absolute inset-0 ${entry.orbClass}`} />
-    <div className={`pointer-events-none absolute inset-0 ${entry.gridClass} bg-[size:72px_72px] opacity-35`} />
+    <div className={`pointer-events-none absolute inset-0 z-0 bg-gradient-to-br ${entry.tonalClass} ${inheritedAtmosphere === "campaign" ? "opacity-100" : "opacity-95"}`} style={{ opacity: 0.86 + immersion.atmosphere.ambientGlow * 0.18 }} />
+    <div className={`pointer-events-none absolute inset-0 z-0 ${entry.orbClass}`} />
+    <div className={`pointer-events-none absolute inset-0 z-0 ${entry.gridClass} bg-[size:72px_72px] opacity-30`} />
     <div className="relative z-10 mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 py-4 md:px-6">
-      <section className={`rounded-2xl p-4 ${entry.frameClass}`} style={{ opacity: resolvedTransition?.focus.shellOpacity ?? 1, transform: resolvedTransition?.reducedMotion ? "none" : `scale(${resolvedTransition?.camera === "focusing" ? 0.992 : 1})`, filter: `blur(${resolvedTransition?.camera === "entering" ? 1.5 : 0}px)` }}>
+      <section className={`rounded-2xl p-4 ${entry.frameClass}`} style={{ opacity: resolvedTransition?.focus.shellOpacity ?? 1, transform: `translate3d(0,${cameraState.translateY}px,0) scale(${cameraState.scale})`, filter: `blur(${cameraState.blur}px)` }}>
         <p className="text-xs uppercase tracking-[0.2em] text-cyan-100/80">{entry.worldKind} world</p>
         <h1 className="text-2xl font-semibold">{entry.title}</h1>
         <p className="text-sm text-white/70">{entry.stageLabel} · {entry.status} · {entry.objective}</p>
