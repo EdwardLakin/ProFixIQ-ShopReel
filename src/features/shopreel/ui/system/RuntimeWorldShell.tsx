@@ -6,12 +6,16 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTransitionRouter } from "@/features/shopreel/ui/system/TransitionProvider";
 import { persistRuntimeReturnState, readRuntimeSpatialTransition } from "@/features/shopreel/ui/system/runtimeSpatialTransition";
-import { deriveRuntimeWorldCamera } from "@/features/shopreel/ui/system/runtimeWorldSpatialModel";
 import RuntimeWorldWorkspaceCanvas from "@/features/shopreel/ui/system/RuntimeWorldWorkspaceCanvas";
+import { deriveRuntimeChamberGeometry } from "@/features/shopreel/ui/system/runtimeChamberGeometry";
+import { deriveRuntimeTraversal } from "@/features/shopreel/ui/system/runtimeTraversalEngine";
+import { buildRuntimeSceneComposition } from "@/features/shopreel/ui/system/runtimeSceneGraph";
+import { RuntimeSceneGraphCanvas } from "@/features/shopreel/ui/system/RuntimeSceneGraphCanvas";
+import { RuntimeEnvironmentField } from "@/features/shopreel/ui/system/RuntimeEnvironmentField";
 import { resolveGuidedFlowStep, resolveWorldGuidedPrompt } from "@/features/shopreel/ui/system/guidedWorldFlow";
 import type { RuntimeWorldAction, RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
 import { RUNTIME_WORLD_MAP } from "@/features/shopreel/ui/system/runtimeWorldMap";
-import { createWorldEntryTransition, deriveWorldTransitionClasses, type RuntimeWorldAmbientState, type RuntimeWorldFocusState, type RuntimeWorldIdentityTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
+import { createWorldEntryTransition, deriveWorldTransitionClasses , type RuntimeWorldAmbientState, type RuntimeWorldIdentityTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
 import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
 import { deriveRuntimeImmersionState, type RuntimeImmersionState } from "@/features/shopreel/ui/system/runtimeImmersion";
 import { deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
@@ -39,7 +43,6 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const manualActions = actionForWorld(entry.worldId);
   const identityTransition: RuntimeWorldIdentityTransition = createWorldEntryTransition({ mode: "resume_world", fromWorldId: persisted?.previousWorldId ?? null, toWorldId: entry.worldId, fromRoute: persisted?.worldContinuity.previousRoute ?? null, toRoute: persisted?.worldContinuity.activeRoute ?? entry.href, label: "resume", at: new Date().toISOString() }, false);
   const transitionClass = deriveWorldTransitionClasses(identityTransition);
-  const focusState: RuntimeWorldFocusState = { focusedPanelId: persisted?.worldContinuity.focusedPanelId ?? null, activeGuidedQuestion: persisted?.worldContinuity.activeGuidedQuestion ?? null };
   const transitionSnapshot = readRuntimeSpatialTransition();
   const inheritedSeed = transitionSnapshot?.snapshot.atmosphere.gradientSeed ?? persisted?.worldContinuity.environment.visualSeed ?? entry.visualSeed;
   const ambientState: RuntimeWorldAmbientState = { stabilized: true, visualSeed: inheritedSeed };
@@ -163,33 +166,23 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     router.push(href);
   };
 
-  const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`} style={{ opacity: 0.84 + interaction.operatorGuidance.railNoiseSuppression * 0.1 + surface.presence.persistenceCue * 0.08, borderColor: `rgba(125,211,252,${0.18 + surface.ambient.operatorRailTone * 0.2})`, boxShadow: `0 0 ${8 + surface.continuity.continuityStrength * 20}px rgba(34,211,238,${0.09 + surface.ambient.continuityRailTone * 0.16})`, background: `linear-gradient(160deg, rgba(8,12,20,${0.56 + surface.ambient.ambientBlend * 0.12}), rgba(8,12,20,${0.44 + surface.presence.ambientSettling * 0.1}))` }}>
+  const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`}>
     <p>{flow?.question ?? prompt.question}</p>
     <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label} · {interaction.guidanceCue.label}</p>
-    <p className="mt-1 text-xs text-white/60">{choreography.continuityCue.continuationLabel}</p>
-    <p className="mt-2 text-xs text-white/60">Focus: {focusState.focusedPanelId ?? "workspace"} · Ambient: {ambientState.stabilized ? "stable" : "shifting"} · Region: {environment.worldRegion.replaceAll("_", " ")}</p>
     <div className="mt-2 grid gap-2 sm:grid-cols-2" data-attention={interaction.attention}>
-      <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: `rgba(110,231,183,${0.35 + interaction.guidanceCue.emphasis * 0.4})`, background: `rgba(52,211,153,${0.08 + interaction.guidanceCue.emphasis * 0.16})`, filter: `contrast(${1 + interaction.continuityAttention * 0.08})` }}>Yes</button>
-      <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: `rgba(253,230,138,${0.32 + interaction.panelRelationshipIntensity * 0.2})`, background: `rgba(251,191,36,${0.06 + (interaction.decisionFocus === "critical" ? 0.1 : 0.04)})` }}>No</button>
+      <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border border-emerald-300/40 bg-emerald-400/10 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">Yes</button>
+      <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-lg border border-amber-200/40 bg-amber-300/10 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">No</button>
     </div>
     <div className="mt-4 flex flex-wrap gap-2">{manualActions.map((action) => <Link key={action.id} href={action.href} className="rounded-full border border-white/20 px-3 py-1 text-xs">{action.label}</Link>)}</div>
-    <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} onClick={() => persistRuntimeReturnState({ worldId: entry.worldId, scrollY: window.scrollY, restoreCardId: `${entry.entityKind ?? entry.worldKind}:${entry.entityId ?? entry.worldId}`, returnedAt: new Date().toISOString() })} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Open full manual route</Link></div>
+    <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} onClick={() => persistRuntimeReturnState({ worldId: entry.worldId, scrollY: window.scrollY, restoreCardId: `${entry.entityKind ?? entry.worldKind}:${entry.entityId ?? entry.worldId}`, returnedAt: new Date().toISOString() })} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Manual route</Link></div>
   </aside>;
 
-  const inheritedAtmosphere = inheritedSeed.includes(":") ? inheritedSeed.split(":")[0] : entry.worldId;
-  const cameraState = deriveRuntimeWorldCamera(resolvedTransition?.camera ?? "immersed", Boolean(resolvedTransition?.reducedMotion));
+  const chamber = deriveRuntimeChamberGeometry(entry.worldKind);
+  const traversal = deriveRuntimeTraversal({ sourceWorld: persisted?.previousWorldId ?? null, targetWorld: entry.worldId, spatialMap, geometry: chamber, unresolvedCount: entry.unresolvedCount });
+  const planes = RuntimeWorldWorkspaceCanvas({ entry, children });
+  const scene = buildRuntimeSceneComposition({ chamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={chamber} /> });
 
-  return <div className={`relative min-h-screen text-white ${entry.transitionClass} ${transitionClass.container}`} data-world-seed={ambientState.visualSeed}>
-    <div className={`pointer-events-none absolute inset-0 z-0 bg-gradient-to-br ${entry.tonalClass} ${inheritedAtmosphere === "campaign" ? "opacity-100" : "opacity-95"}`} style={{ opacity: 0.8 + immersion.atmosphere.ambientGlow * 0.14 }} />
-    <div className={`pointer-events-none absolute inset-0 z-0 ${entry.orbClass} opacity-70`} />
-    <div className={`pointer-events-none absolute inset-0 z-0 ${entry.gridClass} bg-[size:72px_72px] opacity-18`} />
-    <div className="relative z-10 mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 py-4 md:px-6">
-      <section className={`rounded-2xl p-4 ${entry.frameClass}`} style={{ opacity: resolvedTransition?.focus.shellOpacity ?? 1, transform: `translate3d(0,${cameraState.translateY}px,0) scale(${cameraState.scale})`, filter: `blur(${cameraState.blur}px)` }}>
-        <p className="text-xs uppercase tracking-[0.2em] text-cyan-100/80">{entry.worldKind} world</p>
-        <h1 className="text-2xl font-semibold">{entry.title}</h1>
-        <p className="text-sm text-white/70">{entry.stageLabel} · {entry.status} · {entry.objective}</p>
-      </section>
-      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={resolvedTransition?.focus.panelReveal ?? 1} continuityRailFocus={resolvedTransition?.focus.continuityRailFocus ?? 1} immersion={immersion} interaction={interaction} surface={surface} environment={environment} spatialMap={spatialMap}>{children}</RuntimeWorldWorkspaceCanvas>
-    </div>
+  return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container}`} data-world-seed={ambientState.visualSeed}>
+    <RuntimeSceneGraphCanvas composition={scene} />
   </div>;
 }
