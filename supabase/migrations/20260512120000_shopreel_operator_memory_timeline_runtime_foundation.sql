@@ -2,7 +2,7 @@ begin;
 
 create table if not exists public.shopreel_operator_sessions (
   id uuid primary key default gen_random_uuid(),
-  shop_id uuid not null references public.tenant_shops(id) on delete cascade,
+  shop_id uuid not null,
   user_id uuid not null references auth.users(id) on delete cascade,
   session_status text not null default 'active',
   started_at timestamptz not null default timezone('utc', now()),
@@ -14,7 +14,7 @@ create table if not exists public.shopreel_operator_sessions (
 
 create table if not exists public.shopreel_operator_memory (
   id uuid primary key default gen_random_uuid(),
-  shop_id uuid not null references public.tenant_shops(id) on delete cascade,
+  shop_id uuid not null,
   user_id uuid not null references auth.users(id) on delete cascade,
   session_id uuid references public.shopreel_operator_sessions(id) on delete set null,
   memory_key text not null,
@@ -28,7 +28,7 @@ create table if not exists public.shopreel_operator_memory (
 
 create table if not exists public.shopreel_operator_workspace_state (
   id uuid primary key default gen_random_uuid(),
-  shop_id uuid not null references public.tenant_shops(id) on delete cascade,
+  shop_id uuid not null,
   user_id uuid not null references auth.users(id) on delete cascade,
   session_id uuid references public.shopreel_operator_sessions(id) on delete set null,
   runtime_state text not null,
@@ -43,7 +43,7 @@ create table if not exists public.shopreel_operator_workspace_state (
 
 create table if not exists public.shopreel_workspace_timeline_events (
   id uuid primary key default gen_random_uuid(),
-  shop_id uuid not null references public.tenant_shops(id) on delete cascade,
+  shop_id uuid not null,
   user_id uuid references auth.users(id) on delete set null,
   session_id uuid references public.shopreel_operator_sessions(id) on delete set null,
   entity_kind text not null,
@@ -134,22 +134,31 @@ create policy "shopreel_workspace_timeline_events_insert"
 
 create index if not exists idx_shopreel_operator_sessions_shop_user_updated
   on public.shopreel_operator_sessions (shop_id, user_id, updated_at desc);
+
 create index if not exists idx_shopreel_operator_memory_shop_user_updated
   on public.shopreel_operator_memory (shop_id, user_id, updated_at desc);
+
 create index if not exists idx_shopreel_operator_memory_session
   on public.shopreel_operator_memory (session_id);
+
 create index if not exists idx_shopreel_operator_memory_unresolved
   on public.shopreel_operator_memory (shop_id, unresolved, updated_at desc);
+
 create index if not exists idx_shopreel_operator_workspace_state_shop_user
   on public.shopreel_operator_workspace_state (shop_id, user_id, updated_at desc);
+
 create index if not exists idx_shopreel_operator_workspace_state_session
   on public.shopreel_operator_workspace_state (session_id);
+
 create index if not exists idx_shopreel_operator_workspace_state_unresolved
   on public.shopreel_operator_workspace_state (shop_id, unresolved_count, updated_at desc);
+
 create index if not exists idx_shopreel_workspace_timeline_shop_created
   on public.shopreel_workspace_timeline_events (shop_id, created_at desc);
+
 create index if not exists idx_shopreel_workspace_timeline_session
   on public.shopreel_workspace_timeline_events (session_id);
+
 create index if not exists idx_shopreel_workspace_timeline_unresolved
   on public.shopreel_workspace_timeline_events (shop_id, unresolved, created_at desc);
 
