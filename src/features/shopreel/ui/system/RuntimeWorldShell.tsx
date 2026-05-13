@@ -9,6 +9,10 @@ import { persistRuntimeReturnState, readRuntimeSpatialTransition } from "@/featu
 import RuntimeWorldWorkspaceCanvas from "@/features/shopreel/ui/system/RuntimeWorldWorkspaceCanvas";
 import { deriveRuntimeChamberGeometry } from "@/features/shopreel/ui/system/runtimeChamberGeometry";
 import { deriveRuntimeTraversal } from "@/features/shopreel/ui/system/runtimeTraversalEngine";
+import { deriveRuntimePlaneGeometry } from "@/features/shopreel/ui/system/runtimePlaneGeometry";
+import { deriveRuntimeSpatialCamera } from "@/features/shopreel/ui/system/runtimeSpatialCamera";
+import { deriveRuntimeEnvironmentalIntelligence } from "@/features/shopreel/ui/system/runtimeEnvironmentalIntelligence";
+import { deriveRuntimeChamberActions } from "@/features/shopreel/ui/system/runtimeChamberInteraction";
 import { buildRuntimeSceneComposition } from "@/features/shopreel/ui/system/runtimeSceneGraph";
 import { RuntimeSceneGraphCanvas } from "@/features/shopreel/ui/system/RuntimeSceneGraphCanvas";
 import { RuntimeEnvironmentField } from "@/features/shopreel/ui/system/RuntimeEnvironmentField";
@@ -169,20 +173,25 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`}>
     <p>{flow?.question ?? prompt.question}</p>
     <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label} · {interaction.guidanceCue.label}</p>
-    <div className="mt-2 grid gap-2 sm:grid-cols-2" data-attention={interaction.attention}>
+    <div className="mt-2 grid gap-2 sm:grid-cols-2" aria-label="operator decision surface" data-attention={interaction.attention}>
       <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border border-emerald-300/40 bg-emerald-400/10 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">Yes</button>
       <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-lg border border-amber-200/40 bg-amber-300/10 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">No</button>
     </div>
     <div className="mt-4 flex flex-wrap gap-2">{manualActions.map((action) => <Link key={action.id} href={action.href} className="rounded-full border border-white/20 px-3 py-1 text-xs">{action.label}</Link>)}</div>
-    <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} onClick={() => persistRuntimeReturnState({ worldId: entry.worldId, scrollY: window.scrollY, restoreCardId: `${entry.entityKind ?? entry.worldKind}:${entry.entityId ?? entry.worldId}`, returnedAt: new Date().toISOString() })} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Manual route</Link></div>
+    <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} onClick={() => persistRuntimeReturnState({ worldId: entry.worldId, scrollY: window.scrollY, restoreCardId: `${entry.entityKind ?? entry.worldKind}:${entry.entityId ?? entry.worldId}`, returnedAt: new Date().toISOString() })} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Manual route escape</Link></div>
   </aside>;
 
   const chamber = deriveRuntimeChamberGeometry(entry.worldKind);
   const traversal = deriveRuntimeTraversal({ sourceWorld: persisted?.previousWorldId ?? null, targetWorld: entry.worldId, spatialMap, geometry: chamber, unresolvedCount: entry.unresolvedCount });
+  const camera = deriveRuntimeSpatialCamera({ traversal, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), unresolvedCount: entry.unresolvedCount, continuityMomentum: traversal.continuityMomentum });
+  const environmentalIntelligence = deriveRuntimeEnvironmentalIntelligence({ urgency: Math.min(1, entry.unresolvedCount / 4), workload: Math.min(1, entry.secondaryActions.length / 4), unresolvedBlockers: Math.min(1, entry.blockers.length / 4), renderQueueState: null, creativeIntensity: null, operationalState: traversal.environmentalCarryover, temporalVolatility: 1 - spatialMap.continuityMemory.continuityStrength, dependencyPressure: interaction.attention === "urgent" ? 1 : interaction.attention === "guided" ? 0.7 : 0.3, continuityResilience: spatialMap.continuityMemory.continuityStrength });
+  const chamberActions = deriveRuntimeChamberActions({ primaryAction: entry.primaryAction, secondaryActions: entry.secondaryActions, manualHref: entry.manualSurfaceHref, blocked: entry.blockers.length > 0 });
   const planes = RuntimeWorldWorkspaceCanvas({ entry, children });
   const scene = buildRuntimeSceneComposition({ chamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={chamber} /> });
+  const planeGeometry = deriveRuntimePlaneGeometry(entry.worldKind);
 
-  return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container}`} data-world-seed={ambientState.visualSeed}>
-    <RuntimeSceneGraphCanvas composition={scene} />
+  return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container} ${camera.inertia.easingClassName}`} data-world-seed={ambientState.visualSeed} style={{ transform: camera.inertia.translateScalar ? `translate3d(${camera.translate.x}px, ${camera.translate.y}px, 0)` : "none" }}>
+    <div className="sr-only" aria-live="polite">{`Camera ${camera.mode}; focus ${camera.target}; chamber tension ${Math.round(environmentalIntelligence.chamberTension * 100)}; ${chamberActions[0]?.label ?? "No focal action"}`}</div>
+    <RuntimeSceneGraphCanvas composition={scene} planesByDepth={planeGeometry} />
   </div>;
 }
