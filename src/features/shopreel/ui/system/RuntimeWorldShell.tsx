@@ -21,6 +21,8 @@ import { deriveRuntimeInteractionState } from "@/features/shopreel/ui/system/run
 import { deriveRuntimeSurfaceState } from "@/features/shopreel/ui/system/runtimeSurfaceCohesion";
 import { deriveRuntimeEnvironment } from "@/features/shopreel/ui/system/runtimeEnvironment";
 import { persistWorldEntrySnapshot, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+import { deriveRuntimeSpatialMap } from "@/features/shopreel/ui/system/runtimeSpatialMap";
+import { persistRuntimeOperatorPosition, readRuntimeOperatorPosition } from "@/features/shopreel/ui/system/runtimeOperatorPosition";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
   return RUNTIME_WORLD_MAP[worldId].primaryActions.map((item) => ({ id: item.id, label: item.label, href: item.href ?? RUNTIME_WORLD_MAP[worldId].canonicalRoute }));
@@ -30,6 +32,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const router = useRouter();
   const { activeTransition, advanceWorldEntryCamera, completeWorldEntryTransition } = useTransitionRouter();
   const persisted = readPersistedRuntimeSession();
+  const rememberedPosition = readRuntimeOperatorPosition();
   const prompt = resolveWorldGuidedPrompt(entry.worldId);
   const guidedStepId = persisted?.worldContinuity.guidedStepId;
   const flow = guidedStepId ? resolveGuidedFlowStep(guidedStepId) : null;
@@ -140,6 +143,17 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   });
   const surface = deriveRuntimeSurfaceState({ orchestration, immersion, interaction, temporalMemory, graph: entityGraph, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion) });
   const environment = deriveRuntimeEnvironment({ entry, orchestration, interaction, surface, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion) });
+  const spatialMap = deriveRuntimeSpatialMap({ worldId: entry.worldId, previousWorldId: persisted?.previousWorldId ?? null, operator: rememberedPosition, environment, unresolvedCount: entry.unresolvedCount, blockers: entry.blockers });
+
+  useEffect(() => {
+    persistRuntimeOperatorPosition({
+      worldId: entry.worldId,
+      previousWorldId: persisted?.previousWorldId ?? null,
+      focusDirection: environment.navigationField,
+      continuityState: entry.unresolvedCount > 0 ? "recovering" : "stable",
+      at: new Date().toISOString(),
+    });
+  }, [entry.unresolvedCount, entry.worldId, environment.navigationField, persisted?.previousWorldId]);
 
   const navigate = (href: string, step: string | null) => {
     persistWorldEntrySnapshot({ worldId: entry.worldId, href, entityId: entry.entityId, entityKind: entry.entityKind, title: entry.title, status: entry.status, visualSeed: entry.visualSeed, guidedStep: step as never });
@@ -172,7 +186,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
         <h1 className="text-2xl font-semibold">{entry.title}</h1>
         <p className="text-sm text-white/70">{entry.stageLabel} · {entry.status} · {entry.objective}</p>
       </section>
-      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={resolvedTransition?.focus.panelReveal ?? 1} continuityRailFocus={resolvedTransition?.focus.continuityRailFocus ?? 1} immersion={immersion} interaction={interaction} surface={surface} environment={environment}>{children}</RuntimeWorldWorkspaceCanvas>
+      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={resolvedTransition?.focus.panelReveal ?? 1} continuityRailFocus={resolvedTransition?.focus.continuityRailFocus ?? 1} immersion={immersion} interaction={interaction} surface={surface} environment={environment} spatialMap={spatialMap}>{children}</RuntimeWorldWorkspaceCanvas>
     </div>
   </div>;
 }
