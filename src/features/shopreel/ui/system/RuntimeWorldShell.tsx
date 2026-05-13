@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import RuntimeWorldWorkspaceCanvas from "@/features/shopreel/ui/system/RuntimeWorldWorkspaceCanvas";
 import { resolveGuidedFlowStep, resolveWorldGuidedPrompt } from "@/features/shopreel/ui/system/guidedWorldFlow";
 import type { RuntimeWorldAction, RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
 import { RUNTIME_WORLD_MAP } from "@/features/shopreel/ui/system/runtimeWorldMap";
-import { createWorldEntryTransition, deriveWorldTransitionClasses } from "@/features/shopreel/ui/system/runtimeWorldTransition";
+import { createWorldEntryTransition, deriveWorldTransitionClasses, type RuntimeWorldAmbientState, type RuntimeWorldFocusState, type RuntimeWorldIdentityTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
 import { persistWorldEntrySnapshot, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
@@ -20,13 +21,26 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const guidedStepId = persisted?.worldContinuity.guidedStepId;
   const flow = guidedStepId ? resolveGuidedFlowStep(guidedStepId) : null;
   const manualActions = actionForWorld(entry.worldId);
-  const transition = createWorldEntryTransition({ mode: "resume_world", fromWorldId: persisted?.previousWorldId ?? null, toWorldId: entry.worldId, fromRoute: persisted?.worldContinuity.previousRoute ?? null, toRoute: persisted?.worldContinuity.activeRoute ?? entry.href, label: "resume", at: new Date().toISOString() }, false);
-  const transitionClass = deriveWorldTransitionClasses(transition);
+  const identityTransition: RuntimeWorldIdentityTransition = createWorldEntryTransition({ mode: "resume_world", fromWorldId: persisted?.previousWorldId ?? null, toWorldId: entry.worldId, fromRoute: persisted?.worldContinuity.previousRoute ?? null, toRoute: persisted?.worldContinuity.activeRoute ?? entry.href, label: "resume", at: new Date().toISOString() }, false);
+  const transitionClass = deriveWorldTransitionClasses(identityTransition);
+  const focusState: RuntimeWorldFocusState = { focusedPanelId: persisted?.worldContinuity.focusedPanelId ?? null, activeGuidedQuestion: persisted?.worldContinuity.activeGuidedQuestion ?? null };
+  const ambientState: RuntimeWorldAmbientState = { stabilized: true, visualSeed: persisted?.worldContinuity.environment.visualSeed ?? entry.visualSeed };
 
-  const navigate = (href: string, step: string | null, label: string) => {
+  const navigate = (href: string, step: string | null) => {
     persistWorldEntrySnapshot({ worldId: entry.worldId, href, entityId: entry.entityId, entityKind: entry.entityKind, title: entry.title, status: entry.status, visualSeed: entry.visualSeed, guidedStep: step as never });
     router.push(href);
   };
+
+  const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`}>
+    <p>{flow?.question ?? prompt.question}</p>
+    <p className="mt-2 text-xs text-white/60">Focus: {focusState.focusedPanelId ?? "workspace"} · Ambient: {ambientState.stabilized ? "stable" : "shifting"}</p>
+    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+      <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border border-emerald-200/40 bg-emerald-400/10 px-3 py-2 text-xs">Yes</button>
+      <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-lg border border-amber-200/40 bg-amber-400/10 px-3 py-2 text-xs">No</button>
+    </div>
+    <div className="mt-4 flex flex-wrap gap-2">{manualActions.map((action) => <Link key={action.id} href={action.href} className="rounded-full border border-white/20 px-3 py-1 text-xs">{action.label}</Link>)}</div>
+    <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Open full manual route</Link></div>
+  </aside>;
 
   return <div className={`relative min-h-screen text-white ${entry.transitionClass} ${transitionClass.container}`}>
     <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${entry.tonalClass}`} />
@@ -38,21 +52,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
         <h1 className="text-2xl font-semibold">{entry.title}</h1>
         <p className="text-sm text-white/70">{entry.stageLabel} · {entry.status} · {entry.objective}</p>
       </section>
-      <section className="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className={`min-h-0 rounded-2xl p-3 ${entry.panelClass}`}>{children}</div>
-        <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`}>
-          <p>{flow?.question ?? prompt.question}</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep, prompt.yes.label)} className="rounded-lg border border-emerald-200/40 bg-emerald-400/10 px-3 py-2 text-xs">Yes</button>
-            <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep, prompt.no.label)} className="rounded-lg border border-amber-200/40 bg-amber-400/10 px-3 py-2 text-xs">No</button>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">{manualActions.map((action) => <Link key={action.id} href={action.href} className="rounded-full border border-white/20 px-3 py-1 text-xs">{action.label}</Link>)}</div>
-          <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Open full manual route</Link></div>
-        </aside>
-      </section>
-      <section className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-xs text-white/75">
-        Previous world: {persisted?.previousWorldId ?? "none"} · Active route: {persisted?.worldContinuity.activeRoute ?? entry.href} · Last action: {persisted?.worldContinuity.lastAction?.label ?? "none"}
-      </section>
+      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel}>{children}</RuntimeWorldWorkspaceCanvas>
     </div>
   </div>;
 }
