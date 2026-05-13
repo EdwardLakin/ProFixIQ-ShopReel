@@ -13,6 +13,7 @@ export type RuntimeTraversalField = { momentum: RuntimeTraversalMomentum; recove
 export type RuntimeTraversalTopologyField = { operationalGravity: number; continuityCorridor: number; escalationVector: number; decompressionBias: number };
 
 export type RuntimeTraversalState = {
+  continuitySnapshot?: { chamberCarryover: number; focalPersistence: number };
   sourceWorld: RuntimeWorldId | null;
   targetWorld: RuntimeWorldId;
   direction: string;
@@ -73,6 +74,7 @@ export function deriveRuntimeTraversal(params: {
       continuity: { returnPathAffinity: params.unresolvedCount > 0 ? 0.8 : 0.6, familiarity },
       intent: params.unresolvedCount > 1 ? "recover" : environmentalCarryover > 0.55 ? "stabilize" : "advance",
     },
+    continuitySnapshot: { chamberCarryover: environmentalCarryover, focalPersistence: params.unresolvedCount > 0 ? 0.85 : 0.55 },
     topologyField: {
       operationalGravity: Math.min(1, params.unresolvedCount / 4 + Math.abs(transitionVector.z) * 0.3),
       continuityCorridor: familiarity,
