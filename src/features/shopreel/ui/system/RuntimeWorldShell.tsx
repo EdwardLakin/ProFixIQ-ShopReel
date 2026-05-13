@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useTransitionRouter } from "@/features/shopreel/ui/system/TransitionProvider";
 import { persistRuntimeReturnState, readRuntimeSpatialTransition } from "@/features/shopreel/ui/system/runtimeSpatialTransition";
@@ -12,6 +12,10 @@ import type { RuntimeWorldAction, RuntimeWorldEntry } from "@/features/shopreel/
 import { RUNTIME_WORLD_MAP } from "@/features/shopreel/ui/system/runtimeWorldMap";
 import { createWorldEntryTransition, deriveWorldTransitionClasses, type RuntimeWorldAmbientState, type RuntimeWorldFocusState, type RuntimeWorldIdentityTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
 import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
+import { deriveRuntimeImmersionState, type RuntimeImmersionState } from "@/features/shopreel/ui/system/runtimeImmersion";
+import { deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
+import { buildRuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
+import { buildRuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
 import { persistWorldEntrySnapshot, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
@@ -33,8 +37,18 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const inheritedSeed = transitionSnapshot?.snapshot.atmosphere.gradientSeed ?? persisted?.worldContinuity.environment.visualSeed ?? entry.visualSeed;
   const ambientState: RuntimeWorldAmbientState = { stabilized: true, visualSeed: inheritedSeed };
 
+  const [immersionElapsed, setImmersionElapsed] = useState(0);
+  const prefersReducedMotion = useMemo(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
+
   useEffect(() => {
     if (!activeTransition || activeTransition.phase !== "arrived") return;
+    const start = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      setImmersionElapsed(now - start);
+      if (now - start < 1200 && !prefersReducedMotion) frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
     if (activeTransition.reducedMotion) {
       completeWorldEntryTransition();
       return;
@@ -50,11 +64,14 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
       });
     });
     return () => {
+      window.cancelAnimationFrame(frame);
       window.cancelAnimationFrame(rafA);
       window.cancelAnimationFrame(rafB);
       window.cancelAnimationFrame(rafC);
     };
-  }, [activeTransition, advanceWorldEntryCamera, completeWorldEntryTransition]);
+  }, [activeTransition, advanceWorldEntryCamera, completeWorldEntryTransition, prefersReducedMotion]);
+  const nowIso = new Date().toISOString();
+  const composition = { worldId: entry.worldId, panels: [] };
   const choreography = deriveWorldChoreography({
     worldId: entry.worldId,
     status: entry.status,
@@ -64,11 +81,57 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     previousWorldId: persisted?.previousWorldId ?? null,
     lastActionLabel: persisted?.worldContinuity.lastAction?.label ?? null,
     breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [],
-    composition: { worldId: entry.worldId, panels: [] },
+    composition,
     availableActions: entry.primaryAction ? [entry.primaryAction, ...entry.secondaryActions] : entry.secondaryActions,
     transitionIntent: { mode: "resume_world", fromWorldId: persisted?.previousWorldId ?? null, toWorldId: entry.worldId, fromRoute: persisted?.worldContinuity.previousRoute ?? null, toRoute: persisted?.worldContinuity.activeRoute ?? entry.href, label: "resume", at: new Date().toISOString() },
   });
-
+  const orchestration = deriveRuntimeOrchestration({
+    worldId: entry.worldId,
+    status: entry.status,
+    blockers: entry.blockers,
+    unresolvedCount: entry.unresolvedCount,
+    guidedStepId: persisted?.worldContinuity.guidedStepId ?? null,
+    previousWorldId: persisted?.previousWorldId ?? null,
+    lastActionLabel: persisted?.worldContinuity.lastAction?.label ?? null,
+    breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [],
+    composition,
+    choreography,
+    now: nowIso,
+    lastTransitionAt: persisted?.updatedAt ?? null,
+  });
+  const entityGraph = buildRuntimeEntityGraph({
+    activeWorldId: entry.worldId,
+    activeRoute: entry.href,
+    previousWorldId: persisted?.previousWorldId ?? null,
+    worldTransitionHistory: persisted?.worldContinuity.breadcrumbs.map((item) => ({ from: null, to: item.worldId, at: item.at, reason: item.label })) ?? [],
+    worldSnapshot: persisted?.worldEntrySnapshot ? { entityId: persisted.worldEntrySnapshot.entityId, entityKind: persisted.worldEntrySnapshot.entityKind, title: persisted.worldEntrySnapshot.title, status: persisted.worldEntrySnapshot.status, href: persisted.worldEntrySnapshot.href } : null,
+    continuity: { activeEntityId: persisted?.worldContinuity.activeEntityId ?? entry.entityId ?? null, breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [], activeRoute: persisted?.worldContinuity.activeRoute ?? entry.href },
+    composition,
+    status: entry.status,
+    blockers: entry.blockers,
+    unresolvedCount: entry.unresolvedCount,
+  });
+  const temporalMemory = buildRuntimeTemporalMemory({
+    now: nowIso,
+    activeWorldId: entry.worldId,
+    status: entry.status,
+    unresolvedCount: entry.unresolvedCount,
+    blockers: entry.blockers,
+    breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [],
+    transitionHistory: (persisted?.worldContinuity.breadcrumbs ?? []).map((item) => ({ from: null, to: item.worldId, at: item.at, reason: item.label })),
+    orchestration,
+    choreography,
+    entityGraph,
+  });
+  const immersion: RuntimeImmersionState = deriveRuntimeImmersionState({
+    elapsedMs: immersionElapsed,
+    durationMs: 900,
+    reducedMotion: prefersReducedMotion || Boolean(activeTransition?.reducedMotion),
+    inheritedSeed,
+    orchestration,
+    temporalMemory,
+    graph: entityGraph,
+  });
   const navigate = (href: string, step: string | null) => {
     persistWorldEntrySnapshot({ worldId: entry.worldId, href, entityId: entry.entityId, entityKind: entry.entityKind, title: entry.title, status: entry.status, visualSeed: entry.visualSeed, guidedStep: step as never });
     router.push(href);
@@ -90,7 +153,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const inheritedAtmosphere = inheritedSeed.includes(":") ? inheritedSeed.split(":")[0] : entry.worldId;
 
   return <div className={`relative min-h-screen text-white ${entry.transitionClass} ${transitionClass.container}`} data-world-seed={ambientState.visualSeed}>
-    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${entry.tonalClass} ${inheritedAtmosphere === "campaign" ? "opacity-100" : "opacity-95"}`} />
+    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${entry.tonalClass} ${inheritedAtmosphere === "campaign" ? "opacity-100" : "opacity-95"}`} style={{ opacity: 0.88 + immersion.atmosphere.ambientGlow * 0.22 }} />
     <div className={`pointer-events-none absolute inset-0 ${entry.orbClass}`} />
     <div className={`pointer-events-none absolute inset-0 ${entry.gridClass} bg-[size:72px_72px] opacity-35`} />
     <div className="relative z-10 mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 py-4 md:px-6">
@@ -99,7 +162,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
         <h1 className="text-2xl font-semibold">{entry.title}</h1>
         <p className="text-sm text-white/70">{entry.stageLabel} · {entry.status} · {entry.objective}</p>
       </section>
-      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={activeTransition?.focus.panelReveal ?? 1} continuityRailFocus={activeTransition?.focus.continuityRailFocus ?? 1}>{children}</RuntimeWorldWorkspaceCanvas>
+      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={activeTransition?.focus.panelReveal ?? 1} continuityRailFocus={activeTransition?.focus.continuityRailFocus ?? 1} immersion={immersion}>{children}</RuntimeWorldWorkspaceCanvas>
     </div>
   </div>;
 }
