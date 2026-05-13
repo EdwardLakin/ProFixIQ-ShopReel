@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { clearRuntimeSpatialTransition, deriveFocusTransfer, persistRuntimeSpatialTransition, readRuntimeSpatialTransition, type RuntimeCameraState, type RuntimeSpatialSnapshot, type RuntimeSpatialTransitionState } from "@/features/shopreel/ui/system/runtimeSpatialTransition";
+import { deriveRuntimeWorldCamera } from "@/features/shopreel/ui/system/runtimeWorldSpatialModel";
 
 type TransitionState = {
   activeTransition: RuntimeSpatialTransitionState | null;
@@ -98,9 +99,9 @@ export function TransitionLayer() {
   const { cardRect, atmosphere } = activeTransition.snapshot;
   const entering = activeTransition.phase === "arrived";
   const shouldTransform = !activeTransition.reducedMotion;
-  const shellBlur = activeTransition.camera === "focusing" ? 8 : activeTransition.camera === "immersed" ? 0 : 4;
+  const camera = deriveRuntimeWorldCamera(activeTransition.camera, activeTransition.reducedMotion);
   return <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden">
-    <div className={`absolute inset-0 bg-black/50 transition-opacity duration-500 ${entering ? "opacity-0" : "opacity-100"}`} />
+    <div className="absolute inset-0 transition-opacity duration-500" style={{ opacity: camera.overlayOpacity, background: "linear-gradient(180deg,rgba(1,4,14,.58),rgba(1,4,14,.3) 52%,rgba(1,4,14,.08))" }} />
     <div
       className={`absolute rounded-[2rem] border border-white/25 shadow-[0_40px_120px_rgba(0,0,0,.6)] transition-all duration-700 ease-[cubic-bezier(.22,.8,.24,1)]`}
       style={{
@@ -110,7 +111,8 @@ export function TransitionLayer() {
         height: shouldTransform ? (entering ? "100vh" : cardRect.height) : "100vh",
         borderRadius: shouldTransform ? (entering ? 0 : 32) : 0,
         opacity: activeTransition.focus.shellOpacity,
-        filter: `blur(${shellBlur}px)`,
+        transform: `translate3d(0,${camera.translateY}px,0) scale(${camera.scale})`,
+        filter: `blur(${camera.blur}px)`,
         background: `radial-gradient(circle at 22% 18%,rgba(255,180,92,${0.12 + atmosphere.graphStressIntensity * 0.08}),transparent 42%),radial-gradient(circle at 78% 16%,rgba(103,232,249,.24),transparent 44%),linear-gradient(180deg,rgba(13,17,31,.92),rgba(2,6,23,.98))`,
       }}
     />

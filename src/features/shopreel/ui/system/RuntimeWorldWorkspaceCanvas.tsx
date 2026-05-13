@@ -29,39 +29,29 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
     transitionIntent: null,
   }), [composition, entry, persisted]);
   const primary = composition.panels.find((panel) => panel.id === choreography.panelPriority.primaryPanelId) ?? composition.panels.find((panel) => panel.zone === "primary");
-  const secondary = choreography.panelPriority.secondaryPanelIds
-    .map((id) => composition.panels.find((panel) => panel.id === id))
-    .filter((panel): panel is (typeof composition.panels)[number] => Boolean(panel))
-    .filter((panel) => panel.zone === "secondary");
-  const bottom = composition.panels.filter((panel) => panel.zone === "bottom");
-  const orchestration = useMemo(() => deriveRuntimeOrchestration({
-    worldId: entry.worldId,
-    status: entry.status,
-    blockers: entry.blockers,
-    unresolvedCount: entry.unresolvedCount,
-    guidedStepId: persisted?.worldContinuity.guidedStepId ?? null,
-    previousWorldId: persisted?.previousWorldId ?? null,
-    lastActionLabel: persisted?.worldContinuity.lastAction?.label ?? null,
-    breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [],
-    composition,
-    choreography,
-    now: new Date().toISOString(),
-    lastTransitionAt: persisted?.updatedAt ?? null,
-  }), [choreography, composition, entry.blockers, entry.status, entry.unresolvedCount, entry.worldId, persisted]);
+  const secondary = choreography.panelPriority.secondaryPanelIds.map((id) => composition.panels.find((panel) => panel.id === id)).filter((panel): panel is (typeof composition.panels)[number] => Boolean(panel));
+  const orchestration = useMemo(() => deriveRuntimeOrchestration({ worldId: entry.worldId, status: entry.status, blockers: entry.blockers, unresolvedCount: entry.unresolvedCount, guidedStepId: persisted?.worldContinuity.guidedStepId ?? null, previousWorldId: persisted?.previousWorldId ?? null, lastActionLabel: persisted?.worldContinuity.lastAction?.label ?? null, breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [], composition, choreography, now: new Date().toISOString(), lastTransitionAt: persisted?.updatedAt ?? null }), [choreography, composition, entry.blockers, entry.status, entry.unresolvedCount, entry.worldId, persisted]);
 
+  return <section className="relative z-20 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]" style={{ opacity: Math.max(0.95, panelReveal), filter: `contrast(${1 + surface.pressure.contrastPressure * 0.08})` }}>
+    <div className="[perspective:1800px] space-y-5">
+      <section className="relative rounded-[1.2rem] border border-cyan-200/25 bg-[linear-gradient(150deg,rgba(20,35,56,.92),rgba(8,14,28,.95))] p-4 shadow-[0_34px_110px_rgba(0,0,0,.48)]" style={{ transform: immersion.reducedMotion ? "none" : "translate3d(0,-8px,64px) scale(1.01)", boxShadow: "0 30px 120px rgba(8,145,178,.2)" }}>
+        <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/80">Foreground next action</p>
+        <h2 className="mt-2 text-lg font-semibold text-white">{entry.primaryAction?.label ?? "Waiting for command"}</h2>
+        <p className="mt-1 text-sm text-cyan-100/80">{entry.primaryAction ? "This is the most important next decision in this world." : "No blocking action detected. Continue manually or issue a command."}</p>
+        {entry.primaryAction ? <a href={entry.primaryAction.href} className="mt-3 inline-flex rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm text-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Open action</a> : null}
+      </section>
 
-  const railClass = orchestration.operationalPressure === "critical" ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "xl:grid-cols-[minmax(0,1fr)_360px]";
-  const secondaryClass = orchestration.attentionState === "focused" ? "opacity-75" : "";
-  const pressureRail = immersion.operationalIntensity === "critical" ? "xl:grid-cols-[minmax(0,1fr)_440px]" : railClass;
+      <div className="relative rounded-[1.5rem] border border-white/16 bg-[linear-gradient(180deg,rgba(7,14,27,.92),rgba(4,8,18,.95))] p-3 shadow-[0_24px_80px_rgba(0,0,0,.52)]" style={{ transform: immersion.reducedMotion ? "none" : "translate3d(0,0,22px)" }}>
+        <RuntimeRoutePanelAdapter adapter={{ panelId: primary?.id ?? "primary", route: primary?.route ?? entry.href, title: primary?.title ?? "Manual workspace", embedMode: "embedded" }}>{children}</RuntimeRoutePanelAdapter>
+      </div>
 
-  return <section className={`relative z-20 grid gap-4 ${pressureRail}`} style={{ opacity: Math.max(0.92, panelReveal), filter: `contrast(${1 + surface.pressure.contrastPressure * 0.08})` }}>
-    <div className="grid min-h-0 gap-4">
-      <div style={{ opacity: immersion.reveal.primaryReveal, transform: immersion.reducedMotion ? "none" : `scale(${0.998 + immersion.reveal.primaryReveal * 0.002})`, filter: `blur(${immersion.reducedMotion ? 0 : (1 - immersion.reveal.primaryReveal) * 0.8}px)` }}><RuntimeRoutePanelAdapter adapter={{ panelId: primary?.id ?? "primary", route: primary?.route ?? entry.href, title: primary?.title ?? "Workspace", embedMode: "embedded" }}>{children}</RuntimeRoutePanelAdapter></div>
-      <div className={`grid gap-4 md:grid-cols-2 ${secondaryClass}`}>{secondary.map((panel, index) => <div key={panel.id} className={choreography.panelPriority.collapsedPanelIds.includes(panel.id) ? "opacity-90" : ""} style={{ opacity: immersion.reveal.secondaryReveal[index] ?? immersion.reveal.secondaryReveal.at(-1) ?? 1 }}><RuntimeRoutePanelAdapter adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} /></div>)}</div>
-      <div className="grid gap-3 md:grid-cols-2">{bottom.map((panel) => <RuntimeRoutePanelAdapter key={panel.id} adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} />)}</div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {secondary.map((panel, index) => <div key={panel.id} style={{ opacity: immersion.reveal.secondaryReveal[index] ?? 1, transform: immersion.reducedMotion ? "none" : "translate3d(0,8px,-10px) scale(.99)" }}><RuntimeRoutePanelAdapter adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} /></div>)}
+      </div>
+
       <section className="rounded-xl border border-cyan-200/20 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90" style={{ opacity: immersion.reveal.continuityReveal, boxShadow: `0 0 ${10 + continuityRailFocus * 14}px rgba(34,211,238,.16)` }}>{entry.title} · Objective: {entry.objective} · Next: {interaction.actionPriority} · Flow: {orchestration.flowHealth} · Pressure: {orchestration.operationalPressure}</section>
     </div>
-    <aside style={{ opacity: 0.9 }}>{operatorPanel}</aside>
-  </section>;
 
+    <aside className="relative z-40">{operatorPanel}</aside>
+  </section>;
 }
