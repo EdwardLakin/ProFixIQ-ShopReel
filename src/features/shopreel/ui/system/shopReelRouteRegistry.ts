@@ -46,6 +46,7 @@ export type RouteDecision = {
   reason: string;
   usedRecovery: boolean;
   ignoredStaleContinuity: boolean;
+  matched: boolean;
 };
 
 export function resolveRouteFromPrompt(prompt: string, lastRoute?: string): RouteDecision {
@@ -54,17 +55,19 @@ export function resolveRouteFromPrompt(prompt: string, lastRoute?: string): Rout
   const explicitCreate = /\b(create|new|start|build|refine)\b/.test(q);
   const explicitCampaign = /\bcampaign\b/.test(q);
 
-  if (/\b(idea|ideas|opportunities|opportunity|brainstorm|trending|trend|hooks|angles)\b/.test(q)) return { intent: "ideas", route: "/shopreel/ideas", reason: "Ideas/opportunities intent routed to canonical ideas surface", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(upload|manual upload|upload video|asset|assets|library)\b/.test(q)) return { intent: "upload", route: "/shopreel/upload", reason: "Upload/assets intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(generate|script|scripts|hook|hooks|studio|storyboard)\b/.test(q)) return { intent: "generation", route: "/shopreel/create", reason: "Generation/script intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(render|render this video|render queue)\b/.test(q)) return { intent: "render", route: "/shopreel/render-queue", reason: "Render queue intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(review|approval|approvals|approve)\b/.test(q)) return { intent: "review", route: "/shopreel/review", reason: "Review/approvals intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(calendar|schedule|scheduling|publish|instagram|tiktok publish|publish queue)\b/.test(q)) return { intent: "publish", route: "/shopreel/publish-center", reason: "Calendar/publishing intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(analytics|performance|report|reports)\b/.test(q)) return { intent: "analytics", route: "/shopreel/analytics", reason: "Analytics/reporting intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(download|finished video|export)\b/.test(q)) return { intent: "export", route: "/shopreel/exports", reason: "Export intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(create a video|video from this idea|video creation)\b/.test(q)) return { intent: "video_creation", route: "/shopreel/video-creation", reason: "Video creation intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (explicitCreate && explicitCampaign) return { intent: "create_campaign", route: "/shopreel/campaigns/new", reason: "Campaign creation/refinement intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(edit|revise|update|refine)\b/.test(q) && explicitCampaign) return { intent: "edit_campaign", route: "/shopreel/campaigns", reason: "Campaign maintenance intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (isResume) return { intent: "resume", route: lastRoute || "/shopreel/review", reason: "Resume/continue requested; recovery route allowed", usedRecovery: true, ignoredStaleContinuity: false };
-  return { intent: "default", route: "/shopreel", reason: "No explicit intent; route to home", usedRecovery: false, ignoredStaleContinuity: false };
+  if (/\b(idea|ideas|opportunities|opportunity|brainstorm|trending|trend|hooks|angles|content planning)\b/.test(q)) return { intent: "ideas", route: "/shopreel/ideas", reason: "Ideas/opportunities intent routed to ideas planning surface.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(upload|manual upload|upload video|asset|assets|library)\b/.test(q)) return { intent: "upload", route: "/shopreel/upload", reason: "Upload/assets intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(generate|script|scripts|studio|storyboard)\b/.test(q)) return { intent: "generation", route: "/shopreel/create", reason: "Generation/script intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(render|render this video|render queue)\b/.test(q)) return { intent: "render", route: "/shopreel/render-queue", reason: "Render queue intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(review|approval|approvals|approve)\b/.test(q)) return { intent: "review", route: "/shopreel/review", reason: "Review/approvals intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(calendar|schedule|scheduling|publish|instagram|tiktok publish|publish queue)\b/.test(q)) return { intent: "publish", route: "/shopreel/publish-center", reason: "Calendar/publishing intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(analytics|performance|report|reports)\b/.test(q)) return { intent: "analytics", route: "/shopreel/analytics", reason: "Analytics/reporting intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(download|finished video|export)\b/.test(q)) return { intent: "export", route: "/shopreel/exports", reason: "Export intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(create a video|video from this idea|video creation)\b/.test(q)) return { intent: "video_creation", route: "/shopreel/video-creation", reason: "Video creation intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(operations|operator|runtime|blocker|failed workflow)\b/.test(q)) return { intent: "operations", route: "/shopreel/operations", reason: "Operator/operations intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(automation|autopilot|rules)\b/.test(q)) return { intent: "automation", route: "/shopreel/automation", reason: "Automation controls intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (explicitCreate && explicitCampaign) return { intent: "create_campaign", route: "/shopreel/campaigns/new", reason: "Campaign creation/refinement intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (/\b(edit|revise|update|refine)\b/.test(q) && explicitCampaign) return { intent: "edit_campaign", route: "/shopreel/campaigns", reason: "Campaign maintenance intent.", usedRecovery: false, ignoredStaleContinuity: true, matched: true };
+  if (isResume) return { intent: "resume", route: lastRoute || "/shopreel/review", reason: "Resume/continue requested; recovery route allowed.", usedRecovery: true, ignoredStaleContinuity: false, matched: true };
+  return { intent: "default", route: "/shopreel", reason: "No prompt intent matched; fallback to command surface.", usedRecovery: false, ignoredStaleContinuity: false, matched: false };
 }

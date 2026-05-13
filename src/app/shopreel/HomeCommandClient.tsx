@@ -312,6 +312,29 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
         recoveryTarget: execution.selectedRoute,
       });
       persistContext(execution.selectedRoute);
+      const hydrationWarnings = loadErrors?.length ? loadErrors : [];
+      console.info("[shopreel] operator command result", {
+        prompt: nextCommand,
+        matchedIntent: execution.decision.intent,
+        routeMatched: execution.decision.matched,
+        targetRoute: execution.selectedRoute,
+        hydrationWarnings,
+      });
+      if (!execution.decision.matched) {
+        setCommandFailure(`No direct route match for "${nextCommand}". Opened command surface instead.`);
+      }
+      try {
+        await router.push(execution.selectedRoute);
+      } catch (pushError) {
+        console.warn("[shopreel] operator router push failed", {
+          prompt: nextCommand,
+          intent: execution.decision.intent,
+          targetRoute: execution.selectedRoute,
+          hydrationWarnings,
+          error: pushError,
+        });
+        setCommandFailure(`Could not open ${execution.selectedRoute}. Open /shopreel manually.`);
+      }
       if (overrideCommand) setCommand(overrideCommand);
     } catch (error) {
       console.error("[shopreel] operator command execution failed", error);
