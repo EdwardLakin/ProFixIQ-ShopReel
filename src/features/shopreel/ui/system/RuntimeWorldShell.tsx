@@ -37,6 +37,7 @@ import { deriveRuntimeFieldSystem } from "@/features/shopreel/ui/system/runtimeF
 import { deriveRuntimeOperatorState } from "@/features/shopreel/ui/system/runtimeOperatorState";
 import { deriveRuntimeMaterialization } from "@/features/shopreel/ui/system/runtimeMaterialization";
 import { deriveRuntimeEmbodiedState } from "@/features/shopreel/ui/system/runtimeEmbodiment";
+import { deriveRuntimeEntityMaterialization } from "@/features/shopreel/ui/system/runtimeEntitySpace";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
   return RUNTIME_WORLD_MAP[worldId].primaryActions.map((item) => ({ id: item.id, label: item.label, href: item.href ?? RUNTIME_WORLD_MAP[worldId].canonicalRoute }));
@@ -194,26 +195,27 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     router.push(href);
   };
 
-  const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`}>
+  const operatorPanel = <aside className={`p-3 text-sm ${entry.panelClass}`} data-guidance-mode="embedded">
     <p>{flow?.question ?? prompt.question}</p>
     <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label} · {interaction.guidanceCue.label}</p>
     <div className="mt-2 grid gap-2 sm:grid-cols-2" aria-label="operator decision surface" data-attention={interaction.attention}>
-      <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border border-emerald-300/40 bg-emerald-400/10 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">Yes</button>
-      <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-lg border border-amber-200/40 bg-amber-300/10 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">No</button>
+      <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-md bg-emerald-400/12 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">Yes</button>
+      <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-md bg-amber-300/12 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">No</button>
     </div>
-    <div className="mt-4 flex flex-wrap gap-2">{manualActions.map((action) => <Link key={action.id} href={action.href} className="rounded-full border border-white/20 px-3 py-1 text-xs">{action.label}</Link>)}</div>
-    <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} onClick={() => persistRuntimeReturnState({ worldId: entry.worldId, scrollY: window.scrollY, restoreCardId: `${entry.entityKind ?? entry.worldKind}:${entry.entityId ?? entry.worldId}`, returnedAt: new Date().toISOString() })} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Manual route escape</Link></div>
+    <div className="mt-4 flex flex-wrap gap-2 opacity-85">{manualActions.map((action) => <Link key={action.id} href={action.href} className="rounded-full border border-white/20 px-3 py-1 text-xs">{action.label}</Link>)}</div>
+    <div className="mt-4 flex gap-2"><Link href={entry.manualSurfaceHref} className="rounded-md px-3 py-2 text-xs text-cyan-100/80 underline-offset-2 hover:underline">Manual route escape</Link><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} onClick={() => persistRuntimeReturnState({ worldId: entry.worldId, scrollY: window.scrollY, restoreCardId: `${entry.entityKind ?? entry.worldKind}:${entry.entityId ?? entry.worldId}`, returnedAt: new Date().toISOString() })} className="rounded-md border border-white/20 px-3 py-2 text-xs">Back to deck</Link></div>
   </aside>;
 
   const chamber = deriveRuntimeChamberGeometry(entry.worldKind);
   const traversal = deriveRuntimeTraversal({ sourceWorld: persisted?.previousWorldId ?? null, targetWorld: entry.worldId, spatialMap, geometry: chamber, unresolvedCount: entry.unresolvedCount });
   const materialization = deriveRuntimeMaterialization({ worldState, worldContinuity, fieldSystem: runtimeFieldSystem, traversal, unresolvedBlockers: entry.blockers.length, operatorState: operatorState.continuityState });
   const embodiedState = deriveRuntimeEmbodiedState(materialization);
+  const entityMaterialization = deriveRuntimeEntityMaterialization({ graph: entityGraph, embodied: embodiedState });
   const camera = deriveRuntimeSpatialCamera({ traversal, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), unresolvedCount: entry.unresolvedCount, continuityMomentum: traversal.continuityMomentum, rememberedFocus: rememberedPosition?.focusDirection === "lateral" ? "operator" : null });
   const environmentalIntelligence = deriveRuntimeEnvironmentalIntelligence({ urgency: runtimeFieldSystem.urgencyField, workload: runtimeFieldSystem.workloadField, unresolvedBlockers: Math.min(1, entry.blockers.length / 4), renderQueueState: runtimeFieldSystem.orchestrationDensityField, creativeIntensity: runtimeFieldSystem.attentionField, operationalState: traversal.environmentalCarryover, temporalVolatility: runtimeFieldSystem.interruptionField, dependencyPressure: interaction.attention === "urgent" ? 1 : interaction.attention === "guided" ? 0.7 : 0.3, continuityResilience: runtimeFieldSystem.continuityField, continuityPressure: embodiedState.continuityPressure, workloadDensity: embodiedState.workloadDensity, orchestrationFragmentation: embodiedState.fragmentation, recoveryState: embodiedState.recoveryTrajectory, operationalRhythm: embodiedState.operationalRhythm });
   const chamberActions = deriveRuntimeChamberActions({ primaryAction: entry.primaryAction, secondaryActions: entry.secondaryActions, manualHref: entry.manualSurfaceHref, blocked: entry.blockers.length > 0, continuityPressure: embodiedState.continuityPressure });
   const planes = RuntimeWorldWorkspaceCanvas({ entry, children, embodied: embodiedState });
-  const scene = buildRuntimeSceneComposition({ chamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={chamber} intelligence={environmentalIntelligence} /> });
+  const scene = buildRuntimeSceneComposition({ chamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), embodied: embodiedState, entityMaterialization, foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={chamber} intelligence={environmentalIntelligence} entityMaterialization={entityMaterialization} embodied={embodiedState} /> });
   const planeGeometry = deriveRuntimePlaneGeometry(entry.worldKind, chamber, traversal);
 
   return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container} ${camera.interpolation.easingClassName}`} data-world-seed={ambientState.visualSeed} style={{ transform: `translate3d(${camera.translate.x}px, ${camera.translate.y}px, 0)` }}>

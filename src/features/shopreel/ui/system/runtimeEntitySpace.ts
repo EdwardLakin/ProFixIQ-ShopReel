@@ -1,3 +1,6 @@
+import type { RuntimeEmbodiedState } from "@/features/shopreel/ui/system/runtimeEmbodiment";
+import type { RuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
+
 export type RuntimeEntityKind = "campaign" | "generation" | "upload" | "render" | "review" | "approval" | "operator_memory" | "temporal_artifact" | "blocker" | "workflow" | "command";
 export type RuntimeEntityPresence = "active" | "latent" | "blocked" | "resolved";
 export type RuntimeEntitySpatialCluster = "focal" | "support" | "peripheral" | "background";
@@ -16,4 +19,33 @@ export type RuntimeEntityClusterField = { clusterId: string; cohesion: number; i
 export type RuntimeEntityPosition = { plane: "foreground" | "midground" | "operator" | "peripheral" | "background"; x: number; y: number; z: number };
 export type RuntimeEntityRelationship = { targetId: string; relation: "depends_on" | "supports" | "blocks" | "recovers" };
 export type RuntimeEntityActionSurface = { mode: "focal" | "supporting" | "background" | "operator_guided" | "escape"; href: string | null; label: string };
-export type RuntimeEntity = { id: string; kind: RuntimeEntityKind; title: string; presence: RuntimeEntityPresence; position: RuntimeEntityPosition; weight: RuntimeEntityAttentionWeight; continuity: RuntimeEntityContinuity; temporal: RuntimeEntityTemporalState; field: RuntimeEntityField; presenceField?: RuntimeEntityPresenceField; lifecycle?: RuntimeEntityLifecycle; drift?: RuntimeEntityDrift; attentionGravity?: RuntimeEntityAttentionGravity; pressureContribution?: RuntimeEntityPressureContribution; continuityAnchor?: RuntimeEntityContinuityAnchor; clusterField?: RuntimeEntityClusterField; relationships: RuntimeEntityRelationship[]; actionSurface: RuntimeEntityActionSurface | null };
+export type RuntimeEntity = { id: string; kind: RuntimeEntityKind; title: string; presence: RuntimeEntityPresence; position: RuntimeEntityPosition; weight: RuntimeEntityAttentionWeight; continuity: RuntimeEntityContinuity; temporal: RuntimeEntityTemporalState; field: RuntimeEntityField; relationships: RuntimeEntityRelationship[]; actionSurface: RuntimeEntityActionSurface | null };
+
+export type RuntimeEntityMaterialization = {
+  entityPressure: number;
+  entityClusterWeight: number;
+  entityDrift: number;
+  entityPresenceBand: RuntimeEntityPresenceBand;
+  relationshipTension: number;
+  actionSurfaceGravity: number;
+};
+
+const clamp = (value: number) => Math.max(0, Math.min(1, value));
+
+export function deriveRuntimeEntityMaterialization(input: { graph: RuntimeEntityGraph; embodied: RuntimeEmbodiedState }): RuntimeEntityMaterialization {
+  const activeCount = input.graph.nodes.filter((node) => node.lifecycleState === "active" || node.lifecycleState === "blocked").length;
+  const blockerCount = input.graph.traversal.blockers.length;
+  const relationshipCount = input.graph.relationships.length;
+  const dependencyCount = input.graph.dependencies.length;
+  const focalActionCount = input.graph.nodes.filter((node) => Boolean(node.route)).length;
+
+  const entityPressure = clamp(input.embodied.continuityPressure * 0.5 + Math.min(1, blockerCount / 4) * 0.3 + Math.min(1, activeCount / 6) * 0.2);
+  const entityClusterWeight = clamp(Math.min(1, relationshipCount / 8) * 0.45 + Math.min(1, dependencyCount / 6) * 0.25 + input.embodied.chamberDensity * 0.3);
+  const entityDrift = clamp((1 - input.embodied.environmentalStabilization) * 0.5 + input.embodied.operationalDrift * 0.5);
+  const relationshipTension = clamp(Math.min(1, blockerCount / Math.max(1, dependencyCount)) * 0.55 + input.embodied.fragmentation * 0.45);
+  const actionSurfaceGravity = clamp(Math.min(1, focalActionCount / 5) * 0.45 + input.embodied.focalEmergence * 0.55);
+
+  const entityPresenceBand: RuntimeEntityPresenceBand = entityPressure > 0.72 ? "immediate" : entityPressure > 0.52 ? "near" : entityPressure > 0.3 ? "ambient" : "distant";
+
+  return { entityPressure, entityClusterWeight, entityDrift, entityPresenceBand, relationshipTension, actionSurfaceGravity };
+}
