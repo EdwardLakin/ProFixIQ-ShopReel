@@ -1,6 +1,7 @@
 import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
 import type { OperatorRuntimeState, OperatorSurfaceId } from "@/features/shopreel/ui/system/operatorRuntime";
 import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
+import type { GuidedFlowStepId } from "@/features/shopreel/ui/system/guidedWorldFlow";
 
 export const RUNTIME_SESSION_KEY = "shopreel-operator-runtime-session-v1";
 
@@ -31,6 +32,16 @@ export type PersistedRuntimeSession = {
   previousWorldId: RuntimeWorldId | null;
   worldEntryIntent: RuntimeWorldEntryIntent | null;
   worldRecommendation: string | null;
+  worldEntrySnapshot: {
+    worldId: RuntimeWorldId;
+    href: string;
+    entityId: string | null;
+    entityKind: string | null;
+    title: string;
+    status: string;
+    visualSeed: string;
+    guidedStep: GuidedFlowStepId | null;
+  } | null;
   chamberMemory: PersistedChamberMemory;
 };
 
@@ -62,6 +73,7 @@ export function persistRuntimeSession(session: OperatorRuntimeSessionState): voi
     previousWorldId: session.previousWorldId,
     worldEntryIntent: session.worldEntryIntent,
     worldRecommendation: session.worldRecommendation,
+    worldEntrySnapshot: session.worldEntrySnapshot,
     chamberMemory: {
       lastKnownRuntimeState: session.runtimeState,
       lastKnownSurface: session.activeSurface,
@@ -100,4 +112,11 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
   } catch {
     return null;
   }
+}
+
+export function persistWorldEntrySnapshot(snapshot: NonNullable<PersistedRuntimeSession["worldEntrySnapshot"]>): void {
+  if (typeof window === "undefined") return;
+  const existing = readPersistedRuntimeSession();
+  if (!existing) return;
+  window.localStorage.setItem(RUNTIME_SESSION_KEY, JSON.stringify({ ...existing, worldEntrySnapshot: snapshot, updatedAt: new Date().toISOString() }));
 }
