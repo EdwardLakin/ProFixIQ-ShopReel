@@ -1,48 +1,47 @@
 export type RuntimeSignal = "known" | "unknown";
 export type RuntimeEnvironmentalIntelligence = {
-  atmosphereDensity: number;
-  fogDepth: number;
-  chamberTension: number;
-  surfaceBrightness: number;
+  atmosphericDensity: number;
+  silhouetteDistance: number;
   focalClarity: number;
-  peripheralActivity: number;
-  environmentalPulse: number;
-  recoveryCalm: number;
-  blockedFlowPressure: number;
+  environmentalAttenuation: number;
+  chamberBrightnessZones: number;
+  volumetricLayering: number;
+  spatialFog: number;
+  distantActivityBands: number;
+  peripheralMotionWeighting: number;
+  urgencyPressure: number;
+  operatorOverload: number;
   signal: RuntimeSignal;
 };
 
-export function deriveRuntimeEnvironmentalIntelligence(input: {
-  urgency: number | null;
-  workload: number | null;
-  unresolvedBlockers: number | null;
-  renderQueueState: number | null;
-  creativeIntensity: number | null;
-  operationalState: number | null;
-  temporalVolatility: number | null;
-  dependencyPressure: number | null;
-  continuityResilience: number | null;
-}): RuntimeEnvironmentalIntelligence {
+const clamp = (n: number) => Math.min(1, Math.max(0, n));
+
+export function deriveRuntimeEnvironmentalIntelligence(input: { urgency: number | null; workload: number | null; unresolvedBlockers: number | null; renderQueueState: number | null; creativeIntensity: number | null; operationalState: number | null; temporalVolatility: number | null; dependencyPressure: number | null; continuityResilience: number | null; }): RuntimeEnvironmentalIntelligence {
   const values = [input.urgency, input.workload, input.unresolvedBlockers, input.renderQueueState, input.creativeIntensity, input.operationalState, input.temporalVolatility, input.dependencyPressure, input.continuityResilience].filter((v): v is number => typeof v === "number");
-  if (values.length === 0) {
-    return { atmosphereDensity: 0.5, fogDepth: 0.2, chamberTension: 0.5, surfaceBrightness: 0.5, focalClarity: 0.6, peripheralActivity: 0.4, environmentalPulse: 0.4, recoveryCalm: 0.5, blockedFlowPressure: 0.5, signal: "unknown" };
+  if (!values.length) {
+    return { atmosphericDensity: 0.42, silhouetteDistance: 0.45, focalClarity: 0.62, environmentalAttenuation: 0.35, chamberBrightnessZones: 3, volumetricLayering: 3, spatialFog: 0.28, distantActivityBands: 2, peripheralMotionWeighting: 0.3, urgencyPressure: 0.4, operatorOverload: 0.34, signal: "unknown" };
   }
-  const safe = (n: number | null, fallback: number) => Math.min(1, Math.max(0, n ?? fallback));
-  const blockers = safe(input.unresolvedBlockers, 0.3);
-  const urgency = safe(input.urgency, 0.5);
-  const volatility = safe(input.temporalVolatility, 0.4);
-  const resilience = safe(input.continuityResilience, 0.5);
-  const pressure = safe(input.dependencyPressure, 0.4);
+  const urgency = clamp(input.urgency ?? 0.5);
+  const blockers = clamp(input.unresolvedBlockers ?? 0.4);
+  const congestion = clamp(input.renderQueueState ?? 0.35);
+  const backlog = clamp(input.dependencyPressure ?? 0.4);
+  const frag = clamp(input.operationalState ?? 0.4);
+  const volatility = clamp(input.temporalVolatility ?? 0.4);
+  const overload = clamp(((input.workload ?? 0.4) + blockers + backlog) / 3);
+  const recovery = clamp(input.continuityResilience ?? 0.5);
+  const pressure = clamp((urgency * 0.3) + (blockers * 0.24) + (congestion * 0.2) + (backlog * 0.14) + (frag * 0.12));
   return {
-    atmosphereDensity: 0.35 + urgency * 0.45,
-    fogDepth: 0.1 + volatility * 0.35,
-    chamberTension: 0.2 + (urgency + pressure) * 0.35,
-    surfaceBrightness: 0.74 - blockers * 0.34,
-    focalClarity: 0.9 - volatility * 0.3,
-    peripheralActivity: 0.25 + safe(input.workload, 0.4) * 0.5,
-    environmentalPulse: 0.2 + safe(input.creativeIntensity, 0.4) * 0.6,
-    recoveryCalm: 0.2 + resilience * 0.65,
-    blockedFlowPressure: 0.12 + blockers * 0.78,
+    atmosphericDensity: 0.22 + pressure * 0.58,
+    silhouetteDistance: 0.7 - pressure * 0.4,
+    focalClarity: 0.88 - volatility * 0.28,
+    environmentalAttenuation: 0.18 + pressure * 0.54,
+    chamberBrightnessZones: Math.max(2, Math.round(2 + (1 - blockers) * 3)),
+    volumetricLayering: Math.max(2, Math.round(2 + pressure * 4)),
+    spatialFog: 0.12 + volatility * 0.5,
+    distantActivityBands: Math.max(1, Math.round(1 + congestion * 4)),
+    peripheralMotionWeighting: 0.14 + overload * 0.52,
+    urgencyPressure: pressure,
+    operatorOverload: overload * (1 - recovery * 0.2),
     signal: "known",
   };
 }

@@ -1,65 +1,65 @@
 import type { RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
+import type { RuntimeChamberGeometry } from "@/features/shopreel/ui/system/runtimeChamberGeometry";
+import type { RuntimeTraversalState } from "@/features/shopreel/ui/system/runtimeTraversalEngine";
 
 type RuntimeWorldKind = RuntimeWorldEntry["worldKind"];
 
 export type RuntimePlaneDepth = "foreground" | "midground" | "operator" | "peripheral" | "background" | "distant";
-
-export type RuntimePlaneAnchor =
-  | "center"
-  | "north"
-  | "south"
-  | "east"
-  | "west"
-  | "north-east"
-  | "north-west"
-  | "south-east"
-  | "south-west";
-
-export type RuntimePlaneInteractionMode = "focal_action" | "supporting_action" | "operator_guided" | "background_action" | "escape_route" | "blocked_action" | "recovery_action";
-
-export type RuntimeSpatialOrigin = { x: number; y: number; z: number };
-export type RuntimeTopologyPlacement = { region: "core" | "lateral" | "rear" | "elevated"; biasX: number; biasY: number };
-export type RuntimePlanePerspective = { distance: number; tiltDeg: number; yawDeg: number; rollDeg: number; };
-export type RuntimePlaneTransform = {
-  anchor: RuntimePlaneAnchor;
-  depth: RuntimePlaneDepth;
-  origin: RuntimeSpatialOrigin;
-  placement: RuntimeTopologyPlacement;
-  scale: number;
-  opacity: number;
-  blur: number;
-  rotationBiasDeg: number;
-  parallaxVector: { x: number; y: number; z: number };
-  perspective: RuntimePlanePerspective;
-};
+export type RuntimePlaneAnchor = "center" | "north" | "south" | "east" | "west" | "north-east" | "north-west" | "south-east" | "south-west";
+export type RuntimePlaneAxis = "x" | "y" | "z";
+export type RuntimePlaneCoordinate = { x: number; y: number; z: number; origin: "chamber" | "continuity" | "topology" };
+export type RuntimePlaneField = { chamberAxis: RuntimePlaneCoordinate; continuityOffset: RuntimePlaneCoordinate; topologyDrift: RuntimePlaneCoordinate; environmentalScale: number };
+export type RuntimePlaneRegion = "core" | "lateral" | "rear" | "elevated";
+export type RuntimeSpatialRelationship = { anchor: RuntimePlaneAnchor; region: RuntimePlaneRegion; focalWeight: number; interactionDistance: number };
+export type RuntimeDepthAttenuation = { opacity: number; blur: number; fog: number };
+export type RuntimePerspectiveField = { distance: number; scale: number; tiltDeg: number; yawDeg: number; rollDeg: number };
+export type RuntimeParallaxBand = { band: "stable" | "guided" | "reactive"; vector: { x: number; y: number; z: number } };
 
 export type RuntimeScenePlane = {
   id: string;
-  transform: RuntimePlaneTransform;
-  interactionMode: RuntimePlaneInteractionMode;
+  depth: RuntimePlaneDepth;
+  field: RuntimePlaneField;
+  relationship: RuntimeSpatialRelationship;
+  attenuation: RuntimeDepthAttenuation;
+  perspective: RuntimePerspectiveField;
+  parallax: RuntimeParallaxBand;
   focusPriority: number;
+  interactionMode: "focal_action" | "supporting_action" | "operator_guided" | "background_action" | "recovery_action";
 };
 
-const WORLD_BIAS: Record<RuntimeWorldKind, number> = {
-  ingestion: -0.08,
-  planning: -0.02,
-  creation: 0.02,
-  review: 0.04,
-  publishing: 0.06,
-  campaign: 0.08,
-  analytics: 0.01,
-  command: 0,
-  operations: 0.05,
-};
+const DEPTH_INDEX: Record<RuntimePlaneDepth, number> = { foreground: 0.95, midground: 0.64, operator: 0.56, peripheral: 0.42, background: 0.22, distant: 0.08 };
+const WORLD_BIAS: Record<RuntimeWorldKind, number> = { campaign: 0.03, review: -0.02, generation: 0.06, render: 0.05, publish: 0.02, analytics: -0.01, operations: 0.01, library: -0.03, upload: 0 };
 
-export function deriveRuntimePlaneGeometry(worldKind: RuntimeWorldKind): Record<RuntimePlaneDepth, RuntimeScenePlane> {
+function plane(depth: RuntimePlaneDepth, worldKind: RuntimeWorldKind, chamber: RuntimeChamberGeometry, traversal: RuntimeTraversalState): RuntimeScenePlane {
+  const depthUnit = DEPTH_INDEX[depth];
   const bias = WORLD_BIAS[worldKind] ?? 0;
+  const carry = traversal.environmentalCarryover;
+  const drift = chamber.motionLanguage.drift;
+  const dir = traversal.transitionVector;
+  const focalWeight = depth === traversal.arrivalFocusPlane ? 1 : depth === "operator" ? 0.78 : 0.58;
   return {
-    foreground: { id: "foreground", interactionMode: "focal_action", focusPriority: 100, transform: { anchor: "south", depth: "foreground", origin: { x: 0, y: 0.22, z: 0.95 }, placement: { region: "core", biasX: 0, biasY: 0.18 }, scale: 1.04, opacity: 1, blur: 0, rotationBiasDeg: 0.1 + bias, parallaxVector: { x: 0.02, y: -0.02, z: 0.18 }, perspective: { distance: 660, tiltDeg: 0, yawDeg: 0, rollDeg: 0 } } },
-    midground: { id: "midground", interactionMode: "supporting_action", focusPriority: 88, transform: { anchor: "center", depth: "midground", origin: { x: 0, y: 0.06, z: 0.54 }, placement: { region: "core", biasX: 0.01, biasY: 0.06 }, scale: 0.96, opacity: 0.97, blur: 0, rotationBiasDeg: 0.25 + bias, parallaxVector: { x: 0.04, y: -0.01, z: 0.12 }, perspective: { distance: 980, tiltDeg: 0.5, yawDeg: 0.5, rollDeg: 0 } } },
-    operator: { id: "operator", interactionMode: "operator_guided", focusPriority: 82, transform: { anchor: "east", depth: "operator", origin: { x: 0.27, y: -0.02, z: 0.42 }, placement: { region: "lateral", biasX: 0.24, biasY: -0.04 }, scale: 0.92, opacity: 0.95, blur: 0, rotationBiasDeg: -0.65 + bias, parallaxVector: { x: 0.05, y: 0.01, z: 0.09 }, perspective: { distance: 1100, tiltDeg: 0.8, yawDeg: -1, rollDeg: 0.2 } } },
-    peripheral: { id: "peripheral", interactionMode: "supporting_action", focusPriority: 70, transform: { anchor: "west", depth: "peripheral", origin: { x: -0.24, y: 0.02, z: 0.33 }, placement: { region: "lateral", biasX: -0.22, biasY: 0.04 }, scale: 0.86, opacity: 0.86, blur: 0.2, rotationBiasDeg: 0.9 + bias, parallaxVector: { x: 0.08, y: -0.02, z: 0.08 }, perspective: { distance: 1260, tiltDeg: 1.2, yawDeg: 1.5, rollDeg: -0.3 } } },
-    background: { id: "background", interactionMode: "background_action", focusPriority: 50, transform: { anchor: "north", depth: "background", origin: { x: 0, y: -0.22, z: 0.2 }, placement: { region: "rear", biasX: 0, biasY: -0.18 }, scale: 0.8, opacity: 0.72, blur: 0.35, rotationBiasDeg: 0.3 + bias, parallaxVector: { x: 0.03, y: 0.01, z: 0.04 }, perspective: { distance: 1380, tiltDeg: 1.4, yawDeg: 0, rollDeg: 0 } } },
-    distant: { id: "distant", interactionMode: "recovery_action", focusPriority: 24, transform: { anchor: "north", depth: "distant", origin: { x: 0, y: -0.3, z: 0.08 }, placement: { region: "elevated", biasX: 0, biasY: -0.22 }, scale: 0.74, opacity: 0.6, blur: 0.45, rotationBiasDeg: 0.15 + bias, parallaxVector: { x: 0.01, y: 0.01, z: 0.01 }, perspective: { distance: 1600, tiltDeg: 2.2, yawDeg: 0, rollDeg: 0 } } },
+    id: depth,
+    depth,
+    field: {
+      chamberAxis: { x: chamber.directionalBias.x * depthUnit, y: chamber.directionalBias.y * depthUnit, z: chamber.directionalBias.z * depthUnit, origin: "chamber" },
+      continuityOffset: { x: dir.x * 0.14 * (1 - depthUnit), y: dir.y * 0.12 * (1 - depthUnit), z: dir.z * 0.18 * (1 - depthUnit), origin: "continuity" },
+      topologyDrift: { x: drift * 0.1 + bias, y: -drift * 0.05, z: drift * 0.14, origin: "topology" },
+      environmentalScale: 1 + carry * 0.06 - (1 - depthUnit) * 0.08,
+    },
+    relationship: {
+      anchor: depth === "operator" ? chamber.anchorMap.operator : depth === "foreground" ? chamber.anchorMap.foreground === "center" ? "center" : chamber.anchorMap.foreground : depth === "peripheral" ? "west" : "center",
+      region: depth === "operator" || depth === "peripheral" ? "lateral" : depth === "background" || depth === "distant" ? "rear" : "core",
+      focalWeight,
+      interactionDistance: 1 - depthUnit,
+    },
+    attenuation: { opacity: 1 - (1 - depthUnit) * 0.45, blur: (1 - depthUnit) * 0.8, fog: (1 - depthUnit) * 0.6 },
+    perspective: { distance: 680 + (1 - depthUnit) * 980, scale: 0.86 + depthUnit * 0.22, tiltDeg: (1 - depthUnit) * 1.5, yawDeg: chamber.directionalBias.x * 3, rollDeg: chamber.motionLanguage.axis === "orbital" ? 0.35 : 0.1 },
+    parallax: { band: depthUnit > 0.7 ? "stable" : depthUnit > 0.3 ? "guided" : "reactive", vector: { x: dir.x * (1 - depthUnit) * 0.5, y: dir.y * (1 - depthUnit) * 0.45, z: dir.z * (1 - depthUnit) * 0.4 } },
+    focusPriority: Math.round(focalWeight * 100),
+    interactionMode: depth === "foreground" ? "focal_action" : depth === "operator" ? "operator_guided" : depth === "background" || depth === "distant" ? "background_action" : "supporting_action",
   };
+}
+
+export function deriveRuntimePlaneGeometry(worldKind: RuntimeWorldKind, chamber: RuntimeChamberGeometry, traversal: RuntimeTraversalState): Record<RuntimePlaneDepth, RuntimeScenePlane> {
+  return { foreground: plane("foreground", worldKind, chamber, traversal), midground: plane("midground", worldKind, chamber, traversal), operator: plane("operator", worldKind, chamber, traversal), peripheral: plane("peripheral", worldKind, chamber, traversal), background: plane("background", worldKind, chamber, traversal), distant: plane("distant", worldKind, chamber, traversal) };
 }
