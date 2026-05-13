@@ -16,6 +16,7 @@ import { deriveRuntimeImmersionState, type RuntimeImmersionState } from "@/featu
 import { deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
 import { buildRuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
 import { buildRuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
+import { deriveRuntimeInteractionState } from "@/features/shopreel/ui/system/runtimeInteractionPolish";
 import { persistWorldEntrySnapshot, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
@@ -123,6 +124,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     choreography,
     entityGraph,
   });
+  const interaction = deriveRuntimeInteractionState({ orchestration, temporalMemory, graph: entityGraph });
   const immersion: RuntimeImmersionState = deriveRuntimeImmersionState({
     elapsedMs: immersionElapsed,
     durationMs: 900,
@@ -137,14 +139,14 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     router.push(href);
   };
 
-  const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`}>
+  const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`} style={{ opacity: 0.86 + interaction.operatorGuidance.railNoiseSuppression * 0.14, borderColor: `rgba(125,211,252,${0.2 + interaction.guidanceCue.emphasis * 0.2})`, boxShadow: `0 0 ${10 + interaction.continuityAttention * 24}px rgba(34,211,238,${0.12 + interaction.guidanceCue.continuityGlow * 0.18})` }}>
     <p>{flow?.question ?? prompt.question}</p>
-    <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label}</p>
+    <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label} · {interaction.guidanceCue.label}</p>
     <p className="mt-1 text-xs text-white/60">{choreography.continuityCue.continuationLabel}</p>
     <p className="mt-2 text-xs text-white/60">Focus: {focusState.focusedPanelId ?? "workspace"} · Ambient: {ambientState.stabilized ? "stable" : "shifting"}</p>
-    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-      <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border border-emerald-200/40 bg-emerald-400/10 px-3 py-2 text-xs">Yes</button>
-      <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-lg border border-amber-200/40 bg-amber-400/10 px-3 py-2 text-xs">No</button>
+    <div className="mt-2 grid gap-2 sm:grid-cols-2" data-attention={interaction.attention}>
+      <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: `rgba(110,231,183,${0.35 + interaction.guidanceCue.emphasis * 0.4})`, background: `rgba(52,211,153,${0.08 + interaction.guidanceCue.emphasis * 0.16})`, filter: `contrast(${1 + interaction.continuityAttention * 0.08})` }}>Yes</button>
+      <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: `rgba(253,230,138,${0.32 + interaction.panelRelationshipIntensity * 0.2})`, background: `rgba(251,191,36,${0.06 + (interaction.decisionFocus === "critical" ? 0.1 : 0.04)})` }}>No</button>
     </div>
     <div className="mt-4 flex flex-wrap gap-2">{manualActions.map((action) => <Link key={action.id} href={action.href} className="rounded-full border border-white/20 px-3 py-1 text-xs">{action.label}</Link>)}</div>
     <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} onClick={() => persistRuntimeReturnState({ worldId: entry.worldId, scrollY: window.scrollY, restoreCardId: `${entry.entityKind ?? entry.worldKind}:${entry.entityId ?? entry.worldId}`, returnedAt: new Date().toISOString() })} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Open full manual route</Link></div>
@@ -162,7 +164,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
         <h1 className="text-2xl font-semibold">{entry.title}</h1>
         <p className="text-sm text-white/70">{entry.stageLabel} · {entry.status} · {entry.objective}</p>
       </section>
-      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={activeTransition?.focus.panelReveal ?? 1} continuityRailFocus={activeTransition?.focus.continuityRailFocus ?? 1} immersion={immersion}>{children}</RuntimeWorldWorkspaceCanvas>
+      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={activeTransition?.focus.panelReveal ?? 1} continuityRailFocus={activeTransition?.focus.continuityRailFocus ?? 1} immersion={immersion} interaction={interaction}>{children}</RuntimeWorldWorkspaceCanvas>
     </div>
   </div>;
 }
