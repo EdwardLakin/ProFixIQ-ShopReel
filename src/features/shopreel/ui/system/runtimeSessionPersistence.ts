@@ -1,5 +1,6 @@
 import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
 import type { OperatorRuntimeState, OperatorSurfaceId } from "@/features/shopreel/ui/system/operatorRuntime";
+import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 
 export const RUNTIME_SESSION_KEY = "shopreel-operator-runtime-session-v1";
 
@@ -26,6 +27,10 @@ export type PersistedRuntimeSession = {
   interruptionReason: string | null;
   returnTarget: string;
   updatedAt: string;
+  activeWorldId: RuntimeWorldId | null;
+  previousWorldId: RuntimeWorldId | null;
+  worldEntryIntent: RuntimeWorldEntryIntent | null;
+  worldRecommendation: string | null;
   chamberMemory: PersistedChamberMemory;
 };
 
@@ -53,6 +58,10 @@ export function persistRuntimeSession(session: OperatorRuntimeSessionState): voi
     interruptionReason: session.interruption?.reason ?? null,
     returnTarget: session.fallbackRoute,
     updatedAt: new Date().toISOString(),
+    activeWorldId: session.activeWorldId,
+    previousWorldId: session.previousWorldId,
+    worldEntryIntent: session.worldEntryIntent,
+    worldRecommendation: session.worldRecommendation,
     chamberMemory: {
       lastKnownRuntimeState: session.runtimeState,
       lastKnownSurface: session.activeSurface,

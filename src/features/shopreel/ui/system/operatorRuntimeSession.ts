@@ -8,6 +8,7 @@ import type { RuntimeEntity, RuntimeWorkspaceState } from "@/features/shopreel/r
 import type { OperatorAction, OperatorCapability } from "@/features/shopreel/ui/system/operatorCapabilities";
 import type { OperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 import { focusEntity, openEntity, pinEntity, queueEntity, transitionToEntity } from "@/features/shopreel/runtime/entities";
+import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 
 export type RuntimeInterruption = {
   reason: string;
@@ -45,6 +46,12 @@ export type OperatorRuntimeSessionState = {
   fallbackRoute: string;
   workspace: RuntimeWorkspaceState;
   orchestrationPlan: OperatorOrchestrationPlan | null;
+  activeWorldId: RuntimeWorldId | null;
+  previousWorldId: RuntimeWorldId | null;
+  worldEntryIntent: RuntimeWorldEntryIntent | null;
+  focusedWorldEntity: { kind: string; id: string } | null;
+  worldRecommendation: string | null;
+  worldTransitionHistory: Array<{ from: RuntimeWorldId | null; to: RuntimeWorldId; at: string; reason: string }>;
   orchestrationSummary: {
     currentOperationalFocus: string;
     blockedCount: number;
@@ -77,6 +84,12 @@ export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
   fallbackRoute: "/shopreel",
   workspace: { entities: [], focusedEntityId: null, pinnedEntityIds: [], queuedEntityIds: [], panels: [] },
   orchestrationPlan: null,
+  activeWorldId: null,
+  previousWorldId: null,
+  worldEntryIntent: null,
+  focusedWorldEntity: null,
+  worldRecommendation: null,
+  worldTransitionHistory: [],
   orchestrationSummary: null,
 };
 
@@ -107,6 +120,14 @@ type SetCapabilityContextAction = {
   recoveryTarget?: string | null;
 };
 type SetOrchestrationPlanAction = { type: "SET_ORCHESTRATION_PLAN"; plan: OperatorOrchestrationPlan | null };
+type SetWorldContextAction = {
+  type: "SET_WORLD_CONTEXT";
+  activeWorldId: RuntimeWorldId;
+  worldEntryIntent?: RuntimeWorldEntryIntent | null;
+  focusedWorldEntity?: { kind: string; id: string } | null;
+  worldRecommendation?: string | null;
+  reason?: string;
+};
 
 export type OperatorRuntimeSessionAction =
   | StartRuntimeAction
@@ -123,7 +144,8 @@ export type OperatorRuntimeSessionAction =
   | QueueEntityAction
   | TransitionToEntityAction
   | SetCapabilityContextAction
-  | SetOrchestrationPlanAction;
+  | SetOrchestrationPlanAction
+  | SetWorldContextAction;
 
 export function operatorRuntimeSessionReducer(
   state: OperatorRuntimeSessionState,
@@ -223,6 +245,24 @@ export function operatorRuntimeSessionReducer(
         ...state,
         orchestrationPlan: action.plan,
         orchestrationSummary: action.plan?.summary ?? null,
+      };
+    case "SET_WORLD_CONTEXT":
+      return {
+        ...state,
+        previousWorldId: state.activeWorldId,
+        activeWorldId: action.activeWorldId,
+        worldEntryIntent: action.worldEntryIntent ?? state.worldEntryIntent,
+        focusedWorldEntity: action.focusedWorldEntity ?? state.focusedWorldEntity,
+        worldRecommendation: action.worldRecommendation ?? state.worldRecommendation,
+        worldTransitionHistory: [
+          {
+            from: state.activeWorldId,
+            to: action.activeWorldId,
+            at: new Date().toISOString(),
+            reason: action.reason ?? "world_context_update",
+          },
+          ...state.worldTransitionHistory,
+        ].slice(0, 20),
       };
     default:
       return state;
