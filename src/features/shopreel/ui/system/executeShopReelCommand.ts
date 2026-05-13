@@ -10,6 +10,9 @@ import {
 } from "@/features/shopreel/ui/system/operatorCapabilities";
 import type { OperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 import { resolveRouteFromPrompt } from "@/features/shopreel/ui/system/shopReelRouteRegistry";
+import { buildWorldEntryIntent, resolveWorldFromEntityKind, resolveWorldFromPath } from "@/features/shopreel/ui/system/pageToWorldAdapter";
+import { recommendTransitions } from "@/features/shopreel/ui/system/worldTransitionRules";
+import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 
 export type CommandSource = "home_command" | "global_command";
 
@@ -21,6 +24,7 @@ export type ExecuteShopReelCommandResult = {
   commandIntent: ReturnType<typeof classifyCommandInputIntent>;
   typedAction: OperatorAction | null;
   actionResult: OperatorActionResult | null;
+  worldTarget: { worldId: RuntimeWorldId; route: string; actionKind: OperatorActionKind | "open_world" | null; recommendation: string; fallbackRoute: string; entryIntent: RuntimeWorldEntryIntent } | null;
 };
 
 function detectActionKind(command: string): OperatorActionKind | null {
@@ -48,6 +52,7 @@ export function executeShopReelCommand(input: {
   let handoffId: string | null = null;
   let typedAction: OperatorAction | null = null;
   let actionResult: OperatorActionResult | null = null;
+  let worldTarget: ExecuteShopReelCommandResult["worldTarget"] = null;
 
   const actionKind = detectActionKind(input.command);
   const headWorld = input.recentWorlds?.[0];
@@ -59,6 +64,24 @@ export function executeShopReelCommand(input: {
     selectedRoute = route;
     typedAction = { kind: actionKind, label: actionKind.replaceAll("_", " "), target: { entityKind: headWorld.kind, entityId: headWorld.id, href: route, capability } };
     actionResult = { ok: allowed, route, reason: allowed ? `Routed to ${def.displayLabel}.` : `Action not allowed for ${def.displayLabel}; fallback applied.` };
+
+    const fromWorld = resolveWorldFromEntityKind(headWorld.kind);
+    const worldCandidates = recommendTransitions(fromWorld).candidates;
+    const targetWorld = resolveWorldFromPath(route);
+    worldTarget = {
+      worldId: targetWorld,
+      route,
+      actionKind,
+      recommendation: `From ${fromWorld} continue to ${worldCandidates.join(", ")}.`,
+      fallbackRoute: route,
+      entryIntent: buildWorldEntryIntent({
+        worldId: targetWorld,
+        href: route,
+        entityKind: headWorld.kind,
+        entityId: headWorld.id,
+        source: "command",
+      }),
+    };
   }
   const normalizedCommand = input.command.toLowerCase();
   if (input.orchestrationPlan) {
@@ -82,7 +105,19 @@ export function executeShopReelCommand(input: {
     handoffId = handoff.id;
   }
 
-  return { decision, selectedRoute, handoffMethod, handoffId, commandIntent, typedAction, actionResult };
+  if (!worldTarget) {
+    const targetWorld = resolveWorldFromPath(selectedRoute);
+    worldTarget = {
+      worldId: targetWorld,
+      route: selectedRoute,
+      actionKind: actionKind ?? "open_world",
+      recommendation: "World-aware route selection.",
+      fallbackRoute: selectedRoute,
+      entryIntent: buildWorldEntryIntent({ href: selectedRoute, worldId: targetWorld, source: "command" }),
+    };
+  }
+
+  return { decision, selectedRoute, handoffMethod, handoffId, commandIntent, typedAction, actionResult, worldTarget };
 }
 
 

@@ -34,6 +34,8 @@ import type { OperatorMemoryRecord } from "@/features/shopreel/operator-memory/m
 import { aggregateWorkspaceTimeline } from "@/features/shopreel/workspace-timeline/aggregation";
 import type { WorkspaceTimelineEvent } from "@/features/shopreel/workspace-timeline/models";
 import { deriveOperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
+import { buildWorldEntryIntent, resolveWorldFromEntityKind, resolveWorldEntryForHref } from "@/features/shopreel/ui/system/pageToWorldAdapter";
+import { buildWorldSnapshot } from "@/features/shopreel/ui/system/worldSnapshot";
 
 
 type RuntimeCampaignContext = {
@@ -395,6 +397,25 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                       type="button"
                       key={`${item.kind}-${item.id}`}
                       onClick={() => {
+                        const worldId = resolveWorldFromEntityKind(item.kind);
+                        const worldSnapshot = buildWorldSnapshot(item);
+                        const worldEntryIntent = buildWorldEntryIntent({
+                          worldId,
+                          href: item.href,
+                          entityKind: item.kind,
+                          entityId: item.id,
+                          source: "home_deck",
+                          recommendedAction: worldSnapshot.recommendation?.actionId,
+                          fallbackRoute: worldSnapshot.recommendation?.route,
+                        });
+                        dispatch({
+                          type: "SET_WORLD_CONTEXT",
+                          activeWorldId: resolveWorldEntryForHref(item.href),
+                          worldEntryIntent,
+                          focusedWorldEntity: { kind: item.kind, id: item.id },
+                          worldRecommendation: worldSnapshot.recommendation?.reason ?? null,
+                          reason: "home_deck_entry",
+                        });
                         dispatch({
                           type: "SET_CAPABILITY_CONTEXT",
                           capability: resolveCapabilityForWorld(item),
