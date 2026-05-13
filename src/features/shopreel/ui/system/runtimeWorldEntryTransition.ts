@@ -1,6 +1,7 @@
 import type { RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 
 export const WORLD_ENTRY_TRANSITION_KEY = "shopreel-world-entry-transition-v1";
+const TRANSITION_STALE_MS = 12_000;
 
 export type RuntimeWorldEntrySnapshot = {
   worldId: RuntimeWorldId;
@@ -28,8 +29,27 @@ export function readWorldEntryTransition(): RuntimeWorldEntryTransitionState | n
   const raw = window.sessionStorage.getItem(WORLD_ENTRY_TRANSITION_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as RuntimeWorldEntryTransitionState;
+    const parsed = JSON.parse(raw) as RuntimeWorldEntryTransitionState;
+    const rect = parsed.snapshot?.rect;
+    const hasSafeRect = rect
+      && Number.isFinite(rect.x)
+      && Number.isFinite(rect.y)
+      && Number.isFinite(rect.width)
+      && Number.isFinite(rect.height)
+      && rect.width > 0
+      && rect.height > 0;
+    const hasHref = typeof parsed.snapshot?.href === "string" && parsed.snapshot.href.startsWith("/");
+    const capturedAtMs = Number.isFinite(Date.parse(parsed.snapshot?.capturedAt ?? "")) ? Date.parse(parsed.snapshot.capturedAt) : NaN;
+    const stale = !Number.isFinite(capturedAtMs) || Date.now() - capturedAtMs > TRANSITION_STALE_MS;
+
+    if (!hasSafeRect || !hasHref || stale || parsed.phase === "complete") {
+      clearWorldEntryTransition();
+      return null;
+    }
+
+    return parsed;
   } catch {
+    clearWorldEntryTransition();
     return null;
   }
 }
