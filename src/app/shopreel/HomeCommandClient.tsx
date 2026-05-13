@@ -389,10 +389,15 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                 </Link>
               </div>
 
-              <div className="relative overflow-x-auto pb-3">
-                <div className="flex min-w-max gap-4 pr-4">
-                {recent.slice(0, 8).map((item, index) => {
+              <div className="relative overflow-x-auto pb-3" role="region" aria-label="Operational world deck">
+                <div className="flex min-w-max snap-x snap-mandatory gap-4 pr-4">
+                {recent.slice(0, 8).sort((a, b) => {
+                  const aScore = (a.priority === "critical" ? 3 : a.priority === "high" ? 2 : 1);
+                  const bScore = (b.priority === "critical" ? 3 : b.priority === "high" ? 2 : 1);
+                  return bScore - aScore || (new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime());
+                }).map((item, index) => {
                   const active = index === 0;
+                  const worldKind = resolveWorldFromEntityKind(item.kind);
                   return (
                     <button
                       type="button"
@@ -427,7 +432,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                         });
                         router.push(item.href);
                       }}
-                      className={`group relative h-[420px] w-[280px] shrink-0 overflow-hidden rounded-[2rem] border p-6 text-left transition hover:-translate-y-1 ${
+                      className={`group relative h-[420px] w-[280px] shrink-0 snap-start overflow-hidden rounded-[2rem] border p-6 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 hover:-translate-y-1 ${
                         active
                           ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))] shadow-[0_0_65px_rgba(255,174,80,.24),0_34px_90px_rgba(0,0,0,.62)]"
                           : "border-white/12 bg-[linear-gradient(180deg,rgba(17,20,43,.9),rgba(5,8,22,.98))] shadow-[0_28px_70px_rgba(0,0,0,.58)]"
@@ -440,7 +445,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                       <div className="relative">
                         <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-amber-100/82">
                           <span>{active ? "Active" : statusTone(item.normalizedStatus)}</span>
-                          <span>{active ? "Current" : item.sourceLabel}</span>
+                          <span>{active ? "Current" : `${worldKind} · ${item.sourceLabel}`}</span>
                         </div>
                         <h2 className="mt-8 line-clamp-3 text-2xl leading-tight tracking-[-0.03em] text-white">{item.title}</h2>
                         <div className="mt-7 inline-flex rounded-full bg-violet-400/18 px-4 py-2 text-sm text-violet-100">
@@ -453,7 +458,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-amber-300 to-cyan-300" />
                         </div>
                         <div className="flex justify-between text-xs text-white/72">
-                          <span>{active ? item.actionLabel : `${item.kind.replaceAll("_", " ")} world`}</span>
+                          <span>{active ? item.actionLabel : `${worldKind.replaceAll("_", " ")} world`}</span>
                           <span>Open →</span>
                         </div>
                       </div>
