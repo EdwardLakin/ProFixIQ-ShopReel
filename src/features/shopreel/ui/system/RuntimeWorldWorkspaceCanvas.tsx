@@ -7,6 +7,7 @@ import { RUNTIME_WORLD_COMPOSITIONS } from "@/features/shopreel/ui/system/runtim
 import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
 import type { RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
 import { readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+import { deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
 
 export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorPanel }: { entry: RuntimeWorldEntry; children: ReactNode; operatorPanel: ReactNode }) {
   const persisted = readPersistedRuntimeSession();
@@ -30,6 +31,21 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
     .filter((panel): panel is (typeof composition.panels)[number] => Boolean(panel))
     .filter((panel) => panel.zone === "secondary");
   const bottom = composition.panels.filter((panel) => panel.zone === "bottom");
+  const orchestration = useMemo(() => deriveRuntimeOrchestration({
+    worldId: entry.worldId,
+    status: entry.status,
+    blockers: entry.blockers,
+    unresolvedCount: entry.unresolvedCount,
+    guidedStepId: persisted?.worldContinuity.guidedStepId ?? null,
+    previousWorldId: persisted?.previousWorldId ?? null,
+    lastActionLabel: persisted?.worldContinuity.lastAction?.label ?? null,
+    breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [],
+    composition,
+    choreography,
+    now: new Date().toISOString(),
+    lastTransitionAt: persisted?.updatedAt ?? null,
+  }), [choreography, composition, entry.blockers, entry.status, entry.unresolvedCount, entry.worldId, persisted]);
+
   const continuity = useMemo(() => ({
     previous: persisted?.previousWorldId ?? "none",
     current: entry.worldId,
@@ -39,12 +55,16 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
     guided: persisted?.worldContinuity.guidedStepId ?? "none",
   }), [entry.worldId, persisted]);
 
-  return <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+  const railClass = orchestration.operationalPressure === "critical" ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "xl:grid-cols-[minmax(0,1fr)_360px]";
+  const secondaryClass = orchestration.attentionState === "focused" ? "opacity-75" : "";
+
+  return <section className={`grid gap-4 ${railClass}`}>
     <div className="grid min-h-0 gap-4">
       <RuntimeRoutePanelAdapter adapter={{ panelId: primary?.id ?? "primary", route: primary?.route ?? entry.href, title: primary?.title ?? "Workspace", embedMode: "embedded" }}>{children}</RuntimeRoutePanelAdapter>
-      <div className="grid gap-4 md:grid-cols-2">{secondary.map((panel) => <div key={panel.id} className={choreography.panelPriority.collapsedPanelIds.includes(panel.id) ? "opacity-85" : ""}><RuntimeRoutePanelAdapter adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} /></div>)}</div>
+      <div className={`grid gap-4 md:grid-cols-2 ${secondaryClass}`}>{secondary.map((panel) => <div key={panel.id} className={choreography.panelPriority.collapsedPanelIds.includes(panel.id) ? "opacity-85" : ""}><RuntimeRoutePanelAdapter adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} /></div>)}</div>
       <div className="grid gap-3 md:grid-cols-2">{bottom.map((panel) => <RuntimeRoutePanelAdapter key={panel.id} adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} />)}</div>
-      <section className="rounded-xl border border-cyan-200/20 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90">{choreography.operatorCue.label} · {choreography.continuityCue.label} · Previous: {continuity.previous} · Current: {continuity.current} · Next: {continuity.recommended} · Unresolved: {continuity.unresolved} · Last action: {continuity.lastAction} · Guided: {continuity.guided}</section>
+      <section className="rounded-xl border border-cyan-200/20 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90">{choreography.operatorCue.label} · {choreography.continuityCue.label} · Previous: {continuity.previous} · Current: {continuity.current} · Next: {continuity.recommended} · Unresolved: {continuity.unresolved} · Last action: {continuity.lastAction} · Guided: {continuity.guided} · Flow: {orchestration.flowHealth} · Pressure: {orchestration.operationalPressure}</section>
+      <section className="rounded-xl border border-violet-200/20 bg-violet-300/5 px-3 py-2 text-xs text-violet-100/90">Timeline · Prev {continuity.previous} → Current {continuity.current} · Recovery: {orchestration.recoveryState.cue ?? "none"} · Dormant: {orchestration.dormancyState.isDormant ? orchestration.dormancyState.cue : "no"} · Interrupted: {orchestration.escalationState.needsEscalation ? "yes" : "no"}</section>
     </div>
     <aside>{operatorPanel}</aside>
   </section>;

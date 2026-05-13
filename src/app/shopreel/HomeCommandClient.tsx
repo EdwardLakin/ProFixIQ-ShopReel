@@ -40,6 +40,7 @@ import { buildWorldSnapshot } from "@/features/shopreel/ui/system/worldSnapshot"
 import { createWorldEntryTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
 import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
 import { RUNTIME_WORLD_COMPOSITIONS } from "@/features/shopreel/ui/system/runtimeWorldComposition";
+import { deriveRuntimeOperatorPriority, deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
 
 
 type RuntimeCampaignContext = {
@@ -81,8 +82,8 @@ function buildWorldEntrySnapshotFromCard(item: OperatorWorldCard) {
   };
 }
 
-function getResumeWorldHref(): string {
-  return readPersistedRuntimeSession()?.worldContinuity.activeRoute ?? "/shopreel";
+function getResumeWorldHref(fallback?: string): string {
+  return readPersistedRuntimeSession()?.worldContinuity.activeRoute ?? fallback ?? "/shopreel";
 }
 
 function statusTone(status: string) {
@@ -108,6 +109,26 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
   const hasActiveCampaign = recent.some((item) => item.kind === "campaign");
   const hasRecentWorlds = recent.length > 0;
   const activeWorld = recent[0] ?? null;
+
+  const deckOrchestrations = useMemo(() => recent.slice(0, 8).map((item) => {
+    const worldId = resolveWorldFromEntityKind(item.kind);
+    return deriveRuntimeOrchestration({
+      worldId,
+      status: item.normalizedStatus,
+      blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [],
+      unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0,
+      guidedStepId: null,
+      previousWorldId: runtimeSession.previousWorldId,
+      lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null,
+      breadcrumbs: runtimeSession.worldContinuity.breadcrumbs,
+      composition: RUNTIME_WORLD_COMPOSITIONS[worldId] ?? { worldId, panels: [] },
+      now: new Date().toISOString(),
+      lastTransitionAt: item.updatedAt ?? null,
+    });
+  }), [recent, runtimeSession.previousWorldId, runtimeSession.worldContinuity.breadcrumbs, runtimeSession.worldContinuity.lastAction?.label]);
+  const operatorPriority = useMemo(() => deriveRuntimeOperatorPriority(deckOrchestrations), [deckOrchestrations]);
+
+  const atmosphereClass = operatorPriority?.highestPressureWorld ? (deckOrchestrations.some((x) => x.operationalPressure === "critical") ? "from-slate-950 via-indigo-950 to-slate-950" : deckOrchestrations.some((x) => x.flowHealth === "resolved") ? "from-slate-900 via-cyan-950 to-indigo-950" : "from-slate-950 via-violet-950 to-slate-950") : "from-slate-950 via-violet-950 to-slate-950";
   const orchestrationPlan = useMemo(() => {
     const records: OperatorMemoryRecord[] = recent.map((world) => ({
       id: `mem-${world.id}`,
@@ -408,13 +429,13 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
               <div className="mb-8 flex items-end justify-between pl-4">
                 <div>
                   <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">Operational Worlds</div>
-                  <p className="mt-3 text-sm text-white/48">Your runtime environments. Alive and remembered.</p>
+                  <p className="mt-3 text-sm text-white/48">Your runtime environments. Alive and remembered. Priority: {operatorPriority?.highestPressureWorld ?? "none"}.</p>
                 </div>
                 <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">
                   View all →
                 </Link>
               </div>
-              <button type="button" onClick={() => router.push(getResumeWorldHref())} className="mb-4 ml-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
+              <button type="button" onClick={() => router.push(getResumeWorldHref(operatorPriority ? `/shopreel/${operatorPriority.recommendedReturnWorld}` : undefined))} className="mb-4 ml-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
 
               <div className="relative overflow-x-auto pb-3" role="region" aria-label="Operational world deck">
                 <div className="flex min-w-max snap-x snap-mandatory gap-4 pr-4">
@@ -511,7 +532,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-amber-300 to-cyan-300" />
                         </div>
                         <div className="flex justify-between text-xs text-white/72">
-                          <span>{active ? item.actionLabel : `${worldKind.replaceAll("_", " ")} world`} · {choreography.operatorCue.nextActionLabel ?? "Open"}</span>
+                          <span>{active ? item.actionLabel : `${worldKind.replaceAll("_", " ")} world`} · {choreography.operatorCue.nextActionLabel ?? "Open"} · {deriveRuntimeOrchestration({ worldId: worldKind, status: item.normalizedStatus, blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [], unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0, guidedStepId: null, previousWorldId: runtimeSession.previousWorldId, lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null, breadcrumbs: runtimeSession.worldContinuity.breadcrumbs, composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] }, now: new Date().toISOString(), lastTransitionAt: item.updatedAt ?? null }).flowHealth}</span>
                           <span>{choreography.operatorCue.blocker ? "Blocker" : choreography.continuityCue.continuationLabel}</span>
                         </div>
                       </div>
