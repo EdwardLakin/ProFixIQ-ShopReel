@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import RuntimeWorldShell from "@/features/shopreel/ui/system/RuntimeWorldShell";
 import { buildRuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
 import { readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
+import type { OperatorWorldKind } from "@/features/shopreel/operator/operatorWorlds";
 
 const WORLD_ROUTE_PATTERNS = [
   "/shopreel/campaigns",
@@ -31,11 +32,12 @@ export default function RuntimeWorldRouteShell({ children }: { children: ReactNo
 
   const persisted = readPersistedRuntimeSession();
   const snapshot = persisted?.worldEntrySnapshot;
+  const cardKind: OperatorWorldKind = snapshot?.entityKind === "campaign" || snapshot?.entityKind === "generation" || snapshot?.entityKind === "manual_asset" || snapshot?.entityKind === "publication" || snapshot?.entityKind === "render_job" || snapshot?.entityKind === "opportunity" ? snapshot.entityKind : "campaign";
   const entry = buildRuntimeWorldEntry({
     pathname,
     card: snapshot && snapshot.href === pathname ? {
       id: snapshot.entityId ?? "route",
-      kind: "campaign",
+      kind: cardKind,
       title: snapshot.title,
       status: snapshot.status,
       normalizedStatus: snapshot.status,

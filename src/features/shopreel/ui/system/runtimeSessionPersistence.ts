@@ -43,6 +43,7 @@ export type PersistedRuntimeSession = {
     guidedStep: GuidedFlowStepId | null;
   } | null;
   chamberMemory: PersistedChamberMemory;
+  worldContinuity: OperatorRuntimeSessionState["worldContinuity"];
 };
 
 const MAX_MEMORY_TRACES = 6;
@@ -81,6 +82,7 @@ export function persistRuntimeSession(session: OperatorRuntimeSessionState): voi
       restorationCount: (previousMemory?.restorationCount ?? 0) + (session.pendingTransition === "restore_previous" ? 1 : 0),
       traces,
     },
+    worldContinuity: session.worldContinuity,
   };
   window.localStorage.setItem(RUNTIME_SESSION_KEY, JSON.stringify(payload));
 }
@@ -106,6 +108,38 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
             timestamp: parsed.updatedAt,
           }],
         },
+        worldContinuity: parsed.worldContinuity ?? {
+          activeWorldId: parsed.activeWorldId,
+          activeWorldKind: null,
+          activeEntityId: parsed.worldEntrySnapshot?.entityId ?? null,
+          activeRoute: parsed.worldEntrySnapshot?.href ?? null,
+          previousWorldId: parsed.previousWorldId,
+          previousRoute: null,
+          guidedStepId: parsed.worldEntrySnapshot?.guidedStep ?? null,
+          panelMode: "operator",
+          environment: {
+            visualSeed: parsed.worldEntrySnapshot?.visualSeed ?? "operations:default",
+            backgroundTone: "slate",
+            returnToDeckHref: "/shopreel",
+          },
+          lastAction: null,
+          breadcrumbs: [],
+        },
+      };
+    }
+    if (!parsed.worldContinuity) {
+      parsed.worldContinuity = {
+        activeWorldId: parsed.activeWorldId,
+        activeWorldKind: null,
+        activeEntityId: parsed.worldEntrySnapshot?.entityId ?? null,
+        activeRoute: parsed.worldEntrySnapshot?.href ?? null,
+        previousWorldId: parsed.previousWorldId,
+        previousRoute: null,
+        guidedStepId: parsed.worldEntrySnapshot?.guidedStep ?? null,
+        panelMode: "operator",
+        environment: { visualSeed: parsed.worldEntrySnapshot?.visualSeed ?? "operations:default", backgroundTone: "slate", returnToDeckHref: "/shopreel" },
+        lastAction: null,
+        breadcrumbs: [],
       };
     }
     return parsed;
