@@ -47,6 +47,7 @@ export default function OperatorRuntimeCanvas({
   compact?: boolean;
 }) {
   const activeSurface = operatorSurfaceRegistry[session.activeSurface];
+  const worldLabel = session.activeWorldId ? session.activeWorldId.replaceAll("_", " ") : "operations";
   const previousSurface = session.previousSurface ? operatorSurfaceRegistry[session.previousSurface] : null;
   const isThinking = session.pendingTransition !== null;
   const fallbackRoute = resolveRuntimeFallbackRoute(session.activeSurface, session.fallbackRoute);
@@ -125,6 +126,7 @@ export default function OperatorRuntimeCanvas({
         <div>Current objective: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
         <div>Active entity: <span className="text-white/80">{session.activeEntity ? `${session.activeEntity.kind} · ${session.activeEntity.id}` : (campaignContext?.title ?? "No active entity selected")}</span></div>
         <div>Lifecycle stage: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
+        <div>Active world: <span className="text-white/80">{worldLabel}</span></div>
         <div>Focused capability: <span className="text-white/80">{session.focusedCapability?.replaceAll("_", " ") ?? "Not set"}</span></div>
       </div>
       <div className="relative flex items-center justify-between gap-2">
@@ -206,7 +208,8 @@ export default function OperatorRuntimeCanvas({
               <p className="mt-2 text-sm text-white/75">Operator explanation: this needs approval because it changes campaign voice and publish readiness.</p>
               <div className="mt-3 grid gap-2">
                 {pendingApprovals.length === 0 ? <p className="text-sm text-white/60">No pending review cards currently. You can still open full review workspace.</p> : pendingApprovals.slice(0, 3).map((item) => {
-                  const canMutateReview = item.kind === "generation" || item.kind === "review_item";
+                  const reviewCompatibleWorld = session.activeWorldId === "review" || session.activeWorldId === "generation" || session.activeWorldId === null;
+                  const canMutateReview = reviewCompatibleWorld && (item.kind === "generation" || item.kind === "review_item");
                   return <div key={`${item.kind}-${item.id}`} className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="text-sm font-medium text-white">{item.title}</p><p className="text-xs text-white/65">Status: {item.status} · {item.sourceLabel}</p>{canMutateReview ? <div className="mt-2 flex gap-2"><button onClick={() => void mutateInlineDecision(item, "approve")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-cyan-200/35 px-2 py-1 text-xs text-cyan-100">Approve</button><button onClick={() => void mutateInlineDecision(item, "refine")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white/80">Refine</button><button onClick={() => void mutateInlineDecision(item, "reject")} disabled={decisionState[item.id]?.status === "pending"} className="rounded-lg border border-rose-200/35 px-2 py-1 text-xs text-rose-100">Reject</button></div> : <p className="mt-2 text-xs text-white/60">Open this world for review actions.</p>}{decisionState[item.id]?.status === "error" ? <div className="mt-2 text-xs text-rose-200">{decisionState[item.id]?.message} <button onClick={() => void mutateInlineDecision(item, "approve")} className="underline">Retry approve</button></div> : null}{decisionState[item.id]?.status === "success" ? <p className="mt-2 text-xs text-emerald-200">{decisionState[item.id]?.message}</p> : null}</div>;
                 })}
               </div>

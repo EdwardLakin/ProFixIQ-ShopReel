@@ -389,8 +389,9 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                 </Link>
               </div>
 
-              <div className="relative h-[520px] overflow-visible">
-                {recent.slice(0, 5).map((item, index) => {
+              <div className="relative overflow-x-auto pb-3">
+                <div className="flex min-w-max gap-4 pr-4">
+                {recent.slice(0, 8).map((item, index) => {
                   const active = index === 0;
                   return (
                     <button
@@ -426,17 +427,11 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                         });
                         router.push(item.href);
                       }}
-                      className={`group absolute top-4 h-[450px] w-[260px] overflow-hidden rounded-[2rem] border p-6 text-left transition hover:-translate-y-2 ${
+                      className={`group relative h-[420px] w-[280px] shrink-0 overflow-hidden rounded-[2rem] border p-6 text-left transition hover:-translate-y-1 ${
                         active
                           ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))] shadow-[0_0_65px_rgba(255,174,80,.24),0_34px_90px_rgba(0,0,0,.62)]"
                           : "border-white/12 bg-[linear-gradient(180deg,rgba(17,20,43,.9),rgba(5,8,22,.98))] shadow-[0_28px_70px_rgba(0,0,0,.58)]"
                       }`}
-                      style={{
-                        left: `${index * 118}px`,
-                        zIndex: 20 - index,
-                        transform: `scale(${1 - index * 0.055}) rotate(${index === 0 ? -1.5 : index * 1.8}deg)`,
-                        opacity: Math.max(1 - index * 0.14, 0.46),
-                      }}
                     >
                       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_72%,rgba(255,164,72,.64),transparent_15%),radial-gradient(circle_at_55%_82%,rgba(102,226,255,.28),transparent_28%),linear-gradient(180deg,transparent_0_38%,rgba(23,16,34,.32)_39%,rgba(4,7,19,.96)_100%)]" />
                       <div className="pointer-events-none absolute bottom-24 left-0 right-0 h-36 bg-[linear-gradient(135deg,transparent_28%,rgba(255,176,77,.28)_31%,transparent_55%),linear-gradient(40deg,rgba(255,255,255,.07)_20%,transparent_21%)]" />
@@ -458,7 +453,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-amber-300 to-cyan-300" />
                         </div>
                         <div className="flex justify-between text-xs text-white/72">
-                          <span>{active ? item.actionLabel : `World ${index + 1} · ${item.kind.replaceAll("_", " ")}`}</span>
+                          <span>{active ? item.actionLabel : `${item.kind.replaceAll("_", " ")} world`}</span>
                           <span>Open →</span>
                         </div>
                       </div>
@@ -472,6 +467,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                   </div>
                 ) : null}
 
+                </div>
                 <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-20 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(75,120,255,.22),transparent_65%)] blur-sm" />
               </div>
             </aside>
