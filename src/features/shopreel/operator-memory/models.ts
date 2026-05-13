@@ -1,3 +1,5 @@
+import type { OperatorIntentSnapshot, OperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
+
 export type OperatorIntent =
   | "reviewing"
   | "editing"
@@ -48,6 +50,8 @@ export type WorkspaceContinuation = {
   pendingApprovalCount: number;
   likelyNextStep: string;
   continuitySummary: string;
+  orchestrationIntent: OperatorIntentSnapshot | null;
+  orchestrationPlan: OperatorOrchestrationPlan | null;
 };
 
 export type OperatorWorkspaceState = {
