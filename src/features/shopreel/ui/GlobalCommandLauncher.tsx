@@ -25,6 +25,7 @@ export default function GlobalCommandLauncher() {
   const [history, setHistory] = useState<string[]>([]);
   const [focusLine, setFocusLine] = useState<string>("Next move: continue active production");
   const [ecosystemHint, setEcosystemHint] = useState<string>("Production pressure: stable");
+  const [isRunning, setIsRunning] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const interpreted = interpretCommand(value);
@@ -83,6 +84,8 @@ export default function GlobalCommandLauncher() {
   }, []);
 
   const run = () => {
+    if (isRunning || !value.trim()) return;
+    setIsRunning(true);
     const execution = executeShopReelCommand({ command: value, lastRoute: readWorkspaceMemory()?.lastRoute, source: "global_command" });
     const { decision, selectedRoute, handoffMethod, handoffId } = execution;
     const operatorMemory = recordOperatorBehaviorEvent({ type: "command_submitted", route: selectedRoute, intent: decision.intent });
@@ -120,6 +123,7 @@ export default function GlobalCommandLauncher() {
     setFocusLine(`Next move: ${transition.nextActionLabel}`);
     setEcosystemHint(`Transition: ${transition.mode} · ${transition.continuityCorridor}`);
     setOpen(false);
+    setIsRunning(false);
   };
 
   const proactiveHint = history.length > 0 ? `Continue: ${history[0]}` : "Start with a command: continue, render, package, or publish.";
@@ -131,8 +135,11 @@ export default function GlobalCommandLauncher() {
       <button onClick={() => setOpen(true)} className={`relative z-20 inline-flex min-h-10 items-center rounded-full bg-cyan-400/15 px-3 py-2 text-xs text-cyan-50 backdrop-blur transition hover:bg-cyan-300/20 ${prominenceClass}`}>
         AI Command ⌘K
       </button>
-      {open ? <div className="fixed inset-0 z-50 bg-[radial-gradient(circle_at_50%_18%,rgba(45,212,191,0.15),transparent_42%),rgba(2,4,11,0.82)] p-3 backdrop-blur-xl sm:p-6" onClick={() => setOpen(false)}>
-        <div className="mx-auto mt-10 w-full max-w-3xl rounded-[2rem] bg-[#060b19]/92 p-4 shadow-[0_40px_120px_rgba(0,0,0,0.7)] ring-1 ring-white/10 transition-all sm:p-6" onClick={(e) => e.stopPropagation()}>
+      {open ? <div className="fixed inset-0 z-[260] bg-[radial-gradient(circle_at_50%_18%,rgba(45,212,191,0.15),transparent_42%),rgba(2,4,11,0.82)] p-3 backdrop-blur-xl sm:p-6" onClick={() => setOpen(false)}>
+        <form className="relative z-[261] pointer-events-auto mx-auto mt-10 w-full max-w-3xl rounded-[2rem] bg-[#060b19]/92 p-4 shadow-[0_40px_120px_rgba(0,0,0,0.7)] ring-1 ring-white/10 transition-all sm:p-6" onClick={(e) => e.stopPropagation()} onSubmit={(e) => {
+          e.preventDefault();
+          run();
+        }}>
           <div className="mb-2 text-xs uppercase tracking-[0.16em] text-cyan-100/70">Command center · {pathname}</div>
           <AiCommandInput value={value} onChange={setValue} placeholder={modePlaceholder} className="min-h-24 text-lg" />
           <div className="mt-3 text-sm text-cyan-50/90">{interpreted.summary}</div>
@@ -147,10 +154,10 @@ export default function GlobalCommandLauncher() {
             <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/55">Recent commands</div>
             <div className="flex flex-wrap gap-2">{history.map((item) => <button key={item} onClick={() => setValue(item)} className="rounded-full bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-50 hover:bg-cyan-400/20">{item}</button>)}</div>
           </div> : null}
-          <button disabled={!interpreted.href} onClick={run} className="mt-5 w-full rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-4 py-3 text-sm text-white disabled:opacity-40">
+          <button type="submit" disabled={!interpreted.href || isRunning} className="mt-5 w-full rounded-2xl bg-gradient-to-r from-violet-500/70 to-cyan-400/70 px-4 py-3 text-sm text-white disabled:opacity-40">
             Execute command
           </button>
-        </div>
+        </form>
       </div> : null}
     </>
   );

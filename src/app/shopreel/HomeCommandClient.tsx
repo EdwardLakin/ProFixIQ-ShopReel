@@ -109,6 +109,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [chamberMemory, setChamberMemory] = useState<PersistedChamberMemory | null>(null);
   const [emphasizedCardId, setEmphasizedCardId] = useState<string | null>(null);
+  const [isCommandRunning, setIsCommandRunning] = useState(false);
   const deckRef = useRef<HTMLDivElement | null>(null);
 
   const unresolvedCount = recent.filter((item) => item.priority === "critical" || /review|approval/.test(item.normalizedStatus)).length;
@@ -273,8 +274,11 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
     setContext(next);
   };
 
-  const runCommand = (overrideCommand?: string) => {
+  const runCommand = async (overrideCommand?: string) => {
+    if (isCommandRunning) return;
     const nextCommand = overrideCommand ?? command;
+    if (!nextCommand.trim()) return;
+    setIsCommandRunning(true);
     const execution = executeShopReelCommand({
       command: nextCommand,
       lastRoute: context?.lastRoute,
@@ -306,6 +310,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
     });
     persistContext(execution.selectedRoute);
     if (overrideCommand) setCommand(overrideCommand);
+    setIsCommandRunning(false);
   };
 
   return (
@@ -397,17 +402,29 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
 
                 <div className="mt-8 max-w-3xl">
                   <div className="mb-3 text-[11px] uppercase tracking-[0.24em] text-white/50">Operator prompt</div>
-                  <div className="flex items-center rounded-3xl border border-white/14 bg-[#071024]/60 px-5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]">
+                  <form
+                    className="relative z-30 flex items-center rounded-3xl border border-white/14 bg-[#071024]/60 px-5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void runCommand();
+                    }}
+                  >
                     <AiCommandInput
                       value={command}
                       onChange={setCommand}
                       placeholder="What should the operator run next?"
-                      className="min-h-16 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                      readOnly={isCommandRunning}
+                      className="min-h-16 flex-1 border-0 bg-transparent pr-2 shadow-none focus-visible:ring-0"
                     />
-                    <button type="button" onClick={() => runCommand()} className="text-3xl text-white/48 transition hover:text-white">
-                      →
+                    <button
+                      type="submit"
+                      disabled={isCommandRunning || !command.trim()}
+                      aria-label="Submit operator prompt"
+                      className="text-3xl text-white/48 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isCommandRunning ? "…" : "→"}
                     </button>
-                  </div>
+                  </form>
 
                   <div className="mt-5 flex flex-wrap gap-3">
                     {quickPrompts.map((prompt) => (
@@ -425,10 +442,11 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                   <div className="mt-7 flex flex-wrap items-center gap-4">
                     <button
                       type="button"
-                      onClick={() => runCommand()}
+                      onClick={() => void runCommand()}
+                      disabled={isCommandRunning || !command.trim()}
                       className="group rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-8 py-4 text-sm font-semibold text-white shadow-[0_0_42px_rgba(124,58,237,.36)]"
                     >
-                      Continue <span className="ml-4 inline-block transition group-hover:translate-x-1">→</span>
+                      {isCommandRunning ? "Running…" : <>Continue <span className="ml-4 inline-block transition group-hover:translate-x-1">→</span></>}
                     </button>
                     <Link href="/shopreel/review" className="rounded-2xl border border-white/12 bg-white/[0.035] px-6 py-4 text-sm text-white/80">
                       Review approvals
