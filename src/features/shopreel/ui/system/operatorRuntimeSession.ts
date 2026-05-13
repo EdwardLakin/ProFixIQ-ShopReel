@@ -5,6 +5,7 @@ import type {
   OperatorTransitionMode,
 } from "@/features/shopreel/ui/system/operatorRuntime";
 import type { RuntimeEntity, RuntimeWorkspaceState } from "@/features/shopreel/runtime/entities";
+import type { OperatorAction, OperatorCapability } from "@/features/shopreel/ui/system/operatorCapabilities";
 import { focusEntity, openEntity, pinEntity, queueEntity, transitionToEntity } from "@/features/shopreel/runtime/entities";
 
 export type RuntimeInterruption = {
@@ -33,6 +34,13 @@ export type OperatorRuntimeSessionState = {
   interruption: RuntimeInterruption | null;
   recoverableContext: RecoverableRuntimeContext | null;
   selectedEntityIds: { campaignId: string | null; generationId: string | null };
+  activeEntity: { kind: string; id: string } | null;
+  focusedCapability: OperatorCapability | null;
+  queuedNextAction: OperatorAction | null;
+  pinnedEntities: Array<{ kind: string; id: string }>;
+  unresolvedIndicators: string[];
+  lastRoute: string | null;
+  recoveryTarget: string | null;
   fallbackRoute: string;
   workspace: RuntimeWorkspaceState;
 };
@@ -48,6 +56,13 @@ export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
   interruption: null,
   recoverableContext: null,
   selectedEntityIds: { campaignId: null, generationId: null },
+  activeEntity: null,
+  focusedCapability: null,
+  queuedNextAction: null,
+  pinnedEntities: [],
+  unresolvedIndicators: [],
+  lastRoute: null,
+  recoveryTarget: null,
   fallbackRoute: "/shopreel",
   workspace: { entities: [], focusedEntityId: null, pinnedEntityIds: [], queuedEntityIds: [], panels: [] },
 };
@@ -69,6 +84,15 @@ type FocusEntityAction = { type: "FOCUS_ENTITY"; entityId: string };
 type PinEntityAction = { type: "PIN_ENTITY"; entityId: string };
 type QueueEntityAction = { type: "QUEUE_ENTITY"; entityId: string };
 type TransitionToEntityAction = { type: "TRANSITION_TO_ENTITY"; entityId: string };
+type SetCapabilityContextAction = {
+  type: "SET_CAPABILITY_CONTEXT";
+  capability: OperatorCapability | null;
+  activeEntity?: { kind: string; id: string } | null;
+  queuedNextAction?: OperatorAction | null;
+  unresolvedIndicators?: string[];
+  lastRoute?: string | null;
+  recoveryTarget?: string | null;
+};
 
 export type OperatorRuntimeSessionAction =
   | StartRuntimeAction
@@ -83,7 +107,8 @@ export type OperatorRuntimeSessionAction =
   | FocusEntityAction
   | PinEntityAction
   | QueueEntityAction
-  | TransitionToEntityAction;
+  | TransitionToEntityAction
+  | SetCapabilityContextAction;
 
 export function operatorRuntimeSessionReducer(
   state: OperatorRuntimeSessionState,
@@ -102,6 +127,7 @@ export function operatorRuntimeSessionReducer(
         lastOperatorSummary: action.resolution.summary,
         interruption: null,
         fallbackRoute: action.resolution.recommendedRouteFallback,
+        lastRoute: action.resolution.recommendedRouteFallback,
         selectedEntityIds: {
           ...state.selectedEntityIds,
           campaignId: action.resolution.contextCarryover.selectedCampaignId,
@@ -162,11 +188,21 @@ export function operatorRuntimeSessionReducer(
     case "FOCUS_ENTITY":
       return { ...state, workspace: focusEntity(state.workspace, action.entityId) };
     case "PIN_ENTITY":
-      return { ...state, workspace: pinEntity(state.workspace, action.entityId) };
+      return { ...state, pinnedEntities: [...state.pinnedEntities, { kind: "runtime_entity", id: action.entityId }], workspace: pinEntity(state.workspace, action.entityId) };
     case "QUEUE_ENTITY":
       return { ...state, workspace: queueEntity(state.workspace, action.entityId) };
     case "TRANSITION_TO_ENTITY":
       return { ...state, workspace: transitionToEntity(state.workspace, action.entityId) };
+    case "SET_CAPABILITY_CONTEXT":
+      return {
+        ...state,
+        focusedCapability: action.capability,
+        activeEntity: action.activeEntity ?? state.activeEntity,
+        queuedNextAction: action.queuedNextAction ?? state.queuedNextAction,
+        unresolvedIndicators: action.unresolvedIndicators ?? state.unresolvedIndicators,
+        lastRoute: action.lastRoute ?? state.lastRoute,
+        recoveryTarget: action.recoveryTarget ?? state.recoveryTarget,
+      };
     default:
       return state;
   }

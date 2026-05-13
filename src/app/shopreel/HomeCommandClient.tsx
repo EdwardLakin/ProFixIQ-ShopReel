@@ -14,6 +14,7 @@ import {
 } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
 import { executeShopReelCommand } from "@/features/shopreel/ui/system/executeShopReelCommand";
+import { resolveCapabilityForWorld } from "@/features/shopreel/ui/system/operatorCapabilities";
 import { resolveOperatorRuntime } from "@/features/shopreel/ui/system/resolveOperatorRuntime";
 import OperatorRuntimeCanvas from "@/features/shopreel/ui/system/OperatorRuntimeCanvas";
 import {
@@ -175,6 +176,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
       command: nextCommand,
       lastRoute: context?.lastRoute,
       source: "home_command",
+      recentWorlds: recent,
     });
 
     const runtime = resolveOperatorRuntime({
@@ -188,6 +190,15 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
     });
 
     dispatch(buildRuntimeStartAction(runtime, nextCommand));
+    dispatch({
+      type: "SET_CAPABILITY_CONTEXT",
+      capability: execution.typedAction?.target.capability ?? null,
+      activeEntity: execution.typedAction ? { kind: execution.typedAction.target.entityKind, id: execution.typedAction.target.entityId } : null,
+      queuedNextAction: execution.typedAction,
+      unresolvedIndicators: execution.actionResult?.ok ? [] : [execution.actionResult?.reason ?? ""],
+      lastRoute: execution.selectedRoute,
+      recoveryTarget: execution.selectedRoute,
+    });
     persistContext(execution.selectedRoute);
     if (overrideCommand) setCommand(overrideCommand);
   };
@@ -344,7 +355,17 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                     <button
                       type="button"
                       key={`${item.kind}-${item.id}`}
-                      onClick={() => router.push(item.href)}
+                      onClick={() => {
+                        dispatch({
+                          type: "SET_CAPABILITY_CONTEXT",
+                          capability: resolveCapabilityForWorld(item),
+                          activeEntity: { kind: item.kind, id: item.id },
+                          queuedNextAction: { kind: "open", label: "open", target: { entityKind: item.kind, entityId: item.id, href: item.href, capability: resolveCapabilityForWorld(item) } },
+                          lastRoute: item.href,
+                          recoveryTarget: item.href,
+                        });
+                        router.push(item.href);
+                      }}
                       className={`group absolute top-4 h-[450px] w-[260px] overflow-hidden rounded-[2rem] border p-6 text-left transition hover:-translate-y-2 ${
                         active
                           ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))] shadow-[0_0_65px_rgba(255,174,80,.24),0_34px_90px_rgba(0,0,0,.62)]"

@@ -8,7 +8,16 @@ export type RuntimeEntityKind =
   | "approval"
   | "thumbnail"
   | "publishing_queue"
-  | "ai_task";
+  | "ai_task"
+  | "generation"
+  | "content_piece"
+  | "publication"
+  | "manual_asset"
+  | "opportunity"
+  | "review_item"
+  | "calendar_item"
+  | "automation_task"
+  | "analytics_snapshot";
 
 export type RuntimeEntity = {
   id: string;

@@ -123,9 +123,9 @@ export default function OperatorRuntimeCanvas({
       <div className="pointer-events-none absolute inset-x-[6%] top-[15%] h-[55%] rounded-[2rem] bg-gradient-to-b from-white/[0.05] via-transparent to-transparent blur-2xl" />
       <div className={`relative mb-2 grid gap-2 rounded-xl p-3 text-xs text-cyan-100/85 md:grid-cols-2 ${atmosphericFrameClass} ${compact ? "border border-white/10 bg-black/10" : ""}`}>
         <div>Current objective: <span className="text-white/80">{session.lastOperatorSummary}</span></div>
-        <div>Active campaign: <span className="text-white/80">{campaignContext?.title ?? (session.selectedEntityIds.campaignId ? "Campaign context unavailable" : "No active campaign selected")}</span></div>
+        <div>Active entity: <span className="text-white/80">{session.activeEntity ? `${session.activeEntity.kind} · ${session.activeEntity.id}` : (campaignContext?.title ?? "No active entity selected")}</span></div>
         <div>Lifecycle stage: <span className="text-white/80">{session.runtimeState.replaceAll("_", " ")}</span></div>
-        <div>Latest decision: <span className="text-white/80">{campaignContext?.refinementHistory?.[0]?.action ?? "No recent decision yet."}</span></div>
+        <div>Focused capability: <span className="text-white/80">{session.focusedCapability?.replaceAll("_", " ") ?? "Not set"}</span></div>
       </div>
       <div className="relative flex items-center justify-between gap-2">
         <div>
@@ -171,7 +171,7 @@ export default function OperatorRuntimeCanvas({
           {compact && session.runtimeState === "idle" ? (
             <article className="relative rounded-[1.5rem] border border-cyan-100/14 bg-[linear-gradient(145deg,rgba(14,21,46,.56),rgba(8,12,27,.76))] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.46)] backdrop-blur-xl">
               <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/70">Idle continuity</div>
-              <p className="mt-2 text-base font-medium text-white">Operator standing by with continuity context loaded.</p>
+              <p className="mt-2 text-base font-medium text-white">Operator standing by with capability continuity context loaded.</p>
               <p className="mt-1 text-sm text-white/72">Ready for next move: {progressionAhead.map((step) => step.label).join(" → ") || "Planning"}</p>
             </article>
           ) : session.activeSurface === "campaign_planning" ? (
