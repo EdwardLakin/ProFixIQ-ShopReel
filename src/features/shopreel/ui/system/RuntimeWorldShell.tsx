@@ -202,7 +202,8 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     router.push(href);
   };
 
-  const operatorPanel = <aside className={`p-3 text-sm ${entry.panelClass}`} data-guidance-mode="embedded">
+  const operatorPanel = <aside className={`relative overflow-hidden rounded-[1.35rem] border border-cyan-200/20 bg-[radial-gradient(120%_130%_at_100%_0%,rgba(34,211,238,.18),rgba(8,16,30,.86)_48%,rgba(3,7,18,.92)_100%)] p-3 text-sm shadow-[0_24px_80px_rgba(8,145,178,.22)] ${entry.panelClass}`} data-guidance-mode="embedded">
+    <div className="pointer-events-none absolute inset-x-[20%] bottom-0 h-8 rounded-full bg-cyan-300/20 blur-2xl" />
     <p>{flow?.question ?? prompt.question}</p>
     <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label} · {interaction.guidanceCue.label}</p>
     <div className="mt-2 grid gap-2 sm:grid-cols-2" aria-label="operator decision surface" data-attention={interaction.attention}>

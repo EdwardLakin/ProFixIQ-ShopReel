@@ -60,5 +60,5 @@ export const GEOMETRY_BY_WORLD: Record<RuntimeWorldId, RuntimeChamberGeometry> =
 };
 
 export function deriveRuntimeChamberGeometry(worldKind: RuntimeChamberIdentity): RuntimeChamberGeometry {
-  return GEOMETRY_BY_WORLD[worldKind];
+  return GEOMETRY_BY_WORLD[worldKind] ?? GEOMETRY_BY_WORLD.operations;
 }
