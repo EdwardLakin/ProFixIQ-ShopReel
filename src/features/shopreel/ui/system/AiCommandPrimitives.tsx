@@ -32,11 +32,11 @@ export function interpretCommand(input: string): CommandRouteResult {
   };
 }
 
-export function AiCommandInput(props: { value: string; placeholder?: string; onChange?: (value: string) => void; readOnly?: boolean; className?: string }) {
+export function AiCommandInput(props: { value: string; placeholder?: string; onChange?: (value: string) => void; readOnly?: boolean; className?: string; onKeyDown?: React.KeyboardEventHandler<HTMLTextAreaElement> }) {
   const handler = props.onChange
     ? (e: React.ChangeEvent<HTMLTextAreaElement>) => props.onChange?.(e.target.value)
     : undefined;
-  return <textarea value={props.value} readOnly={props.readOnly} onChange={handler} placeholder={props.placeholder} className={`min-h-28 w-full rounded-3xl bg-black/45 px-5 py-4 text-base text-white shadow-[inset_0_0_0_1px_rgba(130,247,255,0.1),0_24px_60px_rgba(0,0,0,0.5)] outline-none placeholder:text-white/35 focus:shadow-[inset_0_0_0_1px_rgba(130,247,255,0.4),0_24px_60px_rgba(0,0,0,0.5)] ${props.className ?? ""}`.trim()} />;
+  return <textarea value={props.value} readOnly={props.readOnly} onChange={handler} onKeyDown={props.onKeyDown} placeholder={props.placeholder} className={`min-h-28 w-full rounded-3xl bg-black/45 px-5 py-4 text-base text-white shadow-[inset_0_0_0_1px_rgba(130,247,255,0.1),0_24px_60px_rgba(0,0,0,0.5)] outline-none placeholder:text-white/35 focus:shadow-[inset_0_0_0_1px_rgba(130,247,255,0.4),0_24px_60px_rgba(0,0,0,0.5)] ${props.className ?? ""}`.trim()} />;
 }
 
 export function AiIntentChip(props: { label: string; href: string; className?: string }) { return <Link href={props.href} className={`rounded-full bg-white/5 px-4 py-2 text-xs text-white/80 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] hover:bg-cyan-400/15 ${props.className ?? ""}`.trim()}>{props.label}</Link>; }
