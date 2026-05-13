@@ -146,14 +146,17 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const spatialMap = deriveRuntimeSpatialMap({ worldId: entry.worldId, previousWorldId: persisted?.previousWorldId ?? null, operator: rememberedPosition, environment, unresolvedCount: entry.unresolvedCount, blockers: entry.blockers });
 
   useEffect(() => {
+    const priorVisited = rememberedPosition?.visitedWorlds ?? [];
     persistRuntimeOperatorPosition({
       worldId: entry.worldId,
       previousWorldId: persisted?.previousWorldId ?? null,
       focusDirection: environment.navigationField,
       continuityState: entry.unresolvedCount > 0 ? "recovering" : "stable",
+      continuityVector: spatialMap.directionalShift,
+      visitedWorlds: [entry.worldId, ...priorVisited.filter((worldId) => worldId !== entry.worldId)].slice(0, 12),
       at: new Date().toISOString(),
     });
-  }, [entry.unresolvedCount, entry.worldId, environment.navigationField, persisted?.previousWorldId]);
+  }, [entry.unresolvedCount, entry.worldId, environment.navigationField, persisted?.previousWorldId, rememberedPosition?.visitedWorlds, spatialMap.directionalShift]);
 
   const navigate = (href: string, step: string | null) => {
     persistWorldEntrySnapshot({ worldId: entry.worldId, href, entityId: entry.entityId, entityKind: entry.entityKind, title: entry.title, status: entry.status, visualSeed: entry.visualSeed, guidedStep: step as never });
@@ -164,7 +167,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     <p>{flow?.question ?? prompt.question}</p>
     <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label} · {interaction.guidanceCue.label}</p>
     <p className="mt-1 text-xs text-white/60">{choreography.continuityCue.continuationLabel}</p>
-    <p className="mt-2 text-xs text-white/60">Focus: {focusState.focusedPanelId ?? "workspace"} · Ambient: {ambientState.stabilized ? "stable" : "shifting"}</p>
+    <p className="mt-2 text-xs text-white/60">Focus: {focusState.focusedPanelId ?? "workspace"} · Ambient: {ambientState.stabilized ? "stable" : "shifting"} · Region: {environment.worldRegion.replaceAll("_", " ")}</p>
     <div className="mt-2 grid gap-2 sm:grid-cols-2" data-attention={interaction.attention}>
       <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: `rgba(110,231,183,${0.35 + interaction.guidanceCue.emphasis * 0.4})`, background: `rgba(52,211,153,${0.08 + interaction.guidanceCue.emphasis * 0.16})`, filter: `contrast(${1 + interaction.continuityAttention * 0.08})` }}>Yes</button>
       <button onClick={() => navigate(prompt.no.href, prompt.no.nextStep)} className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: `rgba(253,230,138,${0.32 + interaction.panelRelationshipIntensity * 0.2})`, background: `rgba(251,191,36,${0.06 + (interaction.decisionFocus === "critical" ? 0.1 : 0.04)})` }}>No</button>

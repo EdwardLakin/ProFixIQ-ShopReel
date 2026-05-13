@@ -34,8 +34,8 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
   const secondary = choreography.panelPriority.secondaryPanelIds.map((id) => composition.panels.find((panel) => panel.id === id)).filter((panel): panel is (typeof composition.panels)[number] => Boolean(panel));
   const orchestration = useMemo(() => deriveRuntimeOrchestration({ worldId: entry.worldId, status: entry.status, blockers: entry.blockers, unresolvedCount: entry.unresolvedCount, guidedStepId: persisted?.worldContinuity.guidedStepId ?? null, previousWorldId: persisted?.previousWorldId ?? null, lastActionLabel: persisted?.worldContinuity.lastAction?.label ?? null, breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [], composition, choreography, now: new Date().toISOString(), lastTransitionAt: persisted?.updatedAt ?? null }), [choreography, composition, entry.blockers, entry.status, entry.unresolvedCount, entry.worldId, persisted]);
 
-  return <section className="relative z-20 flex flex-col gap-4 xl:flex-row" style={{ opacity: Math.max(0.95, panelReveal), filter: `contrast(${1 + surface.pressure.contrastPressure * 0.08})`, transform: immersion.reducedMotion ? "none" : `translate3d(${spatialMap.directionalShift.x * 12}px, ${spatialMap.directionalShift.y * -10}px, ${spatialMap.directionalShift.z * 24}px)` }}>
-    <div className="min-w-0 flex-1 space-y-4">
+  return <section className="relative z-20 flex flex-col gap-5 xl:flex-row" style={{ opacity: Math.max(0.95, panelReveal), filter: `contrast(${1 + surface.pressure.contrastPressure * 0.08})`, transform: immersion.reducedMotion ? "none" : `translate3d(${spatialMap.directionalShift.x * 14}px, ${spatialMap.directionalShift.y * -12}px, ${spatialMap.directionalShift.z * 26}px)` }}>
+    <div className="min-w-0 flex-1 space-y-5 xl:pr-6">
       <section className="relative rounded-[1.05rem] border border-cyan-200/20 bg-slate-950/82 p-4 shadow-[0_22px_68px_rgba(0,0,0,.44)]" style={{ transform: immersion.reducedMotion ? "none" : "translate3d(0,-8px,64px) scale(1.01)", boxShadow: "0 30px 120px rgba(8,145,178,.2)" }}>
         <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/80">Foreground next action</p>
         <h2 className="mt-2 text-lg font-semibold text-white">{entry.primaryAction?.label ?? "Waiting for command"}</h2>
@@ -48,11 +48,12 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
         <RuntimeRoutePanelAdapter adapter={{ panelId: primary?.id ?? "primary", route: primary?.route ?? entry.href, title: primary?.title ?? "Manual workspace", embedMode: "embedded" }}>{children}</RuntimeRoutePanelAdapter>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start">
         {secondary.map((panel, index) => <div key={panel.id} style={{ opacity: immersion.reveal.secondaryReveal[index] ?? 1, transform: immersion.reducedMotion ? "none" : "translate3d(0,6px,-6px) scale(.995)" }}><RuntimeRoutePanelAdapter adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} /></div>)}
       </div>
 
-      <section className="rounded-xl border border-cyan-200/16 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90" style={{ opacity: immersion.reveal.continuityReveal, boxShadow: `0 0 ${8 + continuityRailFocus * 10}px rgba(34,211,238,.12)` }}>{entry.title} · Objective: {environment.focalPath.currentObjective} · Flow: {orchestration.flowHealth} · Traversal: {spatialMap.traversal} · Field: {environment.navigationField} · Region: {environment.worldRegion}</section>
+      <section className="rounded-xl border border-cyan-200/16 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90" style={{ opacity: immersion.reveal.continuityReveal, boxShadow: `0 0 ${8 + continuityRailFocus * 10}px rgba(34,211,238,.12)` }}>{entry.title} · Objective: {environment.focalPath.currentObjective} · Flow: {orchestration.flowHealth} · Traversal: {spatialMap.traversal} · Field: {environment.navigationField} · Region: {environment.worldRegion} · Adjacent: {spatialMap.adjacency.join(" → ") || "none"}</section>
+      <section className="rounded-xl border border-white/10 bg-slate-950/55 px-3 py-2 text-[11px] text-white/70">Continuity memory · familiar direction {spatialMap.continuityMemory.familiarDirection} · known region {spatialMap.continuityMemory.returnedToKnownRegion ? "yes" : "no"} · strength {spatialMap.continuityMemory.continuityStrength.toFixed(2)}</section>
     </div>
 
     <aside className="relative z-40 xl:w-[360px]" style={{ opacity: spatialMap.layers.midground }}>{operatorPanel}</aside>
