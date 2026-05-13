@@ -38,12 +38,13 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const transitionSnapshot = readRuntimeSpatialTransition();
   const inheritedSeed = transitionSnapshot?.snapshot.atmosphere.gradientSeed ?? persisted?.worldContinuity.environment.visualSeed ?? entry.visualSeed;
   const ambientState: RuntimeWorldAmbientState = { stabilized: true, visualSeed: inheritedSeed };
+  const resolvedTransition = activeTransition && activeTransition.snapshot.href === entry.href && activeTransition.phase === "arrived" ? activeTransition : null;
 
   const [immersionElapsed, setImmersionElapsed] = useState(0);
   const prefersReducedMotion = useMemo(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
 
   useEffect(() => {
-    if (!activeTransition || activeTransition.phase !== "arrived") return;
+    if (!resolvedTransition || resolvedTransition.phase !== "arrived") return;
     const start = performance.now();
     let frame = 0;
     const tick = (now: number) => {
@@ -51,7 +52,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
       if (now - start < 1200 && !prefersReducedMotion) frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
-    if (activeTransition.reducedMotion) {
+    if (resolvedTransition.reducedMotion) {
       completeWorldEntryTransition();
       return;
     }
@@ -71,7 +72,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
       window.cancelAnimationFrame(rafB);
       window.cancelAnimationFrame(rafC);
     };
-  }, [activeTransition, advanceWorldEntryCamera, completeWorldEntryTransition, prefersReducedMotion]);
+  }, [resolvedTransition, advanceWorldEntryCamera, completeWorldEntryTransition, prefersReducedMotion]);
   const nowIso = new Date().toISOString();
   const composition = { worldId: entry.worldId, panels: [] };
   const choreography = deriveWorldChoreography({
@@ -129,13 +130,13 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const immersion: RuntimeImmersionState = deriveRuntimeImmersionState({
     elapsedMs: immersionElapsed,
     durationMs: 900,
-    reducedMotion: prefersReducedMotion || Boolean(activeTransition?.reducedMotion),
+    reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion),
     inheritedSeed,
     orchestration,
     temporalMemory,
     graph: entityGraph,
   });
-  const surface = deriveRuntimeSurfaceState({ orchestration, immersion, interaction, temporalMemory, graph: entityGraph, reducedMotion: prefersReducedMotion || Boolean(activeTransition?.reducedMotion) });
+  const surface = deriveRuntimeSurfaceState({ orchestration, immersion, interaction, temporalMemory, graph: entityGraph, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion) });
 
   const navigate = (href: string, step: string | null) => {
     persistWorldEntrySnapshot({ worldId: entry.worldId, href, entityId: entry.entityId, entityKind: entry.entityKind, title: entry.title, status: entry.status, visualSeed: entry.visualSeed, guidedStep: step as never });
@@ -162,12 +163,12 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     <div className={`pointer-events-none absolute inset-0 ${entry.orbClass}`} />
     <div className={`pointer-events-none absolute inset-0 ${entry.gridClass} bg-[size:72px_72px] opacity-35`} />
     <div className="relative z-10 mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 py-4 md:px-6">
-      <section className={`rounded-2xl p-4 ${entry.frameClass}`} style={{ opacity: activeTransition?.focus.shellOpacity ?? 1, transform: activeTransition?.reducedMotion ? "none" : `scale(${activeTransition?.camera === "focusing" ? 0.992 : 1})`, filter: `blur(${activeTransition?.camera === "entering" ? 1.5 : 0}px)` }}>
+      <section className={`rounded-2xl p-4 ${entry.frameClass}`} style={{ opacity: resolvedTransition?.focus.shellOpacity ?? 1, transform: resolvedTransition?.reducedMotion ? "none" : `scale(${resolvedTransition?.camera === "focusing" ? 0.992 : 1})`, filter: `blur(${resolvedTransition?.camera === "entering" ? 1.5 : 0}px)` }}>
         <p className="text-xs uppercase tracking-[0.2em] text-cyan-100/80">{entry.worldKind} world</p>
         <h1 className="text-2xl font-semibold">{entry.title}</h1>
         <p className="text-sm text-white/70">{entry.stageLabel} · {entry.status} · {entry.objective}</p>
       </section>
-      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={activeTransition?.focus.panelReveal ?? 1} continuityRailFocus={activeTransition?.focus.continuityRailFocus ?? 1} immersion={immersion} interaction={interaction} surface={surface}>{children}</RuntimeWorldWorkspaceCanvas>
+      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={resolvedTransition?.focus.panelReveal ?? 1} continuityRailFocus={resolvedTransition?.focus.continuityRailFocus ?? 1} immersion={immersion} interaction={interaction} surface={surface}>{children}</RuntimeWorldWorkspaceCanvas>
     </div>
   </div>;
 }
