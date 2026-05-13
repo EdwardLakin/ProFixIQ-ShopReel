@@ -5,14 +5,11 @@ import CampaignFlowShell from "@/features/shopreel/campaigns/components/Campaign
 import CampaignPageHeader from "@/features/shopreel/campaigns/components/CampaignPageHeader";
 import Link from "next/link";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
-import GlassCard from "@/features/shopreel/ui/system/GlassCard";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
-import { glassTheme, cx } from "@/features/shopreel/ui/system/glassTheme";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import CampaignDetailClient from "@/features/shopreel/campaigns/components/CampaignDetailClient";
 import { listCampaignItemsWithMediaJobs } from "@/features/shopreel/campaigns/lib/server";
-import { ShopReelActionRail } from "@/features/shopreel/ui/system/ShopReelPagePrimitives";
 import CampaignWorkflowContinuityRail from "@/features/shopreel/campaigns/components/CampaignWorkflowContinuityRail";
 import { buildAdaptiveCreativeMemory } from "@/features/shopreel/learning/adaptiveCreativeMemory";
 import { notFound } from "next/navigation";
@@ -123,110 +120,37 @@ export default async function ShopReelCampaignDetailPage(
 
       <CampaignWorkflowContinuityRail campaignId={campaign.id} />
 
-      <section className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <GlassCard
-          label="Campaign"
-          title="Mission context"
-          description="Strategic brief and campaign intent guiding AI orchestration."
-          strong
-        >
-          <div className="space-y-3">
-            <div className={cx("text-sm", glassTheme.text.primary)}>
-              {campaign.core_idea}
+      <section className="relative isolate overflow-hidden rounded-[2.4rem] border border-cyan-200/20 bg-slate-950/40 p-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(6,182,212,0.2),transparent_40%),radial-gradient(circle_at_84%_78%,rgba(56,189,248,0.12),transparent_44%)]" />
+        <div className="relative grid gap-5 xl:grid-cols-[0.78fr_1.22fr]">
+          <aside className="space-y-4 rounded-3xl border border-white/10 bg-black/25 p-5">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-100/75">Mission shell</p>
+            <p className="text-sm text-white/85">{campaign.core_idea}</p>
+            <div className="flex flex-wrap gap-2"><GlassBadge tone="default">{campaign.status}</GlassBadge>{(campaign.platform_focus ?? []).map((platform) => <GlassBadge key={platform} tone="muted">{platform}</GlassBadge>)}</div>
+            <div className="space-y-3 text-sm text-white/75">
+              <div><p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">Audience</p><p>{campaign.audience ?? "—"}</p></div>
+              <div><p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">Emotional positioning</p><p>{campaign.offer ?? "No emotional positioning captured yet."}</p></div>
+              <div><p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">Objective</p><p>{campaign.campaign_goal ?? "—"}</p></div>
+              <p className="text-xs text-white/55">Created {timeAgoLabel(campaign.created_at)}</p>
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              <GlassBadge tone="default">{campaign.status}</GlassBadge>
-              {(campaign.platform_focus ?? []).map((platform) => (
-                <GlassBadge key={platform} tone="muted">
-                  {platform}
-                </GlassBadge>
-              ))}
-            </div>
-
-            <div
-              className={cx(
-                "rounded-2xl border p-4",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft
-              )}
-            >
-              <div
-                className={cx(
-                  "text-xs uppercase tracking-[0.18em]",
-                  glassTheme.text.muted
-                )}
-              >
-                Audience
-              </div>
-              <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
-                {campaign.audience ?? "—"}
-              </div>
-            </div>
-
-            <div
-              className={cx(
-                "rounded-2xl border p-4",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft
-              )}
-            >
-              <div
-                className={cx(
-                  "text-xs uppercase tracking-[0.18em]",
-                  glassTheme.text.muted
-                )}
-              >
-                Emotional positioning
-              </div>
-              <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
-                {campaign.offer ?? "No emotional positioning captured yet."}
-              </div>
-            </div>
-
-            <div
-              className={cx(
-                "rounded-2xl border p-4",
-                glassTheme.border.softer,
-                glassTheme.glass.panelSoft
-              )}
-            >
-              <div
-                className={cx(
-                  "text-xs uppercase tracking-[0.18em]",
-                  glassTheme.text.muted
-                )}
-              >
-                Campaign objective
-              </div>
-              <div className={cx("mt-2 text-sm", glassTheme.text.primary)}>
-                {campaign.campaign_goal ?? "—"}
-              </div>
-            </div>
-
-            <div className={cx("text-xs", glassTheme.text.secondary)}>
-              Created {timeAgoLabel(campaign.created_at)}
-            </div>
-          </div>
-        </GlassCard>
-
-        <CampaignDetailClient
-          campaign={campaign}
-          items={items}
-          progress={{
-            totalItems,
-            completedItems,
-            progressPercent,
-            totalScenes,
-            queuedScenes,
-            processingScenes,
-            completedScenes,
-            failedScenes,
-          }}
-          adaptiveMemory={adaptiveMemory}
-        />
+          </aside>
+          <CampaignDetailClient
+            campaign={campaign}
+            items={items}
+            progress={{
+              totalItems,
+              completedItems,
+              progressPercent,
+              totalScenes,
+              queuedScenes,
+              processingScenes,
+              completedScenes,
+              failedScenes,
+            }}
+            adaptiveMemory={adaptiveMemory}
+          />
+        </div>
       </section>
-      <ShopReelActionRail title="Workspace rhythm" items={["Set mission context so AI planning stays on strategy","Approve one decision at a time to maintain momentum","Use review and production panels for deep context without leaving campaign ownership","Publish only after outputs and approvals are complete"]} />
     </CampaignFlowShell>
   );
 }
