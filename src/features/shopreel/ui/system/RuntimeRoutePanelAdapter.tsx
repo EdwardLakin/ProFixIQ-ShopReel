@@ -8,11 +8,13 @@ export type RuntimeWorldPanelAdapter = {
   route: string;
   title: string;
   embedMode: "full" | "embedded";
+  surfaceTone?: "panel" | "chamber";
 };
 
 export function RuntimeRoutePanelAdapter({ adapter, children }: { adapter: RuntimeWorldPanelAdapter; children?: ReactNode }) {
   const hasContent = Boolean(children);
-  return <section className="rounded-[1.1rem] border border-white/14 bg-[linear-gradient(175deg,rgba(11,20,36,.86),rgba(6,11,21,.94))] p-3 shadow-[0_16px_50px_rgba(0,0,0,.42)]">
+  const chamberTone = adapter.surfaceTone === "chamber";
+  return <section className={`rounded-[1.1rem] p-3 ${chamberTone ? "border border-cyan-200/10 bg-[radial-gradient(130%_140%_at_50%_0%,rgba(34,211,238,.14),rgba(7,14,30,.82)_44%,rgba(2,7,18,.94)_100%)] shadow-[0_24px_70px_rgba(8,145,178,.24)]" : "border border-white/14 bg-[linear-gradient(175deg,rgba(11,20,36,.86),rgba(6,11,21,.94))] shadow-[0_16px_50px_rgba(0,0,0,.42)]"}`}>
     <header className="mb-2 flex items-center justify-between gap-2">
       <h3 className="text-sm font-medium text-white/90">{adapter.title}</h3>
       <Link href={adapter.route} className="rounded-md border border-white/20 px-2 py-1 text-[11px] text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Open manual route</Link>
