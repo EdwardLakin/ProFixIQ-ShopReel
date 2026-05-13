@@ -38,11 +38,18 @@ function renderPlaneStyle(plane: RuntimeScenePlane, reducedMotion: boolean): CSS
 }
 
 export function RuntimeSceneGraphCanvas({ composition, planesByDepth, topologyField, interactionTopology, presenceLayer, continuityMemory }: { composition: RuntimeSceneComposition; planesByDepth: Record<string, RuntimeScenePlane>; topologyField: RuntimeTopologyField; interactionTopology: RuntimeInteractionTopology; presenceLayer: RuntimePresenceLayer; continuityMemory: RuntimeContinuityMemory }) {
-  return <section className="relative z-20 min-h-[72vh] pointer-events-none" style={{ perspective: "1700px", transformStyle: "preserve-3d" }} data-continuity-corridor={topologyField.continuityCorridor.strength.toFixed(2)} data-guidance-density={presenceLayer.atmosphere.density.toFixed(2)}>
+  return <section className="relative z-20 min-h-[72vh] overflow-x-clip overflow-y-visible px-2 pb-24 pt-10 md:px-6 pointer-events-none" style={{ perspective: "1700px", transformStyle: "preserve-3d" }} data-continuity-corridor={topologyField.continuityCorridor.strength.toFixed(2)} data-guidance-density={presenceLayer.atmosphere.density.toFixed(2)}>
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div className="absolute inset-x-[5%] top-[8%] h-[30%] rounded-[999px] bg-cyan-400/8 blur-3xl" />
+      <div className="absolute inset-x-[10%] bottom-[15%] h-[24%] rounded-[999px] bg-indigo-400/10 blur-3xl" />
+      <div className="absolute inset-x-0 bottom-0 h-[48%] bg-[linear-gradient(180deg,rgba(2,6,23,0)_0%,rgba(2,6,23,.62)_44%,rgba(2,6,23,.94)_100%)]" />
+      <div className="absolute bottom-[10%] left-[8%] h-24 w-40 rounded-[40%] border border-white/10 bg-white/[0.03] blur-[1px]" />
+      <div className="absolute bottom-[16%] right-[10%] h-28 w-48 rounded-[45%] border border-white/10 bg-white/[0.02] blur-[1px]" />
+    </div>
     {composition.nodes.map((node) => {
       const plane = planesByDepth[node.id] ?? planesByDepth.midground;
       return <div key={node.id} data-embodied-weight={node.embodiedWeight.toFixed(2)} data-pressure-weight={node.pressureWeight.toFixed(2)} data-continuity-weight={node.continuityWeight.toFixed(2)} data-recovery-weight={node.recoveryWeight.toFixed(2)} data-entity-density={node.entityDensity.toFixed(2)} data-focal-gravity={node.focalGravity.toFixed(2)} data-chamber-presence={node.chamberPresence.toFixed(2)} data-topology-zone={topologyField.interactionZones.find((zone) => zone.nodeId === node.id)?.type ?? "recessed"} className={`absolute inset-0 flex ${anchorClass[plane.relationship.anchor] ?? anchorClass.center}`} style={{ ...renderPlaneStyle(plane, composition.state.reducedMotion), opacity: plane.attenuation.opacity * node.attenuation }}>
-        <div className="w-full px-4 md:px-6">{node.content}</div>
+        <div className="w-full max-w-[100vw] px-3 md:px-5">{node.content}</div>
       </div>;
     })}
     <div className="sr-only" aria-live="polite">{`${interactionTopology.summary}; operator signal ${presenceLayer.atmosphere.signal}; trajectory ${continuityMemory.activeTrajectory.direction}`}</div>
