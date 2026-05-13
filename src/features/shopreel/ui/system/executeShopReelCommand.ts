@@ -10,6 +10,8 @@ import {
 } from "@/features/shopreel/ui/system/operatorCapabilities";
 import type { OperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 import { resolveRouteFromPrompt } from "@/features/shopreel/ui/system/shopReelRouteRegistry";
+import { resolveRuntimeExecution } from "@/features/shopreel/ui/system/runtimeOrchestration";
+import { appendRuntimeCommandHistory } from "@/features/shopreel/ui/system/runtimeCommandHistory";
 import { buildWorldEntryIntent, resolveWorldFromEntityKind, resolveWorldFromPath } from "@/features/shopreel/ui/system/pageToWorldAdapter";
 import { recommendTransitions } from "@/features/shopreel/ui/system/worldTransitionRules";
 import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
@@ -45,9 +47,10 @@ export function executeShopReelCommand(input: {
   recentWorlds?: OperatorWorldCard[];
   orchestrationPlan?: OperatorOrchestrationPlan | null;
 }): ExecuteShopReelCommandResult {
+  const runtimeExecution = resolveRuntimeExecution(input.command, input.lastRoute);
   const decision = resolveRouteFromPrompt(input.command, input.lastRoute);
   const commandIntent = classifyCommandInputIntent(input.command);
-  let selectedRoute = decision.route;
+  let selectedRoute = runtimeExecution.target.route || decision.route;
   let handoffMethod: "none" | "session_storage" = "none";
   let handoffId: string | null = null;
   let typedAction: OperatorAction | null = null;
@@ -116,6 +119,15 @@ export function executeShopReelCommand(input: {
       entryIntent: buildWorldEntryIntent({ href: selectedRoute, worldId: targetWorld, source: "command" }),
     };
   }
+
+  appendRuntimeCommandHistory({
+    prompt: input.command,
+    resolvedIntent: runtimeExecution.intent.classification,
+    selectedRoute,
+    transitionStatus: actionResult?.ok === false ? "failed" : "executed",
+    outcomeSummary: actionResult?.reason ?? runtimeExecution.intent.explainability.join(" "),
+    carryoverWorldId: worldTarget?.worldId ?? null,
+  });
 
   return { decision, selectedRoute, handoffMethod, handoffId, commandIntent, typedAction, actionResult, worldTarget };
 }
