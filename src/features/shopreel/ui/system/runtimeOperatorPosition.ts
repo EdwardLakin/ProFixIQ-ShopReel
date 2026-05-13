@@ -5,6 +5,8 @@ export type RuntimeOperatorPosition = {
   previousWorldId: RuntimeWorldId | null;
   focusDirection: "forward" | "lateral" | "elevated" | "deep" | "stabilize";
   continuityState: "stable" | "recovering" | "interrupted";
+  continuityVector: { x: number; y: number; z: number };
+  visitedWorlds: RuntimeWorldId[];
   at: string;
 };
 
