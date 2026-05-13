@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTransitionRouter } from "@/features/shopreel/ui/system/TransitionProvider";
 import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
@@ -39,6 +39,7 @@ import { deriveOperatorOrchestrationPlan } from "@/features/shopreel/ui/system/o
 import { buildWorldEntryIntent, resolveWorldFromEntityKind, resolveWorldEntryForHref } from "@/features/shopreel/ui/system/pageToWorldAdapter";
 import { buildWorldSnapshot } from "@/features/shopreel/ui/system/worldSnapshot";
 import { createWorldEntryTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
+import { consumeRuntimeReturnState } from "@/features/shopreel/ui/system/runtimeSpatialTransition";
 import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
 import { RUNTIME_WORLD_COMPOSITIONS } from "@/features/shopreel/ui/system/runtimeWorldComposition";
 import { deriveRuntimeOperatorPriority, deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
@@ -107,6 +108,8 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
   const [campaignContext, setCampaignContext] = useState<RuntimeCampaignContext | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [chamberMemory, setChamberMemory] = useState<PersistedChamberMemory | null>(null);
+  const [emphasizedCardId, setEmphasizedCardId] = useState<string | null>(null);
+  const deckRef = useRef<HTMLDivElement | null>(null);
 
   const unresolvedCount = recent.filter((item) => item.priority === "critical" || /review|approval/.test(item.normalizedStatus)).length;
   const hasPendingApprovals = recent.some((item) => /review|approval/.test(item.normalizedStatus));
@@ -214,6 +217,16 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
     const persistedRuntime = readPersistedRuntimeSession();
     setChamberMemory(persistedRuntime?.chamberMemory ?? null);
   }, [runtimeSession]);
+
+
+  useEffect(() => {
+    const returning = consumeRuntimeReturnState();
+    if (!returning) return;
+    window.scrollTo({ top: returning.scrollY, behavior: "auto" });
+    setEmphasizedCardId(returning.restoreCardId);
+    const id = window.setTimeout(() => setEmphasizedCardId(null), 950);
+    return () => window.clearTimeout(id);
+  }, []);
 
   useEffect(() => {
     const campaignId = runtimeSession.selectedEntityIds.campaignId;
@@ -527,9 +540,16 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           worldId: snapshot.worldId,
                           href: snapshot.href,
                           title: snapshot.title,
-                          worldKind: worldId,
-                          visualSeed: snapshot.visualSeed,
-                          rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+                          cardRect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+                          operatorPriorityContext: { rank: Math.max(1, index + 1), unresolvedCount: unresolvedCount, hasBlocker: /failed|blocked|error/.test(item.normalizedStatus) },
+                          atmosphere: {
+                            tone: /failed|blocked|error/.test(item.normalizedStatus) ? "critical" : /review|approval|pending/.test(item.normalizedStatus) ? "elevated" : "focused",
+                            gradientSeed: snapshot.visualSeed,
+                            continuityRailOffset: Math.min(1, index / 8),
+                            orchestrationPressureTone: /failed|blocked|error/.test(item.normalizedStatus) ? "urgent" : unresolvedCount > 0 ? "watch" : "steady",
+                            temporalResilience: temporalMemory.resilience === "strong" || temporalMemory.resilience === "moderate" ? "stable" : temporalMemory.resilience === "fragile" ? "recovering" : "volatile",
+                            graphStressIntensity: Math.min(1, (deckGraph.dependencies.length + deckGraph.traversal.blockers.length) / 10),
+                          },
                           capturedAt: new Date().toISOString(),
                         }, prefersReducedMotion);
                         createWorldEntryTransition({ mode: "deck_to_world", fromWorldId: runtimeSession.activeWorldId, toWorldId: snapshot.worldId, fromRoute: runtimeSession.lastRoute, toRoute: snapshot.href, label: "deck-entry", at: new Date().toISOString() }, prefersReducedMotion);
@@ -544,10 +564,13 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                         });
                         router.push(item.href);
                       }}
+                      data-world-card-id={`:`}
                       className={`group relative h-[420px] w-[280px] shrink-0 snap-start overflow-hidden rounded-[2rem] border p-6 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 hover:-translate-y-1 ${
                         active
                           ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))] shadow-[0_0_65px_rgba(255,174,80,.24),0_34px_90px_rgba(0,0,0,.62)]"
-                          : "border-white/12 bg-[linear-gradient(180deg,rgba(17,20,43,.9),rgba(5,8,22,.98))] shadow-[0_28px_70px_rgba(0,0,0,.58)]"
+                          : emphasizedCardId === `${item.kind}:${item.id}`
+                            ? "border-cyan-200/70 bg-[linear-gradient(180deg,rgba(22,36,58,.96),rgba(8,10,26,.98))] shadow-[0_0_72px_rgba(56,189,248,.30),0_34px_90px_rgba(0,0,0,.62)]"
+                            : "border-white/12 bg-[linear-gradient(180deg,rgba(17,20,43,.9),rgba(5,8,22,.98))] shadow-[0_28px_70px_rgba(0,0,0,.58)]"
                       }`}
                     >
                       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_72%,rgba(255,164,72,.64),transparent_15%),radial-gradient(circle_at_55%_82%,rgba(102,226,255,.28),transparent_28%),linear-gradient(180deg,transparent_0_38%,rgba(23,16,34,.32)_39%,rgba(4,7,19,.96)_100%)]" />
