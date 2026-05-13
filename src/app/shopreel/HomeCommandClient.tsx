@@ -29,6 +29,11 @@ import {
   type PersistedChamberMemory,
 } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 import type { OperatorWorldCard } from "@/features/shopreel/operator/operatorWorlds";
+import { aggregateOperatorMemory } from "@/features/shopreel/operator-memory/aggregation";
+import type { OperatorMemoryRecord } from "@/features/shopreel/operator-memory/models";
+import { aggregateWorkspaceTimeline } from "@/features/shopreel/workspace-timeline/aggregation";
+import type { WorkspaceTimelineEvent } from "@/features/shopreel/workspace-timeline/models";
+import { deriveOperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 
 
 type RuntimeCampaignContext = {
@@ -75,6 +80,38 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
   const hasActiveCampaign = recent.some((item) => item.kind === "campaign");
   const hasRecentWorlds = recent.length > 0;
   const activeWorld = recent[0] ?? null;
+  const orchestrationPlan = useMemo(() => {
+    const records: OperatorMemoryRecord[] = recent.map((world) => ({
+      id: `mem-${world.id}`,
+      shopId: "runtime",
+      userId: "operator",
+      sessionId: null,
+      memoryKey: `${world.kind}:${world.id}`,
+      memoryKind: /review|approval/.test(world.normalizedStatus) ? "pending_approval" : world.kind === "render_job" ? "pending_render" : world.kind === "manual_asset" ? "recent_upload" : "unfinished_draft",
+      unresolved: /review|approval|failed|blocked|pending/.test(world.normalizedStatus),
+      payload: { entityKind: world.kind, entityId: world.id, campaignId: world.kind === "campaign" ? world.id : null },
+      createdAt: world.updatedAt ?? new Date(0).toISOString(),
+      updatedAt: world.updatedAt ?? new Date(0).toISOString(),
+    }));
+    const events: WorkspaceTimelineEvent[] = recent.map((world) => ({
+      id: `evt-${world.id}`,
+      shopId: "runtime",
+      userId: null,
+      sessionId: null,
+      entityKind: world.kind,
+      entityId: world.id,
+      eventType: world.kind === "render_job" ? "render_started" : world.kind === "publication" ? "publish_scheduled" : "operator_edit",
+      unresolved: /failed|blocked|pending/.test(world.normalizedStatus),
+      reasoningTrace: null,
+      payload: { campaignId: world.kind === "campaign" ? world.id : undefined },
+      createdAt: world.updatedAt ?? new Date(0).toISOString(),
+    }));
+    return deriveOperatorOrchestrationPlan({
+      memory: aggregateOperatorMemory(records),
+      timeline: aggregateWorkspaceTimeline(events),
+      fallbackCapability: activeWorld ? resolveCapabilityForWorld(activeWorld) : "workspace_recovery",
+    });
+  }, [activeWorld, recent]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -177,6 +214,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
       lastRoute: context?.lastRoute,
       source: "home_command",
       recentWorlds: recent,
+      orchestrationPlan,
     });
 
     const runtime = resolveOperatorRuntime({
@@ -190,6 +228,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
     });
 
     dispatch(buildRuntimeStartAction(runtime, nextCommand));
+    dispatch({ type: "SET_ORCHESTRATION_PLAN", plan: orchestrationPlan });
     dispatch({
       type: "SET_CAPABILITY_CONTEXT",
       capability: execution.typedAction?.target.capability ?? null,

@@ -8,6 +8,7 @@ import {
   type OperatorActionKind,
   type OperatorActionResult,
 } from "@/features/shopreel/ui/system/operatorCapabilities";
+import type { OperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 import { resolveRouteFromPrompt } from "@/features/shopreel/ui/system/shopReelRouteRegistry";
 
 export type CommandSource = "home_command" | "global_command";
@@ -38,6 +39,7 @@ export function executeShopReelCommand(input: {
   lastRoute?: string;
   source: CommandSource;
   recentWorlds?: OperatorWorldCard[];
+  orchestrationPlan?: OperatorOrchestrationPlan | null;
 }): ExecuteShopReelCommandResult {
   const decision = resolveRouteFromPrompt(input.command, input.lastRoute);
   const commandIntent = classifyCommandInputIntent(input.command);
@@ -57,6 +59,20 @@ export function executeShopReelCommand(input: {
     selectedRoute = route;
     typedAction = { kind: actionKind, label: actionKind.replaceAll("_", " "), target: { entityKind: headWorld.kind, entityId: headWorld.id, href: route, capability } };
     actionResult = { ok: allowed, route, reason: allowed ? `Routed to ${def.displayLabel}.` : `Action not allowed for ${def.displayLabel}; fallback applied.` };
+  }
+  const normalizedCommand = input.command.toLowerCase();
+  if (input.orchestrationPlan) {
+    if (/continue where i left off|resume failed workflow|show blocked work|what needs approval|finish publishing|recover unfinished campaign|take me to review/.test(normalizedCommand)) {
+      const plannedAction =
+        /take me to review|what needs approval/.test(normalizedCommand)
+          ? input.orchestrationPlan.suggestedActions.find((a) => a.stage === "review" || a.stage === "approval")
+          : /finish publishing/.test(normalizedCommand)
+            ? input.orchestrationPlan.suggestedActions.find((a) => a.stage === "publish")
+            : /show blocked work|recover unfinished campaign|resume failed workflow/.test(normalizedCommand)
+              ? input.orchestrationPlan.suggestedActions.find((a) => a.stage === "recovery") ?? input.orchestrationPlan.suggestedActions[0]
+              : input.orchestrationPlan.suggestedActions[0];
+      if (plannedAction) selectedRoute = operatorCapabilityRegistry[plannedAction.capability].route;
+    }
   }
 
   if (commandIntent === "create_campaign") {

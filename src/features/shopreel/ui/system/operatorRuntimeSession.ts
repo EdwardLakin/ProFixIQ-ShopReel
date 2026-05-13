@@ -6,6 +6,7 @@ import type {
 } from "@/features/shopreel/ui/system/operatorRuntime";
 import type { RuntimeEntity, RuntimeWorkspaceState } from "@/features/shopreel/runtime/entities";
 import type { OperatorAction, OperatorCapability } from "@/features/shopreel/ui/system/operatorCapabilities";
+import type { OperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 import { focusEntity, openEntity, pinEntity, queueEntity, transitionToEntity } from "@/features/shopreel/runtime/entities";
 
 export type RuntimeInterruption = {
@@ -43,6 +44,16 @@ export type OperatorRuntimeSessionState = {
   recoveryTarget: string | null;
   fallbackRoute: string;
   workspace: RuntimeWorkspaceState;
+  orchestrationPlan: OperatorOrchestrationPlan | null;
+  orchestrationSummary: {
+    currentOperationalFocus: string;
+    blockedCount: number;
+    readyActions: number;
+    pendingApprovals: number;
+    failedRenders: number;
+    publishReadyWork: number;
+    staleWorkflows: number;
+  } | null;
 };
 
 export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
@@ -65,6 +76,8 @@ export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
   recoveryTarget: null,
   fallbackRoute: "/shopreel",
   workspace: { entities: [], focusedEntityId: null, pinnedEntityIds: [], queuedEntityIds: [], panels: [] },
+  orchestrationPlan: null,
+  orchestrationSummary: null,
 };
 
 type StartRuntimeAction = { type: "START_RUNTIME"; resolution: OperatorRuntimeResolution; command: string };
@@ -93,6 +106,7 @@ type SetCapabilityContextAction = {
   lastRoute?: string | null;
   recoveryTarget?: string | null;
 };
+type SetOrchestrationPlanAction = { type: "SET_ORCHESTRATION_PLAN"; plan: OperatorOrchestrationPlan | null };
 
 export type OperatorRuntimeSessionAction =
   | StartRuntimeAction
@@ -108,7 +122,8 @@ export type OperatorRuntimeSessionAction =
   | PinEntityAction
   | QueueEntityAction
   | TransitionToEntityAction
-  | SetCapabilityContextAction;
+  | SetCapabilityContextAction
+  | SetOrchestrationPlanAction;
 
 export function operatorRuntimeSessionReducer(
   state: OperatorRuntimeSessionState,
@@ -202,6 +217,12 @@ export function operatorRuntimeSessionReducer(
         unresolvedIndicators: action.unresolvedIndicators ?? state.unresolvedIndicators,
         lastRoute: action.lastRoute ?? state.lastRoute,
         recoveryTarget: action.recoveryTarget ?? state.recoveryTarget,
+      };
+    case "SET_ORCHESTRATION_PLAN":
+      return {
+        ...state,
+        orchestrationPlan: action.plan,
+        orchestrationSummary: action.plan?.summary ?? null,
       };
     default:
       return state;

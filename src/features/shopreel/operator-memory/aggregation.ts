@@ -1,4 +1,6 @@
 import type { OperatorIntent, OperatorMemoryRecord, WorkspaceContinuation } from "@/features/shopreel/operator-memory/models";
+import type { WorkspaceTimelineAggregate } from "@/features/shopreel/workspace-timeline/models";
+import { deriveOperatorOrchestrationPlan, type OperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 
 export type OperatorMemoryAggregate = {
   activeCampaignIds: string[];
@@ -60,18 +62,22 @@ function buildContinuitySummary(input: {
   return `Active campaigns: ${input.activeCampaignIds.length}. Pending approvals: ${input.unresolvedApprovals.length}. Pending renders: ${input.pendingRenders.length}. Unfinished drafts: ${input.unfinishedDrafts.length}. Stalled entities: ${input.stalledEntities.length}.`;
 }
 
-export function deriveWorkspaceContinuation(records: OperatorMemoryRecord[]): WorkspaceContinuation {
+export function deriveWorkspaceContinuation(records: OperatorMemoryRecord[], timeline?: WorkspaceTimelineAggregate): WorkspaceContinuation {
   const aggregate = aggregateOperatorMemory(records);
   const recentlyActiveEntity = records
     .map((r) => ({ updatedAt: r.updatedAt, kind: String(r.payload.entityKind ?? ""), id: String(r.payload.entityId ?? "") }))
     .filter((r) => r.kind.length > 0 && r.id.length > 0)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
 
-  const likelyNextStep =
-    aggregate.unresolvedApprovals.length > 0 ? "Resolve pending approvals" :
+  const orchestrationPlan: OperatorOrchestrationPlan | null = timeline
+    ? deriveOperatorOrchestrationPlan({ memory: aggregate, timeline })
+    : null;
+
+  const likelyNextStep = orchestrationPlan?.suggestedActions[0]?.label
+    ?? (aggregate.unresolvedApprovals.length > 0 ? "Resolve pending approvals" :
     aggregate.pendingRenders.length > 0 ? "Advance pending render queue" :
     aggregate.unfinishedDrafts.length > 0 ? "Complete unfinished drafts" :
-    "Continue active campaign";
+    "Continue active campaign");
 
   return {
     focusIntent: aggregate.recentOperatorFocus,
@@ -80,5 +86,7 @@ export function deriveWorkspaceContinuation(records: OperatorMemoryRecord[]): Wo
     pendingApprovalCount: aggregate.unresolvedApprovals.length,
     likelyNextStep,
     continuitySummary: aggregate.continuitySummary,
+    orchestrationIntent: orchestrationPlan?.intentSnapshot ?? null,
+    orchestrationPlan,
   };
 }
