@@ -37,7 +37,7 @@ export function RuntimeSceneGraphCanvas({ composition, planesByDepth }: { compos
   return <section className="relative z-20 min-h-[72vh]" style={{ perspective: "1700px", transformStyle: "preserve-3d" }}>
     {composition.nodes.map((node) => {
       const plane = planesByDepth[node.id] ?? planesByDepth.midground;
-      return <div key={node.id} className={`absolute inset-0 flex ${anchorClass[plane.relationship.anchor] ?? anchorClass.center}`} style={renderPlaneStyle(plane, composition.state.reducedMotion)}>
+      return <div key={node.id} data-embodied-weight={node.embodiedWeight.toFixed(2)} data-pressure-weight={node.pressureWeight.toFixed(2)} data-continuity-weight={node.continuityWeight.toFixed(2)} data-recovery-weight={node.recoveryWeight.toFixed(2)} data-entity-density={node.entityDensity.toFixed(2)} data-focal-gravity={node.focalGravity.toFixed(2)} data-chamber-presence={node.chamberPresence.toFixed(2)} className={`absolute inset-0 flex ${anchorClass[plane.relationship.anchor] ?? anchorClass.center}`} style={{ ...renderPlaneStyle(plane, composition.state.reducedMotion), opacity: plane.attenuation.opacity * node.attenuation }}>
         <div className="w-full px-4 md:px-6">{node.content}</div>
       </div>;
     })}
