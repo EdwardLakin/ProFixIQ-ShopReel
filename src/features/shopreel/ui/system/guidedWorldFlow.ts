@@ -94,3 +94,29 @@ const FLOW: Record<GuidedFlowStepId, GuidedWorldFlowStep> = {
 export function resolveGuidedFlowStep(step: GuidedFlowStepId): GuidedWorldFlowStep {
   return FLOW[step];
 }
+
+export type WorldGuidedPrompt = {
+  question: string;
+  yes: { href: string; label: string; nextStep: GuidedFlowStepId | null };
+  no: { href: string; label: string; nextStep: GuidedFlowStepId | null };
+};
+
+const WORLD_PROMPTS: Record<RuntimeWorldId, WorldGuidedPrompt> = {
+  campaign: { question: "Ready to turn this campaign into draft outputs?", yes: { href: "/shopreel/generations", label: "Open generation", nextStep: "asset_readiness" }, no: { href: "/shopreel/campaigns", label: "Stay in campaign", nextStep: "select_output_type" } },
+  idea: { question: "Do you want to convert this idea into a campaign?", yes: { href: "/shopreel/campaigns", label: "Create campaign", nextStep: "select_output_type" }, no: { href: "/shopreel/opportunities", label: "Refine idea", nextStep: "clarify_objective" } },
+  upload: { question: "Do you want to use these assets in a new draft?", yes: { href: "/shopreel/generations", label: "Start draft", nextStep: "idea_script_readiness" }, no: { href: "/shopreel/upload", label: "Continue upload", nextStep: "asset_readiness" } },
+  asset_library: { question: "Use this asset set in the next generation?", yes: { href: "/shopreel/generations", label: "Open generation", nextStep: "idea_script_readiness" }, no: { href: "/shopreel/library", label: "Stay in library", nextStep: "asset_readiness" } },
+  generation: { question: "Send this draft to review?", yes: { href: "/shopreel/review", label: "Open review", nextStep: "draft_acceptable" }, no: { href: "/shopreel/generations", label: "Keep drafting", nextStep: "idea_script_readiness" } },
+  video_creation: { question: "Continue building this video package?", yes: { href: "/shopreel/video-creation", label: "Continue package", nextStep: "draft_acceptable" }, no: { href: "/shopreel/generations", label: "Return to draft", nextStep: "idea_script_readiness" } },
+  review: { question: "Approve this and move toward publishing?", yes: { href: "/shopreel/publish-center", label: "Move to publish", nextStep: "publish_timing" }, no: { href: "/shopreel/review", label: "Inspect review", nextStep: "draft_acceptable" } },
+  render: { question: "Retry or inspect this render?", yes: { href: "/shopreel/render-queue", label: "Inspect render", nextStep: "render_complete" }, no: { href: "/shopreel/operations", label: "Open recovery", nextStep: "render_complete" } },
+  publish: { question: "Schedule or publish this package?", yes: { href: "/shopreel/publish-center", label: "Publish now", nextStep: "analyze_results" }, no: { href: "/shopreel/calendar", label: "Schedule", nextStep: "analyze_results" } },
+  calendar: { question: "Create content for this slot?", yes: { href: "/shopreel/generations", label: "Create content", nextStep: "idea_script_readiness" }, no: { href: "/shopreel/calendar", label: "Stay in calendar", nextStep: "analyze_results" } },
+  analytics: { question: "Use this signal to plan the next campaign?", yes: { href: "/shopreel/campaigns", label: "Plan campaign", nextStep: "select_output_type" }, no: { href: "/shopreel/analytics", label: "Stay in analytics", nextStep: "analyze_results" } },
+  automation: { question: "Open recovery actions for this automation?", yes: { href: "/shopreel/operations", label: "Open actions", nextStep: null }, no: { href: "/shopreel/operator", label: "Operator view", nextStep: null } },
+  operations: { question: "Resume the blocked workflow?", yes: { href: "/shopreel/operations", label: "Resume workflow", nextStep: null }, no: { href: "/shopreel", label: "Back to deck", nextStep: null } },
+};
+
+export function resolveWorldGuidedPrompt(worldId: RuntimeWorldId): WorldGuidedPrompt {
+  return WORLD_PROMPTS[worldId];
+}

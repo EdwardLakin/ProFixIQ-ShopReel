@@ -11,6 +11,24 @@ import { focusEntity, openEntity, pinEntity, queueEntity, transitionToEntity } f
 import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 import type { GuidedFlowStepId } from "@/features/shopreel/ui/system/guidedWorldFlow";
 
+export type RuntimeWorldBreadcrumb = { worldId: RuntimeWorldId; route: string; at: string; label: string };
+export type RuntimeWorldEnvironmentState = { visualSeed: string; backgroundTone: string; returnToDeckHref: string };
+export type RuntimeWorldLastAction = { label: string; at: string };
+export type RuntimeWorldPanelState = "operator" | "manual" | "timeline" | "actions";
+export type RuntimeWorldContinuity = {
+  activeWorldId: RuntimeWorldId | null;
+  activeWorldKind: string | null;
+  activeEntityId: string | null;
+  activeRoute: string | null;
+  previousWorldId: RuntimeWorldId | null;
+  previousRoute: string | null;
+  guidedStepId: GuidedFlowStepId | null;
+  panelMode: RuntimeWorldPanelState;
+  environment: RuntimeWorldEnvironmentState;
+  lastAction: RuntimeWorldLastAction | null;
+  breadcrumbs: RuntimeWorldBreadcrumb[];
+};
+
 export type RuntimeInterruption = {
   reason: string;
   requestedSurface: OperatorSurfaceId;
@@ -63,6 +81,7 @@ export type OperatorRuntimeSessionState = {
     guidedStep: GuidedFlowStepId | null;
   } | null;
   worldTransitionHistory: Array<{ from: RuntimeWorldId | null; to: RuntimeWorldId; at: string; reason: string }>;
+  worldContinuity: RuntimeWorldContinuity;
   orchestrationSummary: {
     currentOperationalFocus: string;
     blockedCount: number;
@@ -102,6 +121,19 @@ export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
   worldRecommendation: null,
   worldEntrySnapshot: null,
   worldTransitionHistory: [],
+  worldContinuity: {
+    activeWorldId: null,
+    activeWorldKind: null,
+    activeEntityId: null,
+    activeRoute: null,
+    previousWorldId: null,
+    previousRoute: null,
+    guidedStepId: null,
+    panelMode: "operator",
+    environment: { visualSeed: "operations:default", backgroundTone: "slate", returnToDeckHref: "/shopreel" },
+    lastAction: null,
+    breadcrumbs: [],
+  },
   orchestrationSummary: null,
 };
 
@@ -277,6 +309,18 @@ export function operatorRuntimeSessionReducer(
           },
           ...state.worldTransitionHistory,
         ].slice(0, 20),
+        worldContinuity: {
+          ...state.worldContinuity,
+          activeWorldId: action.activeWorldId,
+          activeWorldKind: action.worldEntrySnapshot?.entityKind ?? state.worldContinuity.activeWorldKind,
+          activeEntityId: action.worldEntrySnapshot?.entityId ?? state.worldContinuity.activeEntityId,
+          activeRoute: action.worldEntrySnapshot?.href ?? state.worldContinuity.activeRoute,
+          previousWorldId: state.activeWorldId,
+          previousRoute: state.worldContinuity.activeRoute,
+          guidedStepId: action.worldEntrySnapshot?.guidedStep ?? state.worldContinuity.guidedStepId,
+          lastAction: { label: action.reason ?? "world_context_update", at: new Date().toISOString() },
+          breadcrumbs: [{ worldId: action.activeWorldId, route: action.worldEntrySnapshot?.href ?? state.lastRoute ?? "/shopreel", at: new Date().toISOString(), label: action.reason ?? "world_context_update" }, ...state.worldContinuity.breadcrumbs].slice(0, 10),
+        },
       };
     default:
       return state;

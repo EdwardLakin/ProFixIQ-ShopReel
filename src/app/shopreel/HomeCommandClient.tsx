@@ -37,6 +37,7 @@ import type { WorkspaceTimelineEvent } from "@/features/shopreel/workspace-timel
 import { deriveOperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 import { buildWorldEntryIntent, resolveWorldFromEntityKind, resolveWorldEntryForHref } from "@/features/shopreel/ui/system/pageToWorldAdapter";
 import { buildWorldSnapshot } from "@/features/shopreel/ui/system/worldSnapshot";
+import { createWorldEntryTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
 
 
 type RuntimeCampaignContext = {
@@ -59,6 +60,28 @@ const chamberNav = [
   { label: "Approvals", icon: "✓", href: "/shopreel/review" },
   { label: "Reports", icon: "◴", href: "/shopreel/analytics" },
 ] as const;
+
+function getDeckCardVisualIdentity(item: OperatorWorldCard, worldId: string): string {
+  return `${worldId}:${item.title.toLowerCase()}:${item.normalizedStatus}:${item.priority}`;
+}
+
+function buildWorldEntrySnapshotFromCard(item: OperatorWorldCard) {
+  const worldId = resolveWorldFromEntityKind(item.kind);
+  return {
+    worldId,
+    href: item.href,
+    entityId: item.id,
+    entityKind: item.kind,
+    title: item.title,
+    status: item.normalizedStatus,
+    visualSeed: getDeckCardVisualIdentity(item, worldId),
+    guidedStep: null,
+  };
+}
+
+function getResumeWorldHref(): string {
+  return readPersistedRuntimeSession()?.worldContinuity.activeRoute ?? "/shopreel";
+}
 
 function statusTone(status: string) {
   if (/review|approval/i.test(status)) return "Awaiting review";
@@ -389,6 +412,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                   View all →
                 </Link>
               </div>
+              <button type="button" onClick={() => router.push(getResumeWorldHref())} className="mb-4 ml-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
 
               <div className="relative overflow-x-auto pb-3" role="region" aria-label="Operational world deck">
                 <div className="flex min-w-max snap-x snap-mandatory gap-4 pr-4">
@@ -433,16 +457,9 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           },
                           reason: "home_deck_entry",
                         });
-                        persistWorldEntrySnapshot({
-                          worldId,
-                          href: item.href,
-                          entityId: item.id,
-                          entityKind: item.kind,
-                          title: item.title,
-                          status: item.normalizedStatus,
-                          visualSeed: `${worldId}:${item.title.toLowerCase()}:${item.normalizedStatus}:${item.priority}`,
-                          guidedStep: null,
-                        });
+                        const snapshot = buildWorldEntrySnapshotFromCard(item);
+                        createWorldEntryTransition({ mode: "deck_to_world", fromWorldId: runtimeSession.activeWorldId, toWorldId: snapshot.worldId, fromRoute: runtimeSession.lastRoute, toRoute: snapshot.href, label: "deck-entry", at: new Date().toISOString() }, prefersReducedMotion);
+                        persistWorldEntrySnapshot(snapshot);
                         dispatch({
                           type: "SET_CAPABILITY_CONTEXT",
                           capability: resolveCapabilityForWorld(item),
