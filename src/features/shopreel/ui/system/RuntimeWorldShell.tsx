@@ -31,6 +31,9 @@ import { deriveRuntimeEnvironment } from "@/features/shopreel/ui/system/runtimeE
 import { persistWorldEntrySnapshot, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 import { deriveRuntimeSpatialMap } from "@/features/shopreel/ui/system/runtimeSpatialMap";
 import { persistRuntimeOperatorPosition, readRuntimeOperatorPosition } from "@/features/shopreel/ui/system/runtimeOperatorPosition";
+import { deriveRuntimeWorldContinuity } from "@/features/shopreel/ui/system/runtimeWorldContinuity";
+import { deriveRuntimeWorldState } from "@/features/shopreel/ui/system/runtimeWorldState";
+import { deriveRuntimeFieldSystem } from "@/features/shopreel/ui/system/runtimeFieldSystem";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
   return RUNTIME_WORLD_MAP[worldId].primaryActions.map((item) => ({ id: item.id, label: item.label, href: item.href ?? RUNTIME_WORLD_MAP[worldId].canonicalRoute }));
@@ -151,6 +154,23 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const surface = deriveRuntimeSurfaceState({ orchestration, immersion, interaction, temporalMemory, graph: entityGraph, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion) });
   const environment = deriveRuntimeEnvironment({ entry, orchestration, interaction, surface, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion) });
   const spatialMap = deriveRuntimeSpatialMap({ worldId: entry.worldId, previousWorldId: persisted?.previousWorldId ?? null, operator: rememberedPosition, environment, unresolvedCount: entry.unresolvedCount, blockers: entry.blockers });
+  const worldContinuity = deriveRuntimeWorldContinuity({
+    worldId: entry.worldId,
+    unresolvedCount: entry.unresolvedCount,
+    continuityStrength: spatialMap.continuityMemory.continuityStrength,
+    familiarity: spatialMap.continuityMemory.continuityStrength,
+    previousMomentum: rememberedPosition?.continuityState === "recovering" ? 0.42 : 0.58,
+    attentionCarryover: interaction.attention === "urgent" ? 0.9 : interaction.attention === "guided" ? 0.6 : 0.35,
+  });
+  const worldState = deriveRuntimeWorldState({
+    nowIso,
+    worldId: entry.worldId,
+    continuity: worldContinuity,
+    unresolvedCount: entry.unresolvedCount,
+    workloadWeight: Math.min(1, (entry.secondaryActions.length + (entry.primaryAction ? 1 : 0)) / 5),
+    persistedAt: persisted?.updatedAt ?? null,
+  });
+  const runtimeFieldSystem = deriveRuntimeFieldSystem(worldState);
 
   useEffect(() => {
     const priorVisited = rememberedPosition?.visitedWorlds ?? [];
@@ -184,7 +204,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const chamber = deriveRuntimeChamberGeometry(entry.worldKind);
   const traversal = deriveRuntimeTraversal({ sourceWorld: persisted?.previousWorldId ?? null, targetWorld: entry.worldId, spatialMap, geometry: chamber, unresolvedCount: entry.unresolvedCount });
   const camera = deriveRuntimeSpatialCamera({ traversal, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), unresolvedCount: entry.unresolvedCount, continuityMomentum: traversal.continuityMomentum, rememberedFocus: rememberedPosition?.focusDirection === "lateral" ? "operator" : null });
-  const environmentalIntelligence = deriveRuntimeEnvironmentalIntelligence({ urgency: Math.min(1, entry.unresolvedCount / 4), workload: Math.min(1, entry.secondaryActions.length / 4), unresolvedBlockers: Math.min(1, entry.blockers.length / 4), renderQueueState: null, creativeIntensity: null, operationalState: traversal.environmentalCarryover, temporalVolatility: 1 - spatialMap.continuityMemory.continuityStrength, dependencyPressure: interaction.attention === "urgent" ? 1 : interaction.attention === "guided" ? 0.7 : 0.3, continuityResilience: spatialMap.continuityMemory.continuityStrength });
+  const environmentalIntelligence = deriveRuntimeEnvironmentalIntelligence({ urgency: runtimeFieldSystem.urgencyField, workload: runtimeFieldSystem.workloadField, unresolvedBlockers: Math.min(1, entry.blockers.length / 4), renderQueueState: runtimeFieldSystem.orchestrationDensityField, creativeIntensity: runtimeFieldSystem.attentionField, operationalState: traversal.environmentalCarryover, temporalVolatility: runtimeFieldSystem.interruptionField, dependencyPressure: interaction.attention === "urgent" ? 1 : interaction.attention === "guided" ? 0.7 : 0.3, continuityResilience: runtimeFieldSystem.continuityField });
   const chamberActions = deriveRuntimeChamberActions({ primaryAction: entry.primaryAction, secondaryActions: entry.secondaryActions, manualHref: entry.manualSurfaceHref, blocked: entry.blockers.length > 0 });
   const planes = RuntimeWorldWorkspaceCanvas({ entry, children });
   const scene = buildRuntimeSceneComposition({ chamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={chamber} intelligence={environmentalIntelligence} /> });

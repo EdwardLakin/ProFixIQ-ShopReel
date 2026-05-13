@@ -24,6 +24,9 @@ export type RuntimeWorldTopology = {
   continuityBias: number;
   atmosphericIdentity: string;
   adjacencyGraph: Record<RuntimeWorldId, RuntimeWorldId[]>;
+  directionalFlowBias: number;
+  recoveryPathways: RuntimeWorldId[];
+  decompressionRegions: RuntimeWorldRegion[];
 };
 
 const defaultAnchor = (worldId: RuntimeWorldId): RuntimeSpatialAnchor => ({
@@ -36,6 +39,9 @@ const defaultAnchor = (worldId: RuntimeWorldId): RuntimeSpatialAnchor => ({
 
 export const RUNTIME_WORLD_TOPOLOGY: RuntimeWorldTopology = {
   continuityBias: 0.72,
+  directionalFlowBias: 0.66,
+  recoveryPathways: ["operations", "review", "campaign"],
+  decompressionRegions: ["operations_lane", "archive_depths"],
   atmosphericIdentity: "shopreel_runtime",
   adjacencyGraph: {
     campaign: ["idea", "generation", "review", "operations"],
