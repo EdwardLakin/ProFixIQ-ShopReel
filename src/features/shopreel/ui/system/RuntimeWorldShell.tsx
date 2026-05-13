@@ -8,8 +8,10 @@ import { useTransitionRouter } from "@/features/shopreel/ui/system/TransitionPro
 import { persistRuntimeReturnState, readRuntimeSpatialTransition } from "@/features/shopreel/ui/system/runtimeSpatialTransition";
 import RuntimeWorldWorkspaceCanvas from "@/features/shopreel/ui/system/RuntimeWorldWorkspaceCanvas";
 import { deriveRuntimeChamberGeometry } from "@/features/shopreel/ui/system/runtimeChamberGeometry";
+import { GEOMETRY_BY_WORLD } from "@/features/shopreel/ui/system/runtimeChamberGeometry";
 import { deriveRuntimeTraversal } from "@/features/shopreel/ui/system/runtimeTraversalEngine";
 import { deriveRuntimePlaneGeometry } from "@/features/shopreel/ui/system/runtimePlaneGeometry";
+import { resolveRuntimeWorldId } from "@/features/shopreel/ui/system/pageToWorldAdapter";
 import { deriveRuntimeSpatialCamera } from "@/features/shopreel/ui/system/runtimeSpatialCamera";
 import { deriveRuntimeEnvironmentalIntelligence } from "@/features/shopreel/ui/system/runtimeEnvironmentalIntelligence";
 import { deriveRuntimeChamberActions } from "@/features/shopreel/ui/system/runtimeChamberInteraction";
@@ -211,7 +213,12 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     <div className="mt-4 flex gap-2"><Link href={entry.manualSurfaceHref} className="rounded-md px-3 py-2 text-xs text-cyan-100/80 underline-offset-2 hover:underline">Manual route escape</Link><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} onClick={() => persistRuntimeReturnState({ worldId: entry.worldId, scrollY: window.scrollY, restoreCardId: `${entry.entityKind ?? entry.worldKind}:${entry.entityId ?? entry.worldId}`, returnedAt: new Date().toISOString() })} className="rounded-md border border-white/20 px-3 py-2 text-xs">Back to deck</Link></div>
   </aside>;
 
-  const chamber = deriveRuntimeChamberGeometry(entry.worldKind);
+  const resolvedWorldId = resolveRuntimeWorldId(entry.worldKind, entry.worldId);
+  const geometry = GEOMETRY_BY_WORLD[resolvedWorldId] ?? GEOMETRY_BY_WORLD.operations;
+  if (resolvedWorldId !== entry.worldKind) {
+    console.warn("[runtime-world-miss]", { rawWorldKind: entry.worldKind, resolvedWorldId });
+  }
+  const chamber = deriveRuntimeChamberGeometry(geometry.identity);
   const traversal = deriveRuntimeTraversal({ sourceWorld: persisted?.previousWorldId ?? null, targetWorld: entry.worldId, spatialMap, geometry: chamber, unresolvedCount: entry.unresolvedCount });
   const materialization = deriveRuntimeMaterialization({ worldState, worldContinuity, fieldSystem: runtimeFieldSystem, traversal, unresolvedBlockers: entry.blockers.length, operatorState: operatorState.continuityState });
   const embodiedState = deriveRuntimeEmbodiedState(materialization);
@@ -243,7 +250,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const topologyField = deriveRuntimeTopologyField({ worldState, continuity: worldContinuity, entityMaterialization, traversal, environmentalIntelligence, scene });
   const interactionTopology = deriveRuntimeInteractionTopology({ actions: chamberActions, topologyField, continuityPressure: routeTransitionEngine.continuity.pressureInterpolation.continuityPressure });
   const presenceLayer = deriveRuntimePresenceLayer({ operatorState, embodiedState, materialization: entityMaterialization, continuityPressure: routeTransitionEngine.continuity.pressureInterpolation.continuityPressure, topologyField });
-  const planeGeometry = deriveRuntimePlaneGeometry(entry.worldKind, chamber, traversal);
+  const planeGeometry = deriveRuntimePlaneGeometry(resolvedWorldId, chamber, traversal);
 
   return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container} ${camera.interpolation.easingClassName}`} data-world-seed={ambientState.visualSeed} style={{ transform: `translate3d(${camera.translate.x}px, ${camera.translate.y}px, 0)` }}>
     <div className="sr-only" aria-live="polite">{`Camera ${camera.mode}; focus ${camera.target}; chamber tension ${Math.round(environmentalIntelligence.urgencyPressure * 100)}; ${chamberActions[0]?.label ?? "No focal action"}; topology ${interactionTopology.summary}; continuity momentum ${Math.round(continuityMemory.navigationMomentum.momentum * 100)}%`}</div>
