@@ -2,6 +2,7 @@ import type { RuntimeInteractionState } from "@/features/shopreel/ui/system/runt
 import type { RuntimeSurfaceState } from "@/features/shopreel/ui/system/runtimeSurfaceCohesion";
 import type { RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
 import type { RuntimeWorldOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
+import { RUNTIME_WORLD_TOPOLOGY, type RuntimeNavigationField, type RuntimeWorldRegion } from "@/features/shopreel/ui/system/runtimeTopology";
 
 export type RuntimeSpatialZone = "focal_path" | "operational_core" | "support_ring" | "peripheral_ring";
 export type RuntimeAttentionField = "progression" | "evaluation" | "stabilization";
@@ -23,6 +24,8 @@ export type RuntimePeripheralSurface = {
 };
 
 export type RuntimeEnvironment = {
+  navigationField: RuntimeNavigationField;
+  worldRegion: RuntimeWorldRegion;
   worldId: RuntimeWorldEntry["worldId"];
   identity: "campaign_chamber" | "review_chamber" | "operations_chamber" | "runtime_chamber";
   attentionField: RuntimeAttentionField;
@@ -60,8 +63,12 @@ export function deriveRuntimeEnvironment(input: { entry: RuntimeWorldEntry; orch
     role: action.id.includes("analytic") ? "analytics" : action.id.includes("queue") || action.id.includes("publish") ? "queue" : action.id.includes("review") ? "review" : action.id.includes("library") ? "library" : "support",
   }));
 
+  const topologyAnchor = RUNTIME_WORLD_TOPOLOGY.anchors[input.entry.worldId];
+
   return {
     worldId: input.entry.worldId,
+    navigationField: topologyAnchor.coordinate.field,
+    worldRegion: topologyAnchor.coordinate.region,
     identity,
     attentionField,
     gravity,

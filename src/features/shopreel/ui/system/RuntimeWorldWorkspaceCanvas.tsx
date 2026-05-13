@@ -12,8 +12,9 @@ import type { RuntimeImmersionState } from "@/features/shopreel/ui/system/runtim
 import type { RuntimeInteractionState } from "@/features/shopreel/ui/system/runtimeInteractionPolish";
 import type { RuntimeSurfaceState } from "@/features/shopreel/ui/system/runtimeSurfaceCohesion";
 import type { RuntimeEnvironment } from "@/features/shopreel/ui/system/runtimeEnvironment";
+import type { RuntimeSpatialMap } from "@/features/shopreel/ui/system/runtimeSpatialMap";
 
-export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorPanel, panelReveal, continuityRailFocus, immersion, interaction, surface, environment }: { entry: RuntimeWorldEntry; children: ReactNode; operatorPanel: ReactNode; panelReveal: number; continuityRailFocus: number; immersion: RuntimeImmersionState; interaction: RuntimeInteractionState; surface: RuntimeSurfaceState; environment: RuntimeEnvironment }) {
+export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorPanel, panelReveal, continuityRailFocus, immersion, interaction, surface, environment, spatialMap }: { entry: RuntimeWorldEntry; children: ReactNode; operatorPanel: ReactNode; panelReveal: number; continuityRailFocus: number; immersion: RuntimeImmersionState; interaction: RuntimeInteractionState; surface: RuntimeSurfaceState; environment: RuntimeEnvironment; spatialMap: RuntimeSpatialMap }) {
   const persisted = readPersistedRuntimeSession();
   const composition = RUNTIME_WORLD_COMPOSITIONS[entry.worldId] ?? { worldId: entry.worldId, panels: [] };
   const choreography = useMemo(() => deriveWorldChoreography({
@@ -33,8 +34,8 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
   const secondary = choreography.panelPriority.secondaryPanelIds.map((id) => composition.panels.find((panel) => panel.id === id)).filter((panel): panel is (typeof composition.panels)[number] => Boolean(panel));
   const orchestration = useMemo(() => deriveRuntimeOrchestration({ worldId: entry.worldId, status: entry.status, blockers: entry.blockers, unresolvedCount: entry.unresolvedCount, guidedStepId: persisted?.worldContinuity.guidedStepId ?? null, previousWorldId: persisted?.previousWorldId ?? null, lastActionLabel: persisted?.worldContinuity.lastAction?.label ?? null, breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [], composition, choreography, now: new Date().toISOString(), lastTransitionAt: persisted?.updatedAt ?? null }), [choreography, composition, entry.blockers, entry.status, entry.unresolvedCount, entry.worldId, persisted]);
 
-  return <section className="relative z-20 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]" style={{ opacity: Math.max(0.95, panelReveal), filter: `contrast(${1 + surface.pressure.contrastPressure * 0.08})` }}>
-    <div className="space-y-4">
+  return <section className="relative z-20 flex flex-col gap-4 xl:flex-row" style={{ opacity: Math.max(0.95, panelReveal), filter: `contrast(${1 + surface.pressure.contrastPressure * 0.08})`, transform: immersion.reducedMotion ? "none" : `translate3d(${spatialMap.directionalShift.x * 12}px, ${spatialMap.directionalShift.y * -10}px, ${spatialMap.directionalShift.z * 24}px)` }}>
+    <div className="min-w-0 flex-1 space-y-4">
       <section className="relative rounded-[1.05rem] border border-cyan-200/20 bg-slate-950/82 p-4 shadow-[0_22px_68px_rgba(0,0,0,.44)]" style={{ transform: immersion.reducedMotion ? "none" : "translate3d(0,-8px,64px) scale(1.01)", boxShadow: "0 30px 120px rgba(8,145,178,.2)" }}>
         <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/80">Foreground next action</p>
         <h2 className="mt-2 text-lg font-semibold text-white">{entry.primaryAction?.label ?? "Waiting for command"}</h2>
@@ -51,9 +52,9 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
         {secondary.map((panel, index) => <div key={panel.id} style={{ opacity: immersion.reveal.secondaryReveal[index] ?? 1, transform: immersion.reducedMotion ? "none" : "translate3d(0,6px,-6px) scale(.995)" }}><RuntimeRoutePanelAdapter adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} /></div>)}
       </div>
 
-      <section className="rounded-xl border border-cyan-200/16 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90" style={{ opacity: immersion.reveal.continuityReveal, boxShadow: `0 0 ${8 + continuityRailFocus * 10}px rgba(34,211,238,.12)` }}>{entry.title} · Objective: {environment.focalPath.currentObjective} · Next: {interaction.actionPriority} · Flow: {orchestration.flowHealth} · Pressure: {orchestration.operationalPressure}</section>
+      <section className="rounded-xl border border-cyan-200/16 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90" style={{ opacity: immersion.reveal.continuityReveal, boxShadow: `0 0 ${8 + continuityRailFocus * 10}px rgba(34,211,238,.12)` }}>{entry.title} · Objective: {environment.focalPath.currentObjective} · Flow: {orchestration.flowHealth} · Traversal: {spatialMap.traversal} · Field: {environment.navigationField} · Region: {environment.worldRegion}</section>
     </div>
 
-    <aside className="relative z-40">{operatorPanel}</aside>
+    <aside className="relative z-40 xl:w-[360px]" style={{ opacity: spatialMap.layers.midground }}>{operatorPanel}</aside>
   </section>;
 }
