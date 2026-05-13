@@ -8,8 +8,6 @@ import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWo
 import type { RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
 import { readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 import { deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
-import { buildRuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
-import { buildRuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
 import type { RuntimeImmersionState } from "@/features/shopreel/ui/system/runtimeImmersion";
 import type { RuntimeInteractionState } from "@/features/shopreel/ui/system/runtimeInteractionPolish";
 import type { RuntimeSurfaceState } from "@/features/shopreel/ui/system/runtimeSurfaceCohesion";
@@ -52,56 +50,18 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
   }), [choreography, composition, entry.blockers, entry.status, entry.unresolvedCount, entry.worldId, persisted]);
 
 
-  const entityGraph = useMemo(() => buildRuntimeEntityGraph({
-    activeWorldId: entry.worldId,
-    activeRoute: entry.href,
-    previousWorldId: persisted?.previousWorldId ?? null,
-    worldTransitionHistory: persisted?.worldContinuity.breadcrumbs.map((item) => ({ from: null, to: item.worldId, at: item.at, reason: item.label })) ?? [],
-    worldSnapshot: persisted?.worldEntrySnapshot ? { entityId: persisted.worldEntrySnapshot.entityId, entityKind: persisted.worldEntrySnapshot.entityKind, title: persisted.worldEntrySnapshot.title, status: persisted.worldEntrySnapshot.status, href: persisted.worldEntrySnapshot.href } : null,
-    continuity: { activeEntityId: persisted?.worldContinuity.activeEntityId ?? entry.entityId ?? null, breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [], activeRoute: persisted?.worldContinuity.activeRoute ?? entry.href },
-    composition,
-    status: entry.status,
-    blockers: entry.blockers,
-    unresolvedCount: entry.unresolvedCount,
-  }), [composition, entry, persisted]);
-
-  const continuity = useMemo(() => ({
-    previous: persisted?.previousWorldId ?? "none",
-    current: entry.worldId,
-    recommended: entry.worldId,
-    unresolved: persisted?.worldContinuity.breadcrumbs.length ?? 0,
-    lastAction: persisted?.worldContinuity.lastAction?.label ?? "none",
-    guided: persisted?.worldContinuity.guidedStepId ?? "none",
-  }), [entry.worldId, persisted]);
-  const temporalMemory = useMemo(() => buildRuntimeTemporalMemory({
-    now: new Date().toISOString(),
-    activeWorldId: entry.worldId,
-    status: entry.status,
-    unresolvedCount: entry.unresolvedCount,
-    blockers: entry.blockers,
-    breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [],
-    transitionHistory: (persisted?.worldContinuity.breadcrumbs ?? []).map((item) => ({ from: null, to: item.worldId, at: item.at, reason: item.label })),
-    orchestration,
-    choreography,
-    entityGraph,
-  }), [choreography, entry.blockers, entry.status, entry.unresolvedCount, entry.worldId, entityGraph, orchestration, persisted?.worldContinuity.breadcrumbs]);
-
   const railClass = orchestration.operationalPressure === "critical" ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "xl:grid-cols-[minmax(0,1fr)_360px]";
   const secondaryClass = orchestration.attentionState === "focused" ? "opacity-75" : "";
-  const relationshipGlow = 8 + interaction.panelRelationshipIntensity * 26;
   const pressureRail = immersion.operationalIntensity === "critical" ? "xl:grid-cols-[minmax(0,1fr)_440px]" : railClass;
 
-  return <section className={`grid gap-4 ${pressureRail}`} style={{ opacity: Math.max(0.82, panelReveal), filter: `contrast(${1 + surface.pressure.contrastPressure * 0.16})`, background: `linear-gradient(180deg, rgba(8,12,20,${0.18 + surface.ambient.ambientBlend * 0.26}), rgba(8,12,20,${0.02 + surface.presence.continuityBreathing * 0.08}))` }}>
+  return <section className={`relative z-20 grid gap-4 ${pressureRail}`} style={{ opacity: Math.max(0.92, panelReveal), filter: `contrast(${1 + surface.pressure.contrastPressure * 0.08})` }}>
     <div className="grid min-h-0 gap-4">
-      <div style={{ opacity: immersion.reveal.primaryReveal, transform: immersion.reducedMotion ? "none" : `scale(${0.996 + immersion.reveal.primaryReveal * 0.004})`, filter: `blur(${immersion.reducedMotion ? 0 : (1 - immersion.reveal.primaryReveal) * (1.2 + surface.ambient.edgeSoftening)}px)`, boxShadow: `inset 0 0 ${relationshipGlow + surface.panelCohesion.chainSync * 10}px rgba(34,211,238,${0.06 + surface.panelCohesion.sharedAtmosphere * 0.14}), 0 0 ${10 + surface.pressure.tension * 12}px rgba(8,12,20,0.35)` }}><RuntimeRoutePanelAdapter adapter={{ panelId: primary?.id ?? "primary", route: primary?.route ?? entry.href, title: primary?.title ?? "Workspace", embedMode: "embedded" }}>{children}</RuntimeRoutePanelAdapter></div>
-      <div className={`grid gap-4 md:grid-cols-2 ${secondaryClass}`}>{secondary.map((panel, index) => <div key={panel.id} className={choreography.panelPriority.collapsedPanelIds.includes(panel.id) ? "opacity-85" : ""} style={{ opacity: immersion.reveal.secondaryReveal[index] ?? immersion.reveal.secondaryReveal.at(-1) ?? 1, filter: `blur(${immersion.reducedMotion ? 0 : (1 - (immersion.reveal.secondaryReveal[index] ?? 1)) * (0.8 + surface.ambient.edgeSoftening)}px)`, boxShadow: `inset 0 0 ${relationshipGlow * (0.55 + surface.panelCohesion.relationshipIntensity * 0.4)}px rgba(125,211,252,${0.04 + surface.panelCohesion.sharedAtmosphere * 0.12})` }}><RuntimeRoutePanelAdapter adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} /></div>)}</div>
+      <div style={{ opacity: immersion.reveal.primaryReveal, transform: immersion.reducedMotion ? "none" : `scale(${0.998 + immersion.reveal.primaryReveal * 0.002})`, filter: `blur(${immersion.reducedMotion ? 0 : (1 - immersion.reveal.primaryReveal) * 0.8}px)` }}><RuntimeRoutePanelAdapter adapter={{ panelId: primary?.id ?? "primary", route: primary?.route ?? entry.href, title: primary?.title ?? "Workspace", embedMode: "embedded" }}>{children}</RuntimeRoutePanelAdapter></div>
+      <div className={`grid gap-4 md:grid-cols-2 ${secondaryClass}`}>{secondary.map((panel, index) => <div key={panel.id} className={choreography.panelPriority.collapsedPanelIds.includes(panel.id) ? "opacity-90" : ""} style={{ opacity: immersion.reveal.secondaryReveal[index] ?? immersion.reveal.secondaryReveal.at(-1) ?? 1 }}><RuntimeRoutePanelAdapter adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} /></div>)}</div>
       <div className="grid gap-3 md:grid-cols-2">{bottom.map((panel) => <RuntimeRoutePanelAdapter key={panel.id} adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} />)}</div>
-      <section className="rounded-xl border border-cyan-200/20 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90" style={{ opacity: immersion.reveal.continuityReveal, boxShadow: `0 0 ${12 + continuityRailFocus * 22 + immersion.atmosphere.continuityGlow * 18}px rgba(34,211,238,.22)`, borderColor: `rgba(103,232,249,${0.16 + interaction.guidanceCue.emphasis * 0.26})` }}>{choreography.operatorCue.label} · Decision: {interaction.decisionFocus} · Priority: {interaction.actionPriority} · {choreography.continuityCue.label} · Previous: {continuity.previous} · Current: {continuity.current} · Next: {continuity.recommended} · Unresolved: {continuity.unresolved} · Last action: {continuity.lastAction} · Guided: {continuity.guided} · Flow: {orchestration.flowHealth} · Pressure: {orchestration.operationalPressure} · Arrived from: {entityGraph.contextChain.arrivedFrom ?? "deck"}</section>
-      <section className="rounded-xl border border-violet-200/20 bg-violet-300/5 px-3 py-2 text-xs text-violet-100/90">Timeline · Prev {continuity.previous} → Current {continuity.current} · Recovery: {orchestration.recoveryState.cue ?? "none"} · Dormant: {orchestration.dormancyState.isDormant ? orchestration.dormancyState.cue : "no"} · Interrupted: {orchestration.escalationState.needsEscalation ? "yes" : "no"} · Upstream: {entityGraph.traversal.upstream.join(" → ") || "none"} · Downstream: {entityGraph.traversal.downstream.join(" → ") || "none"}</section>
-      <section className="rounded-xl border border-amber-200/20 bg-amber-300/5 px-3 py-2 text-xs text-amber-100/90">Temporal continuity · Age: {temporalMemory.window.ageMinutes}m · Volatility: {temporalMemory.volatility} · Resilience: {temporalMemory.resilience} · Decay: {temporalMemory.decayState} · Interruptions: {temporalMemory.interruptions.length} · Recoveries: {temporalMemory.recoveries.length} · Last stable point: {temporalMemory.checkpoints.at(-1)?.label ?? "none"} · Resume interrupted flow: {temporalMemory.interruptions.length > 0 ? "recommended" : "not needed"}</section>
-      <section className="rounded-xl border border-rose-200/20 bg-rose-300/5 px-3 py-2 text-xs text-rose-100/90">Dependency chain: {entityGraph.dependencies.map((dep) => `${dep.sourceId} → ${dep.targetId}`).join(" · ") || "none"} · Blockers: {entityGraph.traversal.blockers.map((b) => `${b.reason} (${b.priority})`).join(" · ") || "none"}</section>
-      <section className="rounded-xl border border-emerald-200/20 bg-emerald-300/5 px-3 py-2 text-xs text-emerald-100/90" style={{ opacity: immersion.reveal.lineageReveal }}>Lineage: {entityGraph.lineage.chain.join(" → ") || "none"} · Previous hop: {entityGraph.traversal.lastRelationshipHop ?? "none"}</section>
+      <section className="rounded-xl border border-cyan-200/20 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90" style={{ opacity: immersion.reveal.continuityReveal, boxShadow: `0 0 ${10 + continuityRailFocus * 14}px rgba(34,211,238,.16)` }}>{entry.title} · Objective: {entry.objective} · Next: {interaction.actionPriority} · Flow: {orchestration.flowHealth} · Pressure: {orchestration.operationalPressure}</section>
     </div>
-    <aside style={{ opacity: 0.85 + immersion.focusCue.blockerProximityEmphasis * 0.15 }}>{operatorPanel}</aside>
+    <aside style={{ opacity: 0.9 }}>{operatorPanel}</aside>
   </section>;
+
 }
