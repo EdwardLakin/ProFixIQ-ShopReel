@@ -19,12 +19,30 @@ export default async function ShopReelPage() {
   const shopId = await getCurrentShopId();
   const supabase = createAdminClient();
 
+  const resolveOptionalRuntimeRows = async (table: "content_pieces" | "content_publications", selectColumns: string) => {
+    const scopeColumn = getShopScopeColumnForTable(table);
+    const primary = await supabase.from(table).select(selectColumns).eq(scopeColumn, shopId).order("updated_at", { ascending: false }).limit(3);
+    if (!primary.error) return primary;
+
+    console.warn("[shopreel] runtime context query warning", { table, phase: "primary", message: primary.error.message });
+    const fallback = await supabase
+      .from(table)
+      .select(selectColumns.replace(",updated_at", ""))
+      .or(`tenant_shop_id.eq.${shopId},source_shop_id.eq.${shopId}`)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    if (fallback.error) {
+      console.warn("[shopreel] runtime context query warning", { table, phase: "fallback", message: fallback.error.message });
+    }
+    return fallback;
+  };
+
   const sources = await Promise.allSettled([
     supabase.from("shopreel_story_generations").select("id,status,created_at,updated_at,story_draft").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(4),
     supabase.from("shopreel_campaigns").select("id,title,status,created_at,updated_at").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
-    supabase.from("content_pieces").select("id,title,status,created_at,updated_at").eq(getShopScopeColumnForTable("content_pieces"), shopId).order("updated_at", { ascending: false }).limit(3),
+    resolveOptionalRuntimeRows("content_pieces", "id,title,status,created_at,updated_at"),
     supabase.from("reel_render_jobs").select("id,status,created_at,updated_at").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
-    supabase.from("content_publications").select("id,status,created_at,updated_at").eq(getShopScopeColumnForTable("content_publications"), shopId).order("updated_at", { ascending: false }).limit(3),
+    resolveOptionalRuntimeRows("content_publications", "id,status,created_at,updated_at"),
     supabase.from("shopreel_content_opportunities").select("id,status,created_at,updated_at,story_source:shopreel_story_sources(title)").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
   ]);
 
@@ -67,9 +85,10 @@ export default async function ShopReelPage() {
   }
 
   if (contentPieces.status === "fulfilled" && !contentPieces.value.error) {
-    for (const row of contentPieces.value.data ?? []) {
+    for (const row of ((contentPieces.value.data ?? []) as unknown as Array<{ id: string; title: string | null; status: string | null; created_at: string; updated_at?: string | null }>)) {
       const normalizedStatus = normalizeOperatorWorldStatus("content_piece", row.status);
-      worlds.push({ id: row.id, kind: "content_piece", title: row.title ?? "Untitled content", status: row.status ?? "unknown", normalizedStatus, sourceLabel: "Content Piece", stageLabel: normalizedStatus.replaceAll("_", " "), actionLabel: "Open content", priority: getOperatorWorldPriority("content_piece", normalizedStatus, row.updated_at), updatedAt: row.updated_at, createdAt: row.created_at, href: getOperatorWorldHref("content_piece", row.id) });
+      const updatedAt = row.updated_at ?? row.created_at;
+      worlds.push({ id: row.id, kind: "content_piece", title: row.title ?? "Untitled content", status: row.status ?? "unknown", normalizedStatus, sourceLabel: "Content Piece", stageLabel: normalizedStatus.replaceAll("_", " "), actionLabel: "Open content", priority: getOperatorWorldPriority("content_piece", normalizedStatus, updatedAt), updatedAt, createdAt: row.created_at, href: getOperatorWorldHref("content_piece", row.id) });
     }
   }
 
@@ -81,9 +100,10 @@ export default async function ShopReelPage() {
   }
 
   if (publications.status === "fulfilled" && !publications.value.error) {
-    for (const row of publications.value.data ?? []) {
+    for (const row of ((publications.value.data ?? []) as unknown as Array<{ id: string; status: string | null; created_at: string; updated_at?: string | null }>)) {
       const normalizedStatus = normalizeOperatorWorldStatus("publication", row.status);
-      worlds.push({ id: row.id, kind: "publication", title: `Publication ${row.id.slice(0, 8)}`, status: row.status ?? "unknown", normalizedStatus, sourceLabel: "Publication", stageLabel: normalizedStatus.replaceAll("_", " "), actionLabel: "Open publish center", priority: getOperatorWorldPriority("publication", normalizedStatus, row.updated_at), updatedAt: row.updated_at, createdAt: row.created_at, href: getOperatorWorldHref("publication", row.id) });
+      const updatedAt = row.updated_at ?? row.created_at;
+      worlds.push({ id: row.id, kind: "publication", title: `Publication ${row.id.slice(0, 8)}`, status: row.status ?? "unknown", normalizedStatus, sourceLabel: "Publication", stageLabel: normalizedStatus.replaceAll("_", " "), actionLabel: "Open publish center", priority: getOperatorWorldPriority("publication", normalizedStatus, updatedAt), updatedAt, createdAt: row.created_at, href: getOperatorWorldHref("publication", row.id) });
     }
   }
 
