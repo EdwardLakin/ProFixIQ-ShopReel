@@ -124,6 +124,14 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
           },
           lastAction: null,
           breadcrumbs: [],
+          openPanels: ["primary"],
+          collapsedPanels: [],
+          focusedPanelId: null,
+          lastViewedSection: null,
+          worldScrollY: 0,
+          lastManualToolOpened: null,
+          lastEmbeddedRoute: null,
+          activeGuidedQuestion: null,
         },
       };
     }
@@ -140,6 +148,14 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
         environment: { visualSeed: parsed.worldEntrySnapshot?.visualSeed ?? "operations:default", backgroundTone: "slate", returnToDeckHref: "/shopreel" },
         lastAction: null,
         breadcrumbs: [],
+        openPanels: ["primary"],
+        collapsedPanels: [],
+        focusedPanelId: null,
+        lastViewedSection: null,
+        worldScrollY: 0,
+        lastManualToolOpened: null,
+        lastEmbeddedRoute: null,
+        activeGuidedQuestion: null,
       };
     }
     return parsed;

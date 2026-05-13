@@ -27,6 +27,14 @@ export type RuntimeWorldContinuity = {
   environment: RuntimeWorldEnvironmentState;
   lastAction: RuntimeWorldLastAction | null;
   breadcrumbs: RuntimeWorldBreadcrumb[];
+  openPanels: string[];
+  collapsedPanels: string[];
+  focusedPanelId: string | null;
+  lastViewedSection: string | null;
+  worldScrollY: number;
+  lastManualToolOpened: string | null;
+  lastEmbeddedRoute: string | null;
+  activeGuidedQuestion: string | null;
 };
 
 export type RuntimeInterruption = {
@@ -133,6 +141,14 @@ export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
     environment: { visualSeed: "operations:default", backgroundTone: "slate", returnToDeckHref: "/shopreel" },
     lastAction: null,
     breadcrumbs: [],
+    openPanels: ["primary"],
+    collapsedPanels: [],
+    focusedPanelId: null,
+    lastViewedSection: null,
+    worldScrollY: 0,
+    lastManualToolOpened: null,
+    lastEmbeddedRoute: null,
+    activeGuidedQuestion: null,
   },
   orchestrationSummary: null,
 };

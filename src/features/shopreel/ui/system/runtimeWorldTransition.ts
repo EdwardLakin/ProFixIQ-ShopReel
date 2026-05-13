@@ -71,3 +71,7 @@ export function buildWorldEntryMemoryRecord(snapshot: RuntimeWorldTransitionSnap
 export function buildWorldExitMemoryRecord(snapshot: RuntimeWorldTransitionSnapshot): RuntimeWorldTimelineEvent {
   return buildWorldTransitionTimelineEvent(snapshot, "world_exit");
 }
+
+export type RuntimeWorldIdentityTransition = RuntimeWorldTransitionSnapshot;
+export type RuntimeWorldFocusState = { focusedPanelId: string | null; activeGuidedQuestion: string | null };
+export type RuntimeWorldAmbientState = { stabilized: boolean; visualSeed: string };
