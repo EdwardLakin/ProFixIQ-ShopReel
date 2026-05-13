@@ -28,6 +28,7 @@ export type RuntimeEntityMaterialization = {
   entityPresenceBand: RuntimeEntityPresenceBand;
   relationshipTension: number;
   actionSurfaceGravity: number;
+  topologyResonance: number;
 };
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
@@ -47,5 +48,6 @@ export function deriveRuntimeEntityMaterialization(input: { graph: RuntimeEntity
 
   const entityPresenceBand: RuntimeEntityPresenceBand = entityPressure > 0.72 ? "immediate" : entityPressure > 0.52 ? "near" : entityPressure > 0.3 ? "ambient" : "distant";
 
-  return { entityPressure, entityClusterWeight, entityDrift, entityPresenceBand, relationshipTension, actionSurfaceGravity };
+  const topologyResonance = clamp(actionSurfaceGravity * 0.6 + entityClusterWeight * 0.4);
+  return { entityPressure, entityClusterWeight, entityDrift, entityPresenceBand, relationshipTension, actionSurfaceGravity, topologyResonance };
 }

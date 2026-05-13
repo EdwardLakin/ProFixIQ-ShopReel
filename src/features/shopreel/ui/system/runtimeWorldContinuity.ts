@@ -8,6 +8,7 @@ export type RuntimeWorldContinuity = {
   unresolvedPressure: number;
   operationalRhythm: number;
   continuityCorridorStrength: number;
+  navigationMomentum: number;
 };
 
 export type RuntimeWorldRecoveryState = "stable" | "recovering" | "decompressing";
@@ -31,6 +32,7 @@ export function deriveRuntimeWorldContinuity(input: {
     unresolvedPressure,
     operationalRhythm,
     continuityCorridorStrength: Math.min(1, (input.continuityStrength + input.familiarity) / 2),
+    navigationMomentum: Math.min(1, continuityMomentum * 0.7 + input.familiarity * 0.3),
   };
 }
 
