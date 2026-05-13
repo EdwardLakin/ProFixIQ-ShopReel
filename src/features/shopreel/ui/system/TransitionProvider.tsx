@@ -2,11 +2,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { clearWorldEntryTransition, persistWorldEntryTransition, readWorldEntryTransition, type RuntimeWorldEntrySnapshot, type RuntimeWorldEntryTransitionState } from "@/features/shopreel/ui/system/runtimeWorldEntryTransition";
+import { clearRuntimeSpatialTransition, deriveFocusTransfer, persistRuntimeSpatialTransition, readRuntimeSpatialTransition, type RuntimeCameraState, type RuntimeSpatialSnapshot, type RuntimeSpatialTransitionState } from "@/features/shopreel/ui/system/runtimeSpatialTransition";
 
 type TransitionState = {
-  activeTransition: RuntimeWorldEntryTransitionState | null;
-  startWorldEntryTransition: (snapshot: RuntimeWorldEntrySnapshot, reducedMotion: boolean) => void;
+  activeTransition: RuntimeSpatialTransitionState | null;
+  startWorldEntryTransition: (snapshot: RuntimeSpatialSnapshot, reducedMotion: boolean) => void;
+  advanceWorldEntryCamera: (camera: RuntimeCameraState) => void;
   completeWorldEntryTransition: () => void;
 };
 
@@ -14,42 +15,53 @@ const TransitionContextStore = createContext<TransitionState | null>(null);
 
 export function TransitionProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [activeTransition, setActiveTransition] = useState<RuntimeWorldEntryTransitionState | null>(null);
+  const [activeTransition, setActiveTransition] = useState<RuntimeSpatialTransitionState | null>(null);
 
   useEffect(() => {
-    setActiveTransition(readWorldEntryTransition());
+    setActiveTransition(readRuntimeSpatialTransition());
   }, []);
 
   useEffect(() => {
     setActiveTransition((current) => {
       if (!current || current.phase !== "navigating") return current;
       if (pathname !== current.snapshot.href) return current;
-      const next: RuntimeWorldEntryTransitionState = { ...current, phase: "arrived" };
-      persistWorldEntryTransition(next);
+      const next: RuntimeSpatialTransitionState = { ...current, phase: "arrived", camera: "entering", focus: deriveFocusTransfer("entering", current.reducedMotion) };
+      persistRuntimeSpatialTransition(next);
       return next;
     });
   }, [pathname]);
 
-  const startWorldEntryTransition = useCallback((snapshot: RuntimeWorldEntrySnapshot, reducedMotion: boolean) => {
-    const transition: RuntimeWorldEntryTransitionState = {
+  const startWorldEntryTransition = useCallback((snapshot: RuntimeSpatialSnapshot, reducedMotion: boolean) => {
+    const transition: RuntimeSpatialTransitionState = {
       snapshot,
       reducedMotion,
+      camera: reducedMotion ? "immersed" : "docked",
+      focus: deriveFocusTransfer(reducedMotion ? "immersed" : "docked", reducedMotion),
       phase: reducedMotion ? "complete" : "navigating",
     };
     setActiveTransition(transition);
     if (reducedMotion) {
-      clearWorldEntryTransition();
+      clearRuntimeSpatialTransition();
       return;
     }
-    persistWorldEntryTransition(transition);
+    persistRuntimeSpatialTransition(transition);
+  }, []);
+
+  const advanceWorldEntryCamera = useCallback((camera: RuntimeCameraState) => {
+    setActiveTransition((current) => {
+      if (!current) return current;
+      const next: RuntimeSpatialTransitionState = { ...current, camera, focus: deriveFocusTransfer(camera, current.reducedMotion) };
+      persistRuntimeSpatialTransition(next);
+      return next;
+    });
   }, []);
 
   const completeWorldEntryTransition = useCallback(() => {
     setActiveTransition(null);
-    clearWorldEntryTransition();
+    clearRuntimeSpatialTransition();
   }, []);
 
-  const value = useMemo(() => ({ activeTransition, startWorldEntryTransition, completeWorldEntryTransition }), [activeTransition, startWorldEntryTransition, completeWorldEntryTransition]);
+  const value = useMemo(() => ({ activeTransition, startWorldEntryTransition, advanceWorldEntryCamera, completeWorldEntryTransition }), [activeTransition, startWorldEntryTransition, advanceWorldEntryCamera, completeWorldEntryTransition]);
   return <TransitionContextStore.Provider value={value}>{children}</TransitionContextStore.Provider>;
 }
 
@@ -63,18 +75,23 @@ export function TransitionLayer() {
   const { activeTransition } = useTransitionRouter();
   if (!activeTransition || activeTransition.phase === "complete" || activeTransition.reducedMotion) return null;
 
-  const { rect } = activeTransition.snapshot;
+  const { cardRect, atmosphere } = activeTransition.snapshot;
   const entering = activeTransition.phase === "arrived";
+  const shouldTransform = !activeTransition.reducedMotion;
+  const shellBlur = activeTransition.camera === "focusing" ? 8 : activeTransition.camera === "immersed" ? 0 : 4;
   return <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden">
     <div className={`absolute inset-0 bg-black/50 transition-opacity duration-500 ${entering ? "opacity-0" : "opacity-100"}`} />
     <div
-      className={`absolute rounded-[2rem] border border-white/25 bg-[radial-gradient(circle_at_22%_18%,rgba(255,180,92,.22),transparent_42%),radial-gradient(circle_at_78%_16%,rgba(103,232,249,.24),transparent_44%),linear-gradient(180deg,rgba(13,17,31,.92),rgba(2,6,23,.98))] shadow-[0_40px_120px_rgba(0,0,0,.6)] transition-all duration-700 ease-[cubic-bezier(.22,.8,.24,1)]`}
+      className={`absolute rounded-[2rem] border border-white/25 shadow-[0_40px_120px_rgba(0,0,0,.6)] transition-all duration-700 ease-[cubic-bezier(.22,.8,.24,1)]`}
       style={{
-        left: entering ? 0 : rect.x,
-        top: entering ? 0 : rect.y,
-        width: entering ? "100vw" : rect.width,
-        height: entering ? "100vh" : rect.height,
-        borderRadius: entering ? 0 : 32,
+        left: shouldTransform ? (entering ? 0 : cardRect.x) : 0,
+        top: shouldTransform ? (entering ? 0 : cardRect.y) : 0,
+        width: shouldTransform ? (entering ? "100vw" : cardRect.width) : "100vw",
+        height: shouldTransform ? (entering ? "100vh" : cardRect.height) : "100vh",
+        borderRadius: shouldTransform ? (entering ? 0 : 32) : 0,
+        opacity: activeTransition.focus.shellOpacity,
+        filter: `blur(${shellBlur}px)`,
+        background: `radial-gradient(circle at 22% 18%,rgba(255,180,92,${0.12 + atmosphere.graphStressIntensity * 0.08}),transparent 42%),radial-gradient(circle at 78% 16%,rgba(103,232,249,.24),transparent 44%),linear-gradient(180deg,rgba(13,17,31,.92),rgba(2,6,23,.98))`,
       }}
     />
   </div>;
