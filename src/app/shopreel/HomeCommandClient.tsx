@@ -345,20 +345,20 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
   };
 
   return (
-    <div className="relative h-[100svh] w-full overflow-hidden bg-[#02040c] text-white">
+    <div className="relative min-h-[100svh] w-full bg-[#02040c] text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_42%_36%,rgba(255,171,75,.24),transparent_18%),radial-gradient(circle_at_50%_52%,rgba(111,76,255,.28),transparent_32%),radial-gradient(circle_at_86%_38%,rgba(70,160,255,.15),transparent_30%),linear-gradient(135deg,#02040c_0%,#060815_48%,#04030b_100%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
 
-      <div className="relative z-10 grid h-full min-h-0 grid-cols-1 lg:grid-cols-[170px_minmax(0,1fr)]">
-        <aside className="hidden border-r border-white/[0.06] bg-black/10 px-7 py-7 lg:flex lg:flex-col">
+      <div className="relative z-10 grid min-h-[100svh] grid-cols-1 xl:grid-cols-[clamp(9.5rem,12vw,12rem)_minmax(0,1fr)]">
+        <aside className="hidden border-r border-white/[0.06] bg-black/10 px-5 py-6 xl:flex xl:flex-col xl:gap-6">
           <div className="flex items-center gap-4">
             <div className="text-sm font-bold tracking-[0.1em]">PROFIXIQ</div>
             <div className="text-[11px] uppercase tracking-[0.28em] text-white/58">ShopReel Operator</div>
           </div>
 
-          <div className="mt-14 h-24 w-24 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.95)_0_7%,rgba(255,177,76,.22)_8%_16%,transparent_17%),repeating-radial-gradient(circle,rgba(255,177,76,.25)_0_1px,transparent_1px_13px)] shadow-[0_0_45px_rgba(255,150,60,.35)]" />
+          <div className="mt-8 h-20 w-20 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.95)_0_7%,rgba(255,177,76,.22)_8%_16%,transparent_17%),repeating-radial-gradient(circle,rgba(255,177,76,.25)_0_1px,transparent_1px_13px)] shadow-[0_0_45px_rgba(255,150,60,.35)]" />
 
-          <nav className="mt-14 space-y-4">
+          <nav className="mt-4 space-y-3">
             {chamberNav.map((item, index) => (
               <Link
                 key={item.href}
@@ -380,14 +380,14 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
 
           <Link
             href="/shopreel/operations"
-            className="mt-auto flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-amber-100/88"
+            className="mt-auto pt-4 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-amber-100/88"
           >
             <span className="text-lg">≡</span>
             Operations
           </Link>
         </aside>
 
-        <main className="relative grid h-full min-h-0 grid-rows-[72px_minmax(0,1fr)_128px] overflow-hidden px-6 py-5 lg:px-8 xl:px-10">
+        <main className="relative grid min-h-[100svh] grid-rows-[auto_minmax(0,1fr)_auto] gap-5 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <header className="flex items-center justify-between">
             <div className="hidden items-center gap-3 text-[12px] uppercase tracking-[0.26em] text-amber-100/88 md:flex">
               <span className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,.95)]" />
@@ -408,7 +408,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
             </div>
           </header>
 
-          <section className="relative grid min-h-0 items-center gap-8 overflow-hidden lg:grid-cols-[minmax(420px,.78fr)_minmax(560px,1fr)] xl:grid-cols-[minmax(480px,.78fr)_minmax(680px,1fr)]">
+          <section className="relative grid min-h-0 content-start gap-6 xl:grid-cols-[minmax(0,clamp(24rem,36vw,36rem))_minmax(0,1fr)] xl:items-start">
             <div className="relative z-10 max-w-3xl">
               <div className="pointer-events-none absolute left-[86%] top-[-8%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.85)_0_1.6%,rgba(255,177,76,.25)_2.5%_5%,transparent_8%),repeating-radial-gradient(circle,rgba(255,177,76,.18)_0_1px,transparent_1px_20px)] opacity-90" />
               <div
@@ -420,21 +420,21 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
 
               <div className="relative">
                 <div className="text-[12px] uppercase tracking-[0.26em] text-indigo-200/88">Operator online</div>
-                <h1 className="mt-5 text-[clamp(4.8rem,9vw,8.8rem)] font-semibold leading-[0.88] tracking-[-0.075em] text-white">
+                <h1 className="mt-5 text-[clamp(3rem,5.8vw,5.8rem)] font-semibold leading-[0.88] tracking-[-0.075em] text-white">
                   Operator
                   <br />
                   <span className="bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
                     Online
                   </span>
                 </h1>
-                <p className="mt-7 max-w-2xl text-[clamp(1.2rem,1.7vw,1.8rem)] leading-snug text-white/64">
+                <p className="mt-5 max-w-2xl text-[clamp(1rem,1.35vw,1.35rem)] leading-snug text-white/64">
                   Continuity intact. Systems nominal. Focus your next move.
                 </p>
 
                 <div className="mt-8 max-w-3xl">
                   <div className="mb-3 text-[11px] uppercase tracking-[0.24em] text-white/50">Operator prompt</div>
                   <form
-                    className="relative z-30 flex items-center rounded-3xl border border-white/14 bg-[#071024]/60 px-5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
+                    className="relative z-30 flex items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
                     onSubmit={(event) => {
                       event.preventDefault();
                       void runCommand();
@@ -451,7 +451,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       }}
                       placeholder="What should the operator run next?"
                       readOnly={isCommandRunning}
-                      className="min-h-16 flex-1 border-0 bg-transparent pr-2 shadow-none focus-visible:ring-0"
+                      className="min-h-14 flex-1 text-[0.98rem] border-0 bg-transparent pr-2 shadow-none focus-visible:ring-0"
                     />
                     <button
                       type="submit"
@@ -498,7 +498,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
             </div>
 
-            <aside className="relative z-20 min-h-0 overflow-visible">
+            <aside className="relative z-20 min-h-0">
               <div className="mb-8 flex items-end justify-between pl-4">
                 <div>
                   <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">Operational Worlds</div>
@@ -510,8 +510,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
               <button type="button" onClick={() => router.push(getResumeWorldHref(operatorPriority ? `/shopreel/${operatorPriority.recommendedReturnWorld}` : undefined))} className="mb-4 ml-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
 
-              <div className="relative overflow-x-auto pb-3" role="region" aria-label="Operational world deck">
-                <div className="flex min-w-max snap-x snap-mandatory gap-4 pr-4">
+              <div className="relative overflow-x-visible pb-2" role="region" aria-label="Operational world deck">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
                 {recent.slice(0, 8).sort((a, b) => {
                   const aScore = (a.priority === "critical" ? 3 : a.priority === "high" ? 2 : 1);
                   const bScore = (b.priority === "critical" ? 3 : b.priority === "high" ? 2 : 1);
@@ -630,7 +630,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                         void router.push(item.href);
                       }}
                       data-world-card-id={`:`}
-                      className={`group relative h-[420px] w-[280px] shrink-0 snap-start overflow-hidden rounded-[2rem] border p-6 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 hover:-translate-y-1 ${
+                      className={`group relative min-h-[22rem] w-full overflow-hidden rounded-[1.6rem] border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 xl:min-h-[23rem] ${
                         active
                           ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))] shadow-[0_0_65px_rgba(255,174,80,.24),0_34px_90px_rgba(0,0,0,.62)]"
                           : emphasizedCardId === `${item.kind}:${item.id}`
@@ -679,7 +679,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
             </aside>
           </section>
 
-          <footer className="grid min-h-0 gap-3 border-t border-white/[0.065] pt-4 lg:grid-cols-[minmax(280px,.7fr)_1fr_300px]">
+          <footer className="grid gap-3 border-t border-white/[0.065] pt-4 xl:grid-cols-[minmax(15rem,.8fr)_minmax(20rem,1fr)_minmax(14rem,.75fr)]">
             <div className="flex items-center gap-4 rounded-[1.6rem] bg-white/[0.025] px-5 py-4">
               <div className="grid h-12 w-12 place-items-center rounded-full bg-violet-400/20 text-violet-100 shadow-[0_0_28px_rgba(139,92,246,.35)]">
                 ✦
@@ -690,16 +690,16 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 rounded-[1.6rem] bg-white/[0.025] px-4 py-4">
+            <div className="grid grid-cols-2 gap-2 rounded-[1.6rem] bg-white/[0.025] px-4 py-4 md:grid-cols-4">
               {[
                 ["Runtime pulse", "Calm · Focused · Steady"],
                 ["Continuity signal", "Stable"],
                 ["Atmosphere", "Focused"],
                 ["Momentum", "Building"],
               ].map(([label, value]) => (
-                <div key={label} className="border-r border-white/10 px-2 last:border-r-0">
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-white/42">{label}</div>
-                  <div className="mt-3 text-sm text-cyan-100">{value}</div>
+                <div key={label} className="min-w-0 border-r border-white/10 px-2 md:last:border-r-0 even:border-r-0 md:even:border-r">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/42">{label}</div>
+                  <div className="mt-2 text-sm leading-snug text-cyan-100">{value}</div>
                 </div>
               ))}
             </div>
