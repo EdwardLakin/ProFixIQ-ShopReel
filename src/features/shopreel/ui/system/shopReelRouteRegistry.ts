@@ -51,16 +51,20 @@ export type RouteDecision = {
 export function resolveRouteFromPrompt(prompt: string, lastRoute?: string): RouteDecision {
   const q = prompt.toLowerCase();
   const isResume = /\b(resume|continue|recover|restore)\b/.test(q);
-  const explicitCreate = /\b(create|new|start)\b/.test(q);
+  const explicitCreate = /\b(create|new|start|build|refine)\b/.test(q);
   const explicitCampaign = /\bcampaign\b/.test(q);
-  if (/\b(upload|manual upload|upload video)\b/.test(q)) return { intent: "upload", route: "/shopreel/upload", reason: "Explicit upload intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(download|finished video|export)\b/.test(q)) return { intent: "export", route: "/shopreel/exports", reason: "Explicit download/export intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(publish|instagram|tiktok publish|publish queue)\b/.test(q)) return { intent: "publish", route: "/shopreel/publish-center", reason: "Explicit publish intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(render|render this video)\b/.test(q)) return { intent: "render", route: "/shopreel/render-queue", reason: "Explicit render intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(create a video|video from this idea|video creation)\b/.test(q)) return { intent: "video_creation", route: "/shopreel/video-creation", reason: "Explicit video creation intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(ideas|opportunities|campaign ideas|brainstorm)\b/.test(q)) return { intent: "ideas", route: "/shopreel/ideas", reason: "Explicit ideas/opportunities intent", usedRecovery: false, ignoredStaleContinuity: true };
-  if (explicitCreate && explicitCampaign) return { intent: "create_campaign", route: "/shopreel/campaigns/new", reason: "Explicit create/new campaign intent wins over continuity", usedRecovery: false, ignoredStaleContinuity: true };
-  if (/\b(edit|revise|update)\b/.test(q) && explicitCampaign) return { intent: "edit_campaign", route: "/shopreel/campaigns", reason: "Explicit campaign edit intent", usedRecovery: false, ignoredStaleContinuity: true };
+
+  if (/\b(idea|ideas|opportunities|opportunity|brainstorm|trending|trend|hooks|angles)\b/.test(q)) return { intent: "ideas", route: "/shopreel/ideas", reason: "Ideas/opportunities intent routed to canonical ideas surface", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(upload|manual upload|upload video|asset|assets|library)\b/.test(q)) return { intent: "upload", route: "/shopreel/upload", reason: "Upload/assets intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(generate|script|scripts|hook|hooks|studio|storyboard)\b/.test(q)) return { intent: "generation", route: "/shopreel/create", reason: "Generation/script intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(render|render this video|render queue)\b/.test(q)) return { intent: "render", route: "/shopreel/render-queue", reason: "Render queue intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(review|approval|approvals|approve)\b/.test(q)) return { intent: "review", route: "/shopreel/review", reason: "Review/approvals intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(calendar|schedule|scheduling|publish|instagram|tiktok publish|publish queue)\b/.test(q)) return { intent: "publish", route: "/shopreel/publish-center", reason: "Calendar/publishing intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(analytics|performance|report|reports)\b/.test(q)) return { intent: "analytics", route: "/shopreel/analytics", reason: "Analytics/reporting intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(download|finished video|export)\b/.test(q)) return { intent: "export", route: "/shopreel/exports", reason: "Export intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(create a video|video from this idea|video creation)\b/.test(q)) return { intent: "video_creation", route: "/shopreel/video-creation", reason: "Video creation intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (explicitCreate && explicitCampaign) return { intent: "create_campaign", route: "/shopreel/campaigns/new", reason: "Campaign creation/refinement intent", usedRecovery: false, ignoredStaleContinuity: true };
+  if (/\b(edit|revise|update|refine)\b/.test(q) && explicitCampaign) return { intent: "edit_campaign", route: "/shopreel/campaigns", reason: "Campaign maintenance intent", usedRecovery: false, ignoredStaleContinuity: true };
   if (isResume) return { intent: "resume", route: lastRoute || "/shopreel/review", reason: "Resume/continue requested; recovery route allowed", usedRecovery: true, ignoredStaleContinuity: false };
   return { intent: "default", route: "/shopreel", reason: "No explicit intent; route to home", usedRecovery: false, ignoredStaleContinuity: false };
 }

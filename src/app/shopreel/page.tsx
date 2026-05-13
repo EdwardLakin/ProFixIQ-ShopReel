@@ -3,6 +3,7 @@ import GlassShell from "@/features/shopreel/ui/system/GlassShell";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import HomeCommandClient from "./HomeCommandClient";
+import { getShopScopeColumnForTable } from "@/features/shopreel/server/shopScope";
 import {
   getOperatorWorldHref,
   getOperatorWorldPriority,
@@ -21,13 +22,19 @@ export default async function ShopReelPage() {
   const sources = await Promise.allSettled([
     supabase.from("shopreel_story_generations").select("id,status,created_at,updated_at,story_draft").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(4),
     supabase.from("shopreel_campaigns").select("id,title,status,created_at,updated_at").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
-    supabase.from("content_pieces").select("id,title,status,created_at,updated_at").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
+    supabase.from("content_pieces").select("id,title,status,created_at,updated_at").eq(getShopScopeColumnForTable("content_pieces"), shopId).order("updated_at", { ascending: false }).limit(3),
     supabase.from("reel_render_jobs").select("id,status,created_at,updated_at").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
-    supabase.from("content_publications").select("id,status,created_at,updated_at").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
+    supabase.from("content_publications").select("id,status,created_at,updated_at").eq(getShopScopeColumnForTable("content_publications"), shopId).order("updated_at", { ascending: false }).limit(3),
     supabase.from("shopreel_content_opportunities").select("id,status,created_at,updated_at,story_source:shopreel_story_sources(title)").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
   ]);
 
   const worlds: OperatorWorldCard[] = [];
+  const loadErrors = sources.flatMap((source, index) => {
+    if (source.status !== "fulfilled" || !source.value.error) return [] as string[];
+    const surface = ["story_generations", "campaigns", "content_pieces", "render_jobs", "content_publications", "opportunities"][index];
+    return [`${surface}: ${source.value.error.message}`];
+  });
+
 
   const [generations, campaigns, contentPieces, renderJobs, publications, opportunities] = sources;
 
@@ -90,5 +97,5 @@ export default async function ShopReelPage() {
 
   const recent = sortOperatorWorlds(worlds).slice(0, 12);
 
-  return <GlassShell title="ShopReel Command Center" hidePageIntro hideNotificationsBell fullBleed className="space-y-0"><HomeCommandClient recent={recent} /></GlassShell>;
+  return <GlassShell title="ShopReel Command Center" hidePageIntro hideNotificationsBell fullBleed className="space-y-0"><HomeCommandClient recent={recent} loadErrors={loadErrors} /></GlassShell>;
 }

@@ -98,7 +98,7 @@ function statusTone(status: string) {
   return "Stable";
 }
 
-export default function HomeCommandClient({ recent }: { recent: OperatorWorldCard[] }) {
+export default function HomeCommandClient({ recent, loadErrors }: { recent: OperatorWorldCard[]; loadErrors?: string[] }) {
   const router = useRouter();
   const { startWorldEntryTransition } = useTransitionRouter();
   const [command, setCommand] = useState("");
@@ -110,7 +110,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
   const [chamberMemory, setChamberMemory] = useState<PersistedChamberMemory | null>(null);
   const [emphasizedCardId, setEmphasizedCardId] = useState<string | null>(null);
   const [isCommandRunning, setIsCommandRunning] = useState(false);
-  const [commandFailure, setCommandFailure] = useState<string | null>(null);
+  const [commandFailure, setCommandFailure] = useState<string | null>(loadErrors?.length ? `Runtime data load issue: ${loadErrors[0]}` : null);
   const deckRef = useRef<HTMLDivElement | null>(null);
 
   const unresolvedCount = recent.filter((item) => item.priority === "critical" || /review|approval/.test(item.normalizedStatus)).length;
