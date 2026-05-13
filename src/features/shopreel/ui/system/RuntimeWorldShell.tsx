@@ -17,6 +17,7 @@ import { deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtim
 import { buildRuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
 import { buildRuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
 import { deriveRuntimeInteractionState } from "@/features/shopreel/ui/system/runtimeInteractionPolish";
+import { deriveRuntimeSurfaceState } from "@/features/shopreel/ui/system/runtimeSurfaceCohesion";
 import { persistWorldEntrySnapshot, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
@@ -134,12 +135,14 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     temporalMemory,
     graph: entityGraph,
   });
+  const surface = deriveRuntimeSurfaceState({ orchestration, immersion, interaction, temporalMemory, graph: entityGraph, reducedMotion: prefersReducedMotion || Boolean(activeTransition?.reducedMotion) });
+
   const navigate = (href: string, step: string | null) => {
     persistWorldEntrySnapshot({ worldId: entry.worldId, href, entityId: entry.entityId, entityKind: entry.entityKind, title: entry.title, status: entry.status, visualSeed: entry.visualSeed, guidedStep: step as never });
     router.push(href);
   };
 
-  const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`} style={{ opacity: 0.86 + interaction.operatorGuidance.railNoiseSuppression * 0.14, borderColor: `rgba(125,211,252,${0.2 + interaction.guidanceCue.emphasis * 0.2})`, boxShadow: `0 0 ${10 + interaction.continuityAttention * 24}px rgba(34,211,238,${0.12 + interaction.guidanceCue.continuityGlow * 0.18})` }}>
+  const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`} style={{ opacity: 0.84 + interaction.operatorGuidance.railNoiseSuppression * 0.1 + surface.presence.persistenceCue * 0.08, borderColor: `rgba(125,211,252,${0.18 + surface.ambient.operatorRailTone * 0.2})`, boxShadow: `0 0 ${8 + surface.continuity.continuityStrength * 20}px rgba(34,211,238,${0.09 + surface.ambient.continuityRailTone * 0.16})`, background: `linear-gradient(160deg, rgba(8,12,20,${0.55 + surface.ambient.ambientBlend * 0.18}), rgba(8,12,20,${0.38 + surface.presence.ambientSettling * 0.16}))` }}>
     <p>{flow?.question ?? prompt.question}</p>
     <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label} · {interaction.guidanceCue.label}</p>
     <p className="mt-1 text-xs text-white/60">{choreography.continuityCue.continuationLabel}</p>
@@ -164,7 +167,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
         <h1 className="text-2xl font-semibold">{entry.title}</h1>
         <p className="text-sm text-white/70">{entry.stageLabel} · {entry.status} · {entry.objective}</p>
       </section>
-      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={activeTransition?.focus.panelReveal ?? 1} continuityRailFocus={activeTransition?.focus.continuityRailFocus ?? 1} immersion={immersion} interaction={interaction}>{children}</RuntimeWorldWorkspaceCanvas>
+      <RuntimeWorldWorkspaceCanvas entry={entry} operatorPanel={operatorPanel} panelReveal={activeTransition?.focus.panelReveal ?? 1} continuityRailFocus={activeTransition?.focus.continuityRailFocus ?? 1} immersion={immersion} interaction={interaction} surface={surface}>{children}</RuntimeWorldWorkspaceCanvas>
     </div>
   </div>;
 }
