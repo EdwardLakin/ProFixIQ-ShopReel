@@ -11,15 +11,20 @@ export type RuntimeEnvironmentalIntelligence = {
   peripheralMotionWeighting: number;
   urgencyPressure: number;
   operatorOverload: number;
+  continuityPressure: number;
+  workloadDensity: number;
+  orchestrationFragmentation: number;
+  recoveryState: "stable" | "decompressing" | "restoring";
+  operationalRhythm: "steady" | "active" | "stalled";
   signal: RuntimeSignal;
 };
 
 const clamp = (n: number) => Math.min(1, Math.max(0, n));
 
-export function deriveRuntimeEnvironmentalIntelligence(input: { urgency: number | null; workload: number | null; unresolvedBlockers: number | null; renderQueueState: number | null; creativeIntensity: number | null; operationalState: number | null; temporalVolatility: number | null; dependencyPressure: number | null; continuityResilience: number | null; }): RuntimeEnvironmentalIntelligence {
+export function deriveRuntimeEnvironmentalIntelligence(input: { urgency: number | null; workload: number | null; unresolvedBlockers: number | null; renderQueueState: number | null; creativeIntensity: number | null; operationalState: number | null; temporalVolatility: number | null; dependencyPressure: number | null; continuityResilience: number | null; continuityPressure?: number | null; workloadDensity?: number | null; orchestrationFragmentation?: number | null; recoveryState?: "stable" | "decompressing" | "restoring"; operationalRhythm?: "steady" | "active" | "stalled"; }): RuntimeEnvironmentalIntelligence {
   const values = [input.urgency, input.workload, input.unresolvedBlockers, input.renderQueueState, input.creativeIntensity, input.operationalState, input.temporalVolatility, input.dependencyPressure, input.continuityResilience].filter((v): v is number => typeof v === "number");
   if (!values.length) {
-    return { atmosphericDensity: 0.42, silhouetteDistance: 0.45, focalClarity: 0.62, environmentalAttenuation: 0.35, chamberBrightnessZones: 3, volumetricLayering: 3, spatialFog: 0.28, distantActivityBands: 2, peripheralMotionWeighting: 0.3, urgencyPressure: 0.4, operatorOverload: 0.34, signal: "unknown" };
+    return { atmosphericDensity: 0.42, silhouetteDistance: 0.45, focalClarity: 0.62, environmentalAttenuation: 0.35, chamberBrightnessZones: 3, volumetricLayering: 3, spatialFog: 0.28, distantActivityBands: 2, peripheralMotionWeighting: 0.3, urgencyPressure: 0.4, operatorOverload: 0.34, continuityPressure: 0.4, workloadDensity: 0.4, orchestrationFragmentation: 0.32, recoveryState: "restoring", operationalRhythm: "steady", signal: "unknown" };
   }
   const urgency = clamp(input.urgency ?? 0.5);
   const blockers = clamp(input.unresolvedBlockers ?? 0.4);
@@ -42,6 +47,11 @@ export function deriveRuntimeEnvironmentalIntelligence(input: { urgency: number 
     peripheralMotionWeighting: 0.14 + overload * 0.52,
     urgencyPressure: pressure,
     operatorOverload: overload * (1 - recovery * 0.2),
+    continuityPressure: clamp(input.continuityPressure ?? pressure),
+    workloadDensity: clamp(input.workloadDensity ?? overload),
+    orchestrationFragmentation: clamp(input.orchestrationFragmentation ?? volatility),
+    recoveryState: input.recoveryState ?? "restoring",
+    operationalRhythm: input.operationalRhythm ?? "steady",
     signal: "known",
   };
 }
