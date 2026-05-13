@@ -13,6 +13,8 @@ export type RuntimeTraversalState = {
   environmentalCarryover: number;
   cameraPath: "arc" | "direct" | "settle";
   arrivalFocusPlane: "foreground" | "midground" | "operator";
+  returnFocusPlane: "foreground" | "midground" | "operator";
+  interruptedRecovery: "idle" | "recovering";
 };
 
 export function deriveTraversalVector(spatialMap: RuntimeSpatialMap, geometry: RuntimeChamberGeometry): RuntimeSceneVector {
@@ -51,6 +53,8 @@ export function deriveRuntimeTraversal(params: {
     environmentalCarryover,
     cameraPath: params.geometry.motionLanguage.axis === "orbital" ? "arc" : params.geometry.motionLanguage.easing === "settle" ? "settle" : "direct",
     arrivalFocusPlane: deriveArrivalFocus(params.unresolvedCount),
+    returnFocusPlane: params.unresolvedCount > 0 ? "operator" : "midground",
+    interruptedRecovery: params.unresolvedCount > 0 ? "recovering" : "idle",
   };
 }
 
