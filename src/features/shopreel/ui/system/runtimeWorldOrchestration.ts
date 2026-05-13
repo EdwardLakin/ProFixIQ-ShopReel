@@ -20,6 +20,7 @@ export type RuntimeWorldOperatorPriority = {
 };
 
 export type RuntimeWorldOrchestration = {
+  temporalPressure: number;
   worldId: RuntimeWorldId;
   flowHealth: RuntimeWorldFlowHealth;
   flowMomentum: RuntimeWorldFlowMomentum;
@@ -78,7 +79,8 @@ export function deriveRuntimeFlowMomentum(input: { flowHealth: RuntimeWorldFlowH
   return "building";
 }
 
-export function deriveRuntimeOperationalPressure(input: { flowHealth: RuntimeWorldFlowHealth; unresolvedCount: number; blockers: string[]; escalation: boolean; graphSignals?: Input["graphSignals"] }): RuntimeWorldOperationalPressure {
+export function deriveRuntimeOperationalPressure(input: { flowHealth: RuntimeWorldFlowHealth; unresolvedCount: number; blockers: string[]; escalation: boolean; graphSignals?: Input["graphSignals"]; temporalStress?: { interruptionCount: number; volatility: string; unresolvedChains: number } | null }): RuntimeWorldOperationalPressure {
+  if ((input.temporalStress?.interruptionCount ?? 0) > 3 || input.temporalStress?.volatility === "severe" || (input.temporalStress?.unresolvedChains ?? 0) > 2) return "critical";
   if (input.flowHealth === "blocked" || input.blockers.length > 0 || input.escalation) return "critical";
   if (input.flowHealth === "recovering" || input.unresolvedCount > 2) return "high";
   if (input.flowHealth === "stalled" || input.unresolvedCount > 0) return "moderate";
@@ -134,7 +136,8 @@ export function deriveRuntimeOrchestration(input: Input): RuntimeWorldOrchestrat
   const dormancyState = deriveRuntimeDormancyState(input);
   const escalationState = deriveRuntimeEscalationState({ worldId: input.worldId, flowHealth, unresolvedCount: input.unresolvedCount, dormant: dormancyState });
   const flowMomentum = deriveRuntimeFlowMomentum({ flowHealth, unresolvedCount: input.unresolvedCount, failedProgressionAttempts: recoveryState.failedAttempts });
-  const operationalPressure = deriveRuntimeOperationalPressure({ flowHealth, unresolvedCount: input.unresolvedCount, blockers: input.blockers, escalation: escalationState.needsEscalation, graphSignals: input.graphSignals ?? null });
+  const temporalStress = input.graphSignals ? { interruptionCount: input.graphSignals.unresolvedLineageCount, volatility: input.graphSignals.abandonedChainCount > 0 ? "severe" : "variable", unresolvedChains: input.graphSignals.stalledDownstreamCount } : null;
+  const operationalPressure = deriveRuntimeOperationalPressure({ flowHealth, unresolvedCount: input.unresolvedCount, blockers: input.blockers, escalation: escalationState.needsEscalation, graphSignals: input.graphSignals ?? null, temporalStress });
   const attentionState = deriveRuntimeAttentionState({ flowHealth, recovery: recoveryState, dormancy: dormancyState, escalation: escalationState });
 
   return {
@@ -147,6 +150,7 @@ export function deriveRuntimeOrchestration(input: Input): RuntimeWorldOrchestrat
     dormancyState,
     escalationState,
     unresolvedPressureCount: input.unresolvedCount + input.blockers.length,
+    temporalPressure: (temporalStress?.interruptionCount ?? 0) + (temporalStress?.unresolvedChains ?? 0),
   };
 }
 
