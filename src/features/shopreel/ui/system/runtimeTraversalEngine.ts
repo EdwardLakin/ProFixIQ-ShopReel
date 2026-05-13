@@ -4,6 +4,13 @@ import type { RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldM
 
 export type RuntimeSceneVector = { x: number; y: number; z: number };
 
+export type RuntimeTraversalMomentum = { continuity: number; directionalEnergy: number; carryoverEnergy: number };
+export type RuntimeTraversalRecovery = { state: "idle" | "recovering"; stability: number };
+export type RuntimeTraversalCarryover = { environmental: number; focus: number; familiarity: number };
+export type RuntimeTraversalContinuity = { returnPathAffinity: number; familiarity: number };
+export type RuntimeTraversalSpatialIntent = "advance" | "stabilize" | "recover";
+export type RuntimeTraversalField = { momentum: RuntimeTraversalMomentum; recovery: RuntimeTraversalRecovery; carryover: RuntimeTraversalCarryover; continuity: RuntimeTraversalContinuity; intent: RuntimeTraversalSpatialIntent };
+
 export type RuntimeTraversalState = {
   sourceWorld: RuntimeWorldId | null;
   targetWorld: RuntimeWorldId;
@@ -15,6 +22,7 @@ export type RuntimeTraversalState = {
   arrivalFocusPlane: "foreground" | "midground" | "operator";
   returnFocusPlane: "foreground" | "midground" | "operator";
   interruptedRecovery: "idle" | "recovering";
+  field: RuntimeTraversalField;
 };
 
 export function deriveTraversalVector(spatialMap: RuntimeSpatialMap, geometry: RuntimeChamberGeometry): RuntimeSceneVector {
@@ -44,6 +52,7 @@ export function deriveRuntimeTraversal(params: {
 }): RuntimeTraversalState {
   const transitionVector = deriveTraversalVector(params.spatialMap, params.geometry);
   const environmentalCarryover = deriveEnvironmentalCarryover(params.spatialMap);
+  const familiarity = Math.max(0, 1 - Math.min(1, Math.abs(transitionVector.x) + Math.abs(transitionVector.y)) * 0.5);
   return {
     sourceWorld: params.sourceWorld,
     targetWorld: params.targetWorld,
@@ -55,6 +64,13 @@ export function deriveRuntimeTraversal(params: {
     arrivalFocusPlane: deriveArrivalFocus(params.unresolvedCount),
     returnFocusPlane: params.unresolvedCount > 0 ? "operator" : "midground",
     interruptedRecovery: params.unresolvedCount > 0 ? "recovering" : "idle",
+    field: {
+      momentum: { continuity: environmentalCarryover, directionalEnergy: Math.min(1, Math.abs(transitionVector.z)), carryoverEnergy: environmentalCarryover * 0.8 },
+      recovery: { state: params.unresolvedCount > 0 ? "recovering" : "idle", stability: familiarity },
+      carryover: { environmental: environmentalCarryover, focus: params.unresolvedCount > 0 ? 0.9 : 0.5, familiarity },
+      continuity: { returnPathAffinity: params.unresolvedCount > 0 ? 0.8 : 0.6, familiarity },
+      intent: params.unresolvedCount > 1 ? "recover" : environmentalCarryover > 0.55 ? "stabilize" : "advance",
+    },
   };
 }
 

@@ -183,15 +183,15 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
 
   const chamber = deriveRuntimeChamberGeometry(entry.worldKind);
   const traversal = deriveRuntimeTraversal({ sourceWorld: persisted?.previousWorldId ?? null, targetWorld: entry.worldId, spatialMap, geometry: chamber, unresolvedCount: entry.unresolvedCount });
-  const camera = deriveRuntimeSpatialCamera({ traversal, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), unresolvedCount: entry.unresolvedCount, continuityMomentum: traversal.continuityMomentum });
+  const camera = deriveRuntimeSpatialCamera({ traversal, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), unresolvedCount: entry.unresolvedCount, continuityMomentum: traversal.continuityMomentum, rememberedFocus: rememberedPosition?.focusDirection === "lateral" ? "operator" : null });
   const environmentalIntelligence = deriveRuntimeEnvironmentalIntelligence({ urgency: Math.min(1, entry.unresolvedCount / 4), workload: Math.min(1, entry.secondaryActions.length / 4), unresolvedBlockers: Math.min(1, entry.blockers.length / 4), renderQueueState: null, creativeIntensity: null, operationalState: traversal.environmentalCarryover, temporalVolatility: 1 - spatialMap.continuityMemory.continuityStrength, dependencyPressure: interaction.attention === "urgent" ? 1 : interaction.attention === "guided" ? 0.7 : 0.3, continuityResilience: spatialMap.continuityMemory.continuityStrength });
   const chamberActions = deriveRuntimeChamberActions({ primaryAction: entry.primaryAction, secondaryActions: entry.secondaryActions, manualHref: entry.manualSurfaceHref, blocked: entry.blockers.length > 0 });
   const planes = RuntimeWorldWorkspaceCanvas({ entry, children });
-  const scene = buildRuntimeSceneComposition({ chamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={chamber} /> });
-  const planeGeometry = deriveRuntimePlaneGeometry(entry.worldKind);
+  const scene = buildRuntimeSceneComposition({ chamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={chamber} intelligence={environmentalIntelligence} /> });
+  const planeGeometry = deriveRuntimePlaneGeometry(entry.worldKind, chamber, traversal);
 
-  return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container} ${camera.inertia.easingClassName}`} data-world-seed={ambientState.visualSeed} style={{ transform: camera.inertia.translateScalar ? `translate3d(${camera.translate.x}px, ${camera.translate.y}px, 0)` : "none" }}>
-    <div className="sr-only" aria-live="polite">{`Camera ${camera.mode}; focus ${camera.target}; chamber tension ${Math.round(environmentalIntelligence.chamberTension * 100)}; ${chamberActions[0]?.label ?? "No focal action"}`}</div>
+  return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container} ${camera.interpolation.easingClassName}`} data-world-seed={ambientState.visualSeed} style={{ transform: `translate3d(${camera.translate.x}px, ${camera.translate.y}px, 0)` }}>
+    <div className="sr-only" aria-live="polite">{`Camera ${camera.mode}; focus ${camera.target}; chamber tension ${Math.round(environmentalIntelligence.urgencyPressure * 100)}; ${chamberActions[0]?.label ?? "No focal action"}`}</div>
     <RuntimeSceneGraphCanvas composition={scene} planesByDepth={planeGeometry} />
   </div>;
 }

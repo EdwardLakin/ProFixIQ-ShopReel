@@ -17,13 +17,19 @@ const anchorClass: Record<string, string> = {
 };
 
 function renderPlaneStyle(plane: RuntimeScenePlane, reducedMotion: boolean): CSSProperties {
-  const t = plane.transform;
+  const axis = plane.field.chamberAxis;
+  const continuity = plane.field.continuityOffset;
+  const drift = plane.field.topologyDrift;
+  const parallax = plane.parallax.vector;
+  const tx = (axis.x + continuity.x + drift.x + parallax.x) * 84;
+  const ty = (axis.y + continuity.y + drift.y + parallax.y) * 76;
+  const tz = (axis.z + continuity.z + drift.z + parallax.z) * 300;
   return {
     zIndex: plane.focusPriority,
     pointerEvents: plane.interactionMode === "background_action" ? "none" : "auto",
-    opacity: t.opacity,
-    filter: t.blur > 0 ? `blur(${t.blur}px)` : "none",
-    transform: reducedMotion ? "none" : `translate3d(${(t.origin.x + t.parallaxVector.x) * 72}px, ${(t.origin.y + t.parallaxVector.y) * 65}px, ${t.origin.z * 320}px) rotateZ(${t.rotationBiasDeg}deg) scale(${t.scale})`,
+    opacity: plane.attenuation.opacity,
+    filter: `blur(${plane.attenuation.blur}px)`,
+    transform: reducedMotion ? "none" : `translate3d(${tx}px, ${ty}px, ${tz}px) rotateX(${plane.perspective.tiltDeg}deg) rotateY(${plane.perspective.yawDeg}deg) rotateZ(${plane.perspective.rollDeg}deg) scale(${plane.perspective.scale * plane.field.environmentalScale})`,
   };
 }
 
@@ -31,7 +37,7 @@ export function RuntimeSceneGraphCanvas({ composition, planesByDepth }: { compos
   return <section className="relative z-20 min-h-[72vh]" style={{ perspective: "1700px", transformStyle: "preserve-3d" }}>
     {composition.nodes.map((node) => {
       const plane = planesByDepth[node.id] ?? planesByDepth.midground;
-      return <div key={node.id} className={`absolute inset-0 flex ${anchorClass[plane.transform.anchor] ?? anchorClass.center}`} style={renderPlaneStyle(plane, composition.state.reducedMotion)}>
+      return <div key={node.id} className={`absolute inset-0 flex ${anchorClass[plane.relationship.anchor] ?? anchorClass.center}`} style={renderPlaneStyle(plane, composition.state.reducedMotion)}>
         <div className="w-full px-4 md:px-6">{node.content}</div>
       </div>;
     })}
