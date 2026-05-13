@@ -10,6 +10,7 @@ export type RuntimeTraversalCarryover = { environmental: number; focus: number; 
 export type RuntimeTraversalContinuity = { returnPathAffinity: number; familiarity: number };
 export type RuntimeTraversalSpatialIntent = "advance" | "stabilize" | "recover";
 export type RuntimeTraversalField = { momentum: RuntimeTraversalMomentum; recovery: RuntimeTraversalRecovery; carryover: RuntimeTraversalCarryover; continuity: RuntimeTraversalContinuity; intent: RuntimeTraversalSpatialIntent };
+export type RuntimeTraversalTopologyField = { operationalGravity: number; continuityCorridor: number; escalationVector: number; decompressionBias: number };
 
 export type RuntimeTraversalState = {
   sourceWorld: RuntimeWorldId | null;
@@ -23,6 +24,7 @@ export type RuntimeTraversalState = {
   returnFocusPlane: "foreground" | "midground" | "operator";
   interruptedRecovery: "idle" | "recovering";
   field: RuntimeTraversalField;
+  topologyField: RuntimeTraversalTopologyField;
 };
 
 export function deriveTraversalVector(spatialMap: RuntimeSpatialMap, geometry: RuntimeChamberGeometry): RuntimeSceneVector {
@@ -70,6 +72,12 @@ export function deriveRuntimeTraversal(params: {
       carryover: { environmental: environmentalCarryover, focus: params.unresolvedCount > 0 ? 0.9 : 0.5, familiarity },
       continuity: { returnPathAffinity: params.unresolvedCount > 0 ? 0.8 : 0.6, familiarity },
       intent: params.unresolvedCount > 1 ? "recover" : environmentalCarryover > 0.55 ? "stabilize" : "advance",
+    },
+    topologyField: {
+      operationalGravity: Math.min(1, params.unresolvedCount / 4 + Math.abs(transitionVector.z) * 0.3),
+      continuityCorridor: familiarity,
+      escalationVector: Math.min(1, params.unresolvedCount / 3),
+      decompressionBias: Math.max(0, 1 - Math.min(1, params.unresolvedCount / 3)),
     },
   };
 }

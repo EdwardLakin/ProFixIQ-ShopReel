@@ -14,6 +14,9 @@ export type RuntimeCameraField = {
   continuityMemory: RuntimeCameraContinuityMemory;
   recovery: RuntimeCameraRecoveryState;
   translate: { x: number; y: number };
+  pressureResponse: number;
+  recoveryBehavior: RuntimeCameraRecoveryState;
+  environmentalCarryover: number;
 };
 
 export function deriveRuntimeSpatialCamera(params: { traversal: RuntimeTraversalState; reducedMotion: boolean; unresolvedCount: number; continuityMomentum: number; rememberedFocus?: RuntimeCameraFocusRegion | null }): RuntimeCameraField {
@@ -30,5 +33,8 @@ export function deriveRuntimeSpatialCamera(params: { traversal: RuntimeTraversal
     continuityMemory: { previousWorld: params.traversal.sourceWorld, previousFocus: target, inertia },
     recovery,
     translate: { x: params.reducedMotion ? 0 : vector.x * 11 * (1 - params.traversal.environmentalCarryover * 0.2), y: params.reducedMotion ? 0 : vector.y * 9 * (1 - params.traversal.environmentalCarryover * 0.2) },
+    pressureResponse: Math.min(1, params.unresolvedCount / 4 + (1 - params.traversal.field.recovery.stability) * 0.5),
+    recoveryBehavior: recovery,
+    environmentalCarryover: params.traversal.environmentalCarryover,
   };
 }

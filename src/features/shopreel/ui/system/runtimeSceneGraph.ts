@@ -21,6 +21,8 @@ export type RuntimeSceneNode = {
   focusPriority: number;
   pointerEvents: "auto" | "none";
   content: ReactNode;
+  continuityWeight?: number;
+  pressureWeight?: number;
 };
 
 export type RuntimeSceneRenderState = { chamber: RuntimeChamberGeometry; traversal: RuntimeTraversalState; reducedMotion: boolean };
