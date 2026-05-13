@@ -110,6 +110,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
   const [chamberMemory, setChamberMemory] = useState<PersistedChamberMemory | null>(null);
   const [emphasizedCardId, setEmphasizedCardId] = useState<string | null>(null);
   const [isCommandRunning, setIsCommandRunning] = useState(false);
+  const [commandFailure, setCommandFailure] = useState<string | null>(null);
   const deckRef = useRef<HTMLDivElement | null>(null);
 
   const unresolvedCount = recent.filter((item) => item.priority === "critical" || /review|approval/.test(item.normalizedStatus)).length;
@@ -278,39 +279,46 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
     if (isCommandRunning) return;
     const nextCommand = overrideCommand ?? command;
     if (!nextCommand.trim()) return;
+    setCommandFailure(null);
     setIsCommandRunning(true);
-    const execution = executeShopReelCommand({
-      command: nextCommand,
-      lastRoute: context?.lastRoute,
-      source: "home_command",
-      recentWorlds: recent,
-      orchestrationPlan,
-    });
+    try {
+      const execution = executeShopReelCommand({
+        command: nextCommand,
+        lastRoute: context?.lastRoute,
+        source: "home_command",
+        recentWorlds: recent,
+        orchestrationPlan,
+      });
 
-    const runtime = resolveOperatorRuntime({
-      rawCommand: nextCommand,
-      classifiedIntent: execution.commandIntent,
-      currentPath: context?.lastRoute ?? "/shopreel",
-      selectedCampaignId: context?.lastCampaignId ?? null,
-      hasPendingApprovals,
-      hasActiveCampaign: hasActiveCampaign || hasRecentWorlds,
-      hasAssetsContext: Boolean(context?.creativeContinuity),
-    });
+      const runtime = resolveOperatorRuntime({
+        rawCommand: nextCommand,
+        classifiedIntent: execution.commandIntent,
+        currentPath: context?.lastRoute ?? "/shopreel",
+        selectedCampaignId: context?.lastCampaignId ?? null,
+        hasPendingApprovals,
+        hasActiveCampaign: hasActiveCampaign || hasRecentWorlds,
+        hasAssetsContext: Boolean(context?.creativeContinuity),
+      });
 
-    dispatch(buildRuntimeStartAction(runtime, nextCommand));
-    dispatch({ type: "SET_ORCHESTRATION_PLAN", plan: orchestrationPlan });
-    dispatch({
-      type: "SET_CAPABILITY_CONTEXT",
-      capability: execution.typedAction?.target.capability ?? null,
-      activeEntity: execution.typedAction ? { kind: execution.typedAction.target.entityKind, id: execution.typedAction.target.entityId } : null,
-      queuedNextAction: execution.typedAction,
-      unresolvedIndicators: execution.actionResult?.ok ? [] : [execution.actionResult?.reason ?? ""],
-      lastRoute: execution.selectedRoute,
-      recoveryTarget: execution.selectedRoute,
-    });
-    persistContext(execution.selectedRoute);
-    if (overrideCommand) setCommand(overrideCommand);
-    setIsCommandRunning(false);
+      dispatch(buildRuntimeStartAction(runtime, nextCommand));
+      dispatch({ type: "SET_ORCHESTRATION_PLAN", plan: orchestrationPlan });
+      dispatch({
+        type: "SET_CAPABILITY_CONTEXT",
+        capability: execution.typedAction?.target.capability ?? null,
+        activeEntity: execution.typedAction ? { kind: execution.typedAction.target.entityKind, id: execution.typedAction.target.entityId } : null,
+        queuedNextAction: execution.typedAction,
+        unresolvedIndicators: execution.actionResult?.ok ? [] : [execution.actionResult?.reason ?? ""],
+        lastRoute: execution.selectedRoute,
+        recoveryTarget: execution.selectedRoute,
+      });
+      persistContext(execution.selectedRoute);
+      if (overrideCommand) setCommand(overrideCommand);
+    } catch (error) {
+      console.error("[shopreel] operator command execution failed", error);
+      setCommandFailure("Command failed. Try again or open workspace.");
+    } finally {
+      setIsCommandRunning(false);
+    }
   };
 
   return (
@@ -412,6 +420,12 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                     <AiCommandInput
                       value={command}
                       onChange={setCommand}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          void runCommand();
+                        }
+                      }}
                       placeholder="What should the operator run next?"
                       readOnly={isCommandRunning}
                       className="min-h-16 flex-1 border-0 bg-transparent pr-2 shadow-none focus-visible:ring-0"
@@ -425,6 +439,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                       {isCommandRunning ? "…" : "→"}
                     </button>
                   </form>
+                  {commandFailure ? <p className="mt-2 text-sm text-rose-200">{commandFailure}</p> : null}
 
                   <div className="mt-5 flex flex-wrap gap-3">
                     {quickPrompts.map((prompt) => (
@@ -523,6 +538,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                       type="button"
                       key={`${item.kind}-${item.id}`}
                       onClick={(event) => {
+                        if (!item.href) return;
                         const worldId = resolveWorldFromEntityKind(item.kind);
                         const worldSnapshot = buildWorldSnapshot(item);
                         const worldEntryIntent = buildWorldEntryIntent({
@@ -554,11 +570,16 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                         });
                         const snapshot = buildWorldEntrySnapshotFromCard(item);
                         const rect = event.currentTarget.getBoundingClientRect();
-                        startWorldEntryTransition({
+                        const fallbackRect = { x: Math.max(0, window.innerWidth * 0.25), y: Math.max(0, window.innerHeight * 0.2), width: Math.max(220, window.innerWidth * 0.3), height: Math.max(200, window.innerHeight * 0.35) };
+                        const safeRect = Number.isFinite(rect.x) && Number.isFinite(rect.y) && rect.width > 0 && rect.height > 0
+                          ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+                          : fallbackRect;
+                        try {
+                          startWorldEntryTransition({
                           worldId: snapshot.worldId,
                           href: snapshot.href,
                           title: snapshot.title,
-                          cardRect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+                          cardRect: safeRect,
                           operatorPriorityContext: { rank: Math.max(1, index + 1), unresolvedCount: unresolvedCount, hasBlocker: /failed|blocked|error/.test(item.normalizedStatus) },
                           atmosphere: {
                             tone: /failed|blocked|error/.test(item.normalizedStatus) ? "critical" : /review|approval|pending/.test(item.normalizedStatus) ? "elevated" : "focused",
@@ -570,6 +591,9 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           },
                           capturedAt: new Date().toISOString(),
                         }, prefersReducedMotion);
+                        } catch (error) {
+                          console.error("[shopreel] failed to start world entry transition", error);
+                        }
                         createWorldEntryTransition({ mode: "deck_to_world", fromWorldId: runtimeSession.activeWorldId, toWorldId: snapshot.worldId, fromRoute: runtimeSession.lastRoute, toRoute: snapshot.href, label: "deck-entry", at: new Date().toISOString() }, prefersReducedMotion);
                         persistWorldEntrySnapshot(snapshot);
                         dispatch({
@@ -580,7 +604,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           lastRoute: item.href,
                           recoveryTarget: item.href,
                         });
-                        router.push(item.href);
+                        void router.push(item.href);
                       }}
                       data-world-card-id={`:`}
                       className={`group relative h-[420px] w-[280px] shrink-0 snap-start overflow-hidden rounded-[2rem] border p-6 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 hover:-translate-y-1 ${

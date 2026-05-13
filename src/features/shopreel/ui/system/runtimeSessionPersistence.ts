@@ -96,6 +96,10 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as PersistedRuntimeSession;
+    if (!parsed || typeof parsed !== "object" || typeof parsed.updatedAt !== "string" || typeof parsed.returnTarget !== "string") {
+      window.localStorage.removeItem(RUNTIME_SESSION_KEY);
+      return null;
+    }
     if (!parsed.chamberMemory) {
       return {
         ...parsed,
@@ -181,6 +185,7 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
     }
     return parsed;
   } catch {
+    window.localStorage.removeItem(RUNTIME_SESSION_KEY);
     return null;
   }
 }
