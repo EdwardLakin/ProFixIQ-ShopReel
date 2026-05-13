@@ -2,6 +2,7 @@ import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/
 import type { OperatorRuntimeState, OperatorSurfaceId } from "@/features/shopreel/ui/system/operatorRuntime";
 import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 import type { GuidedFlowStepId } from "@/features/shopreel/ui/system/guidedWorldFlow";
+import type { RuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
 
 export const RUNTIME_SESSION_KEY = "shopreel-operator-runtime-session-v1";
 
@@ -44,6 +45,7 @@ export type PersistedRuntimeSession = {
   } | null;
   chamberMemory: PersistedChamberMemory;
   worldContinuity: OperatorRuntimeSessionState["worldContinuity"];
+  temporalMemory?: RuntimeTemporalMemory;
 };
 
 const MAX_MEMORY_TRACES = 6;
@@ -83,6 +85,7 @@ export function persistRuntimeSession(session: OperatorRuntimeSessionState): voi
       traces,
     },
     worldContinuity: session.worldContinuity,
+    temporalMemory: previous?.temporalMemory,
   };
   window.localStorage.setItem(RUNTIME_SESSION_KEY, JSON.stringify(payload));
 }

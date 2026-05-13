@@ -42,6 +42,7 @@ import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWo
 import { RUNTIME_WORLD_COMPOSITIONS } from "@/features/shopreel/ui/system/runtimeWorldComposition";
 import { deriveRuntimeOperatorPriority, deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
 import { buildRuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
+import { buildRuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
 
 
 type RuntimeCampaignContext = {
@@ -472,6 +473,18 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                     blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [],
                     unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0,
                   });
+                  const temporalMemory = buildRuntimeTemporalMemory({
+                    now: new Date().toISOString(),
+                    activeWorldId: worldKind,
+                    status: item.normalizedStatus,
+                    unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0,
+                    blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [],
+                    breadcrumbs: runtimeSession.worldContinuity.breadcrumbs,
+                    transitionHistory: runtimeSession.worldTransitionHistory,
+                    choreography,
+                    orchestration: deriveRuntimeOrchestration({ worldId: worldKind, status: item.normalizedStatus, blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [], unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0, guidedStepId: null, previousWorldId: runtimeSession.previousWorldId, lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null, breadcrumbs: runtimeSession.worldContinuity.breadcrumbs, composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] }, now: new Date().toISOString(), lastTransitionAt: item.updatedAt ?? null }),
+                    entityGraph: deckGraph,
+                  });
                   return (
                     <button
                       type="button"
@@ -548,6 +561,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           <span>{active ? item.actionLabel : `${worldKind.replaceAll("_", " ")} world`} · {choreography.operatorCue.nextActionLabel ?? "Open"} · {deriveRuntimeOrchestration({ worldId: worldKind, status: item.normalizedStatus, blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [], unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0, guidedStepId: null, previousWorldId: runtimeSession.previousWorldId, lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null, breadcrumbs: runtimeSession.worldContinuity.breadcrumbs, composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] }, now: new Date().toISOString(), lastTransitionAt: item.updatedAt ?? null }).flowHealth}</span>
                           <span>{choreography.operatorCue.blocker ? "Blocker" : choreography.continuityCue.continuationLabel} · Chain {deckGraph.dependencies.length}/{deckGraph.traversal.blockers.length}</span>
                         </div>
+                        <div className="mt-2 text-[10px] text-cyan-100/80">Age {temporalMemory.window.ageMinutes}m · Interruptions {temporalMemory.interruptions.length} · Recovery {temporalMemory.recoveries.at(-1)?.succeeded ? "stable" : temporalMemory.recoveries.length > 0 ? "retrying" : "none"} · Volatility {temporalMemory.volatility} · Stalled {temporalMemory.window.stalledMinutes}m · Stability {temporalMemory.resilience} · Last stable {temporalMemory.checkpoints.at(-1)?.label ?? "n/a"} · {temporalMemory.interruptions.length > 0 ? "Resume interrupted flow" : "Flow uninterrupted"}</div>
                       </div>
                     </button>
                   );

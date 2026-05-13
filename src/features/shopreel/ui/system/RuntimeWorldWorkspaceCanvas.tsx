@@ -9,6 +9,7 @@ import type { RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWor
 import { readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 import { deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
 import { buildRuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
+import { buildRuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
 
 export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorPanel }: { entry: RuntimeWorldEntry; children: ReactNode; operatorPanel: ReactNode }) {
   const persisted = readPersistedRuntimeSession();
@@ -69,6 +70,18 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
     lastAction: persisted?.worldContinuity.lastAction?.label ?? "none",
     guided: persisted?.worldContinuity.guidedStepId ?? "none",
   }), [entry.worldId, persisted]);
+  const temporalMemory = useMemo(() => buildRuntimeTemporalMemory({
+    now: new Date().toISOString(),
+    activeWorldId: entry.worldId,
+    status: entry.status,
+    unresolvedCount: entry.unresolvedCount,
+    blockers: entry.blockers,
+    breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [],
+    transitionHistory: (persisted?.worldContinuity.breadcrumbs ?? []).map((item) => ({ from: null, to: item.worldId, at: item.at, reason: item.label })),
+    orchestration,
+    choreography,
+    entityGraph,
+  }), [choreography, entry.blockers, entry.status, entry.unresolvedCount, entry.worldId, entityGraph, orchestration, persisted?.worldContinuity.breadcrumbs]);
 
   const railClass = orchestration.operationalPressure === "critical" ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "xl:grid-cols-[minmax(0,1fr)_360px]";
   const secondaryClass = orchestration.attentionState === "focused" ? "opacity-75" : "";
@@ -80,6 +93,7 @@ export default function RuntimeWorldWorkspaceCanvas({ entry, children, operatorP
       <div className="grid gap-3 md:grid-cols-2">{bottom.map((panel) => <RuntimeRoutePanelAdapter key={panel.id} adapter={{ panelId: panel.id, route: panel.route, title: panel.title, embedMode: "embedded" }} />)}</div>
       <section className="rounded-xl border border-cyan-200/20 bg-cyan-300/5 px-3 py-2 text-xs text-cyan-100/90">{choreography.operatorCue.label} · {choreography.continuityCue.label} · Previous: {continuity.previous} · Current: {continuity.current} · Next: {continuity.recommended} · Unresolved: {continuity.unresolved} · Last action: {continuity.lastAction} · Guided: {continuity.guided} · Flow: {orchestration.flowHealth} · Pressure: {orchestration.operationalPressure} · Arrived from: {entityGraph.contextChain.arrivedFrom ?? "deck"}</section>
       <section className="rounded-xl border border-violet-200/20 bg-violet-300/5 px-3 py-2 text-xs text-violet-100/90">Timeline · Prev {continuity.previous} → Current {continuity.current} · Recovery: {orchestration.recoveryState.cue ?? "none"} · Dormant: {orchestration.dormancyState.isDormant ? orchestration.dormancyState.cue : "no"} · Interrupted: {orchestration.escalationState.needsEscalation ? "yes" : "no"} · Upstream: {entityGraph.traversal.upstream.join(" → ") || "none"} · Downstream: {entityGraph.traversal.downstream.join(" → ") || "none"}</section>
+      <section className="rounded-xl border border-amber-200/20 bg-amber-300/5 px-3 py-2 text-xs text-amber-100/90">Temporal continuity · Age: {temporalMemory.window.ageMinutes}m · Volatility: {temporalMemory.volatility} · Resilience: {temporalMemory.resilience} · Decay: {temporalMemory.decayState} · Interruptions: {temporalMemory.interruptions.length} · Recoveries: {temporalMemory.recoveries.length} · Last stable point: {temporalMemory.checkpoints.at(-1)?.label ?? "none"} · Resume interrupted flow: {temporalMemory.interruptions.length > 0 ? "recommended" : "not needed"}</section>
       <section className="rounded-xl border border-rose-200/20 bg-rose-300/5 px-3 py-2 text-xs text-rose-100/90">Dependency chain: {entityGraph.dependencies.map((dep) => `${dep.sourceId} → ${dep.targetId}`).join(" · ") || "none"} · Blockers: {entityGraph.traversal.blockers.map((b) => `${b.reason} (${b.priority})`).join(" · ") || "none"}</section>
       <section className="rounded-xl border border-emerald-200/20 bg-emerald-300/5 px-3 py-2 text-xs text-emerald-100/90">Lineage: {entityGraph.lineage.chain.join(" → ") || "none"} · Previous hop: {entityGraph.traversal.lastRelationshipHop ?? "none"}</section>
     </div>
