@@ -9,6 +9,7 @@ import type { OperatorAction, OperatorCapability } from "@/features/shopreel/ui/
 import type { OperatorOrchestrationPlan } from "@/features/shopreel/ui/system/operatorOrchestration";
 import { focusEntity, openEntity, pinEntity, queueEntity, transitionToEntity } from "@/features/shopreel/runtime/entities";
 import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
+import type { GuidedFlowStepId } from "@/features/shopreel/ui/system/guidedWorldFlow";
 
 export type RuntimeInterruption = {
   reason: string;
@@ -51,6 +52,16 @@ export type OperatorRuntimeSessionState = {
   worldEntryIntent: RuntimeWorldEntryIntent | null;
   focusedWorldEntity: { kind: string; id: string } | null;
   worldRecommendation: string | null;
+  worldEntrySnapshot: {
+    worldId: RuntimeWorldId;
+    href: string;
+    entityId: string | null;
+    entityKind: string | null;
+    title: string;
+    status: string;
+    visualSeed: string;
+    guidedStep: GuidedFlowStepId | null;
+  } | null;
   worldTransitionHistory: Array<{ from: RuntimeWorldId | null; to: RuntimeWorldId; at: string; reason: string }>;
   orchestrationSummary: {
     currentOperationalFocus: string;
@@ -89,6 +100,7 @@ export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
   worldEntryIntent: null,
   focusedWorldEntity: null,
   worldRecommendation: null,
+  worldEntrySnapshot: null,
   worldTransitionHistory: [],
   orchestrationSummary: null,
 };
@@ -126,6 +138,7 @@ type SetWorldContextAction = {
   worldEntryIntent?: RuntimeWorldEntryIntent | null;
   focusedWorldEntity?: { kind: string; id: string } | null;
   worldRecommendation?: string | null;
+  worldEntrySnapshot?: OperatorRuntimeSessionState["worldEntrySnapshot"];
   reason?: string;
 };
 
@@ -254,6 +267,7 @@ export function operatorRuntimeSessionReducer(
         worldEntryIntent: action.worldEntryIntent ?? state.worldEntryIntent,
         focusedWorldEntity: action.focusedWorldEntity ?? state.focusedWorldEntity,
         worldRecommendation: action.worldRecommendation ?? state.worldRecommendation,
+        worldEntrySnapshot: action.worldEntrySnapshot ?? state.worldEntrySnapshot,
         worldTransitionHistory: [
           {
             from: state.activeWorldId,

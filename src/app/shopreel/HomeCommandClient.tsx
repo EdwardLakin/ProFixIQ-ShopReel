@@ -25,6 +25,7 @@ import {
 } from "@/features/shopreel/ui/system/operatorRuntimeSession";
 import {
   persistRuntimeSession,
+  persistWorldEntrySnapshot,
   readPersistedRuntimeSession,
   type PersistedChamberMemory,
 } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
@@ -420,7 +421,27 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           worldEntryIntent,
                           focusedWorldEntity: { kind: item.kind, id: item.id },
                           worldRecommendation: worldSnapshot.recommendation?.reason ?? null,
+                          worldEntrySnapshot: {
+                            worldId,
+                            href: item.href,
+                            entityId: item.id,
+                            entityKind: item.kind,
+                            title: item.title,
+                            status: item.normalizedStatus,
+                            visualSeed: `${worldId}:${item.title.toLowerCase()}:${item.normalizedStatus}:${item.priority}`,
+                            guidedStep: null,
+                          },
                           reason: "home_deck_entry",
+                        });
+                        persistWorldEntrySnapshot({
+                          worldId,
+                          href: item.href,
+                          entityId: item.id,
+                          entityKind: item.kind,
+                          title: item.title,
+                          status: item.normalizedStatus,
+                          visualSeed: `${worldId}:${item.title.toLowerCase()}:${item.normalizedStatus}:${item.priority}`,
+                          guidedStep: null,
                         });
                         dispatch({
                           type: "SET_CAPABILITY_CONTEXT",
