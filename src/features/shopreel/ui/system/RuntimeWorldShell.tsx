@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { useTransitionRouter } from "@/features/shopreel/ui/system/TransitionProvider";
+import { readWorldEntryTransition } from "@/features/shopreel/ui/system/runtimeWorldEntryTransition";
 import RuntimeWorldWorkspaceCanvas from "@/features/shopreel/ui/system/RuntimeWorldWorkspaceCanvas";
 import { resolveGuidedFlowStep, resolveWorldGuidedPrompt } from "@/features/shopreel/ui/system/guidedWorldFlow";
 import type { RuntimeWorldAction, RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
@@ -17,6 +20,7 @@ function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldActi
 
 export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeWorldEntry; children: ReactNode }) {
   const router = useRouter();
+  const { activeTransition, completeWorldEntryTransition } = useTransitionRouter();
   const persisted = readPersistedRuntimeSession();
   const prompt = resolveWorldGuidedPrompt(entry.worldId);
   const guidedStepId = persisted?.worldContinuity.guidedStepId;
@@ -25,7 +29,15 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const identityTransition: RuntimeWorldIdentityTransition = createWorldEntryTransition({ mode: "resume_world", fromWorldId: persisted?.previousWorldId ?? null, toWorldId: entry.worldId, fromRoute: persisted?.worldContinuity.previousRoute ?? null, toRoute: persisted?.worldContinuity.activeRoute ?? entry.href, label: "resume", at: new Date().toISOString() }, false);
   const transitionClass = deriveWorldTransitionClasses(identityTransition);
   const focusState: RuntimeWorldFocusState = { focusedPanelId: persisted?.worldContinuity.focusedPanelId ?? null, activeGuidedQuestion: persisted?.worldContinuity.activeGuidedQuestion ?? null };
-  const ambientState: RuntimeWorldAmbientState = { stabilized: true, visualSeed: persisted?.worldContinuity.environment.visualSeed ?? entry.visualSeed };
+  const transitionSnapshot = readWorldEntryTransition();
+  const inheritedSeed = transitionSnapshot?.snapshot.visualSeed ?? persisted?.worldContinuity.environment.visualSeed ?? entry.visualSeed;
+  const ambientState: RuntimeWorldAmbientState = { stabilized: true, visualSeed: inheritedSeed };
+
+  useEffect(() => {
+    if (!activeTransition || activeTransition.phase !== "arrived") return;
+    const id = window.setTimeout(() => completeWorldEntryTransition(), 520);
+    return () => window.clearTimeout(id);
+  }, [activeTransition, completeWorldEntryTransition]);
   const choreography = deriveWorldChoreography({
     worldId: entry.worldId,
     status: entry.status,
@@ -58,8 +70,10 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     <div className="mt-4 flex gap-2"><Link href={persisted?.worldContinuity.environment.returnToDeckHref ?? "/shopreel"} className="rounded-lg border border-white/20 px-3 py-2 text-sm">Back to deck</Link><Link href={entry.manualSurfaceHref} className="rounded-lg border border-cyan-200/40 bg-cyan-300/15 px-3 py-2 text-sm">Open full manual route</Link></div>
   </aside>;
 
-  return <div className={`relative min-h-screen text-white ${entry.transitionClass} ${transitionClass.container}`}>
-    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${entry.tonalClass}`} />
+  const inheritedAtmosphere = inheritedSeed.includes(":") ? inheritedSeed.split(":")[0] : entry.worldId;
+
+  return <div className={`relative min-h-screen text-white ${entry.transitionClass} ${transitionClass.container}`} data-world-seed={ambientState.visualSeed}>
+    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${entry.tonalClass} ${inheritedAtmosphere === "campaign" ? "opacity-100" : "opacity-95"}`} />
     <div className={`pointer-events-none absolute inset-0 ${entry.orbClass}`} />
     <div className={`pointer-events-none absolute inset-0 ${entry.gridClass} bg-[size:72px_72px] opacity-35`} />
     <div className="relative z-10 mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 py-4 md:px-6">

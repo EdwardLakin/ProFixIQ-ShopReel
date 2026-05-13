@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTransitionRouter } from "@/features/shopreel/ui/system/TransitionProvider";
 import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
 import { AiCommandInput, interpretCommand } from "@/features/shopreel/ui/system/AiCommandPrimitives";
 import {
@@ -98,6 +99,7 @@ function statusTone(status: string) {
 
 export default function HomeCommandClient({ recent }: { recent: OperatorWorldCard[] }) {
   const router = useRouter();
+  const { startWorldEntryTransition } = useTransitionRouter();
   const [command, setCommand] = useState("");
   const [context, setContext] = useState<WorkspaceMemory | null>(null);
   const interpreted = useMemo(() => interpretCommand(command), [command]);
@@ -489,7 +491,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                     <button
                       type="button"
                       key={`${item.kind}-${item.id}`}
-                      onClick={() => {
+                      onClick={(event) => {
                         const worldId = resolveWorldFromEntityKind(item.kind);
                         const worldSnapshot = buildWorldSnapshot(item);
                         const worldEntryIntent = buildWorldEntryIntent({
@@ -520,6 +522,16 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           reason: "home_deck_entry",
                         });
                         const snapshot = buildWorldEntrySnapshotFromCard(item);
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        startWorldEntryTransition({
+                          worldId: snapshot.worldId,
+                          href: snapshot.href,
+                          title: snapshot.title,
+                          worldKind: worldId,
+                          visualSeed: snapshot.visualSeed,
+                          rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+                          capturedAt: new Date().toISOString(),
+                        }, prefersReducedMotion);
                         createWorldEntryTransition({ mode: "deck_to_world", fromWorldId: runtimeSession.activeWorldId, toWorldId: snapshot.worldId, fromRoute: runtimeSession.lastRoute, toRoute: snapshot.href, label: "deck-entry", at: new Date().toISOString() }, prefersReducedMotion);
                         persistWorldEntrySnapshot(snapshot);
                         dispatch({
