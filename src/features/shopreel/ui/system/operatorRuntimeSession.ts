@@ -15,6 +15,15 @@ export type RuntimeWorldBreadcrumb = { worldId: RuntimeWorldId; route: string; a
 export type RuntimeWorldEnvironmentState = { visualSeed: string; backgroundTone: string; returnToDeckHref: string };
 export type RuntimeWorldLastAction = { label: string; at: string };
 export type RuntimeWorldPanelState = "operator" | "manual" | "timeline" | "actions";
+export type RuntimeWorldEntityContinuity = {
+  recentEntityTraversal: string[];
+  previousEntityChain: string[];
+  lastRelationshipHop: string | null;
+  upstreamContinuity: string[];
+  downstreamContinuity: string[];
+  lastActiveDependencyChain: string[];
+  activeBlockerLineage: string[];
+};
 export type RuntimeWorldContinuity = {
   activeWorldId: RuntimeWorldId | null;
   activeWorldKind: string | null;
@@ -35,6 +44,7 @@ export type RuntimeWorldContinuity = {
   lastManualToolOpened: string | null;
   lastEmbeddedRoute: string | null;
   activeGuidedQuestion: string | null;
+  entityContinuity: RuntimeWorldEntityContinuity;
 };
 
 export type RuntimeInterruption = {
@@ -149,6 +159,7 @@ export const initialOperatorRuntimeSession: OperatorRuntimeSessionState = {
     lastManualToolOpened: null,
     lastEmbeddedRoute: null,
     activeGuidedQuestion: null,
+    entityContinuity: { recentEntityTraversal: [], previousEntityChain: [], lastRelationshipHop: null, upstreamContinuity: [], downstreamContinuity: [], lastActiveDependencyChain: [], activeBlockerLineage: [] },
   },
   orchestrationSummary: null,
 };

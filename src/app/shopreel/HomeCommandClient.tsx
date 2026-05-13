@@ -41,6 +41,7 @@ import { createWorldEntryTransition } from "@/features/shopreel/ui/system/runtim
 import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
 import { RUNTIME_WORLD_COMPOSITIONS } from "@/features/shopreel/ui/system/runtimeWorldComposition";
 import { deriveRuntimeOperatorPriority, deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
+import { buildRuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
 
 
 type RuntimeCampaignContext = {
@@ -459,6 +460,18 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                     availableActions: [{ label: item.actionLabel }],
                     transitionIntent: null,
                   });
+                  const deckGraph = buildRuntimeEntityGraph({
+                    activeWorldId: worldKind,
+                    activeRoute: item.href,
+                    previousWorldId: runtimeSession.previousWorldId,
+                    worldTransitionHistory: runtimeSession.worldTransitionHistory,
+                    worldSnapshot: { entityId: item.id, entityKind: item.kind, title: item.title, status: item.normalizedStatus, href: item.href },
+                    continuity: { activeEntityId: item.id, breadcrumbs: runtimeSession.worldContinuity.breadcrumbs, activeRoute: runtimeSession.worldContinuity.activeRoute },
+                    composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] },
+                    status: item.normalizedStatus,
+                    blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [],
+                    unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0,
+                  });
                   return (
                     <button
                       type="button"
@@ -533,7 +546,7 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                         </div>
                         <div className="flex justify-between text-xs text-white/72">
                           <span>{active ? item.actionLabel : `${worldKind.replaceAll("_", " ")} world`} · {choreography.operatorCue.nextActionLabel ?? "Open"} · {deriveRuntimeOrchestration({ worldId: worldKind, status: item.normalizedStatus, blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [], unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0, guidedStepId: null, previousWorldId: runtimeSession.previousWorldId, lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null, breadcrumbs: runtimeSession.worldContinuity.breadcrumbs, composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] }, now: new Date().toISOString(), lastTransitionAt: item.updatedAt ?? null }).flowHealth}</span>
-                          <span>{choreography.operatorCue.blocker ? "Blocker" : choreography.continuityCue.continuationLabel}</span>
+                          <span>{choreography.operatorCue.blocker ? "Blocker" : choreography.continuityCue.continuationLabel} · Chain {deckGraph.dependencies.length}/{deckGraph.traversal.blockers.length}</span>
                         </div>
                       </div>
                     </button>

@@ -45,6 +45,7 @@ type Input = {
   now: string;
   failedProgressionAttempts?: number;
   lastTransitionAt?: string | null;
+  graphSignals?: { dependencyDepth: number; blockerFanout: number; stalledDownstreamCount: number; unresolvedLineageCount: number; abandonedChainCount: number; orphanedWorld: boolean; unresolvedReviewTreeCount: number } | null;
 };
 
 function minutesSince(iso: string | null | undefined, now: Date): number {
@@ -77,7 +78,7 @@ export function deriveRuntimeFlowMomentum(input: { flowHealth: RuntimeWorldFlowH
   return "building";
 }
 
-export function deriveRuntimeOperationalPressure(input: { flowHealth: RuntimeWorldFlowHealth; unresolvedCount: number; blockers: string[]; escalation: boolean }): RuntimeWorldOperationalPressure {
+export function deriveRuntimeOperationalPressure(input: { flowHealth: RuntimeWorldFlowHealth; unresolvedCount: number; blockers: string[]; escalation: boolean; graphSignals?: Input["graphSignals"] }): RuntimeWorldOperationalPressure {
   if (input.flowHealth === "blocked" || input.blockers.length > 0 || input.escalation) return "critical";
   if (input.flowHealth === "recovering" || input.unresolvedCount > 2) return "high";
   if (input.flowHealth === "stalled" || input.unresolvedCount > 0) return "moderate";
@@ -133,7 +134,7 @@ export function deriveRuntimeOrchestration(input: Input): RuntimeWorldOrchestrat
   const dormancyState = deriveRuntimeDormancyState(input);
   const escalationState = deriveRuntimeEscalationState({ worldId: input.worldId, flowHealth, unresolvedCount: input.unresolvedCount, dormant: dormancyState });
   const flowMomentum = deriveRuntimeFlowMomentum({ flowHealth, unresolvedCount: input.unresolvedCount, failedProgressionAttempts: recoveryState.failedAttempts });
-  const operationalPressure = deriveRuntimeOperationalPressure({ flowHealth, unresolvedCount: input.unresolvedCount, blockers: input.blockers, escalation: escalationState.needsEscalation });
+  const operationalPressure = deriveRuntimeOperationalPressure({ flowHealth, unresolvedCount: input.unresolvedCount, blockers: input.blockers, escalation: escalationState.needsEscalation, graphSignals: input.graphSignals ?? null });
   const attentionState = deriveRuntimeAttentionState({ flowHealth, recovery: recoveryState, dormancy: dormancyState, escalation: escalationState });
 
   return {

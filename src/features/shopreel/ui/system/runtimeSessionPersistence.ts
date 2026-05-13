@@ -132,6 +132,15 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
           lastManualToolOpened: null,
           lastEmbeddedRoute: null,
           activeGuidedQuestion: null,
+          entityContinuity: {
+            recentEntityTraversal: [],
+            previousEntityChain: [],
+            lastRelationshipHop: null,
+            upstreamContinuity: [],
+            downstreamContinuity: [],
+            lastActiveDependencyChain: [],
+            activeBlockerLineage: [],
+          },
         },
       };
     }
@@ -156,6 +165,15 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
         lastManualToolOpened: null,
         lastEmbeddedRoute: null,
         activeGuidedQuestion: null,
+        entityContinuity: {
+          recentEntityTraversal: [],
+          previousEntityChain: [],
+          lastRelationshipHop: null,
+          upstreamContinuity: [],
+          downstreamContinuity: [],
+          lastActiveDependencyChain: [],
+          activeBlockerLineage: [],
+        },
       };
     }
     return parsed;

@@ -42,6 +42,7 @@ type Input = {
   composition: RuntimeWorldComposition;
   availableActions: Array<{ label: string }>;
   transitionIntent: RuntimeWorldTransitionIntent | null;
+  graphSignals?: { blockerSeverity: number; lineageImportance: number; dependencyDepth: number; recoveryProximity: number; continuityInterrupted: boolean } | null;
 };
 
 export function deriveWorldTransitionIntent(input: { explicit: RuntimeWorldTransitionIntent | null; worldId: RuntimeWorldId; previousWorldId: RuntimeWorldId | null; blockers: string[]; unresolvedCount: number }): RuntimeWorldMotionIntent {
@@ -119,6 +120,7 @@ export function deriveWorldChoreography(input: Input): RuntimeWorldChoreography 
     /resolved|complete|published/.test(input.status) ? "resolved" :
     motionIntent === "recover_blocker" ? "recovering" : "focused";
   const panelPriority = prioritizeRuntimePanels({ worldId: input.worldId, composition: input.composition, status: input.status.toLowerCase(), blockers: input.blockers, unresolvedCount: input.unresolvedCount });
+  const graph = input.graphSignals ?? null;
   const attentionTarget: RuntimeWorldAttentionTarget =
     blocked ? "blockers" :
     input.worldId === "review" ? "review" :
@@ -126,11 +128,15 @@ export function deriveWorldChoreography(input: Input): RuntimeWorldChoreography 
     input.worldId === "analytics" ? "analytics" :
     input.worldId === "upload" ? "upload" :
     input.worldId === "campaign" ? "campaign" : "workspace";
+  const promotedAttention: RuntimeWorldAttentionTarget =
+    graph && graph.blockerSeverity >= 2 ? "blockers" :
+    graph && graph.dependencyDepth >= 2 ? "continuity" :
+    graph && graph.recoveryProximity >= 2 ? "workspace" : attentionTarget;
   const nextActionLabel = input.availableActions[0]?.label ?? null;
   return {
     mode,
     motionIntent,
-    attentionTarget,
+    attentionTarget: promotedAttention,
     panelPriority,
     operatorCue: getRuntimeOperatorCue({ worldId: input.worldId, status: input.status.toLowerCase(), blockers: input.blockers, unresolvedCount: input.unresolvedCount, mode, nextActionLabel, previousWorldId: input.previousWorldId }),
     continuityCue: getRuntimeContinuityCue({ previousWorldId: input.previousWorldId, breadcrumbs: input.breadcrumbs, guidedStepId: input.guidedStepId, lastActionLabel: input.lastActionLabel }),
