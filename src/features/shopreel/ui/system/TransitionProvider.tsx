@@ -23,13 +23,33 @@ export function TransitionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setActiveTransition((current) => {
-      if (!current || current.phase !== "navigating") return current;
-      if (pathname !== current.snapshot.href) return current;
+      if (!current) return current;
+      if (current.reducedMotion || current.phase === "complete") {
+        clearRuntimeSpatialTransition();
+        return null;
+      }
+      if (current.phase === "navigating" && pathname !== current.snapshot.href) {
+        clearRuntimeSpatialTransition();
+        return null;
+      }
+      if (current.phase !== "navigating") return current;
       const next: RuntimeSpatialTransitionState = { ...current, phase: "arrived", camera: "entering", focus: deriveFocusTransfer("entering", current.reducedMotion) };
       persistRuntimeSpatialTransition(next);
       return next;
     });
   }, [pathname]);
+
+  useEffect(() => {
+    if (!activeTransition || activeTransition.reducedMotion || activeTransition.phase !== "arrived") return;
+    const timeoutId = window.setTimeout(() => {
+      setActiveTransition((current) => {
+        if (!current || current.phase !== "arrived") return current;
+        clearRuntimeSpatialTransition();
+        return null;
+      });
+    }, 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeTransition]);
 
   const startWorldEntryTransition = useCallback((snapshot: RuntimeSpatialSnapshot, reducedMotion: boolean) => {
     const transition: RuntimeSpatialTransitionState = {
@@ -73,7 +93,7 @@ export function useTransitionRouter(): TransitionState {
 
 export function TransitionLayer() {
   const { activeTransition } = useTransitionRouter();
-  if (!activeTransition || activeTransition.phase === "complete" || activeTransition.reducedMotion) return null;
+  if (!activeTransition || activeTransition.phase !== "navigating" && activeTransition.phase !== "arrived" || activeTransition.reducedMotion) return null;
 
   const { cardRect, atmosphere } = activeTransition.snapshot;
   const entering = activeTransition.phase === "arrived";

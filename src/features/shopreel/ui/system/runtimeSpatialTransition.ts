@@ -2,6 +2,7 @@ import type { RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldM
 
 const SPATIAL_TRANSITION_KEY = "shopreel-runtime-spatial-transition-v1";
 const RETURN_TRANSITION_KEY = "shopreel-runtime-spatial-return-v1";
+const TRANSITION_STALE_MS = 12_000;
 
 export type RuntimeCameraState = "docked" | "entering" | "focusing" | "immersed" | "recovering" | "returning";
 
@@ -48,7 +49,22 @@ export function readRuntimeSpatialTransition(): RuntimeSpatialTransitionState | 
   if (typeof window === "undefined") return null;
   const raw = window.sessionStorage.getItem(SPATIAL_TRANSITION_KEY);
   if (!raw) return null;
-  try { return JSON.parse(raw) as RuntimeSpatialTransitionState; } catch { return null; }
+  try {
+    const parsed = JSON.parse(raw) as RuntimeSpatialTransitionState;
+    if (parsed.phase === "complete") {
+      clearRuntimeSpatialTransition();
+      return null;
+    }
+    const capturedAtMs = Number.isFinite(Date.parse(parsed.snapshot.capturedAt)) ? Date.parse(parsed.snapshot.capturedAt) : NaN;
+    if (!Number.isFinite(capturedAtMs) || Date.now() - capturedAtMs > TRANSITION_STALE_MS) {
+      clearRuntimeSpatialTransition();
+      return null;
+    }
+    return parsed;
+  } catch {
+    clearRuntimeSpatialTransition();
+    return null;
+  }
 }
 
 export function clearRuntimeSpatialTransition(): void {
