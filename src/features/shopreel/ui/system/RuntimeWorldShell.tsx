@@ -8,6 +8,7 @@ import { resolveGuidedFlowStep, resolveWorldGuidedPrompt } from "@/features/shop
 import type { RuntimeWorldAction, RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
 import { RUNTIME_WORLD_MAP } from "@/features/shopreel/ui/system/runtimeWorldMap";
 import { createWorldEntryTransition, deriveWorldTransitionClasses, type RuntimeWorldAmbientState, type RuntimeWorldFocusState, type RuntimeWorldIdentityTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
+import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
 import { persistWorldEntrySnapshot, readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
@@ -25,6 +26,19 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const transitionClass = deriveWorldTransitionClasses(identityTransition);
   const focusState: RuntimeWorldFocusState = { focusedPanelId: persisted?.worldContinuity.focusedPanelId ?? null, activeGuidedQuestion: persisted?.worldContinuity.activeGuidedQuestion ?? null };
   const ambientState: RuntimeWorldAmbientState = { stabilized: true, visualSeed: persisted?.worldContinuity.environment.visualSeed ?? entry.visualSeed };
+  const choreography = deriveWorldChoreography({
+    worldId: entry.worldId,
+    status: entry.status,
+    blockers: entry.blockers,
+    unresolvedCount: entry.unresolvedCount,
+    guidedStepId: persisted?.worldContinuity.guidedStepId ?? null,
+    previousWorldId: persisted?.previousWorldId ?? null,
+    lastActionLabel: persisted?.worldContinuity.lastAction?.label ?? null,
+    breadcrumbs: persisted?.worldContinuity.breadcrumbs ?? [],
+    composition: { worldId: entry.worldId, panels: [] },
+    availableActions: entry.primaryAction ? [entry.primaryAction, ...entry.secondaryActions] : entry.secondaryActions,
+    transitionIntent: { mode: "resume_world", fromWorldId: persisted?.previousWorldId ?? null, toWorldId: entry.worldId, fromRoute: persisted?.worldContinuity.previousRoute ?? null, toRoute: persisted?.worldContinuity.activeRoute ?? entry.href, label: "resume", at: new Date().toISOString() },
+  });
 
   const navigate = (href: string, step: string | null) => {
     persistWorldEntrySnapshot({ worldId: entry.worldId, href, entityId: entry.entityId, entityKind: entry.entityKind, title: entry.title, status: entry.status, visualSeed: entry.visualSeed, guidedStep: step as never });
@@ -33,6 +47,8 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
 
   const operatorPanel = <aside className={`rounded-2xl p-4 text-sm ${entry.panelClass}`}>
     <p>{flow?.question ?? prompt.question}</p>
+    <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label}</p>
+    <p className="mt-1 text-xs text-white/60">{choreography.continuityCue.continuationLabel}</p>
     <p className="mt-2 text-xs text-white/60">Focus: {focusState.focusedPanelId ?? "workspace"} · Ambient: {ambientState.stabilized ? "stable" : "shifting"}</p>
     <div className="mt-2 grid gap-2 sm:grid-cols-2">
       <button onClick={() => navigate(prompt.yes.href, prompt.yes.nextStep)} className="rounded-lg border border-emerald-200/40 bg-emerald-400/10 px-3 py-2 text-xs">Yes</button>

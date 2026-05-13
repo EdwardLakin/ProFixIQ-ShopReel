@@ -38,6 +38,8 @@ import { deriveOperatorOrchestrationPlan } from "@/features/shopreel/ui/system/o
 import { buildWorldEntryIntent, resolveWorldFromEntityKind, resolveWorldEntryForHref } from "@/features/shopreel/ui/system/pageToWorldAdapter";
 import { buildWorldSnapshot } from "@/features/shopreel/ui/system/worldSnapshot";
 import { createWorldEntryTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
+import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
+import { RUNTIME_WORLD_COMPOSITIONS } from "@/features/shopreel/ui/system/runtimeWorldComposition";
 
 
 type RuntimeCampaignContext = {
@@ -423,6 +425,19 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                 }).map((item, index) => {
                   const active = index === 0;
                   const worldKind = resolveWorldFromEntityKind(item.kind);
+                  const choreography = deriveWorldChoreography({
+                    worldId: worldKind,
+                    status: item.normalizedStatus,
+                    blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [],
+                    unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0,
+                    guidedStepId: null,
+                    previousWorldId: runtimeSession.previousWorldId,
+                    lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null,
+                    breadcrumbs: runtimeSession.worldContinuity.breadcrumbs,
+                    composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] },
+                    availableActions: [{ label: item.actionLabel }],
+                    transitionIntent: null,
+                  });
                   return (
                     <button
                       type="button"
@@ -496,8 +511,8 @@ export default function HomeCommandClient({ recent }: { recent: OperatorWorldCar
                           <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-amber-300 to-cyan-300" />
                         </div>
                         <div className="flex justify-between text-xs text-white/72">
-                          <span>{active ? item.actionLabel : `${worldKind.replaceAll("_", " ")} world`}</span>
-                          <span>Open →</span>
+                          <span>{active ? item.actionLabel : `${worldKind.replaceAll("_", " ")} world`} · {choreography.operatorCue.nextActionLabel ?? "Open"}</span>
+                          <span>{choreography.operatorCue.blocker ? "Blocker" : choreography.continuityCue.continuationLabel}</span>
                         </div>
                       </div>
                     </button>
