@@ -29,6 +29,8 @@ export type RuntimeChamberCarryover = {
   carryoverWeight: number;
 };
 
+export type RuntimeSpatialMovementSemantic = "moving_deeper" | "widening_context" | "entering_execution" | "resurfacing" | "descending_systems" | "lateral_world_transfer";
+
 export type RuntimeRouteContinuitySnapshot = {
   sourceWorld: RuntimeWorldId | null;
   targetWorld: RuntimeWorldId;
@@ -37,6 +39,8 @@ export type RuntimeRouteContinuitySnapshot = {
   focalPersistence: RuntimeFocalPersistence;
   recoveryPacing: RuntimeRecoveryTransitionPacing;
   chamberCarryover: RuntimeChamberCarryover;
+  movementSemantic: RuntimeSpatialMovementSemantic;
+  cameraSemantics: { focalDepthLayer: number; environmentalParallax: number; foregroundAttenuation: number; distantChamberHaze: number; topologyScaling: number; motionWeightedContinuity: number; interpolationBias: number };
 };
 
 export type RuntimeRouteTraversalMemory = {
@@ -72,6 +76,7 @@ export function deriveRuntimeRouteTransitionEngine(input: {
   const previousMomentum = input.previousMemory?.previousContinuityMomentum ?? directionalContinuity;
   const targetMomentum = clamp(previousMomentum * 0.55 + directionalContinuity * 0.45);
   const focalEntityId = input.focalEntityId ?? input.previousMemory?.previousFocalEntityId ?? null;
+  const movementSemantic: RuntimeSpatialMovementSemantic = input.sourceWorld === null ? "resurfacing" : input.unresolvedCount > 2 ? "descending_systems" : directionalContinuity > 0.72 ? "moving_deeper" : focusPressure > 0.62 ? "entering_execution" : recoveryPressure > 0.6 ? "resurfacing" : input.sourceWorld === input.targetWorld ? "widening_context" : "lateral_world_transfer";
   const focalPlane = input.traversal.arrivalFocusPlane;
   const persistenceWeight = clamp((focalEntityId ? 0.6 : 0.25) + directionalContinuity * 0.4);
 
@@ -93,6 +98,8 @@ export function deriveRuntimeRouteTransitionEngine(input: {
         recoveryWeight: recoveryPressure,
         continuityWeight: continuityPressure,
       },
+      movementSemantic,
+      cameraSemantics: { focalDepthLayer: clamp(input.traversal.field.carryover.focus * 0.6 + (input.traversal.field.intent === "advance" ? 0.45 : input.traversal.field.intent === "stabilize" ? 0.62 : 0.84) * 0.4), environmentalParallax: clamp(input.traversal.transitionVector.z * 0.5 + directionalContinuity * 0.5), foregroundAttenuation: clamp(1 - recoveryPressure * 0.35), distantChamberHaze: clamp((1 - directionalContinuity) * 0.6 + recoveryPressure * 0.4), topologyScaling: clamp(input.traversal.topologyField.operationalGravity * 0.5 + continuityPressure * 0.5), motionWeightedContinuity: clamp(targetMomentum * 0.7 + Math.min(1, Math.abs(input.traversal.transitionVector.z) + Math.abs(input.traversal.transitionVector.x) * 0.3) * 0.3), interpolationBias: clamp(Math.min(1, Math.abs(input.traversal.transitionVector.z) + Math.abs(input.traversal.transitionVector.x) * 0.3) * 0.55 + focusPressure * 0.45) },
       chamberCarryover: {
         sourceWorld: input.sourceWorld,
         targetWorld: input.targetWorld,

@@ -4,7 +4,7 @@ import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopree
 import type { GuidedFlowStepId } from "@/features/shopreel/ui/system/guidedWorldFlow";
 import type { RuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
 
-export const RUNTIME_SESSION_KEY = "shopreel-operator-runtime-session-v1";
+export const RUNTIME_SESSION_KEY = "shopreel-operator-runtime-session-v2";
 
 export type PersistedChamberMemoryTrace = {
   runtimeState: OperatorRuntimeState;
@@ -53,6 +53,13 @@ export type PersistedRuntimeSession = {
     activeExecutionLane: string | null;
     missionTrajectory: "forward" | "deeper" | "recess" | "wider";
     pressureWeight: number;
+    focalNode: string | null;
+    approvalState: "pending" | "approved" | "blocked" | null;
+    renderProgress: number;
+    unresolvedItems: number;
+    environmentalPressure: number;
+    topologyIntensity: number;
+    aiGuidanceContext: string[];
   };
   worldContinuity: OperatorRuntimeSessionState["worldContinuity"];
   temporalMemory?: RuntimeTemporalMemory;
@@ -103,6 +110,13 @@ export function persistRuntimeSession(session: OperatorRuntimeSessionState): voi
       activeExecutionLane: null,
       missionTrajectory: "forward",
       pressureWeight: 0.3,
+      focalNode: null,
+      approvalState: null,
+      renderProgress: 0,
+      unresolvedItems: 0,
+      environmentalPressure: 0.2,
+      topologyIntensity: 0.2,
+      aiGuidanceContext: [],
     },
     worldContinuity: session.worldContinuity,
     temporalMemory: previous?.temporalMemory,
@@ -182,8 +196,23 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
         activeExecutionLane: null,
         missionTrajectory: "forward",
         pressureWeight: 0.3,
+        focalNode: null,
+        approvalState: null,
+        renderProgress: 0,
+        unresolvedItems: 0,
+        environmentalPressure: 0.2,
+        topologyIntensity: 0.2,
+        aiGuidanceContext: [],
       };
     }
+    if (!parsed.worldPersistence.focalNode) parsed.worldPersistence.focalNode = null;
+    if (!["pending", "approved", "blocked", null].includes(parsed.worldPersistence.approvalState as never)) parsed.worldPersistence.approvalState = null;
+    if (!Number.isFinite(parsed.worldPersistence.renderProgress)) parsed.worldPersistence.renderProgress = 0;
+    if (!Number.isFinite(parsed.worldPersistence.unresolvedItems)) parsed.worldPersistence.unresolvedItems = 0;
+    if (!Number.isFinite(parsed.worldPersistence.environmentalPressure)) parsed.worldPersistence.environmentalPressure = 0.2;
+    if (!Number.isFinite(parsed.worldPersistence.topologyIntensity)) parsed.worldPersistence.topologyIntensity = 0.2;
+    if (!Array.isArray(parsed.worldPersistence.aiGuidanceContext)) parsed.worldPersistence.aiGuidanceContext = [];
+
     if (!parsed.worldContinuity) {
       parsed.worldContinuity = {
         activeWorldId: parsed.activeWorldId,
