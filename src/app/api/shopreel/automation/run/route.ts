@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { syncAllProcessingVideoJobs } from "@/features/shopreel/video-creation/lib/automation";
+import { processMediaGenerationJob } from "@/features/shopreel/video-creation/lib/server";
 import { runCampaignAutomationCycle } from "@/features/shopreel/campaigns/lib/automation";
 import {
   completeAutomationRun,
@@ -57,6 +58,42 @@ export async function POST(req: Request) {
         .eq("status", "processing"),
     ]);
 
+    const { data: queuedJobs, error: queuedJobsError } = await supabase
+      .from("shopreel_media_generation_jobs")
+      .select("id, provider, job_type, status")
+      .eq("shop_id", shopId)
+      .eq("status", "queued")
+      .order("created_at", { ascending: true })
+      .limit(3);
+
+    if (queuedJobsError) {
+      throw new Error(queuedJobsError.message);
+    }
+
+    const queuedJobRunResults = [];
+
+    for (const job of queuedJobs ?? []) {
+      try {
+        const processedJob = await processMediaGenerationJob(job.id);
+        queuedJobRunResults.push({
+          jobId: job.id,
+          ok: true,
+          provider: processedJob.provider,
+          jobType: processedJob.job_type,
+          status: processedJob.status,
+        });
+      } catch (error) {
+        queuedJobRunResults.push({
+          jobId: job.id,
+          ok: false,
+          provider: job.provider,
+          jobType: job.job_type,
+          status: job.status,
+          error: error instanceof Error ? error.message : "Failed to run queued job",
+        });
+      }
+    }
+
     const videoSyncResults = await syncAllProcessingVideoJobs({ shopId });
 
     const { data: campaigns, error } = await supabase
@@ -86,6 +123,7 @@ export async function POST(req: Request) {
       activeCampaignsCount: campaigns?.length ?? 0,
       learningsCount: totalLearningsInserted,
       resultSummary: {
+        queuedJobRunResults,
         videoSyncResults,
         campaignResults,
       },
@@ -93,6 +131,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
+      queuedJobRunResults,
       videoSyncResults,
       campaignResults,
     });
