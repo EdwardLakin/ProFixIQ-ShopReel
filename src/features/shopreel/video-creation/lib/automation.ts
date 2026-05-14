@@ -10,8 +10,9 @@ export async function syncAllProcessingVideoJobs(args?: { shopId?: string }) {
     .select("id, provider, job_type, status")
     .eq("shop_id", shopId)
     .in("status", ["processing", "submitted", "rendering"])
-    .in("provider", ["openai", "fal"])
+    .eq("provider", "fal")
     .eq("job_type", "video")
+    .not("provider_job_id", "is", null)
     .order("updated_at", { ascending: true })
     .limit(50);
 
