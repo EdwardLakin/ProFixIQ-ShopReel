@@ -260,13 +260,12 @@ function getNextAction(args: {
   if (
     args.processingScenes > 0 ||
     args.queuedScenes > 0 ||
-    args.completedScenes > 0 ||
-    args.failedScenes > 0
+    args.completedScenes > 0
   ) {
     return {
       action: "check_progress" as const,
       label: "Check progress",
-      description: "Refresh scene status and assemble the final video when ready.",
+      description: "Refresh active scene jobs and assemble the final video when ready.",
     };
   }
 
