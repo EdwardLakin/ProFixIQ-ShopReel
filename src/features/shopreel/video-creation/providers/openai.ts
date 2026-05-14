@@ -59,6 +59,7 @@ export const openAiMediaProvider: MediaProviderAdapter = {
           model: SHOPREEL_AI_MODELS.image,
           prompt,
           size: mapAspectRatioToImageSize(input.aspectRatio),
+          response_format: "url",
         }),
       });
 
@@ -68,7 +69,19 @@ export const openAiMediaProvider: MediaProviderAdapter = {
         throw new Error(json.error?.message ?? "OpenAI image generation failed");
       }
 
-      const previewUrl = json.data?.[0]?.url ?? null;
+      const image = json.data?.[0] ?? null;
+      const previewUrl =
+        typeof image?.url === "string" && image.url.length > 0
+          ? image.url
+          : typeof image?.b64_json === "string" && image.b64_json.length > 0
+            ? `data:image/png;base64,${image.b64_json}`
+            : null;
+
+      if (!previewUrl) {
+        throw new Error(
+          `OpenAI image generation completed without an image URL or base64 payload. Response keys: ${Object.keys(json ?? {}).join(", ")}`
+        );
+      }
 
       return {
         providerJobId: `openai-image-${input.jobId}`,
@@ -78,7 +91,8 @@ export const openAiMediaProvider: MediaProviderAdapter = {
           provider: "openai",
           mode: "image_generation",
           prompt,
-          returned_url: previewUrl,
+          returned_url: typeof image?.url === "string" ? image.url : null,
+          returned_b64: typeof image?.b64_json === "string",
         },
       };
     }
