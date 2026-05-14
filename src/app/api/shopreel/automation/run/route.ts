@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Json } from "@/types/supabase";
 import { createAdminClient } from "@/lib/supabase/server";
 import { syncAllProcessingVideoJobs } from "@/features/shopreel/video-creation/lib/automation";
 import { processMediaGenerationJob } from "@/features/shopreel/video-creation/lib/server";
@@ -96,24 +97,12 @@ export async function POST(req: Request) {
 
     const videoSyncResults = await syncAllProcessingVideoJobs({ shopId });
 
-    const { data: campaigns, error } = await supabase
-      .from("shopreel_campaigns")
-      .select("id, status")
-      .eq("shop_id", shopId)
-      .in("status", ["draft", "active", "running"]);
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const campaignResults = [];
-    let totalLearningsInserted = 0;
-
-    for (const campaign of campaigns ?? []) {
-      const result = await runCampaignAutomationCycle(campaign.id);
-      totalLearningsInserted += Number(result.learnings?.inserted ?? 0);
-      campaignResults.push(result);
-    }
+    // Scheduled worker mode: keep this pass focused on media queue execution/sync.
+    // Campaign automation still depends on user-session shop context in several helpers,
+    // so do not run it from cron until those helpers accept explicit shopId.
+    const campaigns: Array<{ id: string; status: string }> = [];
+    const campaignResults: Json[] = [];
+    const totalLearningsInserted = 0;
 
     await completeAutomationRun({
       runId,
@@ -126,7 +115,7 @@ export async function POST(req: Request) {
         queuedJobRunResults,
         videoSyncResults,
         campaignResults,
-      },
+      } satisfies Json,
     });
 
     return NextResponse.json({
