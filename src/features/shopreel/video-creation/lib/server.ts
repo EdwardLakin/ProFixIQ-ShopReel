@@ -253,7 +253,8 @@ export async function finalizeCompletedMediaJob(args: {
 }
 
 export async function processMediaGenerationJob(
-  jobId: string
+  jobId: string,
+  args?: { shopId?: string }
 ): Promise<MediaGenerationJobRow> {
   const supabase = createAdminClient();
 
@@ -265,6 +266,10 @@ export async function processMediaGenerationJob(
 
   if (jobError || !job) {
     throw new Error(jobError?.message ?? "Media generation job not found");
+  }
+
+  if (args?.shopId && job.shop_id !== args.shopId) {
+    throw new Error("Media generation job does not belong to the requested shop.");
   }
 
   await supabase

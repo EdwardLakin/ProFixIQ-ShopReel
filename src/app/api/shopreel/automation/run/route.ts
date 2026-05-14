@@ -75,7 +75,7 @@ export async function POST(req: Request) {
 
     for (const job of queuedJobs ?? []) {
       try {
-        const processedJob = await processMediaGenerationJob(job.id);
+        const processedJob = await processMediaGenerationJob(job.id, { shopId });
         queuedJobRunResults.push({
           jobId: job.id,
           ok: true,
