@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
-import { getMediaProviderMode } from "@/features/shopreel/video-creation/lib/env";
 import { processMediaGenerationJob } from "@/features/shopreel/video-creation/lib/server";
 import { buildSceneFramePrompt } from "@/features/shopreel/campaigns/lib/sceneFramePrompt";
 
@@ -24,7 +23,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; sc
       .eq("id", id).eq("shop_id", shopId).single();
     if (itemError || !item) throw new Error(itemError?.message ?? "Campaign item not found");
 
-    const provider = getMediaProviderMode() === "fal" ? "fal" : "openai";
+    // Reference frames are intentionally created by the OpenAI/operator path first.
+    // Downstream video generation can use the saved reference image for provider-specific
+    // clip generation later; do not send first-frame creation directly to FAL/Kling here.
+    const provider = "openai";
     const built = buildSceneFramePrompt({ itemTitle: item.title, sceneTitle: scene.title, basePrompt: scene.prompt });
 
     const { data: job, error: jobError } = await supabase.from("shopreel_media_generation_jobs").insert({
@@ -40,7 +42,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string; sc
       visual_mode: item.visual_mode,
       aspect_ratio: item.aspect_ratio,
       input_asset_ids: [],
-      settings: { campaign_id: scene.campaign_id, campaign_item_id: scene.campaign_item_id, scene_id: scene.id, scene_order: scene.scene_order, source_metadata: { scene_title: scene.title } },
+      settings: {
+        campaign_id: scene.campaign_id,
+        campaign_item_id: scene.campaign_item_id,
+        scene_id: scene.id,
+        scene_order: scene.scene_order,
+        source_metadata: {
+          scene_title: scene.title,
+          reference_frame_role: "operator_static_image",
+          downstream_video_provider: "fal_or_kling",
+          handoff_purpose: "Use this saved OpenAI reference image as the visual target for video generation.",
+        },
+      },
     }).select("*").single();
     if (jobError || !job) throw new Error(jobError?.message ?? "Failed to create frame job");
 
