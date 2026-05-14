@@ -120,11 +120,10 @@ export default async function ShopReelCampaignDetailPage(
 
       <CampaignWorkflowContinuityRail campaignId={campaign.id} />
 
-      <section className="relative isolate overflow-hidden rounded-[2.4rem] border border-cyan-200/20 bg-slate-950/40 p-6">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(6,182,212,0.2),transparent_40%),radial-gradient(circle_at_84%_78%,rgba(56,189,248,0.12),transparent_44%)]" />
-        <div className="relative grid gap-5 xl:grid-cols-[0.78fr_1.22fr]">
-          <aside className="space-y-4 rounded-3xl border border-white/10 bg-black/25 p-5">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-100/75">Mission shell</p>
+      <section className="rounded-[2.2rem] border border-cyan-200/25 bg-slate-950/90 p-6">
+        <div className="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
+          <aside className="space-y-4 rounded-3xl border border-white/10 bg-slate-900/85 p-5">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-100/75">Campaign command context</p>
             <p className="text-sm text-white/85">{campaign.core_idea}</p>
             <div className="flex flex-wrap gap-2"><GlassBadge tone="default">{campaign.status}</GlassBadge>{(campaign.platform_focus ?? []).map((platform) => <GlassBadge key={platform} tone="muted">{platform}</GlassBadge>)}</div>
             <div className="space-y-3 text-sm text-white/75">
@@ -132,6 +131,13 @@ export default async function ShopReelCampaignDetailPage(
               <div><p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">Emotional positioning</p><p>{campaign.offer ?? "No emotional positioning captured yet."}</p></div>
               <div><p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">Objective</p><p>{campaign.campaign_goal ?? "—"}</p></div>
               <p className="text-xs text-white/55">Created {timeAgoLabel(campaign.created_at)}</p>
+            </div>
+            <div className="rounded-2xl border border-cyan-300/20 bg-slate-950 p-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-cyan-100/70">Manual escape</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Link href="/shopreel/campaigns"><GlassButton variant="ghost">Back to deck</GlassButton></Link>
+                <Link href={`/shopreel/campaigns/${campaign.id}/review`}><GlassButton variant="ghost">Open review route</GlassButton></Link>
+              </div>
             </div>
           </aside>
           <CampaignDetailClient
