@@ -78,9 +78,8 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
   }
 
   return (
-    <section className="relative isolate overflow-hidden rounded-[2.25rem] border border-cyan-200/20 bg-slate-950/45 p-6 shadow-[0_45px_120px_rgba(8,145,178,0.24)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(56,189,248,0.22),transparent_56%),radial-gradient(circle_at_10%_95%,rgba(6,182,212,0.12),transparent_42%)]" />
-      <div className="relative space-y-5">
+    <section className="space-y-6 rounded-[2rem] border border-cyan-200/20 bg-slate-950/95 p-6 shadow-[0_20px_70px_rgba(2,132,199,0.25)]">
+      <div className="space-y-5">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-100/70">Execution stage</p>
@@ -92,7 +91,7 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
           </div>
         </header>
 
-        <div className="rounded-3xl border border-white/15 bg-black/35 p-5 backdrop-blur-md">
+        <div className="rounded-3xl border border-cyan-300/35 bg-cyan-500/10 p-5">
           <div className="flex flex-wrap gap-3">
             {leadTask ? <><GlassButton onClick={() => void transitionTask(leadTask.id, "approve")} disabled={busy === `approve-${leadTask.id}`}>Approve and advance</GlassButton><GlassButton variant="ghost" onClick={() => void transitionTask(leadTask.id, "reject")} disabled={busy === `reject-${leadTask.id}`}>Refine trajectory</GlassButton></> : <p className="text-sm text-white/70">No blocking decisions right now.</p>}
           </div>
@@ -103,7 +102,7 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
             <p className="text-xs uppercase tracking-[0.18em] text-cyan-100/75">Recessed approval lane</p>
             {pendingTasks.length === 0 ? <div className="text-sm text-white/65">Approval lane is clear.</div> : pendingTasks.slice(0, 4).map((task) => <article key={task.id} className="rounded-2xl bg-black/35 p-3 ring-1 ring-white/10"><div className="flex flex-wrap items-center gap-2"><span className="font-medium text-white">{task.title}</span><GlassBadge tone="muted">Confidence {task.confidence ?? "n/a"}</GlassBadge></div>{task.details ? <p className="mt-1 text-sm text-white/70">{task.details}</p> : null}<textarea value={taskReason[task.id] ?? ""} onChange={(e) => setTaskReason((prev) => ({ ...prev, [task.id]: e.target.value }))} className="mt-2 w-full rounded-xl border border-white/10 bg-black/35 p-2 text-sm" placeholder="Refinement note" /><div className="mt-2 flex gap-2"><GlassButton variant="secondary" onClick={() => void transitionTask(task.id, "approve")}>Approve</GlassButton><GlassButton variant="ghost" onClick={() => void transitionTask(task.id, "reject")}>Refine</GlassButton></div></article>)}
           </div>
-          <aside className="space-y-3 rounded-3xl border border-cyan-100/15 bg-cyan-950/20 p-4">
+          <aside className="space-y-3 rounded-3xl border border-cyan-100/15 bg-slate-900 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-cyan-100/75">Chamber intelligence</p>
             {adaptiveMemory.learnedNotices.map((notice) => <p key={notice} className="text-sm text-cyan-50/80">{notice}</p>)}
             {adaptiveMemory.tasteSummary.length > 0 ? <div className="flex flex-wrap gap-2">{adaptiveMemory.tasteSummary.map((signal) => <GlassBadge key={signal} tone="muted">{signal}</GlassBadge>)}</div> : <p className="text-sm text-cyan-100/55">No recent taste signals learned.</p>}
@@ -111,14 +110,14 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
           </aside>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-black/25 p-4">
+        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
           <p className="mb-2 text-xs uppercase tracking-[0.18em] text-cyan-100/70">Output constellations</p>
           <div className="space-y-2">
-            {items.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl bg-black/30 p-3"><div><div className="font-semibold text-white">{item.title}</div><div className="text-sm text-white/60">{item.angle}</div></div><div className="flex items-center gap-2"><GlassBadge tone={item.final_output_asset_id ? "copper" : "default"}>{item.final_output_asset_id ? "Ready" : formatShopReelStatus(item.status)}</GlassBadge><Link href={`/shopreel/campaigns/items/${item.id}?from=workspace`}><GlassButton variant="ghost">Open</GlassButton></Link></div></div>)}
+            {items.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950 p-3"><div><div className="font-semibold text-white">{item.title}</div><div className="text-sm text-white/60">{item.angle}</div></div><div className="flex items-center gap-2"><GlassBadge tone={item.final_output_asset_id ? "copper" : "default"}>{item.final_output_asset_id ? "Ready" : formatShopReelStatus(item.status)}</GlassBadge><Link href={`/shopreel/campaigns/items/${item.id}?from=workspace`}><GlassButton variant="ghost">Open output</GlassButton></Link></div></div>)}
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-slate-900/45 p-4">
+        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
           <p className="mb-2 text-xs uppercase tracking-[0.18em] text-cyan-100/70">Mission memory node</p>
           <textarea className="mb-2 w-full rounded-xl border border-white/10 bg-black/35 p-2 text-sm" placeholder="Campaign objective" value={campaignBrain.campaignObjective} onChange={(e)=>setCampaignBrain((prev)=>({...prev,campaignObjective:e.target.value}))} />
           <textarea className="mb-2 w-full rounded-xl border border-white/10 bg-black/35 p-2 text-sm" placeholder="Target audience" value={campaignBrain.targetAudience} onChange={(e)=>setCampaignBrain((prev)=>({...prev,targetAudience:e.target.value}))} />
