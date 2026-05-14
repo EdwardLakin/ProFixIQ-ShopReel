@@ -5,11 +5,62 @@ type ShopIdRow = {
   shop_id: string;
 };
 
-async function resolveShopIdFromStandaloneShopReelData(admin: unknown, userId?: string | null): Promise<string | null> {
-  const db = admin as { from: (table: string) => any };
+type MinimalDbClient = {
+  from: (table: string) => any;
+};
 
+async function ensureStandaloneShopReelWorkspace(
+  admin: MinimalDbClient,
+  user: { id: string; email?: string | null },
+): Promise<string> {
+  const workspaceId = user.id;
+
+  const { data: existingSubscription } = await admin
+    .from("shopreel_subscriptions")
+    .select("shop_id")
+    .eq("shop_id", workspaceId)
+    .maybeSingle();
+
+  if ((existingSubscription ?? null)?.shop_id) {
+    return workspaceId;
+  }
+
+  const { error } = await admin.from("shopreel_subscriptions").insert({
+    shop_id: workspaceId,
+    plan: "personal_workspace",
+    status: "active",
+    metadata: {
+      workspace_type: "personal",
+      workspace_name: user.email ? `${user.email.split("@")[0]}'s Workspace` : "Personal Workspace",
+      auto_created: true,
+    },
+  });
+
+  if (error) {
+    const message = String(error.message ?? "");
+    if (!/duplicate key|already exists/i.test(message)) {
+      throw error;
+    }
+  }
+
+  return workspaceId;
+}
+
+async function resolveShopIdFromStandaloneShopReelData(
+  admin: MinimalDbClient,
+  userId?: string | null,
+): Promise<string | null> {
   if (userId) {
-    const { data: generationData } = await db
+    const { data: ownSubscriptionData } = await admin
+      .from("shopreel_subscriptions")
+      .select("shop_id")
+      .eq("shop_id", userId)
+      .maybeSingle();
+
+    const ownSubscription = (ownSubscriptionData ?? null) as ShopIdRow | null;
+    if (ownSubscription?.shop_id) return ownSubscription.shop_id;
+
+    const { data: generationData } = await admin
       .from("shopreel_story_generations")
       .select("shop_id")
       .eq("created_by", userId)
@@ -21,25 +72,7 @@ async function resolveShopIdFromStandaloneShopReelData(admin: unknown, userId?: 
     if (generation?.shop_id) return generation.shop_id;
   }
 
-  const { data: subscriptionData } = await db
-    .from("shopreel_subscriptions")
-    .select("shop_id")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const subscription = (subscriptionData ?? null) as ShopIdRow | null;
-  if (subscription?.shop_id) return subscription.shop_id;
-
-  const { data: generationFallbackData } = await db
-    .from("shopreel_story_generations")
-    .select("shop_id")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const generationFallback = (generationFallbackData ?? null) as ShopIdRow | null;
-  return generationFallback?.shop_id ?? null;
+  return null;
 }
 
 export async function getCurrentShopId(): Promise<string> {
@@ -57,7 +90,7 @@ export async function getCurrentShopId(): Promise<string> {
   }
 
   if (user?.id) {
-    throw new ShopReelEndpointError("Active ShopReel workspace is required", 403, "FORBIDDEN");
+    return ensureStandaloneShopReelWorkspace(admin, { id: user.id, email: user.email });
   }
 
   throw new ShopReelEndpointError("Shop context required", 401, "SHOP_CONTEXT_REQUIRED");
