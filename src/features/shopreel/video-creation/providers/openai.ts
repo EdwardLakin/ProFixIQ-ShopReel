@@ -59,14 +59,17 @@ export const openAiMediaProvider: MediaProviderAdapter = {
           model: SHOPREEL_AI_MODELS.image,
           prompt,
           size: mapAspectRatioToImageSize(input.aspectRatio),
-          response_format: "url",
         }),
       });
 
       const json = (await response.json().catch(() => ({}))) as OpenAIImageResponse;
 
       if (!response.ok) {
-        throw new Error(json.error?.message ?? "OpenAI image generation failed");
+        throw new Error(
+          json.error?.message
+            ? `OpenAI image generation failed: ${json.error.message}`
+            : `OpenAI image generation failed with status ${response.status}`
+        );
       }
 
       const image = json.data?.[0] ?? null;
