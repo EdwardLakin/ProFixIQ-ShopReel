@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import RuntimeWorldShell from "@/features/shopreel/ui/system/RuntimeWorldShell";
 import { buildRuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
+import { buildOperatorFlowState } from "@/features/shopreel/operator-flow/operatorFlow";
+import OperatorWorkflowHeader from "@/features/shopreel/ui/system/OperatorWorkflowHeader";
 import { readPersistedRuntimeSession } from "@/features/shopreel/ui/system/runtimeSessionPersistence";
 import type { OperatorWorldKind } from "@/features/shopreel/operator/operatorWorlds";
 
@@ -52,24 +52,16 @@ export default function RuntimeWorldRouteShell({ children }: { children: ReactNo
     } : undefined,
   });
 
-  const nextActionLabel = entry.primaryAction?.label ?? "Review world details";
+  const flow = buildOperatorFlowState({
+    command: `continue ${pathname}`,
+    entity: { kind: entry.entityKind, status: entry.status, href: pathname, title: entry.title, id: entry.entityId },
+  });
+
   return (
-    <RuntimeWorldShell entry={entry}>
-      <section className="mb-4 rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white shadow-[0_16px_40px_rgba(0,0,0,.35)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/80">Entered world</p>
-            <h1 className="mt-1 text-lg font-semibold">{entry.title}</h1>
-            <p className="mt-1 text-sm text-white/75">Status: {entry.status} · Next: {nextActionLabel}</p>
-          </div>
-          {entry.primaryAction ? (
-            <Link href={entry.primaryAction.href} className="rounded-lg border border-cyan-200/40 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-50">
-              {entry.primaryAction.label}
-            </Link>
-          ) : null}
-        </div>
-      </section>
+    <>
+      <OperatorWorkflowHeader flow={flow} title={entry.title} />
       {children}
-    </RuntimeWorldShell>
+    </>
   );
+
 }

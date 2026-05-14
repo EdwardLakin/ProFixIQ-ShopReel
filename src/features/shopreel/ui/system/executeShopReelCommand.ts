@@ -15,6 +15,7 @@ import { appendRuntimeCommandHistory } from "@/features/shopreel/ui/system/runti
 import { buildWorldEntryIntent, resolveWorldFromEntityKind, resolveWorldFromPath } from "@/features/shopreel/ui/system/pageToWorldAdapter";
 import { recommendTransitions } from "@/features/shopreel/ui/system/worldTransitionRules";
 import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
+import { buildOperatorFlowState } from "@/features/shopreel/operator-flow/operatorFlow";
 
 export type CommandSource = "home_command" | "global_command";
 
@@ -27,6 +28,7 @@ export type ExecuteShopReelCommandResult = {
   typedAction: OperatorAction | null;
   actionResult: OperatorActionResult | null;
   worldTarget: { worldId: RuntimeWorldId; route: string; actionKind: OperatorActionKind | "open_world" | null; recommendation: string; fallbackRoute: string; entryIntent: RuntimeWorldEntryIntent } | null;
+  flow: ReturnType<typeof buildOperatorFlowState>;
 };
 
 function detectActionKind(command: string): OperatorActionKind | null {
@@ -59,6 +61,12 @@ export function executeShopReelCommand(input: {
 
   const actionKind = detectActionKind(input.command);
   const headWorld = input.recentWorlds?.[0];
+  const flow = buildOperatorFlowState({
+    command: input.command,
+    entity: headWorld ? { kind: headWorld.kind, status: headWorld.status, href: headWorld.href, title: headWorld.title, id: headWorld.id } : null,
+    recentEntities: (input.recentWorlds ?? []).map((world) => ({ kind: world.kind, status: world.status, href: world.href, title: world.title, id: world.id })),
+  });
+
   if (actionKind && headWorld) {
     const capability = resolveCapabilityForWorld(headWorld);
     const def = operatorCapabilityRegistry[capability];
@@ -109,12 +117,13 @@ export function executeShopReelCommand(input: {
   }
 
   if (!worldTarget) {
+    if (!selectedRoute || selectedRoute === "/shopreel") selectedRoute = flow.route;
     const targetWorld = resolveWorldFromPath(selectedRoute);
     worldTarget = {
       worldId: targetWorld,
       route: selectedRoute,
       actionKind: actionKind ?? "open_world",
-      recommendation: "World-aware route selection.",
+      recommendation: `Workflow stage ${flow.stage} selected. ${flow.reason}`,
       fallbackRoute: selectedRoute,
       entryIntent: buildWorldEntryIntent({ href: selectedRoute, worldId: targetWorld, source: "command" }),
     };
@@ -129,7 +138,7 @@ export function executeShopReelCommand(input: {
     carryoverWorldId: worldTarget?.worldId ?? null,
   });
 
-  return { decision, selectedRoute, handoffMethod, handoffId, commandIntent, typedAction, actionResult, worldTarget };
+  return { decision, selectedRoute, handoffMethod, handoffId, commandIntent, typedAction, actionResult, worldTarget, flow };
 }
 
 
