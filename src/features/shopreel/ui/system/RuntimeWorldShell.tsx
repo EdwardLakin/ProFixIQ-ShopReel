@@ -49,6 +49,7 @@ import { deriveRuntimeEmbodiedState } from "@/features/shopreel/ui/system/runtim
 import { deriveRuntimeEntityMaterialization } from "@/features/shopreel/ui/system/runtimeEntitySpace";
 import { runtimeChamberPrimitives } from "@/features/shopreel/ui/system/runtimeChamberPrimitives";
 import { deriveWorldPresenceCoordinator } from "@/features/shopreel/ui/system/worldPresenceCoordinator";
+import type { RuntimeWorldPresenceCoordinatorState } from "@/features/shopreel/ui/system/worldPresenceCoordinator";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
   return RUNTIME_WORLD_MAP[worldId].primaryActions.map((item) => ({ id: item.id, label: item.label, href: item.href ?? RUNTIME_WORLD_MAP[worldId].canonicalRoute }));
@@ -292,7 +293,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
         relationship: { toWorldId: entry.worldId, weight: Math.max(0, routeTransitionEngine.continuity.chamberCarryover.carryoverWeight - index * 0.06), reason: "foreground_transfer", updatedAt: nowIso },
       }), active);
   }, [nowIso, entry.worldId, entry.unresolvedCount, entry.entityId, entry.entityKind, 1 - environmentalIntelligence.environmentalAttenuation, environmentalIntelligence.urgencyPressure, persisted?.previousWorldId, persisted?.worldContinuity.activeEntityId, persisted?.worldContinuity.guidedStepId, persisted?.worldEntrySnapshot?.entityKind, routeTransitionEngine.continuity.cameraSemantics.topologyScaling, routeTransitionEngine.continuity.chamberCarryover.carryoverWeight, routeTransitionEngine.continuity.chamberCarryover.sourceMomentum, routeTransitionEngine.continuity.directionalContinuity, routeTransitionEngine.continuity.movementSemantic]);
-  const worldPresence = deriveWorldPresenceCoordinator({
+  const worldPresenceUnsafe = deriveWorldPresenceCoordinator({
     nowIso,
     foregroundWorldId: entry.worldId,
     registry: worldRegistry,
@@ -301,6 +302,21 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     unresolvedCount: entry.unresolvedCount,
     reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion),
   });
+  const worldPresence: RuntimeWorldPresenceCoordinatorState = {
+    foregroundWorldId: worldPresenceUnsafe.foregroundWorldId ?? entry.worldId,
+    mountedWorldIds: Array.isArray(worldPresenceUnsafe.mountedWorldIds) ? worldPresenceUnsafe.mountedWorldIds : [],
+    activeTopologyGraph: worldPresenceUnsafe.activeTopologyGraph ?? {},
+    worlds: worldPresenceUnsafe.worlds ?? {},
+    pressurePropagation: Number.isFinite(worldPresenceUnsafe.pressurePropagation) ? worldPresenceUnsafe.pressurePropagation : 0,
+    interruptionSignals: Array.isArray(worldPresenceUnsafe.interruptionSignals) ? worldPresenceUnsafe.interruptionSignals : [],
+    atmosphere: {
+      state: worldPresenceUnsafe.atmosphere?.state ?? "focused",
+      intensity: Number.isFinite(worldPresenceUnsafe.atmosphere?.intensity) ? worldPresenceUnsafe.atmosphere.intensity : 0,
+      motionAttenuation: Number.isFinite(worldPresenceUnsafe.atmosphere?.motionAttenuation) ? worldPresenceUnsafe.atmosphere.motionAttenuation : 0,
+      topologyGlow: Number.isFinite(worldPresenceUnsafe.atmosphere?.topologyGlow) ? worldPresenceUnsafe.atmosphere.topologyGlow : 0,
+      drift: Number.isFinite(worldPresenceUnsafe.atmosphere?.drift) ? worldPresenceUnsafe.atmosphere.drift : 0,
+    },
+  };
 
   const runtimeAttention = deriveRuntimeAttention({
     worldId: worldRegistry.foregroundWorldId ?? entry.worldId,
@@ -324,6 +340,6 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
 
   return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container} ${camera.interpolation.easingClassName}`} data-world-seed={ambientState.visualSeed} data-movement-semantic={routeTransitionEngine.continuity.movementSemantic} data-interruption-priority={runtimeAttention.interruptionPriority} data-active-world-count={worldRegistry.activeWorldIds.length} data-runtime-atmosphere={worldPresence.atmosphere.state} data-mounted-worlds={worldPresence.mountedWorldIds.length} data-pressure-propagation={worldPresence.pressurePropagation.toFixed(2)} style={{ transform: `translate3d(${camera.translate.x}px, ${camera.translate.y}px, 0)` }}>
     <div className="sr-only" aria-live="polite">{`Camera ${camera.mode}; focus ${camera.target}; chamber tension ${Math.round(environmentalIntelligence.urgencyPressure * 100)}; ${chamberActions[0]?.label ?? "No focal action"}; topology ${interactionTopology.summary}; continuity momentum ${Math.round(continuityMemory.navigationMomentum.momentum * 100)}%; atmosphere ${worldPresence.atmosphere.state}; mounted worlds ${worldPresence.mountedWorldIds.length}; interruptions ${worldPresence.interruptionSignals.length}`}</div>
-    <RuntimeSceneGraphCanvas composition={scene} planesByDepth={planeGeometry} topologyField={topologyField} interactionTopology={interactionTopology} presenceLayer={presenceLayer} continuityMemory={continuityMemory} />
+    <RuntimeSceneGraphCanvas composition={scene} planesByDepth={planeGeometry} topologyField={topologyField} interactionTopology={interactionTopology} presenceLayer={presenceLayer} continuityMemory={continuityMemory} worldPresence={worldPresence} />
   </div>;
 }
