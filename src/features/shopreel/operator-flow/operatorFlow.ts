@@ -28,8 +28,41 @@ export type OperatorFlowEntity = { kind?: string | null; status?: string | null;
 export type OperatorFlowAction = "continue" | "review" | "approve" | "revise" | "generate_next" | "schedule" | "publish" | "view_results" | "back_to_deck";
 export type OperatorFlowState = { stage: OperatorFlowStage; route: string; intent: OperatorFlowIntent; entity: OperatorFlowEntity | null; reason: string; recommendedNextAction: OperatorFlowAction; nextRouteAfterApproval: string; revisionRoute: string };
 
-const STAGE_ROUTE_MAP: Record<OperatorFlowStage, string> = { idea: "/shopreel/ideas", campaign_plan: "/shopreel/campaigns/new", script: "/shopreel/editor", scenes: "/shopreel/storyboards", creative_output: "/shopreel/generations", review: "/shopreel/review", approval: "/shopreel/review", schedule: "/shopreel/calendar", publish: "/shopreel/publish-center", results: "/shopreel/analytics", memory_learning: "/shopreel/operator" };
-const NEXT_STAGE: Record<OperatorFlowStage, OperatorFlowStage> = { idea: "campaign_plan", campaign_plan: "script", script: "scenes", scenes: "creative_output", creative_output: "review", review: "approval", approval: "schedule", schedule: "publish", publish: "results", results: "memory_learning", memory_learning: "idea" };
+const STAGE_ROUTE_MAP: Record<OperatorFlowStage, string> = {
+  idea: "/shopreel/ideas",
+  campaign_plan: "/shopreel/campaigns/new",
+
+  // Campaign work should stay inside the campaign workspace/item production flow.
+  // The generic editor/storyboards/generations pages are fallback/manual surfaces,
+  // not the correct next step after approving a campaign brief.
+  script: "/shopreel/campaigns",
+  scenes: "/shopreel/campaigns",
+  creative_output: "/shopreel/campaigns",
+
+  review: "/shopreel/review",
+  approval: "/shopreel/review",
+  schedule: "/shopreel/calendar",
+  publish: "/shopreel/publish-center",
+  results: "/shopreel/analytics",
+  memory_learning: "/shopreel/operator",
+};
+const NEXT_STAGE: Record<OperatorFlowStage, OperatorFlowStage> = {
+  idea: "campaign_plan",
+
+  // Campaign approval should move into scene/reference-frame production,
+  // not the generic editor.
+  campaign_plan: "scenes",
+
+  script: "scenes",
+  scenes: "creative_output",
+  creative_output: "review",
+  review: "approval",
+  approval: "schedule",
+  schedule: "publish",
+  publish: "results",
+  results: "memory_learning",
+  memory_learning: "idea",
+};
 
 export const routeForStage = (stage: OperatorFlowStage): string => STAGE_ROUTE_MAP[stage];
 export function resolveInitialStageFromCommand(command: string): { stage: OperatorFlowStage; intent: OperatorFlowIntent; reason: string } {
