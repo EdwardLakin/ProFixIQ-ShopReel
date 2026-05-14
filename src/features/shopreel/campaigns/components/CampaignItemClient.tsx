@@ -510,6 +510,8 @@ export default function CampaignItemClient({
   const [workspaceSceneOrder, setWorkspaceSceneOrder] = useState<string[]>([]);
   const [collapsedScenes, setCollapsedScenes] = useState<Record<string, boolean>>({});
   const [selectedRefinements, setSelectedRefinements] = useState<RefinementAction[]>([]);
+  const [referenceFrameApproved, setReferenceFrameApproved] = useState(false);
+  const [manualReferenceUrl, setManualReferenceUrl] = useState("");
 
   useEffect(() => {
     setWorkspaceSceneOrder(scenes.map((scene) => scene.id));
@@ -535,8 +537,11 @@ export default function CampaignItemClient({
   const failedFrameJobs = firstFramePreviewUrl
     ? []
     : frameJobs.filter((job) => /failed|error/i.test(job.status ?? ""));
+  const approvedReferenceUrl = manualReferenceUrl.trim() || firstFramePreviewUrl;
+  const hasReferenceFrame = Boolean(approvedReferenceUrl);
   const canGenerateReferenceFrame = Boolean(dominantFrameCta.targetSceneId) && !anyBusy;
   const needsScenesBeforeFrames = orderedScenes.length === 0;
+  const canGenerateVideoClips = hasReferenceFrame && referenceFrameApproved && !anyBusy;
   const operatorPrimaryLabel = needsScenesBeforeFrames
     ? "Build scenes first"
     : processingFrameJobs.length > 0
@@ -566,14 +571,22 @@ export default function CampaignItemClient({
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-cyan-100/75">Operator next step</p>
             <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">
-              {needsScenesBeforeFrames ? "Build storyboard scenes first" : completedFrameJobs.length > 0 ? "Reference frame ready" : "Generate the first static reference frame"}
+              {needsScenesBeforeFrames
+                ? "Build storyboard scenes first"
+                : referenceFrameApproved
+                  ? "Reference frame approved"
+                  : hasReferenceFrame
+                    ? "Review and approve the reference frame"
+                    : "Generate the first static reference frame"}
             </h2>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-white/68">
               {needsScenesBeforeFrames
                 ? "No storyboard scenes exist yet. Build scenes first, then the operator can create static reference frames."
-                : completedFrameJobs.length > 0
-                  ? "A static reference image is ready. Review it, regenerate if needed, then move into video clip generation."
-                  : "Campaign direction is ready. The operator needs a static reference image before video clip generation so the downstream pipeline has a clear visual target."}
+                : referenceFrameApproved
+                  ? "The reference image is approved. The next step is generating video clips from the approved visual target."
+                  : hasReferenceFrame
+                    ? "A static reference image is ready. Approve it, regenerate it, or upload your own replacement before video generation."
+                    : "Campaign direction is ready. The operator needs a static reference image before video clip generation so the downstream pipeline has a clear visual target."}
             </p>
           </div>
 
@@ -596,6 +609,30 @@ export default function CampaignItemClient({
               >
                 {busy === "create-scenes" ? "Building scenes..." : "Build scenes first →"}
               </button>
+            ) : referenceFrameApproved ? (
+              <button
+                type="button"
+                onClick={() =>
+                  void runAction(
+                    "run-scenes",
+                    `/api/shopreel/campaigns/items/${item.id}/run-scene-jobs`,
+                    "Starting video clip generation from the approved reference frame..."
+                  )
+                }
+                disabled={!canGenerateVideoClips}
+                className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy === "run-scenes" ? "Generating clips..." : "Generate video clips →"}
+              </button>
+            ) : hasReferenceFrame ? (
+              <button
+                type="button"
+                onClick={() => setReferenceFrameApproved(true)}
+                disabled={anyBusy}
+                className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Approve reference frame →
+              </button>
             ) : dominantFrameCta.targetSceneId ? (
               <button
                 type="button"
@@ -616,8 +653,8 @@ export default function CampaignItemClient({
         <div className="mt-4 grid gap-2 text-[11px] uppercase tracking-[0.18em] text-white/45 sm:grid-cols-5">
           <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/70">Campaign</span>
           <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/70">Direction</span>
-          <span className="rounded-full border border-cyan-200/30 bg-cyan-300/10 px-3 py-2 text-cyan-100">Reference frame</span>
-          <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/55">Video clip</span>
+          <span className={`rounded-full border px-3 py-2 ${hasReferenceFrame ? "border-emerald-200/30 bg-emerald-300/10 text-emerald-100" : "border-cyan-200/30 bg-cyan-300/10 text-cyan-100"}`}>Reference frame</span>
+          <span className={`rounded-full border px-3 py-2 ${referenceFrameApproved ? "border-cyan-200/30 bg-cyan-300/10 text-cyan-100" : "border-white/10 bg-white/[0.035] text-white/55"}`}>Video clip</span>
           <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/55">Review / post</span>
         </div>
 
@@ -634,9 +671,9 @@ export default function CampaignItemClient({
               {error ? <p className="text-rose-200">{error}</p> : null}
             </div>
             {firstFramePreviewUrl ? (
-              <a href={firstFramePreviewUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-cyan-200/20 bg-black/30">
+              <a href={approvedReferenceUrl || firstFramePreviewUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-cyan-200/20 bg-black/30">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={firstFramePreviewUrl} alt="Generated reference frame preview" className="h-24 w-16 object-cover" />
+                <img src={approvedReferenceUrl || firstFramePreviewUrl} alt="Generated reference frame preview" className="h-24 w-16 object-cover" />
               </a>
             ) : null}
           </div>
@@ -865,17 +902,58 @@ export default function CampaignItemClient({
 
           {firstFramePreviewUrl ? (
             <div className="grid gap-4 rounded-2xl border border-cyan-200/20 bg-black/20 p-4 md:grid-cols-[12rem_minmax(0,1fr)]">
-              <a href={firstFramePreviewUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+              <a href={approvedReferenceUrl || firstFramePreviewUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-white/10 bg-black/30">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={firstFramePreviewUrl} alt="Generated reference frame preview" className="aspect-[9/16] w-full object-cover" />
+                <img src={approvedReferenceUrl || firstFramePreviewUrl} alt="Generated reference frame preview" className="aspect-[9/16] w-full object-cover" />
               </a>
               <div className="flex flex-col justify-center">
                 <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-100/60">Reference frame ready</p>
                 <h3 className="mt-2 text-lg font-semibold text-white">Review the generated still</h3>
                 <p className="mt-2 text-sm leading-6 text-white/65">
-                  This is the static image target for the next video step. Regenerate if the visual direction is wrong, or continue toward video clip generation.
+                  This is the static image target for the next video step. Approve it, regenerate it, or paste an uploaded image URL to use your own reference.
                 </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setReferenceFrameApproved(true)}
+                    disabled={anyBusy || referenceFrameApproved}
+                    className="rounded-xl bg-emerald-400/15 px-4 py-2 text-sm font-semibold text-emerald-100 ring-1 ring-emerald-200/25 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {referenceFrameApproved ? "Approved" : "Approve reference"}
+                  </button>
+                  {dominantFrameCta.targetSceneId ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReferenceFrameApproved(false);
+                        void generateSceneFrame(dominantFrameCta.targetSceneId!);
+                      }}
+                      disabled={anyBusy}
+                      className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm text-white/80 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Regenerate
+                    </button>
+                  ) : null}
+                </div>
+                <label className="mt-4 grid gap-2 text-sm text-white/70">
+                  <span className="text-[11px] uppercase tracking-[0.18em] text-white/45">Manual reference image URL</span>
+                  <input
+                    value={manualReferenceUrl}
+                    onChange={(event) => {
+                      setManualReferenceUrl(event.target.value);
+                      setReferenceFrameApproved(false);
+                    }}
+                    placeholder="Paste uploaded image URL"
+                    className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-white outline-none focus:border-cyan-200/40"
+                  />
+                </label>
               </div>
+            </div>
+          ) : null}
+
+          {hasReferenceFrame && !referenceFrameApproved ? (
+            <div className="rounded-2xl border border-amber-200/20 bg-amber-300/10 p-4 text-sm text-amber-50">
+              Review and approve the reference frame before generating video clips.
             </div>
           ) : null}
 
