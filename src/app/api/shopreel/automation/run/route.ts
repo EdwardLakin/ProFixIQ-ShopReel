@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         .eq("status", "processing"),
     ]);
 
-    const videoSyncResults = await syncAllProcessingVideoJobs();
+    const videoSyncResults = await syncAllProcessingVideoJobs({ shopId });
 
     const { data: campaigns, error } = await supabase
       .from("shopreel_campaigns")

@@ -1,9 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
-export async function syncAllProcessingVideoJobs() {
+export async function syncAllProcessingVideoJobs(args?: { shopId?: string }) {
   const supabase = createAdminClient();
-  const shopId = await getCurrentShopId();
+  const shopId = args?.shopId ?? await getCurrentShopId();
 
   const { data: jobs, error } = await supabase
     .from("shopreel_media_generation_jobs")
