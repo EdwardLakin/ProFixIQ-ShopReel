@@ -12,10 +12,23 @@ function getBaseUrl() {
   );
 }
 
+function normalizeBaseUrl(url: string) {
+  return url.replace(/\/+$/, "");
+}
+
 export async function GET() {
   try {
     const secret = process.env.SHOPREEL_AUTOMATION_SECRET;
     const shopId = process.env.SHOPREEL_AUTOMATION_SHOP_ID;
+    const baseUrl = normalizeBaseUrl(getBaseUrl());
+    const automationUrl = `${baseUrl}/api/shopreel/automation/run`;
+
+    console.log("[shopreel-cron] started", {
+      hasAutomationSecret: Boolean(secret),
+      hasAutomationShopId: Boolean(shopId),
+      baseUrl,
+      automationUrl,
+    });
 
     if (!secret) {
       return NextResponse.json(
@@ -37,10 +50,11 @@ export async function GET() {
       );
     }
 
-    const res = await fetch(`${getBaseUrl()}/api/shopreel/automation/run`, {
+    const res = await fetch(automationUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${secret}`,
+        "x-shopreel-worker-secret": secret,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ shopId }),
@@ -49,11 +63,18 @@ export async function GET() {
 
     const json = await res.json().catch(() => ({}));
 
+    console.log("[shopreel-cron] downstream response", {
+      status: res.status,
+      ok: res.ok,
+    });
+
     if (!res.ok) {
       return NextResponse.json(
         {
           ok: false,
           error: (json as { error?: string }).error ?? "Cron automation failed",
+          downstreamStatus: res.status,
+          downstreamJson: json,
         },
         { status: res.status }
       );
