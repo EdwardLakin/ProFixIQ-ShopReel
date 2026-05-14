@@ -557,9 +557,20 @@ export default function CampaignItemClient({
             <a href="#creative-direction" className="rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-sm text-white/78 transition hover:bg-white/[0.08]">
               Edit direction
             </a>
-            <a href="#reference-frame-generation" className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)]">
-              Generate reference frame →
-            </a>
+            {dominantFrameCta.targetSceneId ? (
+              <button
+                type="button"
+                onClick={() => void generateSceneFrame(dominantFrameCta.targetSceneId!)}
+                disabled={anyBusy}
+                className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy === `frame-${dominantFrameCta.targetSceneId}` ? "Generating..." : "Generate reference frame →"}
+              </button>
+            ) : (
+              <a href="#reference-frame-generation" className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)]">
+                Generate reference frames →
+              </a>
+            )}
           </div>
         </div>
 
