@@ -9,8 +9,8 @@ export async function syncAllProcessingVideoJobs(args?: { shopId?: string }) {
     .from("shopreel_media_generation_jobs")
     .select("id, provider, job_type, status")
     .eq("shop_id", shopId)
-    .eq("status", "processing")
-    .eq("provider", "openai")
+    .in("status", ["processing", "submitted", "rendering"])
+    .in("provider", ["openai", "fal"])
     .eq("job_type", "video")
     .order("updated_at", { ascending: true })
     .limit(50);
