@@ -98,7 +98,6 @@ export default function RuntimeWorldDeck({
             key={`${item.kind}-${item.id}`}
             type="button"
             onClick={(event) => {
-              if (!active) return setActiveIndex(index);
               onSelect(item, event, index, deckGraph, temporalMemory, choreography);
             }}
             className={`group relative w-full overflow-hidden rounded-[1.25rem] border px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 ${
