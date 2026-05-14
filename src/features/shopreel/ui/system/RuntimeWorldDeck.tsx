@@ -41,7 +41,7 @@ export default function RuntimeWorldDeck({
   ) => void;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const maxVisible = 4;
+  const maxVisible = 5;
   const visible = useMemo(() => items.slice(activeIndex, activeIndex + maxVisible), [items, activeIndex]);
 
   const advance = (dir: 1 | -1) => {
@@ -84,6 +84,7 @@ export default function RuntimeWorldDeck({
       aria-label="Operational worlds deck"
       aria-activedescendant={visible[0] ? `world-card-${visible[0].id}` : undefined}
     >
+      <div className="flex h-full flex-col gap-3 pb-4 pt-4 lg:pt-10">
       {visible.map((item, localIndex) => {
         const index = activeIndex + localIndex;
         const active = localIndex === 0;
@@ -100,19 +101,19 @@ export default function RuntimeWorldDeck({
               if (!active) return setActiveIndex(index);
               onSelect(item, event, index, deckGraph, temporalMemory, choreography);
             }}
-            className={`group absolute right-0 top-16 min-h-[22rem] w-[min(36rem,92%)] overflow-hidden rounded-[1.6rem] border p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 ${
+            className={`group relative w-full overflow-hidden rounded-[1.25rem] border px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 ${
               active
-                ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))]"
+                ? "border-amber-200/70 bg-[linear-gradient(180deg,rgba(40,24,36,.96),rgba(7,10,24,.98))]"
                 : emphasizedCardId === `${item.kind}:${item.id}`
-                  ? "border-cyan-200/70 bg-[linear-gradient(180deg,rgba(22,36,58,.96),rgba(8,10,26,.98))]"
-                  : "border-white/12 bg-[linear-gradient(180deg,rgba(17,20,43,.9),rgba(5,8,22,.98))]"
+                  ? "border-cyan-200/70 bg-[linear-gradient(180deg,rgba(18,34,58,.96),rgba(7,10,24,.98))]"
+                  : "border-white/15 bg-[linear-gradient(180deg,rgba(17,20,43,.95),rgba(5,8,22,.98))]"
             }`}
             style={{
               zIndex: maxVisible - localIndex,
-              opacity: [1, 0.86, 0.72, 0.56][localIndex] ?? 0.4,
-              transform: `translate3d(${[0, 14, 28, 42][localIndex] ?? localIndex * 14}px, ${[0, -18, -34, -48][localIndex] ?? localIndex * -14}px, 0) scale(${[1, 0.97, 0.94, 0.91][localIndex] ?? 0.88})`,
-              transition: prefersReducedMotion ? "none" : "transform 260ms ease, opacity 260ms ease, box-shadow 260ms ease",
-              boxShadow: active ? "0 0 65px rgba(255,174,80,.24),0 34px 90px rgba(0,0,0,.62)" : "0 20px 46px rgba(0,0,0,.52)",
+              opacity: active ? 1 : 0.96,
+              transform: `translate3d(${active ? 0 : 16}px,0,0) scale(${active ? 1 : 0.98})`,
+              transition: prefersReducedMotion ? "none" : "transform 220ms ease, opacity 220ms ease, box-shadow 220ms ease",
+              boxShadow: active ? "0 0 45px rgba(255,174,80,.22),0 22px 64px rgba(0,0,0,.58)" : "0 16px 36px rgba(0,0,0,.46)",
             }}
             aria-selected={active}
           >
@@ -121,15 +122,17 @@ export default function RuntimeWorldDeck({
                 <span>{active ? "Active" : statusTone(item.normalizedStatus)}</span>
                 <span>{active ? "Current" : `${worldKind} · ${item.sourceLabel}`}</span>
               </div>
-              <h2 className="mt-8 line-clamp-3 text-2xl leading-tight tracking-[-0.03em] text-white">{item.title}</h2>
-              <div className="mt-7 inline-flex rounded-full bg-violet-400/18 px-4 py-2 text-sm text-violet-100">{item.stageLabel}</div>
+              <h2 className="mt-4 line-clamp-2 text-xl leading-tight tracking-[-0.02em] text-white">{item.title}</h2>
+              <div className="mt-3 inline-flex rounded-full bg-violet-400/18 px-3 py-1.5 text-xs text-violet-100">{item.stageLabel}</div>
             </div>
-            <div className="absolute bottom-8 left-6 right-6 text-xs text-white/72">
-              {active ? item.actionLabel : choreography.operatorCue.nextActionLabel ?? "Open"} · Chain {deckGraph.dependencies.length}/{deckGraph.traversal.blockers.length} · Stability {temporalMemory.resilience}
+            <div className="mt-4 flex items-center justify-between gap-3 text-xs text-white/82">
+              <span className="truncate">{active ? item.actionLabel : choreography.operatorCue.nextActionLabel ?? "Open"} · Chain {deckGraph.dependencies.length}/{deckGraph.traversal.blockers.length}</span>
+              <span className={`shrink-0 rounded-full px-3 py-1 ${active ? "bg-amber-300/20 text-amber-100" : "bg-cyan-300/10 text-cyan-100/90"}`}>{active ? "Enter world →" : "Select portal"}</span>
             </div>
           </button>
         );
       })}
+      </div>
     </div>
   );
 }
