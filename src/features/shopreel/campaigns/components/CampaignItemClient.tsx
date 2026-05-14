@@ -273,8 +273,8 @@ function getNextAction(args: {
   if (args.totalScenes > 0 || args.linkedScenes > 0) {
     return {
       action: "create_videos" as const,
-      label: "Create videos",
-      description: "Start generating the scene videos for this campaign video.",
+      label: "Generate video clips",
+      description: "Use the approved/static scene references to start video clip generation.",
     };
   }
 
@@ -289,14 +289,14 @@ function getDominantFrameCta(scenes: SceneRow[]) {
   const sceneWithFrame = scenes.find((scene) => scene.frame_job?.status === "completed" || scene.frame_job?.preview_url);
   if (sceneWithFrame) {
     return {
-      label: "Generate Scene Frames",
-      description: "Keep building visual references across the full storyboard before clip generation.",
+      label: "Generate reference frames",
+      description: "Build static visual references across the storyboard before clip/video generation.",
       targetSceneId: null as string | null,
     };
   }
   return {
-    label: "Generate First Scene",
-    description: "Start the storyboard with one key frame so creators can see the visual direction immediately.",
+    label: "Generate first reference frame",
+    description: "Create the first static reference image so FAL/image generation has a clear visual target before Kling/video generation.",
     targetSceneId: scenes[0]?.id ?? null,
   };
 }
@@ -394,7 +394,7 @@ export default function CampaignItemClient({
     try {
       setBusy(`frame-${sceneId}`);
       setError(null);
-      setStatusMessage("Generating scene frame...");
+      setStatusMessage("Generating static reference frame...");
       const res = await fetch(`/api/shopreel/campaigns/items/${item.id}/scene-frames/${sceneId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -540,6 +540,45 @@ export default function CampaignItemClient({
 
   return (
     <div className="grid gap-5">
+      <section className="sticky top-4 z-40 overflow-hidden rounded-[1.35rem] border border-cyan-200/25 bg-[#06111f]/95 px-5 py-4 shadow-[0_18px_55px_rgba(0,0,0,.38)] backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/70 to-transparent" />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-cyan-100/75">Operator next step</p>
+            <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">
+              {dominantFrameCta.targetSceneId ? "Generate the first static reference frame" : "Generate storyboard reference frames"}
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-white/68">
+              Campaign direction is ready. The operator needs static reference images before video clip generation so the FAL/Kling pipeline has a clear visual target.
+            </p>
+          </div>
+
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <a href="#creative-direction" className="rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-sm text-white/78 transition hover:bg-white/[0.08]">
+              Edit direction
+            </a>
+            <a href="#reference-frame-generation" className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)]">
+              Generate reference frame →
+            </a>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-2 text-[11px] uppercase tracking-[0.18em] text-white/45 sm:grid-cols-5">
+          <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/70">Campaign</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/70">Direction</span>
+          <span className="rounded-full border border-cyan-200/30 bg-cyan-300/10 px-3 py-2 text-cyan-100">Reference frame</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/55">Video clip</span>
+          <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/55">Review / post</span>
+        </div>
+
+        {statusMessage || error ? (
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm">
+            {statusMessage ? <p className="text-cyan-100/80">{statusMessage}</p> : null}
+            {error ? <p className="text-rose-200">{error}</p> : null}
+          </div>
+        ) : null}
+      </section>
+
       <GlassCard label="Item" title={item.title} description={item.prompt} strong>
         <div className="flex flex-wrap gap-2">
           <GlassBadge tone="default">{item.status}</GlassBadge>
@@ -554,7 +593,8 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <GlassCard
+      <section id="creative-direction">
+        <GlassCard
         label="Creative Direction"
         title="Lock the campaign look"
         description="Choose the visual direction once, then keep all scenes inside the same creative world."
@@ -703,11 +743,12 @@ export default function CampaignItemClient({
           so the full campaign feels cohesive.
         </div>
       </GlassCard>
+      </section>
 
-      <GlassCard label="Workflow" title="Creator Production Flow" description="Review the campaign story, generate scene visuals, then move into clips and final output." strong>
+      <GlassCard label="Workflow" title="Creator Production Flow" description="Review the campaign story, generate static reference frames, then move into video clips and final output." strong>
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-xs text-white/75">
-            {["Review Campaign", "Generate Frames", "Generate Clips", "Review Output", "Export / Publish"].map((step, index, arr) => (
+            {["Review Campaign", "Generate Reference Frames", "Generate Video Clips", "Review Output", "Export / Publish"].map((step, index, arr) => (
               <div key={step} className="inline-flex items-center gap-2">
                 <span className="rounded-full border border-white/15 bg-white/[0.03] px-3 py-1">{step}</span>
                 {index < arr.length - 1 ? <span className="text-white/35">→</span> : null}
@@ -741,6 +782,7 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
+      <section id="reference-frame-generation">
       <GlassCard label="Primary Action" title={dominantFrameCta.label} description={dominantFrameCta.description} strong>
         <div className="space-y-4">
           {statusMessage ? (
@@ -796,12 +838,12 @@ export default function CampaignItemClient({
                   void runAction(
                     "run-scenes",
                     `/api/shopreel/campaigns/items/${item.id}/run-scene-jobs`,
-                    "Starting scene video generation..."
+                    "Starting video clip generation from the scene references..."
                   )
                 }
                 disabled={anyBusy}
               >
-                {busy === "run-scenes" ? "Working..." : "Create videos"}
+                {busy === "run-scenes" ? "Working..." : "Generate video clips"}
               </GlassButton>
             ) : null}
 
@@ -882,7 +924,7 @@ export default function CampaignItemClient({
                     void runAction(
                       "run-scenes",
                       `/api/shopreel/campaigns/items/${item.id}/run-scene-jobs`,
-                      "Starting scene video generation..."
+                      "Starting video clip generation from the scene references..."
                     )
                   }
                   disabled={anyBusy}
@@ -957,7 +999,7 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <GlassCard label="Storyboard Workspace" title="Scene sequencing board" description="Arrange scene order, shape story rhythm, and preview platform pacing with a creator-first lens." strong>
+      </section>\n\n      <GlassCard label="Storyboard Workspace" title="Scene sequencing board" description="Arrange scene order, shape story rhythm, and preview platform pacing with a creator-first lens." strong>
         <div className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 xl:col-span-2">
             <div className="text-xs uppercase tracking-[0.16em] text-white/55">Emotional timeline</div>
@@ -1124,7 +1166,7 @@ export default function CampaignItemClient({
                           disabled={anyBusy}
                           onClick={() => void generateSceneFrame(scene.id)}
                         >
-                          {scene.frame_job ? "Regenerate frame" : "Generate frame"}
+                          {scene.frame_job ? "Regenerate reference frame" : "Generate reference frame"}
                         </GlassButton>
                       </div>
                       {scene.frame_job?.error_text ? <div className="text-sm text-red-300">{scene.frame_job.error_text}</div> : null}
