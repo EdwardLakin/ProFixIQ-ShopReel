@@ -10,14 +10,6 @@ import { buildRuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtim
 import { deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
 import type { OperatorRuntimeSessionState } from "@/features/shopreel/ui/system/operatorRuntimeSession";
 
-function statusTone(status: string) {
-  if (/review|approval/i.test(status)) return "Awaiting review";
-  if (/block|failed|error|interrupted/i.test(status)) return "Interrupted";
-  if (/in_progress|running|draft|active/i.test(status)) return "Active";
-  if (/completed|published/i.test(status)) return "Complete";
-  return "Stable";
-}
-
 function clampIndex(index: number, length: number) {
   if (length <= 0) return 0;
   return Math.max(0, Math.min(length - 1, index));
@@ -54,25 +46,19 @@ export default function RuntimeWorldDeck({
     return items.slice(safeActiveIndex, safeActiveIndex + maxVisible);
   }, [items, safeActiveIndex]);
 
+  const activeItem = visible[0] ?? null;
   const canGoBack = safeActiveIndex > 0;
   const canGoNext = safeActiveIndex < items.length - 1;
-  const activeItem = visible[0] ?? null;
 
   const moveDeck = (dir: 1 | -1) => {
     setActiveIndex((current) => clampIndex(current + dir, items.length));
   };
 
   return (
-    <div
-      className="relative h-full min-h-[34rem] w-full overflow-hidden"
-      role="region"
-      aria-label="Operational world portal deck"
-    >
+    <div className="relative h-full min-h-[34rem] w-full overflow-hidden" role="region" aria-label="Operational world portal deck">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-white/52">
-            Portal deck
-          </p>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-white/52">Portal deck</p>
           <p className="mt-1 truncate text-sm text-white/72">
             {activeItem ? activeItem.title : "No active worlds yet"}
           </p>
@@ -101,11 +87,13 @@ export default function RuntimeWorldDeck({
       </div>
 
       <div className="pointer-events-none absolute inset-x-8 top-[7.5rem] h-56 rounded-full bg-cyan-400/10 blur-3xl" />
+
       <div className="relative h-[29rem] [perspective:1200px]">
         {visible.map((item, localIndex) => {
           const index = safeActiveIndex + localIndex;
           const active = localIndex === 0;
           const worldKind = resolveWorldFromEntityKind(item.kind);
+
           const choreography = deriveWorldChoreography({
             worldId: worldKind,
             status: item.normalizedStatus,
@@ -169,11 +157,11 @@ export default function RuntimeWorldDeck({
           });
 
           const selected = emphasizedCardId === `${item.kind}:${item.id}`;
-          const y = localIndex * 26;
+          const y = localIndex * 28;
           const x = localIndex * 18;
-          const scale = 1 - localIndex * 0.045;
-          const rotate = localIndex * -2.25;
-          const opacity = [1, 0.72, 0.44, 0.22][localIndex] ?? 0.16;
+          const scale = 1 - localIndex * 0.05;
+          const rotate = localIndex * -2.5;
+          const opacity = [1, 0.72, 0.44, 0.2][localIndex] ?? 0.12;
 
           return (
             <button
@@ -182,7 +170,7 @@ export default function RuntimeWorldDeck({
               type="button"
               disabled={!active}
               onClick={(event) => onSelect(item, event, index, deckGraph, temporalMemory, choreography)}
-              className={`absolute left-0 right-0 top-0 min-h-[24rem] overflow-hidden rounded-[1.6rem] border p-6 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/70 ${
+              className={`absolute left-0 right-0 top-0 min-h-[24rem] overflow-hidden rounded-[1.65rem] border p-6 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/70 ${
                 active
                   ? "cursor-pointer border-amber-200/70 bg-[linear-gradient(180deg,rgba(40,24,36,.98),rgba(7,10,24,.99))]"
                   : selected
@@ -208,9 +196,9 @@ export default function RuntimeWorldDeck({
 
               <div className="relative flex h-full min-h-[21rem] flex-col">
                 <div className="flex items-center justify-between gap-4 text-[10px] uppercase tracking-[0.18em] text-amber-100/82">
-                  <span>{active ? "Front portal" : statusTone(item.normalizedStatus)}</span>
+                  <span>{active ? "Front portal" : "Queued portal"}</span>
                   <span className="text-white/48">
-                    {active ? `${safeActiveIndex + 1}/${items.length}` : `${worldKind} · queued`}
+                    {safeActiveIndex + localIndex + 1}/{items.length}
                   </span>
                 </div>
 
@@ -231,6 +219,7 @@ export default function RuntimeWorldDeck({
                     <p className="truncate">{item.actionLabel}</p>
                     <p className="mt-1 text-xs text-white/42">
                       Chain {deckGraph.dependencies.length}/{deckGraph.traversal.blockers.length} · {temporalMemory.resilience}
+                      {unresolvedCount ? ` · ${unresolvedCount} unresolved` : ""}
                     </p>
                   </div>
 
@@ -246,12 +235,8 @@ export default function RuntimeWorldDeck({
 
       {items.length > 1 ? (
         <div className="mt-3 flex items-center justify-between gap-4 text-xs text-white/46">
-          <span>
-            Most recent loads first. Use arrows to cycle the stack.
-          </span>
-          <span>
-            {safeActiveIndex + 1} / {items.length}
-          </span>
+          <span>Most recent loads first. Use arrows to cycle the stack.</span>
+          <span>{safeActiveIndex + 1} / {items.length}</span>
         </div>
       ) : null}
     </div>
