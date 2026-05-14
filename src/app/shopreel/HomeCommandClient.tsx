@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTransitionRouter } from "@/features/shopreel/ui/system/TransitionProvider";
 import ShopReelNotificationsBell from "@/features/shopreel/ui/ShopReelNotificationsBell";
@@ -40,11 +40,9 @@ import { buildWorldEntryIntent, resolveWorldFromEntityKind, resolveWorldEntryFor
 import { buildWorldSnapshot } from "@/features/shopreel/ui/system/worldSnapshot";
 import { createWorldEntryTransition } from "@/features/shopreel/ui/system/runtimeWorldTransition";
 import { consumeRuntimeReturnState } from "@/features/shopreel/ui/system/runtimeSpatialTransition";
-import { deriveWorldChoreography } from "@/features/shopreel/ui/system/runtimeWorldChoreography";
 import { RUNTIME_WORLD_COMPOSITIONS } from "@/features/shopreel/ui/system/runtimeWorldComposition";
 import { deriveRuntimeOperatorPriority, deriveRuntimeOrchestration } from "@/features/shopreel/ui/system/runtimeWorldOrchestration";
-import { buildRuntimeEntityGraph } from "@/features/shopreel/ui/system/runtimeEntityGraph";
-import { buildRuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
+import RuntimeWorldDeck from "@/features/shopreel/ui/system/RuntimeWorldDeck";
 
 
 type RuntimeCampaignContext = {
@@ -90,14 +88,6 @@ function getResumeWorldHref(fallback?: string): string {
   return readPersistedRuntimeSession()?.worldContinuity.activeRoute ?? fallback ?? "/shopreel";
 }
 
-function statusTone(status: string) {
-  if (/review|approval/i.test(status)) return "Awaiting review";
-  if (/block|failed|error|interrupted/i.test(status)) return "Interrupted";
-  if (/in_progress|running|draft|active/i.test(status)) return "Active";
-  if (/completed|published/i.test(status)) return "Complete";
-  return "Stable";
-}
-
 export default function HomeCommandClient({ recent, loadErrors }: { recent: OperatorWorldCard[]; loadErrors?: string[] }) {
   const router = useRouter();
   const { startWorldEntryTransition } = useTransitionRouter();
@@ -111,13 +101,20 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
   const [emphasizedCardId, setEmphasizedCardId] = useState<string | null>(null);
   const [isCommandRunning, setIsCommandRunning] = useState(false);
   const [commandFailure, setCommandFailure] = useState<string | null>(loadErrors?.length ? `Runtime data load issue: ${loadErrors[0]}` : null);
-  const deckRef = useRef<HTMLDivElement | null>(null);
-
   const unresolvedCount = recent.filter((item) => item.priority === "critical" || /review|approval/.test(item.normalizedStatus)).length;
   const hasPendingApprovals = recent.some((item) => /review|approval/.test(item.normalizedStatus));
   const hasActiveCampaign = recent.some((item) => item.kind === "campaign");
   const hasRecentWorlds = recent.length > 0;
-  const activeWorld = recent[0] ?? null;
+  const sortedWorlds = useMemo(
+    () =>
+      [...recent].sort((a, b) => {
+        const aScore = a.priority === "critical" ? 3 : a.priority === "high" ? 2 : 1;
+        const bScore = b.priority === "critical" ? 3 : b.priority === "high" ? 2 : 1;
+        return bScore - aScore || new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime();
+      }),
+    [recent],
+  );
+  const activeWorld = sortedWorlds[0] ?? null;
 
   const deckOrchestrations = useMemo(() => recent.slice(0, 8).map((item) => {
     const worldId = resolveWorldFromEntityKind(item.kind);
@@ -349,7 +346,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_42%_36%,rgba(255,171,75,.24),transparent_18%),radial-gradient(circle_at_50%_52%,rgba(111,76,255,.28),transparent_32%),radial-gradient(circle_at_86%_38%,rgba(70,160,255,.15),transparent_30%),linear-gradient(135deg,#02040c_0%,#060815_48%,#04030b_100%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
 
-      <div className="relative z-10 grid min-h-[100svh] grid-cols-1 xl:grid-cols-[clamp(9.5rem,12vw,12rem)_minmax(0,1fr)]">
+      <div className="relative z-10 grid h-[100svh] min-h-[100svh] overflow-hidden grid-cols-1 xl:grid-cols-[clamp(9.5rem,12vw,12rem)_minmax(0,1fr)]">
         <aside className="hidden border-r border-white/[0.06] bg-black/10 px-5 py-6 xl:flex xl:flex-col xl:gap-6">
           <div className="flex items-center gap-4">
             <div className="text-sm font-bold tracking-[0.1em]">PROFIXIQ</div>
@@ -387,7 +384,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
           </Link>
         </aside>
 
-        <main className="relative grid min-h-[100svh] grid-rows-[auto_minmax(0,1fr)_auto] gap-5 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+        <main className="relative grid h-[100svh] min-h-[100svh] overflow-hidden grid-rows-[auto_minmax(0,1fr)_auto] gap-5 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <header className="flex items-center justify-between">
             <div className="hidden items-center gap-3 text-[12px] uppercase tracking-[0.26em] text-amber-100/88 md:flex">
               <span className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,.95)]" />
@@ -419,13 +416,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               <div className="pointer-events-none absolute left-[86%] top-[19%] h-3 w-3 -translate-x-1/2 rounded-full bg-amber-200 shadow-[0_0_42px_rgba(251,146,60,.95)]" />
 
               <div className="relative">
-                <div className="text-[12px] uppercase tracking-[0.26em] text-indigo-200/88">Operator online</div>
-                <h1 className="mt-5 text-[clamp(3rem,5.8vw,5.8rem)] font-semibold leading-[0.88] tracking-[-0.075em] text-white">
-                  Operator
-                  <br />
-                  <span className="bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
-                    Online
-                  </span>
+                <h1 className="mt-3 text-[clamp(2rem,3.4vw,3.25rem)] font-semibold leading-[1.03] tracking-[-0.04em] text-white">
+                  What should the operator run next?
                 </h1>
                 <p className="mt-5 max-w-2xl text-[clamp(1rem,1.35vw,1.35rem)] leading-snug text-white/64">
                   Continuity intact. Systems nominal. Focus your next move.
@@ -477,12 +469,12 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                     ))}
                   </div>
 
-                  <div className="mt-7 flex flex-wrap items-center gap-4">
+                  <div className="mt-7 flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       onClick={() => void runCommand()}
                       disabled={isCommandRunning || !command.trim()}
-                      className="group rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-8 py-4 text-sm font-semibold text-white shadow-[0_0_42px_rgba(124,58,237,.36)]"
+                      className="group rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_32px_rgba(124,58,237,.28)]"
                     >
                       {isCommandRunning ? "Running…" : <>Continue <span className="ml-4 inline-block transition group-hover:translate-x-1">→</span></>}
                     </button>
@@ -498,7 +490,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
             </div>
 
-            <aside className="relative z-20 min-h-0">
+            <aside className="relative z-20 min-h-0 hidden xl:block">
               <div className="mb-8 flex items-end justify-between pl-4">
                 <div>
                   <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">World Portals</div>
@@ -510,57 +502,14 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
               <button type="button" onClick={() => router.push(getResumeWorldHref(operatorPriority ? `/shopreel/${operatorPriority.recommendedReturnWorld}` : undefined))} className="mb-4 ml-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
 
-              <div className="relative overflow-visible pb-2" role="region" aria-label="Recessed world portals">
-                <div className="grid grid-cols-1 gap-4">
-                {recent.slice(0, 8).sort((a, b) => {
-                  const aScore = (a.priority === "critical" ? 3 : a.priority === "high" ? 2 : 1);
-                  const bScore = (b.priority === "critical" ? 3 : b.priority === "high" ? 2 : 1);
-                  return bScore - aScore || (new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime());
-                }).map((item, index) => {
-                  const active = index === 0;
-                  const worldKind = resolveWorldFromEntityKind(item.kind);
-                  const choreography = deriveWorldChoreography({
-                    worldId: worldKind,
-                    status: item.normalizedStatus,
-                    blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [],
-                    unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0,
-                    guidedStepId: null,
-                    previousWorldId: runtimeSession.previousWorldId,
-                    lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null,
-                    breadcrumbs: runtimeSession.worldContinuity.breadcrumbs,
-                    composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] },
-                    availableActions: [{ label: item.actionLabel }],
-                    transitionIntent: null,
-                  });
-                  const deckGraph = buildRuntimeEntityGraph({
-                    activeWorldId: worldKind,
-                    activeRoute: item.href,
-                    previousWorldId: runtimeSession.previousWorldId,
-                    worldTransitionHistory: runtimeSession.worldTransitionHistory,
-                    worldSnapshot: { entityId: item.id, entityKind: item.kind, title: item.title, status: item.normalizedStatus, href: item.href },
-                    continuity: { activeEntityId: item.id, breadcrumbs: runtimeSession.worldContinuity.breadcrumbs, activeRoute: runtimeSession.worldContinuity.activeRoute },
-                    composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] },
-                    status: item.normalizedStatus,
-                    blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [],
-                    unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0,
-                  });
-                  const temporalMemory = buildRuntimeTemporalMemory({
-                    now: new Date().toISOString(),
-                    activeWorldId: worldKind,
-                    status: item.normalizedStatus,
-                    unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0,
-                    blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [],
-                    breadcrumbs: runtimeSession.worldContinuity.breadcrumbs,
-                    transitionHistory: runtimeSession.worldTransitionHistory,
-                    choreography,
-                    orchestration: deriveRuntimeOrchestration({ worldId: worldKind, status: item.normalizedStatus, blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [], unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0, guidedStepId: null, previousWorldId: runtimeSession.previousWorldId, lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null, breadcrumbs: runtimeSession.worldContinuity.breadcrumbs, composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] }, now: new Date().toISOString(), lastTransitionAt: item.updatedAt ?? null }),
-                    entityGraph: deckGraph,
-                  });
-                  return (
-                    <button
-                      type="button"
-                      key={`${item.kind}-${item.id}`}
-                      onClick={(event) => {
+              <div className="relative h-[calc(100svh-15rem)] overflow-visible pb-2" role="region" aria-label="Recessed world portals">
+                <RuntimeWorldDeck
+                  items={sortedWorlds}
+                  unresolvedCount={unresolvedCount}
+                  runtimeSession={runtimeSession}
+                  emphasizedCardId={emphasizedCardId}
+                  prefersReducedMotion={prefersReducedMotion}
+                  onSelect={(item, event, index, deckGraph, temporalMemory, choreography) => {
                         if (!item.href) return;
                         const worldId = resolveWorldFromEntityKind(item.kind);
                         const worldSnapshot = buildWorldSnapshot(item);
@@ -629,51 +578,12 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                         });
                         void router.push(item.href);
                       }}
-                      data-world-card-id={`:`}
-                      className={`group relative min-h-[22rem] w-full overflow-hidden rounded-[1.6rem] border p-5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 xl:min-h-[23rem] ${
-                        active
-                          ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))] shadow-[0_0_65px_rgba(255,174,80,.24),0_34px_90px_rgba(0,0,0,.62)]"
-                          : emphasizedCardId === `${item.kind}:${item.id}`
-                            ? "border-cyan-200/70 bg-[linear-gradient(180deg,rgba(22,36,58,.96),rgba(8,10,26,.98))] shadow-[0_0_72px_rgba(56,189,248,.30),0_34px_90px_rgba(0,0,0,.62)]"
-                            : "border-white/12 bg-[linear-gradient(180deg,rgba(17,20,43,.9),rgba(5,8,22,.98))] shadow-[0_28px_70px_rgba(0,0,0,.58)]"
-                      }`}
-                    >
-                      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_54%_72%,rgba(255,164,72,.64),transparent_15%),radial-gradient(circle_at_55%_82%,rgba(102,226,255,.28),transparent_28%),linear-gradient(180deg,transparent_0_38%,rgba(23,16,34,.32)_39%,rgba(4,7,19,.96)_100%)]" />
-                      <div className="pointer-events-none absolute bottom-24 left-0 right-0 h-36 bg-[linear-gradient(135deg,transparent_28%,rgba(255,176,77,.28)_31%,transparent_55%),linear-gradient(40deg,rgba(255,255,255,.07)_20%,transparent_21%)]" />
-                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-cyan-300/10 to-transparent" />
-
-                      <div className="relative">
-                        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-amber-100/82">
-                          <span>{active ? "Active" : statusTone(item.normalizedStatus)}</span>
-                          <span>{active ? "Current" : `${worldKind} · ${item.sourceLabel}`}</span>
-                        </div>
-                        <h2 className="mt-8 line-clamp-3 text-2xl leading-tight tracking-[-0.03em] text-white">{item.title}</h2>
-                        <div className="mt-7 inline-flex rounded-full bg-violet-400/18 px-4 py-2 text-sm text-violet-100">
-                          {item.stageLabel}
-                        </div>
-                      </div>
-
-                      <div className="absolute bottom-8 left-6 right-6">
-                        <div className="mb-3 h-1 rounded-full bg-white/10">
-                          <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-amber-300 to-cyan-300" />
-                        </div>
-                        <div className="flex justify-between text-xs text-white/72">
-                          <span>{active ? item.actionLabel : `${worldKind.replaceAll("_", " ")} world`} · {choreography.operatorCue.nextActionLabel ?? "Open"} · {deriveRuntimeOrchestration({ worldId: worldKind, status: item.normalizedStatus, blockers: /failed|blocked|error/.test(item.normalizedStatus) ? [item.normalizedStatus] : [], unresolvedCount: /review|approval|pending/.test(item.normalizedStatus) ? 1 : 0, guidedStepId: null, previousWorldId: runtimeSession.previousWorldId, lastActionLabel: runtimeSession.worldContinuity.lastAction?.label ?? null, breadcrumbs: runtimeSession.worldContinuity.breadcrumbs, composition: RUNTIME_WORLD_COMPOSITIONS[worldKind] ?? { worldId: worldKind, panels: [] }, now: new Date().toISOString(), lastTransitionAt: item.updatedAt ?? null }).flowHealth}</span>
-                          <span>{choreography.operatorCue.blocker ? "Blocker" : choreography.continuityCue.continuationLabel} · Chain {deckGraph.dependencies.length}/{deckGraph.traversal.blockers.length}</span>
-                        </div>
-                        <div className="mt-2 text-[10px] text-cyan-100/80">Age {temporalMemory.window.ageMinutes}m · Interruptions {temporalMemory.interruptions.length} · Recovery {temporalMemory.recoveries.at(-1)?.succeeded ? "stable" : temporalMemory.recoveries.length > 0 ? "retrying" : "none"} · Volatility {temporalMemory.volatility} · Stalled {temporalMemory.window.stalledMinutes}m · Stability {temporalMemory.resilience} · Last stable {temporalMemory.checkpoints.at(-1)?.label ?? "n/a"} · {temporalMemory.interruptions.length > 0 ? "Resume interrupted flow" : "Flow uninterrupted"}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-
+                />
                 {!activeWorld ? (
                   <div className="rounded-[2rem] border border-white/12 bg-white/[0.04] p-8 text-white/65">
                     No active worlds yet. Launch a campaign to create one.
                   </div>
                 ) : null}
-
-                </div>
                 <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-20 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(75,120,255,.22),transparent_65%)] blur-sm" />
               </div>
             </aside>
