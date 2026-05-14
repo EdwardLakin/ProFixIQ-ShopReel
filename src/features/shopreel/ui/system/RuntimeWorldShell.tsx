@@ -45,6 +45,7 @@ import { deriveRuntimeOperatorState } from "@/features/shopreel/ui/system/runtim
 import { deriveRuntimeMaterialization } from "@/features/shopreel/ui/system/runtimeMaterialization";
 import { deriveRuntimeEmbodiedState } from "@/features/shopreel/ui/system/runtimeEmbodiment";
 import { deriveRuntimeEntityMaterialization } from "@/features/shopreel/ui/system/runtimeEntitySpace";
+import { runtimeChamberPrimitives } from "@/features/shopreel/ui/system/runtimeChamberPrimitives";
 
 function actionForWorld(worldId: RuntimeWorldEntry["worldId"]): RuntimeWorldAction[] {
   return RUNTIME_WORLD_MAP[worldId].primaryActions.map((item) => ({ id: item.id, label: item.label, href: item.href ?? RUNTIME_WORLD_MAP[worldId].canonicalRoute }));
@@ -202,7 +203,7 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     router.push(href);
   };
 
-  const operatorPanel = <aside className={`relative overflow-hidden rounded-[1.35rem] border border-cyan-200/20 bg-[radial-gradient(120%_130%_at_100%_0%,rgba(34,211,238,.18),rgba(8,16,30,.86)_48%,rgba(3,7,18,.92)_100%)] p-3 text-sm shadow-[0_24px_80px_rgba(8,145,178,.22)] ${entry.panelClass}`} data-guidance-mode="embedded">
+  const operatorPanel = <aside className={`${runtimeChamberPrimitives.chamberOperatorPresence} text-sm shadow-[0_24px_80px_rgba(8,145,178,.22)] ${entry.panelClass}`} data-guidance-mode="embedded">
     <div className="pointer-events-none absolute inset-x-[20%] bottom-0 h-8 rounded-full bg-cyan-300/20 blur-2xl" />
     <p>{flow?.question ?? prompt.question}</p>
     <p className="mt-2 text-xs text-cyan-100/80">{choreography.operatorCue.label} · {interaction.guidanceCue.label}</p>
@@ -220,7 +221,15 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     console.warn("[runtime-world-miss]", { rawWorldKind: entry.worldKind, resolvedWorldId });
   }
   const chamber = deriveRuntimeChamberGeometry(geometry.identity);
-  const traversal = deriveRuntimeTraversal({ sourceWorld: persisted?.previousWorldId ?? null, targetWorld: entry.worldId, spatialMap, geometry: chamber, unresolvedCount: entry.unresolvedCount });
+  const safeChamber = {
+    ...chamber,
+    directionalBias: {
+      x: Number.isFinite(chamber.directionalBias?.x) ? chamber.directionalBias.x : 0,
+      y: Number.isFinite(chamber.directionalBias?.y) ? chamber.directionalBias.y : 0,
+      z: Number.isFinite(chamber.directionalBias?.z) ? chamber.directionalBias.z : 0,
+    },
+  };
+  const traversal = deriveRuntimeTraversal({ sourceWorld: persisted?.previousWorldId ?? null, targetWorld: entry.worldId, spatialMap, geometry: safeChamber, unresolvedCount: entry.unresolvedCount });
   const materialization = deriveRuntimeMaterialization({ worldState, worldContinuity, fieldSystem: runtimeFieldSystem, traversal, unresolvedBlockers: entry.blockers.length, operatorState: operatorState.continuityState });
   const embodiedState = deriveRuntimeEmbodiedState(materialization);
   const entityMaterialization = deriveRuntimeEntityMaterialization({ graph: entityGraph, embodied: embodiedState });
@@ -247,11 +256,11 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
     trajectory: traversal.field.intent,
   });
   const planes = RuntimeWorldWorkspaceCanvas({ entry, children, embodied: embodiedState });
-  const scene = buildRuntimeSceneComposition({ chamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), embodied: embodiedState, entityMaterialization, topologyDriftWeight: continuityMemory.interactionResidue.residueWeight, foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={chamber} intelligence={environmentalIntelligence} entityMaterialization={entityMaterialization} embodied={embodiedState} /> });
+  const scene = buildRuntimeSceneComposition({ chamber: safeChamber, traversal, environment, spatialMap, reducedMotion: prefersReducedMotion || Boolean(resolvedTransition?.reducedMotion), embodied: embodiedState, entityMaterialization, topologyDriftWeight: continuityMemory.interactionResidue.residueWeight, foreground: planes.foreground, midground: planes.midground, background: planes.background, peripheral: planes.peripheral, operator: operatorPanel, atmosphere: <RuntimeEnvironmentField chamber={safeChamber} intelligence={environmentalIntelligence} entityMaterialization={entityMaterialization} embodied={embodiedState} /> });
   const topologyField = deriveRuntimeTopologyField({ worldState, continuity: worldContinuity, entityMaterialization, traversal, environmentalIntelligence, scene });
   const interactionTopology = deriveRuntimeInteractionTopology({ actions: chamberActions, topologyField, continuityPressure: routeTransitionEngine.continuity.pressureInterpolation.continuityPressure });
   const presenceLayer = deriveRuntimePresenceLayer({ operatorState, embodiedState, materialization: entityMaterialization, continuityPressure: routeTransitionEngine.continuity.pressureInterpolation.continuityPressure, topologyField });
-  const planeGeometry = deriveRuntimePlaneGeometry(resolvedWorldId, chamber, traversal);
+  const planeGeometry = deriveRuntimePlaneGeometry(resolvedWorldId, safeChamber, traversal);
 
   return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container} ${camera.interpolation.easingClassName}`} data-world-seed={ambientState.visualSeed} style={{ transform: `translate3d(${camera.translate.x}px, ${camera.translate.y}px, 0)` }}>
     <div className="sr-only" aria-live="polite">{`Camera ${camera.mode}; focus ${camera.target}; chamber tension ${Math.round(environmentalIntelligence.urgencyPressure * 100)}; ${chamberActions[0]?.label ?? "No focal action"}; topology ${interactionTopology.summary}; continuity momentum ${Math.round(continuityMemory.navigationMomentum.momentum * 100)}%`}</div>
