@@ -531,8 +531,10 @@ export default function CampaignItemClient({
 
   const completedFrameJobs = frameJobs.filter((job) => job.status === "completed" || Boolean(job.preview_url));
   const processingFrameJobs = frameJobs.filter((job) => /queued|processing|running|pending/i.test(job.status ?? ""));
-  const failedFrameJobs = frameJobs.filter((job) => /failed|error/i.test(job.status ?? ""));
   const firstFramePreviewUrl = completedFrameJobs.find((job) => job.preview_url)?.preview_url ?? null;
+  const failedFrameJobs = firstFramePreviewUrl
+    ? []
+    : frameJobs.filter((job) => /failed|error/i.test(job.status ?? ""));
   const canGenerateReferenceFrame = Boolean(dominantFrameCta.targetSceneId) && !anyBusy;
   const needsScenesBeforeFrames = orderedScenes.length === 0;
   const operatorPrimaryLabel = needsScenesBeforeFrames
@@ -604,7 +606,7 @@ export default function CampaignItemClient({
                 {busy === `frame-${dominantFrameCta.targetSceneId}` ? "Generating..." : operatorPrimaryLabel}
               </button>
             ) : (
-              <a href="#reference-frame-generation" className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)]">
+              <a href="#reference-frame-preview" className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)]">
                 Review reference frames →
               </a>
             )}
@@ -622,10 +624,13 @@ export default function CampaignItemClient({
         {statusMessage || error || processingFrameJobs.length > 0 || failedFrameJobs.length > 0 || firstFramePreviewUrl ? (
           <div className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm lg:grid-cols-[minmax(0,1fr)_auto]">
             <div>
-              {statusMessage ? <p className="text-cyan-100/80">{statusMessage}</p> : null}
-              {processingFrameJobs.length > 0 ? <p className="text-cyan-100/80">Reference frame job is running. Refresh or wait for the preview to appear.</p> : null}
-              {completedFrameJobs.length > 0 ? <p className="text-emerald-100/80">{completedFrameJobs.length} reference frame{completedFrameJobs.length === 1 ? "" : "s"} ready.</p> : null}
-              {failedFrameJobs.length > 0 ? <p className="text-rose-200">{failedFrameJobs.length} reference frame job{failedFrameJobs.length === 1 ? "" : "s"} failed. Regenerate from the scene card.</p> : null}
+              {firstFramePreviewUrl ? (
+                <p className="text-emerald-100/80">{completedFrameJobs.length} reference frame{completedFrameJobs.length === 1 ? "" : "s"} ready.</p>
+              ) : statusMessage ? (
+                <p className="text-cyan-100/80">{statusMessage}</p>
+              ) : null}
+              {!firstFramePreviewUrl && processingFrameJobs.length > 0 ? <p className="text-cyan-100/80">Reference frame job is running. Refresh or wait for the preview to appear.</p> : null}
+              {!firstFramePreviewUrl && failedFrameJobs.length > 0 ? <p className="text-rose-200">{failedFrameJobs.length} reference frame job{failedFrameJobs.length === 1 ? "" : "s"} failed. Regenerate from the scene card.</p> : null}
               {error ? <p className="text-rose-200">{error}</p> : null}
             </div>
             {firstFramePreviewUrl ? (
@@ -652,7 +657,7 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <section id="creative-direction">
+      <section id="creative-direction" className="scroll-mt-56">
         <GlassCard
         label="Creative Direction"
         title="Lock the campaign look"
@@ -841,7 +846,8 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      <section id="reference-frame-generation">
+      <section id="reference-frame-preview" className="scroll-mt-56" />
+      <section id="reference-frame-generation" className="scroll-mt-56">
       <GlassCard
         label="Primary Action"
         title={needsScenesBeforeFrames ? "Build storyboard scenes" : dominantFrameCta.label}
@@ -855,6 +861,22 @@ export default function CampaignItemClient({
         <div className="space-y-4">
           {statusMessage ? (
             <div className="text-sm text-white/60">{statusMessage}</div>
+          ) : null}
+
+          {firstFramePreviewUrl ? (
+            <div className="grid gap-4 rounded-2xl border border-cyan-200/20 bg-black/20 p-4 md:grid-cols-[12rem_minmax(0,1fr)]">
+              <a href={firstFramePreviewUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={firstFramePreviewUrl} alt="Generated reference frame preview" className="aspect-[9/16] w-full object-cover" />
+              </a>
+              <div className="flex flex-col justify-center">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-100/60">Reference frame ready</p>
+                <h3 className="mt-2 text-lg font-semibold text-white">Review the generated still</h3>
+                <p className="mt-2 text-sm leading-6 text-white/65">
+                  This is the static image target for the next video step. Regenerate if the visual direction is wrong, or continue toward video clip generation.
+                </p>
+              </div>
+            </div>
           ) : null}
 
           <div className="flex flex-wrap gap-3">
