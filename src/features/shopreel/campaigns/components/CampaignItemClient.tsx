@@ -525,6 +525,24 @@ export default function CampaignItemClient({
   }, [scenes, workspaceSceneOrder]);
   const dominantFrameCta = useMemo(() => getDominantFrameCta(orderedScenes), [orderedScenes]);
 
+  const frameJobs = orderedScenes
+    .map((scene) => scene.frame_job)
+    .filter((job): job is NonNullable<SceneRow["frame_job"]> => Boolean(job));
+
+  const completedFrameJobs = frameJobs.filter((job) => job.status === "completed" || Boolean(job.preview_url));
+  const processingFrameJobs = frameJobs.filter((job) => /queued|processing|running|pending/i.test(job.status ?? ""));
+  const failedFrameJobs = frameJobs.filter((job) => /failed|error/i.test(job.status ?? ""));
+  const firstFramePreviewUrl = completedFrameJobs.find((job) => job.preview_url)?.preview_url ?? null;
+  const canGenerateReferenceFrame = Boolean(dominantFrameCta.targetSceneId) && !anyBusy;
+  const needsScenesBeforeFrames = orderedScenes.length === 0;
+  const operatorPrimaryLabel = needsScenesBeforeFrames
+    ? "Build scenes first"
+    : processingFrameJobs.length > 0
+      ? "Reference frame running..."
+      : completedFrameJobs.length > 0
+        ? "Generate another reference frame"
+        : "Generate reference frame →";
+
   function moveScene(sceneId: string, direction: -1 | 1) {
     setWorkspaceSceneOrder((current) => {
       const index = current.indexOf(sceneId);
@@ -546,10 +564,14 @@ export default function CampaignItemClient({
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-cyan-100/75">Operator next step</p>
             <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">
-              {dominantFrameCta.targetSceneId ? "Generate the first static reference frame" : "Generate storyboard reference frames"}
+              {needsScenesBeforeFrames ? "Build storyboard scenes first" : completedFrameJobs.length > 0 ? "Reference frame ready" : "Generate the first static reference frame"}
             </h2>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-white/68">
-              Campaign direction is ready. The operator needs static reference images before video clip generation so the FAL/Kling pipeline has a clear visual target.
+              {needsScenesBeforeFrames
+                ? "No storyboard scenes exist yet. Build scenes first, then the operator can create static reference frames."
+                : completedFrameJobs.length > 0
+                  ? "A static reference image is ready. Review it, regenerate if needed, then move into video clip generation."
+                  : "Campaign direction is ready. The operator needs a static reference image before video clip generation so the downstream pipeline has a clear visual target."}
             </p>
           </div>
 
@@ -557,18 +579,33 @@ export default function CampaignItemClient({
             <a href="#creative-direction" className="rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-sm text-white/78 transition hover:bg-white/[0.08]">
               Edit direction
             </a>
-            {dominantFrameCta.targetSceneId ? (
+            {needsScenesBeforeFrames ? (
               <button
                 type="button"
-                onClick={() => void generateSceneFrame(dominantFrameCta.targetSceneId!)}
+                onClick={() =>
+                  void runAction(
+                    "create-scenes",
+                    `/api/shopreel/campaigns/items/${item.id}/create-scene-jobs`,
+                    "Building storyboard scenes before reference-frame generation..."
+                  )
+                }
                 disabled={anyBusy}
                 className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {busy === `frame-${dominantFrameCta.targetSceneId}` ? "Generating..." : "Generate reference frame →"}
+                {busy === "create-scenes" ? "Building scenes..." : "Build scenes first →"}
+              </button>
+            ) : dominantFrameCta.targetSceneId ? (
+              <button
+                type="button"
+                onClick={() => void generateSceneFrame(dominantFrameCta.targetSceneId!)}
+                disabled={!canGenerateReferenceFrame}
+                className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy === `frame-${dominantFrameCta.targetSceneId}` ? "Generating..." : operatorPrimaryLabel}
               </button>
             ) : (
               <a href="#reference-frame-generation" className="rounded-xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_26px_rgba(124,58,237,.22)]">
-                Generate reference frames →
+                Review reference frames →
               </a>
             )}
           </div>
@@ -582,10 +619,21 @@ export default function CampaignItemClient({
           <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/55">Review / post</span>
         </div>
 
-        {statusMessage || error ? (
-          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm">
-            {statusMessage ? <p className="text-cyan-100/80">{statusMessage}</p> : null}
-            {error ? <p className="text-rose-200">{error}</p> : null}
+        {statusMessage || error || processingFrameJobs.length > 0 || failedFrameJobs.length > 0 || firstFramePreviewUrl ? (
+          <div className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm lg:grid-cols-[minmax(0,1fr)_auto]">
+            <div>
+              {statusMessage ? <p className="text-cyan-100/80">{statusMessage}</p> : null}
+              {processingFrameJobs.length > 0 ? <p className="text-cyan-100/80">Reference frame job is running. Refresh or wait for the preview to appear.</p> : null}
+              {completedFrameJobs.length > 0 ? <p className="text-emerald-100/80">{completedFrameJobs.length} reference frame{completedFrameJobs.length === 1 ? "" : "s"} ready.</p> : null}
+              {failedFrameJobs.length > 0 ? <p className="text-rose-200">{failedFrameJobs.length} reference frame job{failedFrameJobs.length === 1 ? "" : "s"} failed. Regenerate from the scene card.</p> : null}
+              {error ? <p className="text-rose-200">{error}</p> : null}
+            </div>
+            {firstFramePreviewUrl ? (
+              <a href={firstFramePreviewUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-cyan-200/20 bg-black/30">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={firstFramePreviewUrl} alt="Generated reference frame preview" className="h-24 w-16 object-cover" />
+              </a>
+            ) : null}
           </div>
         ) : null}
       </section>
@@ -794,14 +842,37 @@ export default function CampaignItemClient({
       </GlassCard>
 
       <section id="reference-frame-generation">
-      <GlassCard label="Primary Action" title={dominantFrameCta.label} description={dominantFrameCta.description} strong>
+      <GlassCard
+        label="Primary Action"
+        title={needsScenesBeforeFrames ? "Build storyboard scenes" : dominantFrameCta.label}
+        description={
+          needsScenesBeforeFrames
+            ? "Create the scene plan first. Reference images require at least one storyboard scene."
+            : dominantFrameCta.description
+        }
+        strong
+      >
         <div className="space-y-4">
           {statusMessage ? (
             <div className="text-sm text-white/60">{statusMessage}</div>
           ) : null}
 
           <div className="flex flex-wrap gap-3">
-            {dominantFrameCta.targetSceneId ? (
+            {needsScenesBeforeFrames ? (
+              <GlassButton
+                variant="primary"
+                onClick={() =>
+                  void runAction(
+                    "create-scenes",
+                    `/api/shopreel/campaigns/items/${item.id}/create-scene-jobs`,
+                    "Building storyboard scenes before reference-frame generation..."
+                  )
+                }
+                disabled={anyBusy}
+              >
+                {busy === "create-scenes" ? "Building scenes..." : "Build scenes"}
+              </GlassButton>
+            ) : dominantFrameCta.targetSceneId ? (
               (() => {
                 const targetSceneId = dominantFrameCta.targetSceneId;
                 return (
