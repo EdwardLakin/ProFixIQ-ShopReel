@@ -18,6 +18,7 @@ import { deriveRuntimeChamberActions } from "@/features/shopreel/ui/system/runti
 import { buildRuntimeSceneComposition } from "@/features/shopreel/ui/system/runtimeSceneGraph";
 import { RuntimeSceneGraphCanvas } from "@/features/shopreel/ui/system/RuntimeSceneGraphCanvas";
 import { deriveRuntimeWorldTopologyLayer } from "@/features/shopreel/ui/system/runtimeWorldTopology";
+import { deriveRuntimeSpatialOrchestrator } from "@/features/shopreel/ui/system/runtimeSpatialOrchestrator";
 import { RuntimeEnvironmentField } from "@/features/shopreel/ui/system/RuntimeEnvironmentField";
 import { resolveGuidedFlowStep, resolveWorldGuidedPrompt } from "@/features/shopreel/ui/system/guidedWorldFlow";
 import type { RuntimeWorldAction, RuntimeWorldEntry } from "@/features/shopreel/ui/system/runtimeWorldEntry";
@@ -339,9 +340,16 @@ export default function RuntimeWorldShell({ entry, children }: { entry: RuntimeW
   const presenceLayer = deriveRuntimePresenceLayer({ operatorState, embodiedState, materialization: entityMaterialization, continuityPressure: routeTransitionEngine.continuity.pressureInterpolation.continuityPressure, topologyField });
   const planeGeometry = deriveRuntimePlaneGeometry(resolvedWorldId, safeChamber, traversal);
   const worldTopology = deriveRuntimeWorldTopologyLayer({ worldPresence, cap: 5 });
+  const spatialOrchestration = deriveRuntimeSpatialOrchestrator({
+    worldPresence,
+    transition: routeTransitionEngine,
+    attention: runtimeAttention,
+    continuityPressure: routeTransitionEngine.continuity.pressureInterpolation.continuityPressure,
+    previousState: persisted?.worldPersistence?.spatialOrchestration ?? null,
+  });
 
   return <div className={`relative min-h-screen overflow-hidden text-white ${entry.transitionClass} ${transitionClass.container} ${camera.interpolation.easingClassName}`} data-world-seed={ambientState.visualSeed} data-movement-semantic={routeTransitionEngine.continuity.movementSemantic} data-interruption-priority={runtimeAttention.interruptionPriority} data-active-world-count={worldRegistry.activeWorldIds.length} data-runtime-atmosphere={worldPresence.atmosphere.state} data-mounted-worlds={worldPresence.mountedWorldIds.length} data-pressure-propagation={worldPresence.pressurePropagation.toFixed(2)} style={{ transform: `translate3d(${camera.translate.x}px, ${camera.translate.y}px, 0)` }}>
     <div className="sr-only" aria-live="polite">{`Camera ${camera.mode}; focus ${camera.target}; chamber tension ${Math.round(environmentalIntelligence.urgencyPressure * 100)}; ${chamberActions[0]?.label ?? "No focal action"}; topology ${interactionTopology.summary}; continuity momentum ${Math.round(continuityMemory.navigationMomentum.momentum * 100)}%; atmosphere ${worldPresence.atmosphere.state}; mounted worlds ${worldPresence.mountedWorldIds.length}; interruptions ${worldPresence.interruptionSignals.length}`}</div>
-    <RuntimeSceneGraphCanvas composition={scene} planesByDepth={planeGeometry} topologyField={topologyField} interactionTopology={interactionTopology} presenceLayer={presenceLayer} continuityMemory={continuityMemory} worldTopology={worldTopology} />
+    <RuntimeSceneGraphCanvas composition={scene} planesByDepth={planeGeometry} topologyField={topologyField} interactionTopology={interactionTopology} presenceLayer={presenceLayer} continuityMemory={continuityMemory} worldTopology={worldTopology} spatialOrchestration={spatialOrchestration} />
   </div>;
 }

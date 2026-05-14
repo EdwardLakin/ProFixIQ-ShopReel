@@ -3,6 +3,7 @@ import type { OperatorRuntimeState, OperatorSurfaceId } from "@/features/shopree
 import type { RuntimeWorldEntryIntent, RuntimeWorldId } from "@/features/shopreel/ui/system/runtimeWorldMap";
 import type { GuidedFlowStepId } from "@/features/shopreel/ui/system/guidedWorldFlow";
 import type { RuntimeTemporalMemory } from "@/features/shopreel/ui/system/runtimeTemporalMemory";
+import type { RuntimeSpatialOrchestrationState } from "@/features/shopreel/ui/system/runtimeSpatialOrchestrator";
 
 export const RUNTIME_SESSION_KEY = "shopreel-operator-runtime-session-v2";
 
@@ -60,6 +61,7 @@ export type PersistedRuntimeSession = {
     environmentalPressure: number;
     topologyIntensity: number;
     aiGuidanceContext: string[];
+    spatialOrchestration?: Partial<RuntimeSpatialOrchestrationState>;
   };
   worldContinuity: OperatorRuntimeSessionState["worldContinuity"];
   temporalMemory?: RuntimeTemporalMemory;
@@ -117,6 +119,16 @@ export function persistRuntimeSession(session: OperatorRuntimeSessionState): voi
       environmentalPressure: 0.2,
       topologyIntensity: 0.2,
       aiGuidanceContext: [],
+      spatialOrchestration: {
+        activeChamberVector: { x: 0, y: 0, z: 0, worldId: session.activeWorldId ?? "campaign" },
+        atmosphericDensity: 0.3,
+        ambientDrift: 0.2,
+        tensionField: 0.25,
+        focalGravity: 0.5,
+        interruptionTrajectory: { worldId: null, intensity: 0, directionalBias: "stabilize" },
+        worldAdjacencyMap: {},
+        environmentalMotionProfile: { lowFrequencyMotion: 0.2, pressureGradient: 0.3, continuityBias: 0.4, directionalFlow: 0.5 },
+      },
     },
     worldContinuity: session.worldContinuity,
     temporalMemory: previous?.temporalMemory,
@@ -203,6 +215,16 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
         environmentalPressure: 0.2,
         topologyIntensity: 0.2,
         aiGuidanceContext: [],
+        spatialOrchestration: {
+          activeChamberVector: { x: 0, y: 0, z: 0, worldId: parsed.activeWorldId ?? "campaign" },
+          atmosphericDensity: 0.3,
+          ambientDrift: 0.2,
+          tensionField: 0.25,
+          focalGravity: 0.5,
+          interruptionTrajectory: { worldId: null, intensity: 0, directionalBias: "stabilize" },
+          worldAdjacencyMap: {},
+          environmentalMotionProfile: { lowFrequencyMotion: 0.2, pressureGradient: 0.3, continuityBias: 0.4, directionalFlow: 0.5 },
+        },
       };
     }
     if (!parsed.worldPersistence.focalNode) parsed.worldPersistence.focalNode = null;
@@ -212,6 +234,14 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
     if (!Number.isFinite(parsed.worldPersistence.environmentalPressure)) parsed.worldPersistence.environmentalPressure = 0.2;
     if (!Number.isFinite(parsed.worldPersistence.topologyIntensity)) parsed.worldPersistence.topologyIntensity = 0.2;
     if (!Array.isArray(parsed.worldPersistence.aiGuidanceContext)) parsed.worldPersistence.aiGuidanceContext = [];
+    if (!parsed.worldPersistence.spatialOrchestration || typeof parsed.worldPersistence.spatialOrchestration !== "object") parsed.worldPersistence.spatialOrchestration = {};
+    const spatial = parsed.worldPersistence.spatialOrchestration;
+    if (!Number.isFinite(spatial.ambientDrift)) spatial.ambientDrift = 0.2;
+    if (!Number.isFinite(spatial.atmosphericDensity)) spatial.atmosphericDensity = 0.3;
+    if (!Number.isFinite(spatial.tensionField)) spatial.tensionField = 0.25;
+    if (!Number.isFinite(spatial.focalGravity)) spatial.focalGravity = 0.5;
+    if (!spatial.environmentalMotionProfile || typeof spatial.environmentalMotionProfile !== "object") spatial.environmentalMotionProfile = { lowFrequencyMotion: 0.2, pressureGradient: 0.3, continuityBias: 0.4, directionalFlow: 0.5 };
+    if (!spatial.worldAdjacencyMap || typeof spatial.worldAdjacencyMap !== "object") spatial.worldAdjacencyMap = {};
 
     if (!parsed.worldContinuity) {
       parsed.worldContinuity = {

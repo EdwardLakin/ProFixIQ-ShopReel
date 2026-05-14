@@ -52,6 +52,14 @@ export default function RuntimeRouteContinuityTracker() {
         activeExecutionLane: mapped.surface,
         missionTrajectory: deriveMissionTrajectory(pathname),
         pressureWeight: mapped.surface === "manual_operations" ? 0.82 : mapped.surface === "review_inbox" ? 0.66 : 0.46,
+        spatialOrchestration: previous?.worldPersistence?.spatialOrchestration ?? {
+          ambientDrift: 0.2,
+          atmosphericDensity: 0.3,
+          tensionField: 0.25,
+          focalGravity: 0.5,
+          worldAdjacencyMap: {},
+          environmentalMotionProfile: { lowFrequencyMotion: 0.2, pressureGradient: 0.3, continuityBias: 0.4, directionalFlow: 0.5 },
+        },
       },
     };
     window.localStorage.setItem(RUNTIME_SESSION_KEY, JSON.stringify(next));

@@ -8,8 +8,10 @@ import type { RuntimeSceneComposition } from "@/features/shopreel/ui/system/runt
 import type { RuntimeTopologyField } from "@/features/shopreel/ui/system/runtimeTopologyField";
 import type { RuntimeScenePlane } from "@/features/shopreel/ui/system/runtimePlaneGeometry";
 import type { RuntimeWorldTopologyState } from "@/features/shopreel/ui/system/runtimeWorldTopology";
+import { RuntimeEnvironmentalFieldLayer } from "@/features/shopreel/ui/system/RuntimeEnvironmentalFieldLayer";
 import { RuntimePresenceRenderLayer } from "@/features/shopreel/ui/system/RuntimePresenceRenderLayer";
 import { RuntimeWorldTopologyLayer } from "@/features/shopreel/ui/system/RuntimeWorldTopologyLayer";
+import type { RuntimeSpatialOrchestrationState } from "@/features/shopreel/ui/system/runtimeSpatialOrchestrator";
 
 const anchorClass: Record<string, string> = {
   center: "items-center justify-center",
@@ -40,11 +42,12 @@ function renderPlaneStyle(plane: RuntimeScenePlane, reducedMotion: boolean): CSS
   };
 }
 
-export function RuntimeSceneGraphCanvas({ composition, planesByDepth, topologyField, interactionTopology, presenceLayer, continuityMemory, worldTopology }: { composition: RuntimeSceneComposition; planesByDepth: Record<string, RuntimeScenePlane>; topologyField: RuntimeTopologyField; interactionTopology: RuntimeInteractionTopology; presenceLayer: RuntimePresenceLayer; continuityMemory: RuntimeContinuityMemory; worldTopology: RuntimeWorldTopologyState }) {
+export function RuntimeSceneGraphCanvas({ composition, planesByDepth, topologyField, interactionTopology, presenceLayer, continuityMemory, worldTopology, spatialOrchestration }: { composition: RuntimeSceneComposition; planesByDepth: Record<string, RuntimeScenePlane>; topologyField: RuntimeTopologyField; interactionTopology: RuntimeInteractionTopology; presenceLayer: RuntimePresenceLayer; continuityMemory: RuntimeContinuityMemory; worldTopology: RuntimeWorldTopologyState; spatialOrchestration: RuntimeSpatialOrchestrationState }) {
   return <section className="relative z-20 min-h-[72vh] overflow-x-clip overflow-y-visible px-2 pb-24 pt-10 md:px-6 pointer-events-none" style={{ perspective: "1700px", transformStyle: "preserve-3d" }} data-continuity-corridor={topologyField.continuityCorridor.strength.toFixed(2)} data-guidance-density={presenceLayer.atmosphere.density.toFixed(2)}>
     <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <RuntimePresenceRenderLayer topology={worldTopology} reducedMotion={composition.state.reducedMotion} />
+      <RuntimeEnvironmentalFieldLayer spatial={spatialOrchestration} reducedMotion={composition.state.reducedMotion} />
       <RuntimeWorldTopologyLayer topology={worldTopology} reducedMotion={composition.state.reducedMotion} />
+      <RuntimePresenceRenderLayer topology={worldTopology} reducedMotion={composition.state.reducedMotion} />
       <div className="absolute left-1/2 top-0 h-20 w-[34rem] -translate-x-1/2 rounded-b-[100%] border border-cyan-200/25 bg-cyan-300/8 blur-[1px]" />
       <div className="absolute inset-x-[5%] top-[8%] h-[30%] rounded-[999px] bg-cyan-400/8 blur-3xl" />
       <div className="absolute inset-x-[10%] bottom-[15%] h-[24%] rounded-[999px] bg-indigo-400/10 blur-3xl" />
