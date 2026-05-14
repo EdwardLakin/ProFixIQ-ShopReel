@@ -44,6 +44,16 @@ export type PersistedRuntimeSession = {
     guidedStep: GuidedFlowStepId | null;
   } | null;
   chamberMemory: PersistedChamberMemory;
+  worldPersistence: {
+    chamberIdentity: string;
+    continuityMemory: string[];
+    lastFocalSurface: string | null;
+    unresolvedApprovals: number;
+    activeRenderState: string | null;
+    activeExecutionLane: string | null;
+    missionTrajectory: "forward" | "deeper" | "recess" | "wider";
+    pressureWeight: number;
+  };
   worldContinuity: OperatorRuntimeSessionState["worldContinuity"];
   temporalMemory?: RuntimeTemporalMemory;
 };
@@ -83,6 +93,16 @@ export function persistRuntimeSession(session: OperatorRuntimeSessionState): voi
       interruptionCount: (previousMemory?.interruptionCount ?? 0) + (session.interruption ? 1 : 0),
       restorationCount: (previousMemory?.restorationCount ?? 0) + (session.pendingTransition === "restore_previous" ? 1 : 0),
       traces,
+    },
+    worldPersistence: previous?.worldPersistence ?? {
+      chamberIdentity: "runtime_chamber",
+      continuityMemory: [],
+      lastFocalSurface: null,
+      unresolvedApprovals: 0,
+      activeRenderState: null,
+      activeExecutionLane: null,
+      missionTrajectory: "forward",
+      pressureWeight: 0.3,
     },
     worldContinuity: session.worldContinuity,
     temporalMemory: previous?.temporalMemory,
@@ -149,6 +169,19 @@ export function readPersistedRuntimeSession(): PersistedRuntimeSession | null {
             activeBlockerLineage: [],
           },
         },
+      };
+    }
+
+    if (!parsed.worldPersistence) {
+      parsed.worldPersistence = {
+        chamberIdentity: "runtime_chamber",
+        continuityMemory: [],
+        lastFocalSurface: parsed.worldContinuity?.focusedPanelId ?? null,
+        unresolvedApprovals: 0,
+        activeRenderState: null,
+        activeExecutionLane: null,
+        missionTrajectory: "forward",
+        pressureWeight: 0.3,
       };
     }
     if (!parsed.worldContinuity) {

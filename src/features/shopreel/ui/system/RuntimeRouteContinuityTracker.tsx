@@ -17,6 +17,13 @@ function mapPath(pathname: string): { surface: OperatorSurfaceId; state: Operato
   return null;
 }
 
+function deriveMissionTrajectory(pathname: string): "forward" | "deeper" | "recess" | "wider" {
+  if (pathname.startsWith("/shopreel/review") || pathname.startsWith("/shopreel/render-queue")) return "deeper";
+  if (pathname.startsWith("/shopreel/operations")) return "recess";
+  if (pathname.startsWith("/shopreel/library") || pathname.startsWith("/shopreel/publish")) return "wider";
+  return "forward";
+}
+
 export default function RuntimeRouteContinuityTracker() {
   const pathname = usePathname();
   useEffect(() => {
@@ -31,6 +38,21 @@ export default function RuntimeRouteContinuityTracker() {
       interruptionReason: mapped.surface === "manual_operations" ? "Operational interruption" : null,
       returnTarget: "/shopreel",
       updatedAt: new Date().toISOString(),
+      worldPersistence: {
+        chamberIdentity: mapped.surface === "campaign_workspace" ? "campaign_chamber" : mapped.surface === "review_inbox" ? "review_chamber" : mapped.surface === "manual_operations" ? "operations_chamber" : "runtime_chamber",
+        continuityMemory: [
+          mapped.surface,
+          mapped.state,
+          previous?.worldContinuity?.lastViewedSection ?? "",
+          previous?.worldContinuity?.lastAction?.label ?? "",
+        ].filter(Boolean).slice(0, 6),
+        lastFocalSurface: previous?.worldContinuity?.focusedPanelId ?? previous?.worldPersistence?.lastFocalSurface ?? null,
+        unresolvedApprovals: previous?.worldPersistence?.unresolvedApprovals ?? 0,
+        activeRenderState: pathname.startsWith("/shopreel/render-queue") ? "rendering" : previous?.worldPersistence?.activeRenderState ?? null,
+        activeExecutionLane: mapped.surface,
+        missionTrajectory: deriveMissionTrajectory(pathname),
+        pressureWeight: mapped.surface === "manual_operations" ? 0.82 : mapped.surface === "review_inbox" ? 0.66 : 0.46,
+      },
     };
     window.localStorage.setItem(RUNTIME_SESSION_KEY, JSON.stringify(next));
     persistRuntimeEnvironment({

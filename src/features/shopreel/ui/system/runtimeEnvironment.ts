@@ -33,6 +33,14 @@ export type RuntimeEnvironment = {
   gravity: RuntimeOperationalGravity;
   navigationVector: RuntimeNavigationVector;
   peripheralSurfaces: RuntimePeripheralSurface[];
+  spatialHierarchy: {
+    foregroundExecutionPlane: number;
+    activeIntelligenceLayer: number;
+    recessedSystems: number;
+    deepTelemetryField: number;
+    distantTopologyMarkers: number;
+    atmosphericContinuityStructures: number;
+  };
 };
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
@@ -64,6 +72,14 @@ export function deriveRuntimeEnvironment(input: { entry: RuntimeWorldEntry; orch
   }));
 
   const topologyAnchor = RUNTIME_WORLD_TOPOLOGY.anchors[input.entry.worldId];
+  const spatialHierarchy = {
+    foregroundExecutionPlane: clamp01(0.58 + gravity.focalPull * 0.35),
+    activeIntelligenceLayer: clamp01(0.44 + input.interaction.guidanceCue.emphasis * 0.4),
+    recessedSystems: clamp01(0.3 + gravity.supportClustering * 0.42),
+    deepTelemetryField: clamp01(0.26 + input.entry.unresolvedCount * 0.07),
+    distantTopologyMarkers: clamp01(0.22 + Math.abs(topologyAnchor.coordinate.z) * 0.5),
+    atmosphericContinuityStructures: clamp01(0.38 + input.surface.continuity.resilienceWeight * 0.5),
+  };
 
   return {
     worldId: input.entry.worldId,
@@ -80,5 +96,6 @@ export function deriveRuntimeEnvironment(input: { entry: RuntimeWorldEntry; orch
       directionalIntent,
     },
     peripheralSurfaces,
+    spatialHierarchy,
   };
 }
