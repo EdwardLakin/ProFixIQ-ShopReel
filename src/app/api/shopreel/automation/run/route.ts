@@ -75,6 +75,25 @@ export async function POST(req: Request) {
 
     for (const job of queuedJobs ?? []) {
       try {
+        // ShopReel now uses fal.ai for async video generation.
+        // Older campaign jobs may still be queued as provider="openai".
+        // Convert only queued video jobs before processing so they use the fal provider adapter.
+        if (job.job_type === "video" && job.provider !== "fal") {
+          const { error: providerUpdateError } = await supabase
+            .from("shopreel_media_generation_jobs")
+            .update({
+              provider: "fal",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", job.id)
+            .eq("shop_id", shopId)
+            .eq("status", "queued");
+
+          if (providerUpdateError) {
+            throw new Error(providerUpdateError.message);
+          }
+        }
+
         const processedJob = await processMediaGenerationJob(job.id, { shopId });
         queuedJobRunResults.push({
           jobId: job.id,
@@ -82,6 +101,7 @@ export async function POST(req: Request) {
           provider: processedJob.provider,
           jobType: processedJob.job_type,
           status: processedJob.status,
+          providerJobId: processedJob.provider_job_id,
         });
       } catch (error) {
         queuedJobRunResults.push({
