@@ -38,6 +38,7 @@ export async function POST(req: Request) {
 
     const run = await startAutomationRun({
       runType: "scheduled",
+      shopId,
     });
     runId = run.id;
 

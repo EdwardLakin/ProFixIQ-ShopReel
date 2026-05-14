@@ -2,9 +2,9 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { Json } from "@/types/supabase";
 
-export async function startAutomationRun(args?: { runType?: string }) {
+export async function startAutomationRun(args?: { runType?: string; shopId?: string }) {
   const supabase = createAdminClient();
-  const shopId = await getCurrentShopId();
+  const shopId = args?.shopId ?? await getCurrentShopId();
 
   const { data, error } = await supabase
     .from("shopreel_automation_runs")
