@@ -31,6 +31,8 @@ export type TransitionSnapshot = {
   nextActionLabel: string;
   descriptor: CanonicalWorkflowState;
   safeLoading: "soft_continuity" | "standard";
+  spatialDirection: "forward" | "deeper" | "recess" | "wider";
+  continuityCarryover: number;
   updatedAt: string;
 };
 
@@ -68,6 +70,13 @@ function derivePosture(route: string, mode: TransitionMode): WorkflowPosture {
   if (route.includes("render")) return "render_posture";
   if (route.includes("export") || route.includes("publish")) return "export_posture";
   return "dormant_posture";
+}
+
+function deriveSpatialDirection(route: string, mode: TransitionMode): TransitionSnapshot["spatialDirection"] {
+  if (mode === "recovery") return "recess";
+  if (route.includes("review") || route.includes("render")) return "deeper";
+  if (route.includes("library") || route.includes("publish") || route.includes("export")) return "wider";
+  return "forward";
 }
 
 export function resolveTransitionIntent(context: TransitionContext): TransitionIntent {
@@ -120,6 +129,8 @@ export function deriveTransitionSnapshot(context: TransitionContext): Transition
       completion_state: mode === "recovery" ? "interrupted" : mode === "progression" ? "ready_for_next" : "in_progress",
     },
     safeLoading: mode === "continuity" || mode === "recovery" ? "soft_continuity" : "standard",
+    spatialDirection: deriveSpatialDirection(context.targetRoute, mode),
+    continuityCarryover: mode === "continuity" || mode === "recovery" ? 0.84 : explicit ? 0.74 : 0.66,
     updatedAt: new Date().toISOString(),
   };
 }
