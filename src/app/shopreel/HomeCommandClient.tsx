@@ -501,8 +501,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
             <aside className="relative z-20 min-h-0">
               <div className="mb-8 flex items-end justify-between pl-4">
                 <div>
-                  <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">Operational Worlds</div>
-                  <p className="mt-3 text-sm text-white/48">Your runtime environments. Alive and remembered. Priority: {operatorPriority?.highestPressureWorld ?? "none"}.</p>
+                  <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">World Portals</div>
+                  <p className="mt-3 text-sm text-white/48">Recessed chambers behind your forward action plane. Priority: {operatorPriority?.highestPressureWorld ?? "none"}.</p>
                 </div>
                 <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">
                   View all →
@@ -510,8 +510,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
               <button type="button" onClick={() => router.push(getResumeWorldHref(operatorPriority ? `/shopreel/${operatorPriority.recommendedReturnWorld}` : undefined))} className="mb-4 ml-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
 
-              <div className="relative overflow-x-visible pb-2" role="region" aria-label="Operational world deck">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+              <div className="relative overflow-visible pb-2" role="region" aria-label="Recessed world portals">
+                <div className="grid grid-cols-1 gap-4">
                 {recent.slice(0, 8).sort((a, b) => {
                   const aScore = (a.priority === "critical" ? 3 : a.priority === "high" ? 2 : 1);
                   const bScore = (b.priority === "critical" ? 3 : b.priority === "high" ? 2 : 1);

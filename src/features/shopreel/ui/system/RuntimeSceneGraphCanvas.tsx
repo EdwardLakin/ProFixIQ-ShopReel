@@ -49,7 +49,8 @@ export function RuntimeSceneGraphCanvas({ composition, planesByDepth, topologyFi
       <div className="absolute bottom-[3%] left-1/2 h-28 w-[40rem] max-w-[92vw] -translate-x-1/2 rounded-[100%] border border-cyan-300/20 bg-cyan-300/8 blur-[1px]" />
     </div>
     {composition.nodes.map((node) => {
-      const plane = planesByDepth[node.id] ?? planesByDepth.midground;
+      const plane = planesByDepth[node.id] ?? planesByDepth.midground ?? planesByDepth.foreground ?? Object.values(planesByDepth)[0];
+      if (!plane) return null;
       return <div key={node.id} data-embodied-weight={node.embodiedWeight.toFixed(2)} data-pressure-weight={node.pressureWeight.toFixed(2)} data-continuity-weight={node.continuityWeight.toFixed(2)} data-recovery-weight={node.recoveryWeight.toFixed(2)} data-entity-density={node.entityDensity.toFixed(2)} data-focal-gravity={node.focalGravity.toFixed(2)} data-chamber-presence={node.chamberPresence.toFixed(2)} data-topology-zone={topologyField.interactionZones.find((zone) => zone.nodeId === node.id)?.type ?? "recessed"} className={`absolute inset-0 flex ${anchorClass[plane.relationship.anchor] ?? anchorClass.center}`} style={{ ...renderPlaneStyle(plane, composition.state.reducedMotion), opacity: plane.attenuation.opacity * node.attenuation }}>
         <div className="w-full max-w-[100vw] px-3 md:px-5">{node.content}</div>
       </div>;
