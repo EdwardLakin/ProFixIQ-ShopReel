@@ -384,7 +384,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
           </Link>
         </aside>
 
-        <main className="relative grid h-[100svh] min-h-[100svh] overflow-hidden grid-rows-[auto_minmax(0,1fr)_auto] gap-5 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+        <main className="relative grid h-[100svh] min-h-[100svh] overflow-hidden grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <header className="flex items-center justify-between">
             <div className="hidden items-center gap-3 text-[12px] uppercase tracking-[0.26em] text-amber-100/88 md:flex">
               <span className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,.95)]" />
@@ -405,8 +405,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
             </div>
           </header>
 
-          <section className="relative grid min-h-0 content-start gap-6 xl:grid-cols-[minmax(0,clamp(24rem,36vw,36rem))_minmax(0,1fr)] xl:items-start">
-            <div className="relative z-10 max-w-3xl">
+          <section className="relative grid min-h-0 content-start gap-6 xl:grid-cols-[minmax(0,clamp(30rem,46vw,44rem))_minmax(0,1fr)] xl:items-center">
+            <div className="relative z-10 max-w-4xl self-center">
               <div className="pointer-events-none absolute left-[86%] top-[-8%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.85)_0_1.6%,rgba(255,177,76,.25)_2.5%_5%,transparent_8%),repeating-radial-gradient(circle,rgba(255,177,76,.18)_0_1px,transparent_1px_20px)] opacity-90" />
               <div
                 className={`${
@@ -426,7 +426,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                 <div className="mt-8 max-w-3xl">
                   <div className="mb-3 text-[11px] uppercase tracking-[0.24em] text-white/50">Operator prompt</div>
                   <form
-                    className="relative z-30 flex items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
+                    className="relative z-30 flex items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
                     onSubmit={(event) => {
                       event.preventDefault();
                       void runCommand();
@@ -490,10 +490,10 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
             </div>
 
-            <aside className="relative z-20 min-h-0 hidden xl:block">
+            <aside className="relative z-20 hidden min-h-0 xl:block xl:self-center">
               <div className="mb-8 flex items-end justify-between pl-4">
                 <div>
-                  <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">World Portals</div>
+                  <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">Operational worlds</div>
                   <p className="mt-3 text-sm text-white/48">Recessed chambers behind your forward action plane. Priority: {operatorPriority?.highestPressureWorld ?? "none"}.</p>
                 </div>
                 <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">
@@ -584,52 +584,9 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                     No active worlds yet. Launch a campaign to create one.
                   </div>
                 ) : null}
-                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-20 rounded-[50%] bg-[radial-gradient(ellipse_at_center,rgba(75,120,255,.22),transparent_65%)] blur-sm" />
               </div>
             </aside>
           </section>
-
-          <footer className="grid gap-3 border-t border-white/[0.065] pt-4 xl:grid-cols-[minmax(15rem,.8fr)_minmax(20rem,1fr)_minmax(14rem,.75fr)]">
-            <div className="flex items-center gap-4 rounded-[1.6rem] bg-white/[0.025] px-5 py-4">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-violet-400/20 text-violet-100 shadow-[0_0_28px_rgba(139,92,246,.35)]">
-                ✦
-              </div>
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.22em] text-white/50">Operator presence</div>
-                <div className="mt-1 text-sm text-white/75">Online and synchronized.</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 rounded-[1.6rem] bg-white/[0.025] px-4 py-4 md:grid-cols-4">
-              {[
-                ["Runtime pulse", "Calm · Focused · Steady"],
-                ["Continuity signal", "Stable"],
-                ["Atmosphere", "Focused"],
-                ["Momentum", "Building"],
-              ].map(([label, value]) => (
-                <div key={label} className="min-w-0 border-r border-white/10 px-2 md:last:border-r-0 even:border-r-0 md:even:border-r">
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/42">{label}</div>
-                  <div className="mt-2 text-sm leading-snug text-cyan-100">{value}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-[1.6rem] bg-white/[0.025] px-5 py-4">
-              <div className="text-[11px] uppercase tracking-[0.22em] text-white/50">Operations</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  ["Campaigns", "/shopreel/campaigns"],
-                  ["Review", "/shopreel/review"],
-                  ["Library", "/shopreel/library"],
-                  ["Ops", "/shopreel/operations"],
-                ].map(([title, href]) => (
-                  <Link key={href} href={href} className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-white/70 hover:bg-white/[0.07]">
-                    {title}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </footer>
         </main>
       </div>
 

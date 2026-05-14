@@ -45,7 +45,7 @@ export default function RuntimeWorldDeck({
   const visible = useMemo(() => items.slice(activeIndex, activeIndex + maxVisible), [items, activeIndex]);
 
   const advance = (dir: 1 | -1) => {
-    setActiveIndex((current) => Math.max(0, Math.min(items.length - 1, current + dir)));
+    setActiveIndex((current) => Math.max(0, Math.min(Math.max(0, items.length - 1), current + dir)));
   };
 
   const handleWheel: WheelEventHandler<HTMLDivElement> = (event) => {
@@ -56,7 +56,7 @@ export default function RuntimeWorldDeck({
 
   return (
     <div
-      className="relative h-full"
+      className="relative h-full w-full"
       onWheel={handleWheel}
       onKeyDown={(event) => {
         if (event.key === "ArrowUp") {
@@ -100,7 +100,7 @@ export default function RuntimeWorldDeck({
               if (!active) return setActiveIndex(index);
               onSelect(item, event, index, deckGraph, temporalMemory, choreography);
             }}
-            className={`group absolute right-0 top-0 min-h-[23rem] w-[min(32rem,100%)] overflow-hidden rounded-[1.6rem] border p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 ${
+            className={`group absolute right-0 top-16 min-h-[22rem] w-[min(36rem,92%)] overflow-hidden rounded-[1.6rem] border p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60 ${
               active
                 ? "border-amber-200/65 bg-[linear-gradient(180deg,rgba(38,22,36,.96),rgba(8,10,26,.98))]"
                 : emphasizedCardId === `${item.kind}:${item.id}`
@@ -109,8 +109,8 @@ export default function RuntimeWorldDeck({
             }`}
             style={{
               zIndex: maxVisible - localIndex,
-              opacity: 1 - localIndex * 0.16,
-              transform: `translate3d(${localIndex * 10}px, ${localIndex * -14}px, 0) scale(${1 - localIndex * 0.04})`,
+              opacity: [1, 0.86, 0.72, 0.56][localIndex] ?? 0.4,
+              transform: `translate3d(${[0, 14, 28, 42][localIndex] ?? localIndex * 14}px, ${[0, -18, -34, -48][localIndex] ?? localIndex * -14}px, 0) scale(${[1, 0.97, 0.94, 0.91][localIndex] ?? 0.88})`,
               transition: prefersReducedMotion ? "none" : "transform 260ms ease, opacity 260ms ease, box-shadow 260ms ease",
               boxShadow: active ? "0 0 65px rgba(255,174,80,.24),0 34px 90px rgba(0,0,0,.62)" : "0 20px 46px rgba(0,0,0,.52)",
             }}
