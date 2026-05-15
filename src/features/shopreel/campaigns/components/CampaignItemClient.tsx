@@ -1220,7 +1220,9 @@ export default function CampaignItemClient({
         </div>
       </GlassCard>
 
-      </section>\n\n      <GlassCard label="Storyboard Workspace" title="Scene sequencing board" description="Arrange scene order, shape story rhythm, and preview platform pacing with a creator-first lens." strong>
+      </section>
+
+      <GlassCard label="Storyboard Workspace" title="Scene sequencing board" description="Arrange scene order, shape story rhythm, and preview platform pacing with a creator-first lens." strong>
         <div className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 xl:col-span-2">
             <div className="text-xs uppercase tracking-[0.16em] text-white/55">Emotional timeline</div>
