@@ -4,7 +4,9 @@ import type { MediaProviderAdapter, MediaProviderJobInput, MediaProviderResult, 
 type FalQueueResponse = {
   request_id?: string;
   status?: string;
+  status_url?: string;
   response_url?: string;
+  cancel_url?: string;
   error?: string;
 };
 
@@ -67,7 +69,15 @@ export const falMediaProvider: MediaProviderAdapter = {
         providerStatus: json.request_id ? "waiting_for_provider" : mapFalStatus(json.status),
         model,
         capability: { image: isImage, video: !isImage, audio: false, assemblyRender: false, async: true, supportsPolling: true, maxDurationSeconds: null },
-        resultPayload: { provider: "fal", model, submit_response: json, lifecycle_stage: "submit" },
+        resultPayload: {
+          provider: "fal",
+          model,
+          submit_response: json,
+          status_url: json.status_url ?? null,
+          response_url: json.response_url ?? null,
+          cancel_url: json.cancel_url ?? null,
+          lifecycle_stage: "submit",
+        },
       };
     } catch (error) {
       throw new Error(safeErrorMessage(error));
@@ -82,8 +92,11 @@ export const falMediaProvider: MediaProviderAdapter = {
     const model = isImage ? getShopreelFalImageModel() : getShopreelFalVideoModel();
 
     try {
-      // TODO(phase-17): verify the polling URL and response payload shape against live fal.ai docs/account.
-      const response = await fetch(`https://queue.fal.run/${model}/requests/${input.providerJobId}/status`, {
+      const queueModel = model.startsWith("fal-ai/kling-video")
+        ? "fal-ai/kling-video"
+        : model;
+
+      const response = await fetch(`https://queue.fal.run/${queueModel}/requests/${input.providerJobId}/status`, {
         method: "GET",
         headers: {
           Authorization: `Key ${apiKey}`,
