@@ -73,11 +73,27 @@ export default async function ShopReelCampaignItemPage(props: {
   }
 
   const frameByScene = new Map<string, { id: string; status: string; preview_url: string | null; provider: string; provider_job_id: string | null; error_text: string | null; settings: unknown; result_payload: unknown }>();
+
+  function frameRank(job: FrameJob) {
+    if (job.preview_url) return 0;
+    if (job.status === "completed") return 1;
+    if (/queued|processing|running|pending/i.test(job.status ?? "")) return 2;
+    if (/failed|error/i.test(job.status ?? "")) return 3;
+    return 4;
+  }
+
   for (const job of frameJobs) {
-    const settings = job.settings && typeof job.settings === "object" && !Array.isArray(job.settings) ? job.settings as Record<string, unknown> : null;
+    const settings =
+      job.settings && typeof job.settings === "object" && !Array.isArray(job.settings)
+        ? (job.settings as Record<string, unknown>)
+        : null;
     const sceneId = typeof settings?.scene_id === "string" ? settings.scene_id : null;
-    if (!sceneId || frameByScene.has(sceneId)) continue;
-    frameByScene.set(sceneId, job);
+    if (!sceneId) continue;
+
+    const existing = frameByScene.get(sceneId);
+    if (!existing || frameRank(job) < frameRank(existing as FrameJob)) {
+      frameByScene.set(sceneId, job);
+    }
   }
 
   const normalizedScenes = (scenes ?? []).map((scene) => ({
