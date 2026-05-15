@@ -321,90 +321,102 @@ export default function CampaignItemCommandCenter({
         ) : null}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
-        <div className="grid content-start gap-3">
-          {[
-            {
-              id: "production" as const,
-              label: "Production",
-              title: "Current state",
-              body: `${completedFrames.length}/${orderedScenes.length} frames · ${completedVideos.length}/${orderedScenes.length} clips · ${readyForVideo.length} ready for Kling`,
-            },
-            {
-              id: "prompt" as const,
-              label: "Prompt",
-              title: item.title,
-              body: item.prompt,
-            },
-            {
-              id: "direction" as const,
-              label: "Direction",
-              title: "Creative settings",
-              body: `${formatLabel(item.style ?? "cinematic")} · ${formatLabel(item.visual_mode ?? "photoreal")} · ${item.aspect_ratio} · ${item.duration_seconds ?? 8}s`,
-            },
-            {
-              id: "provider" as const,
-              label: "Provider",
-              title: "FAL / Kling",
-              body: "Image-to-video requires a completed reference frame. Completed clips are stored as media assets and scene outputs.",
-            },
-          ].map((panel) => (
-            <button
-              key={panel.id}
-              type="button"
-              onClick={() => setOpenPanel(openPanel === panel.id ? null : panel.id)}
-              className={`rounded-2xl border p-4 text-left transition ${
-                openPanel === panel.id
-                  ? "border-cyan-200/35 bg-cyan-500/10"
-                  : "border-white/10 bg-white/[0.035] hover:bg-white/[0.055]"
-              }`}
-            >
-              <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">{panel.label}</div>
-              <div className="mt-1 text-base font-semibold text-white">{panel.title}</div>
-              <div
-                className={`mt-3 rounded-xl border border-white/10 bg-black/15 p-3 text-sm leading-6 text-white/68 ${
-                  openPanel === panel.id ? "max-h-72 overflow-auto" : "line-clamp-2"
+      <section className="grid gap-4 xl:grid-cols-[12rem_minmax(0,1fr)_20rem]">
+        <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-3">
+          <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-white/45">Scenes</div>
+          <div className="grid gap-2">
+            {orderedScenes.map((scene, index) => (
+              <button
+                key={scene.id}
+                type="button"
+                onClick={() => setSelectedSceneIndex(index)}
+                className={`rounded-xl border p-3 text-left transition ${
+                  index === selectedSceneIndex
+                    ? "border-cyan-200/40 bg-cyan-500/15"
+                    : "border-white/10 bg-black/15 hover:bg-white/[0.055]"
                 }`}
               >
-                {panel.body}
-              </div>
-            </button>
-          ))}
+                <div className="text-[10px] uppercase tracking-[0.18em] text-white/40">Shot {index + 1}</div>
+                <div className="mt-1 line-clamp-2 text-sm font-semibold text-white">{scene.title}</div>
+                <div className="mt-2 flex gap-1">
+                  <span className={`h-1.5 w-1.5 rounded-full ${sceneHasFrame(scene) ? "bg-violet-300" : "bg-white/20"}`} />
+                  <span className={`h-1.5 w-1.5 rounded-full ${sceneHasVideo(scene) ? "bg-emerald-300" : "bg-white/20"}`} />
+                  <span className={`h-1.5 w-1.5 rounded-full ${sceneIsActive(scene) ? "bg-cyan-300" : "bg-white/20"}`} />
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <aside className="rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-4 xl:sticky xl:top-4 xl:self-start">
-          <div className="mb-3 flex items-center justify-between gap-2">
+        <main className="rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">Scene deck</div>
-              <div className="text-sm text-white/65">
-                {orderedScenes.length > 0 ? `${selectedSceneIndex + 1}/${orderedScenes.length}` : "No scenes"}
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">Active scene</div>
+              <div className="text-xl font-semibold text-white">
+                {selectedScene ? selectedScene.title : "No scene selected"}
               </div>
             </div>
-
             <div className="flex gap-2">
-              <button type="button" onClick={previousScene} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80">
-                ←
-              </button>
-              <button type="button" onClick={nextScene} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80">
-                →
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeckCollapsed((value) => !value)}
-                className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80"
-              >
-                {deckCollapsed ? "Expand" : "Collapse"}
-              </button>
+              <button type="button" onClick={previousScene} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80">←</button>
+              <button type="button" onClick={nextScene} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80">→</button>
             </div>
           </div>
 
-          {!deckCollapsed && selectedScene ? (
-            <div className="space-y-4">
+          {selectedScene ? (
+            <div className="grid gap-4 lg:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/65">
-                  Shot {selectedSceneIndex + 1}
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Reference image</div>
+                  <GlassBadge tone={sceneHasFrame(selectedScene) ? "copper" : "muted"}>
+                    {sceneHasFrame(selectedScene) ? "Frame ready" : "Frame needed"}
+                  </GlassBadge>
                 </div>
-                <div className="mt-1 text-lg font-semibold text-white">{selectedScene.title}</div>
+                {selectedScene.frame_job?.preview_url ? (
+                  <img
+                    src={selectedScene.frame_job.preview_url}
+                    alt={`${selectedScene.title} reference frame`}
+                    className="aspect-[9/16] max-h-[34rem] w-full rounded-xl border border-white/10 object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[9/16] max-h-[34rem] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-center text-sm text-white/55">
+                    Generate reference image first.
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Generated video</div>
+                  <GlassBadge tone={sceneHasVideo(selectedScene) ? "copper" : "muted"}>
+                    {sceneHasVideo(selectedScene) ? "Clip ready" : "Video pending"}
+                  </GlassBadge>
+                </div>
+                {selectedScene.media_job?.preview_url ? (
+                  <video
+                    src={selectedScene.media_job.preview_url}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="aspect-[9/16] max-h-[34rem] w-full rounded-xl border border-white/10 bg-black object-contain"
+                  />
+                ) : (
+                  <div className="flex aspect-[9/16] max-h-[34rem] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-center text-sm text-white/55">
+                    {selectedScene.frame_job?.preview_url
+                      ? "Reference frame ready. Generate video next."
+                      : "Video locked until reference image exists."}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </main>
+
+        <aside className="rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-4 xl:sticky xl:top-4 xl:self-start">
+          <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">Operator stack</div>
+          {selectedScene ? (
+            <div className="mt-3 space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="text-sm font-semibold text-white">{selectedScene.title}</div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <GlassBadge tone={sceneHasVideo(selectedScene) ? "copper" : "default"}>
                     {normalizeStatus(selectedScene.media_job?.status ?? selectedScene.status)}
@@ -415,42 +427,6 @@ export default function CampaignItemCommandCenter({
                   <GlassBadge tone={sceneHasVideo(selectedScene) ? "copper" : "muted"}>
                     Video: {sceneHasVideo(selectedScene) ? "ready" : sceneIsActive(selectedScene) ? "active" : "pending"}
                   </GlassBadge>
-                </div>
-              </div>
-
-              <div className="grid gap-3">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/45">Reference image</div>
-                  {selectedScene.frame_job?.preview_url ? (
-                    <img
-                      src={selectedScene.frame_job.preview_url}
-                      alt={`${selectedScene.title} reference frame`}
-                      className="aspect-[9/16] w-full rounded-xl border border-white/10 object-cover"
-                    />
-                  ) : (
-                    <div className="flex aspect-[9/16] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-center text-sm text-white/55">
-                      Generate reference image first.
-                    </div>
-                  )}
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/45">Generated video</div>
-                  {selectedScene.media_job?.preview_url ? (
-                    <video
-                      src={selectedScene.media_job.preview_url}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className="aspect-[9/16] w-full rounded-xl border border-white/10 bg-black object-contain"
-                    />
-                  ) : (
-                    <div className="flex aspect-[9/16] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-center text-sm text-white/55">
-                      {selectedScene.frame_job?.preview_url
-                        ? "Reference frame ready. Generate video next."
-                        : "Video locked until reference image exists."}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -490,26 +466,6 @@ export default function CampaignItemCommandCenter({
               </details>
             </div>
           ) : null}
-
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {orderedScenes.map((scene, index) => (
-              <button
-                key={scene.id}
-                type="button"
-                onClick={() => setSelectedSceneIndex(index)}
-                className={`h-2 rounded-full ${
-                  index === selectedSceneIndex
-                    ? "bg-cyan-200"
-                    : sceneHasVideo(scene)
-                      ? "bg-emerald-300/80"
-                      : sceneHasFrame(scene)
-                        ? "bg-violet-300/80"
-                        : "bg-white/20"
-                }`}
-                aria-label={`Select scene ${index + 1}`}
-              />
-            ))}
-          </div>
         </aside>
       </section>
     </div>
