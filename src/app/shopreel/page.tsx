@@ -40,7 +40,7 @@ export default async function ShopReelPage() {
   const sources = await Promise.allSettled([
     supabase.from("shopreel_story_generations").select("id,status,created_at,updated_at,story_draft").eq("shop_id", shopId).order("created_at", { ascending: false }).limit(4),
     supabase.from("shopreel_campaigns").select("id,title,status,created_at,updated_at").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
-    resolveOptionalRuntimeRows("content_pieces", "id,title,status,created_at,updated_at"),
+    resolveOptionalRuntimeRows("content_pieces", "id,title,status,created_at,updated_at,metadata"),
     supabase.from("reel_render_jobs").select("id,status,created_at,updated_at").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
     resolveOptionalRuntimeRows("content_publications", "id,status,created_at,updated_at"),
     supabase.from("shopreel_content_opportunities").select("id,status,created_at,updated_at,story_source:shopreel_story_sources(title)").eq("shop_id", shopId).order("updated_at", { ascending: false }).limit(3),
@@ -85,10 +85,71 @@ export default async function ShopReelPage() {
   }
 
   if (contentPieces.status === "fulfilled" && !contentPieces.value.error) {
-    for (const row of ((contentPieces.value.data ?? []) as unknown as Array<{ id: string; title: string | null; status: string | null; created_at: string; updated_at?: string | null }>)) {
+    type ContentPieceRuntimeRow = {
+      id: string;
+      title: string | null;
+      status: string | null;
+      created_at: string;
+      updated_at?: string | null;
+      metadata?: unknown;
+    };
+
+    const contentRows = (contentPieces.value.data ?? []) as unknown as ContentPieceRuntimeRow[];
+
+    const mediaJobIds = contentRows
+      .map((row) => {
+        const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+          ? (row.metadata as Record<string, unknown>)
+          : {};
+        return typeof metadata.media_generation_job_id === "string" ? metadata.media_generation_job_id : null;
+      })
+      .filter((id): id is string => Boolean(id));
+
+    const campaignItemByMediaJobId = new Map<string, string>();
+
+    if (mediaJobIds.length > 0) {
+      const { data: linkedScenes, error: linkedScenesError } = await supabase
+        .from("shopreel_campaign_item_scenes")
+        .select("media_job_id, campaign_item_id")
+        .eq("shop_id", shopId)
+        .in("media_job_id", mediaJobIds);
+
+      if (linkedScenesError) {
+        console.warn("[shopreel] content-piece campaign route lookup warning", {
+          message: linkedScenesError.message,
+        });
+      }
+
+      for (const scene of linkedScenes ?? []) {
+        if (scene.media_job_id && scene.campaign_item_id) {
+          campaignItemByMediaJobId.set(scene.media_job_id, scene.campaign_item_id);
+        }
+      }
+    }
+
+    for (const row of contentRows) {
       const normalizedStatus = normalizeOperatorWorldStatus("content_piece", row.status);
       const updatedAt = row.updated_at ?? row.created_at;
-      worlds.push({ id: row.id, kind: "content_piece", title: row.title ?? "Untitled content", status: row.status ?? "unknown", normalizedStatus, sourceLabel: "Content Piece", stageLabel: normalizedStatus.replaceAll("_", " "), actionLabel: "Open content", priority: getOperatorWorldPriority("content_piece", normalizedStatus, updatedAt), updatedAt, createdAt: row.created_at, href: getOperatorWorldHref("content_piece", row.id) });
+      const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+        ? (row.metadata as Record<string, unknown>)
+        : {};
+      const mediaJobId = typeof metadata.media_generation_job_id === "string" ? metadata.media_generation_job_id : null;
+      const campaignItemId = mediaJobId ? campaignItemByMediaJobId.get(mediaJobId) ?? null : null;
+
+      worlds.push({
+        id: row.id,
+        kind: "content_piece",
+        title: row.title ?? "Untitled content",
+        status: row.status ?? "unknown",
+        normalizedStatus,
+        sourceLabel: campaignItemId ? "Campaign Media" : "Content Piece",
+        stageLabel: normalizedStatus.replaceAll("_", " "),
+        actionLabel: campaignItemId ? "Continue campaign" : "Open content",
+        priority: getOperatorWorldPriority("content_piece", normalizedStatus, updatedAt),
+        updatedAt,
+        createdAt: row.created_at,
+        href: campaignItemId ? `/shopreel/campaigns/items/${campaignItemId}?from=deck` : getOperatorWorldHref("content_piece", row.id),
+      });
     }
   }
 
