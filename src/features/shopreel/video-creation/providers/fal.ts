@@ -40,7 +40,18 @@ export const falMediaProvider: MediaProviderAdapter = {
 
     const isImage = input.jobType === "image";
     const model = isImage ? getShopreelFalImageModel() : getShopreelFalVideoModel();
-    const prompt = input.promptEnhanced?.trim() || input.prompt?.trim() || "Create a premium high-quality branded video asset.";
+    const rawPrompt = input.promptEnhanced?.trim() || input.prompt?.trim() || "Create a premium high-quality branded video asset.";
+    const prompt = rawPrompt.length > 2400 ? rawPrompt.slice(0, 2400) : rawPrompt;
+    const settings =
+      input.settings && typeof input.settings === "object" && !Array.isArray(input.settings)
+        ? (input.settings as Record<string, unknown>)
+        : {};
+    const startImageUrl = typeof settings.start_image_url === "string" ? settings.start_image_url : null;
+    const isImageToVideo = !isImage && model.includes("image-to-video");
+
+    if (isImageToVideo && !startImageUrl) {
+      throw new Error("Kling image-to-video requires start_image_url. Generate or attach a keyframe first.");
+    }
 
     try {
       // TODO(phase-17): confirm the canonical fal.ai model endpoint and payload fields in production.
@@ -54,6 +65,7 @@ export const falMediaProvider: MediaProviderAdapter = {
           prompt,
           duration: isImage ? undefined : input.durationSeconds ?? 8,
           aspect_ratio: input.aspectRatio,
+          start_image_url: isImageToVideo ? startImageUrl : undefined,
           negative_prompt: input.negativePrompt ?? undefined,
         }),
       });

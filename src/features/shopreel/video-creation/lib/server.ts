@@ -289,6 +289,51 @@ export async function processMediaGenerationJob(
       job.duration_seconds
     );
 
+    let providerSettings =
+      job.settings && typeof job.settings === "object" && !Array.isArray(job.settings)
+        ? { ...(job.settings as Record<string, unknown>) }
+        : {};
+
+    if (job.provider === "fal" && job.job_type === "video" && !providerSettings.start_image_url) {
+      const sceneId = typeof providerSettings.scene_id === "string" ? providerSettings.scene_id : null;
+
+      if (sceneId) {
+        const { data: frameJob, error: frameJobError } = await supabase
+          .from("shopreel_media_generation_jobs")
+          .select("id, preview_url, output_asset_id")
+          .eq("shop_id", job.shop_id)
+          .eq("job_type", "image")
+          .eq("status", "completed")
+          .eq("settings->>scene_id", sceneId)
+          .not("preview_url", "is", null)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (frameJobError) {
+          throw new Error(frameJobError.message);
+        }
+
+        if (frameJob?.preview_url) {
+          providerSettings = {
+            ...providerSettings,
+            start_image_url: frameJob.preview_url,
+            start_image_job_id: frameJob.id,
+            start_image_asset_id: frameJob.output_asset_id ?? null,
+          };
+
+          await supabase
+            .from("shopreel_media_generation_jobs")
+            .update({
+              settings: providerSettings as any,
+              input_asset_ids: frameJob.output_asset_id ? [frameJob.output_asset_id] : job.input_asset_ids,
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq("id", job.id);
+        }
+      }
+    }
+
     const providerResult = await provider.run({
       jobId: job.id,
       provider: job.provider,
@@ -301,7 +346,7 @@ export async function processMediaGenerationJob(
       aspectRatio: job.aspect_ratio,
       durationSeconds: normalizedDurationSeconds,
       inputAssetIds: job.input_asset_ids ?? [],
-      settings: job.settings,
+      settings: providerSettings as any,
     });
 
     if (job.job_type === "video" && providerResult.providerStatus !== "completed") {
