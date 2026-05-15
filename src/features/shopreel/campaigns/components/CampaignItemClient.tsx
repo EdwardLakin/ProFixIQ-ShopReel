@@ -511,6 +511,9 @@ export default function CampaignItemClient({
   const [selectedRefinements, setSelectedRefinements] = useState<RefinementAction[]>([]);
   const [referenceFrameApproved, setReferenceFrameApproved] = useState(false);
   const [manualReferenceUrl, setManualReferenceUrl] = useState("");
+  const [selectedSceneIndex, setSelectedSceneIndex] = useState(0);
+  const [sceneDeckCollapsed, setSceneDeckCollapsed] = useState(false);
+  const [openInfoPanel, setOpenInfoPanel] = useState<"item" | "direction" | "workflow" | "reference" | null>("workflow");
 
   useEffect(() => {
     setWorkspaceSceneOrder(scenes.map((scene) => scene.id));
@@ -525,6 +528,25 @@ export default function CampaignItemClient({
     return [...ordered, ...missing];
   }, [scenes, workspaceSceneOrder]);
   const dominantFrameCta = useMemo(() => getDominantFrameCta(orderedScenes), [orderedScenes]);
+
+  const selectedScene = orderedScenes[selectedSceneIndex] ?? orderedScenes[0] ?? null;
+  const selectedSceneStatus = selectedScene ? displayStatus(selectedScene) : "not_started";
+  const selectedSceneDirection = selectedScene ? getSceneDirection(selectedScene) : null;
+
+  function goToScene(offset: -1 | 1) {
+    setSelectedSceneIndex((current) => {
+      if (orderedScenes.length === 0) return 0;
+      const next = current + offset;
+      if (next < 0) return orderedScenes.length - 1;
+      if (next >= orderedScenes.length) return 0;
+      return next;
+    });
+  }
+
+  function selectSceneById(sceneId: string) {
+    const index = orderedScenes.findIndex((scene) => scene.id === sceneId);
+    if (index >= 0) setSelectedSceneIndex(index);
+  }
 
   const frameJobs = orderedScenes
     .map((scene) => scene.frame_job)
@@ -710,6 +732,203 @@ export default function CampaignItemClient({
             ) : null}
           </div>
         ) : null}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_26rem]">
+        <div className="grid gap-3">
+          {[
+            {
+              id: "workflow" as const,
+              label: "Workflow",
+              title: "Production state",
+              body: `${completedFrameJobs.length}/${totalScenes} reference frames · ${completedVideoJobs.length}/${totalScenes} video clips · ${readyForVideoScenes.length} ready for Kling`,
+            },
+            {
+              id: "item" as const,
+              label: "Item",
+              title: item.title,
+              body: item.prompt,
+            },
+            {
+              id: "direction" as const,
+              label: "Direction",
+              title: "Creative controls",
+              body: `${formatLabel(style)} · ${formatLabel(visualMode)} · ${aspectRatio} · ${durationSeconds}s`,
+            },
+            {
+              id: "reference" as const,
+              label: "Reference",
+              title: "Frame handoff",
+              body: hasReferenceFrame
+                ? "Reference frame exists. Generate video clips only for scenes with a frame target."
+                : "Generate a reference frame before Kling image-to-video.",
+            },
+          ].map((panel) => (
+            <button
+              key={panel.id}
+              type="button"
+              onClick={() => setOpenInfoPanel(openInfoPanel === panel.id ? null : panel.id)}
+              className={`rounded-2xl border p-4 text-left transition ${
+                openInfoPanel === panel.id
+                  ? "border-cyan-200/35 bg-cyan-500/10"
+                  : "border-white/10 bg-white/[0.035] hover:bg-white/[0.055]"
+              }`}
+            >
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">{panel.label}</div>
+              <div className="mt-1 text-base font-semibold text-white">{panel.title}</div>
+              {openInfoPanel === panel.id ? (
+                <div className="mt-3 max-h-56 overflow-auto rounded-xl border border-white/10 bg-black/15 p-3 text-sm leading-6 text-white/70">
+                  {panel.body}
+                </div>
+              ) : (
+                <div className="mt-2 line-clamp-2 text-sm text-white/55">{panel.body}</div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <aside className="rounded-[1.35rem] border border-white/10 bg-white/[0.035] p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">Scene deck</div>
+              <div className="text-sm text-white/65">
+                {orderedScenes.length > 0 ? `${selectedSceneIndex + 1}/${orderedScenes.length}` : "No scenes"}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => goToScene(-1)}
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => goToScene(1)}
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80"
+              >
+                →
+              </button>
+              <button
+                type="button"
+                onClick={() => setSceneDeckCollapsed((value) => !value)}
+                className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80"
+              >
+                {sceneDeckCollapsed ? "Expand" : "Collapse"}
+              </button>
+            </div>
+          </div>
+
+          {!sceneDeckCollapsed && selectedScene ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="text-[11px] uppercase tracking-[0.18em] text-cyan-100/65">
+                  {`Shot ${selectedSceneIndex + 1}`}
+                </div>
+                <div className="mt-1 text-lg font-semibold text-white">{selectedScene.title}</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <GlassBadge tone="default">{selectedSceneStatus}</GlassBadge>
+                  <GlassBadge tone="muted">Frame: {selectedScene.frame_job?.status ?? "not_started"}</GlassBadge>
+                  {selectedScene.media_job?.status ? <GlassBadge tone="muted">Video: {selectedScene.media_job.status}</GlassBadge> : null}
+                  {selectedScene.media_job?.preview_url ? <GlassBadge tone="copper">Clip ready</GlassBadge> : null}
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/45">Reference image</div>
+                  {selectedScene.frame_job?.preview_url ? (
+                    <img
+                      src={selectedScene.frame_job.preview_url}
+                      alt={`${selectedScene.title} reference frame`}
+                      className="aspect-[9/16] w-full rounded-xl border border-white/10 object-cover"
+                    />
+                  ) : (
+                    <div className="flex aspect-[9/16] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-center text-sm text-white/55">
+                      Generate reference image first.
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/45">Generated video</div>
+                  {selectedScene.media_job?.preview_url ? (
+                    <video
+                      src={selectedScene.media_job.preview_url}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="aspect-[9/16] w-full rounded-xl border border-white/10 bg-black object-contain"
+                    />
+                  ) : (
+                    <div className="flex aspect-[9/16] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] p-4 text-center text-sm text-white/55">
+                      {selectedScene.frame_job?.preview_url
+                        ? "Reference frame ready. Generate video next."
+                        : "Video locked until reference image exists."}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <GlassButton
+                  variant="secondary"
+                  disabled={anyBusy}
+                  onClick={() => void generateSceneFrame(selectedScene.id)}
+                >
+                  {selectedScene.frame_job ? "Regenerate reference image" : "Generate reference image"}
+                </GlassButton>
+
+                <GlassButton
+                  variant="primary"
+                  disabled={anyBusy || !selectedScene.frame_job?.preview_url}
+                  onClick={() =>
+                    void runAction(
+                      "run-scenes",
+                      `/api/shopreel/campaigns/items/${item.id}/run-scene-jobs`,
+                      "Generating video clips for scenes with reference frames..."
+                    )
+                  }
+                >
+                  Generate video
+                </GlassButton>
+              </div>
+
+              {selectedSceneDirection ? (
+                <details className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-sm text-white/65">
+                  <summary className="cursor-pointer text-white/80">Scene direction</summary>
+                  <div className="mt-3 space-y-2">
+                    <p>{selectedSceneDirection.emotionalBeat}</p>
+                    <p>Camera: {selectedSceneDirection.cameraMotion}</p>
+                    <p>Lighting: {selectedSceneDirection.lightingMood}</p>
+                    <p>Pacing: {selectedSceneDirection.pacing}</p>
+                  </div>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            {orderedScenes.map((scene, index) => (
+              <button
+                key={scene.id}
+                type="button"
+                onClick={() => selectSceneById(scene.id)}
+                className={`h-2 rounded-full ${
+                  index === selectedSceneIndex
+                    ? "bg-cyan-200"
+                    : scene.media_job?.preview_url
+                      ? "bg-emerald-300/80"
+                      : scene.frame_job?.preview_url
+                        ? "bg-violet-300/80"
+                        : "bg-white/20"
+                }`}
+                aria-label={`Select scene ${index + 1}`}
+              />
+            ))}
+          </div>
+        </aside>
       </section>
 
       <GlassCard label="Item" title={item.title} description="Campaign item summary and production settings." strong>
