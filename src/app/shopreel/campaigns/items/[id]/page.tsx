@@ -3,7 +3,7 @@ export const revalidate = 0;
 
 import CampaignFlowShell from "@/features/shopreel/campaigns/components/CampaignFlowShell";
 import CampaignPageHeader from "@/features/shopreel/campaigns/components/CampaignPageHeader";
-import CampaignItemClient from "@/features/shopreel/campaigns/components/CampaignItemClient";
+import CampaignItemCommandCenter from "@/features/shopreel/campaigns/components/CampaignItemCommandCenter";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 
@@ -113,7 +113,7 @@ export default async function ShopReelCampaignItemPage(props: {
         backLabel="Back to campaign workspace"
       />
 
-      <CampaignItemClient item={item} scenes={normalizedScenes} />
+      <CampaignItemCommandCenter item={item} scenes={normalizedScenes} />
     </CampaignFlowShell>
   );
 }
