@@ -13,6 +13,7 @@ export async function syncAllProcessingVideoJobs(args?: { shopId?: string }) {
     .eq("provider", "fal")
     .eq("job_type", "video")
     .not("provider_job_id", "is", null)
+    .not("result_payload->>provider_status", "eq", "failed")
     .order("updated_at", { ascending: true })
     .limit(5);
 
