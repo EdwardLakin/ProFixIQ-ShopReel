@@ -1,4 +1,5 @@
 import { getFalApiKey, getShopreelFalImageModel, getShopreelFalVideoModel } from "@/features/shopreel/video-creation/lib/env";
+import type { Json } from "@/types/supabase";
 import type { MediaProviderAdapter, MediaProviderJobInput, MediaProviderResult, NormalizedProviderStatus } from "./types";
 
 type FalQueueResponse = {
@@ -13,9 +14,43 @@ type FalQueueResponse = {
 type FalStatusResponse = {
   status?: string;
   video?: { url?: string };
+  videos?: Array<{ url?: string }>;
   output?: { url?: string };
+  response_url?: string;
   error?: string;
 };
+
+function getFalOutputUrl(json: unknown): string | null {
+  if (!json || typeof json !== "object") return null;
+  const value = json as Record<string, unknown>;
+
+  const video = value.video;
+  if (video && typeof video === "object" && !Array.isArray(video)) {
+    const url = (video as Record<string, unknown>).url;
+    if (typeof url === "string" && url.length > 0) return url;
+  }
+
+  const videos = value.videos;
+  if (Array.isArray(videos)) {
+    for (const item of videos) {
+      if (item && typeof item === "object") {
+        const url = (item as Record<string, unknown>).url;
+        if (typeof url === "string" && url.length > 0) return url;
+      }
+    }
+  }
+
+  const output = value.output;
+  if (output && typeof output === "object" && !Array.isArray(output)) {
+    const url = (output as Record<string, unknown>).url;
+    if (typeof url === "string" && url.length > 0) return url;
+  }
+
+  const url = value.url;
+  if (typeof url === "string" && url.length > 0) return url;
+
+  return null;
+}
 
 function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "fal.ai request failed";
@@ -120,8 +155,31 @@ export const falMediaProvider: MediaProviderAdapter = {
         throw new Error(json.error || `fal.ai poll failed (${response.status})`);
       }
 
-      const outputUrl = json.video?.url ?? json.output?.url ?? null;
       const providerStatus = mapFalStatus(json.status);
+      let outputUrl = getFalOutputUrl(json);
+      let responsePayload: Json | null = null;
+
+      if (!outputUrl && providerStatus === "completed") {
+        const responseUrl =
+          typeof json.response_url === "string"
+            ? json.response_url
+            : `https://queue.fal.run/${queueModel}/requests/${input.providerJobId}`;
+
+        const resultResponse = await fetch(responseUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Key ${apiKey}`,
+          },
+        });
+
+        responsePayload = (await resultResponse.json().catch(() => ({}))) as Json;
+
+        if (!resultResponse.ok) {
+          throw new Error(`fal.ai result fetch failed (${resultResponse.status})`);
+        }
+
+        outputUrl = getFalOutputUrl(responsePayload);
+      }
 
       return {
         providerJobId: input.providerJobId,
@@ -131,7 +189,13 @@ export const falMediaProvider: MediaProviderAdapter = {
         model,
         capability: { image: isImage, video: !isImage, audio: false, assemblyRender: false, async: true, supportsPolling: true, maxDurationSeconds: null },
         errorMessage: providerStatus === "failed" ? json.error ?? "fal.ai generation failed" : null,
-        resultPayload: { provider: "fal", model, poll_response: json, lifecycle_stage: "poll" },
+        resultPayload: {
+          provider: "fal",
+          model,
+          poll_response: json,
+          response_payload: responsePayload,
+          lifecycle_stage: "poll",
+        },
       };
     } catch (error) {
       throw new Error(safeErrorMessage(error));
