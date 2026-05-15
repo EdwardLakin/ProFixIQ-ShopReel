@@ -14,7 +14,7 @@ export async function syncAllProcessingVideoJobs(args?: { shopId?: string }) {
     .eq("job_type", "video")
     .not("provider_job_id", "is", null)
     .order("updated_at", { ascending: true })
-    .limit(50);
+    .limit(5);
 
   if (error) {
     throw new Error(error.message);
