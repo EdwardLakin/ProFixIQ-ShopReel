@@ -536,6 +536,16 @@ export default function CampaignItemClient({
   const failedFrameJobs = firstFramePreviewUrl
     ? []
     : frameJobs.filter((job) => /failed|error/i.test(job.status ?? ""));
+
+  const mediaJobs = orderedScenes
+    .map((scene) => scene.media_job)
+    .filter((job): job is NonNullable<SceneRow["media_job"]> => Boolean(job));
+  const completedVideoJobs = mediaJobs.filter((job) => job.status === "completed" || Boolean(job.preview_url));
+  const activeVideoJobs = mediaJobs.filter((job) => /queued|submitted|processing|rendering|running|pending/i.test(job.status ?? ""));
+  const failedVideoJobs = mediaJobs.filter((job) => /failed|error/i.test(job.status ?? ""));
+  const readyForVideoScenes = orderedScenes.filter((scene) => Boolean(scene.frame_job?.preview_url) && !scene.media_job?.preview_url);
+  const missingReferenceScenes = orderedScenes.filter((scene) => !scene.frame_job?.preview_url);
+
   const approvedReferenceUrl = manualReferenceUrl.trim() || firstFramePreviewUrl;
   const hasReferenceFrame = Boolean(approvedReferenceUrl);
   const canGenerateReferenceFrame = Boolean(dominantFrameCta.targetSceneId) && !anyBusy;
@@ -564,7 +574,7 @@ export default function CampaignItemClient({
 
   return (
     <div className="grid gap-5">
-      <section className="sticky top-4 z-40 overflow-hidden rounded-[1.35rem] border border-cyan-200/25 bg-[#06111f]/95 px-5 py-4 shadow-[0_18px_55px_rgba(0,0,0,.38)] backdrop-blur-md">
+      <section className="overflow-hidden rounded-[1.35rem] border border-cyan-200/20 bg-[#06111f]/85 px-5 py-4 shadow-[0_12px_34px_rgba(0,0,0,.24)] backdrop-blur-md">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/70 to-transparent" />
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
@@ -657,6 +667,29 @@ export default function CampaignItemClient({
           <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-white/55">Review / post</span>
         </div>
 
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Reference frames</div>
+            <div className="mt-1 text-lg font-semibold text-white">{completedFrameJobs.length}/{totalScenes}</div>
+            <div className="text-xs text-white/55">{missingReferenceScenes.length} missing</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Video clips</div>
+            <div className="mt-1 text-lg font-semibold text-white">{completedVideoJobs.length}/{totalScenes}</div>
+            <div className="text-xs text-white/55">{activeVideoJobs.length} active · {failedVideoJobs.length} failed</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Ready for Kling</div>
+            <div className="mt-1 text-lg font-semibold text-white">{readyForVideoScenes.length}</div>
+            <div className="text-xs text-white/55">Scenes with frame target</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">Provider</div>
+            <div className="mt-1 text-lg font-semibold text-white">FAL</div>
+            <div className="text-xs text-white/55">Kling image-to-video</div>
+          </div>
+        </div>
+
         {statusMessage || error || processingFrameJobs.length > 0 || failedFrameJobs.length > 0 || firstFramePreviewUrl ? (
           <div className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm lg:grid-cols-[minmax(0,1fr)_auto]">
             <div>
@@ -679,7 +712,7 @@ export default function CampaignItemClient({
         ) : null}
       </section>
 
-      <GlassCard label="Item" title={item.title} description={item.prompt} strong>
+      <GlassCard label="Item" title={item.title} description="Campaign item summary and production settings." strong>
         <div className="flex flex-wrap gap-2">
           <GlassBadge tone="default">{item.status}</GlassBadge>
           <GlassBadge tone="muted">{item.angle}</GlassBadge>
@@ -687,10 +720,17 @@ export default function CampaignItemClient({
           <GlassBadge tone="muted">{formatLabel(style)}</GlassBadge>
           <GlassBadge tone="muted">{formatLabel(visualMode)}</GlassBadge>
           <GlassBadge tone="muted">{durationSeconds}s</GlassBadge>
+          {completedVideoJobs.length > 0 ? (
+            <GlassBadge tone="copper">{completedVideoJobs.length} clip ready</GlassBadge>
+          ) : null}
           {item.final_output_asset_id ? (
             <GlassBadge tone="copper">Final video ready</GlassBadge>
           ) : null}
         </div>
+        <details className="mt-4 rounded-2xl border border-white/10 bg-black/15 p-3 text-sm text-white/68">
+          <summary className="cursor-pointer text-white/80">View full campaign prompt</summary>
+          <p className="mt-3 leading-6">{item.prompt}</p>
+        </details>
       </GlassCard>
 
       <section id="creative-direction" className="scroll-mt-56">
