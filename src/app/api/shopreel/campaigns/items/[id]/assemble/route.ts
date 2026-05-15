@@ -10,24 +10,36 @@ export async function POST(
   try {
     const { id } = await ctx.params;
     const supabase = createAdminClient();
-    const shopId = await getCurrentShopId();
 
-    const { data: item, error: itemError } = await supabase
+    let shopId: string | null = null;
+    try {
+      shopId = await getCurrentShopId();
+    } catch {
+      shopId = null;
+    }
+
+    let itemQuery = supabase
       .from("shopreel_campaign_items")
       .select("id, campaign_id, shop_id, final_output_asset_id")
-      .eq("id", id)
-      .eq("shop_id", shopId)
-      .single();
+      .eq("id", id);
+
+    if (shopId) {
+      itemQuery = itemQuery.eq("shop_id", shopId);
+    }
+
+    const { data: item, error: itemError } = await itemQuery.single();
 
     if (itemError || !item) {
       throw new Error(itemError?.message ?? "Campaign item not found");
     }
 
+    const resolvedShopId = item.shop_id;
+
     const { data: scenes, error: scenesError } = await supabase
       .from("shopreel_campaign_item_scenes")
       .select("id, status, output_asset_id")
       .eq("campaign_item_id", item.id)
-      .eq("shop_id", shopId);
+      .eq("shop_id", resolvedShopId);
 
     if (scenesError) {
       throw new Error(scenesError.message);
@@ -46,7 +58,7 @@ export async function POST(
     }
 
     const payload = {
-      shop_id: shopId,
+      shop_id: resolvedShopId,
       campaign_id: item.campaign_id,
       campaign_item_id: item.id,
       status: "queued",
@@ -57,7 +69,7 @@ export async function POST(
       completed_at: null,
       error_text: null,
       settings: {},
-      result_payload: {}
+      result_payload: {},
     };
 
     const { data: job, error: upsertError } = await supabase
@@ -77,7 +89,7 @@ export async function POST(
       ok: true,
       queued: true,
       jobId: job.id,
-      status: job.status
+      status: job.status,
     });
   } catch (error) {
     return NextResponse.json(
@@ -86,7 +98,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Failed to enqueue premium campaign item"
+            : "Failed to enqueue premium campaign item",
       },
       { status: 500 }
     );
