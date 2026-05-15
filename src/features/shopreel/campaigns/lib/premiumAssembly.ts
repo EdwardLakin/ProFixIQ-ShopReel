@@ -1,4 +1,5 @@
 import path from "node:path";
+import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -13,7 +14,11 @@ const execFileAsync = promisify(execFile);
 function getFfmpegBinary(): string {
   const fromEnv = process.env.FFMPEG_PATH?.trim();
   if (fromEnv) return fromEnv;
-  if (ffmpegPath) return ffmpegPath;
+
+  if (typeof ffmpegPath === "string" && existsSync(ffmpegPath)) {
+    return ffmpegPath;
+  }
+
   return "ffmpeg";
 }
 
