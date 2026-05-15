@@ -1364,12 +1364,37 @@ export default function CampaignItemClient({
                       ) : null}
 
                       {scene.media_job?.preview_url ? (
-                        <video
-                          src={scene.media_job.preview_url}
-                          controls
-                          playsInline
-                          className="h-44 rounded-2xl border border-white/10"
-                        />
+                        <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-3">
+                          <div className="mb-2 flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-[11px] uppercase tracking-[0.16em] text-emerald-100/70">
+                                Generated video
+                              </div>
+                              <div className="text-sm font-medium text-white">
+                                Scene clip ready
+                              </div>
+                            </div>
+                            <a
+                              href={scene.media_job.preview_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-emerald-100 underline underline-offset-4"
+                            >
+                              Open video
+                            </a>
+                          </div>
+                          <video
+                            src={scene.media_job.preview_url}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="h-56 w-full rounded-xl border border-white/10 bg-black object-contain"
+                          />
+                        </div>
+                      ) : scene.media_job?.output_asset_id ? (
+                        <div className="rounded-2xl border border-copper-300/20 bg-white/[0.04] p-3 text-sm text-white/70">
+                          Video asset is linked, but no preview URL was returned to this page yet. Refresh or sync the scene.
+                        </div>
                       ) : null}
                     </div>
                   </div>
