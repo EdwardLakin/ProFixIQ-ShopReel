@@ -49,21 +49,53 @@ export async function POST(
         throw new Error("fal.ai adapter does not support polling.");
       }
 
-      const falResult = await adapter.poll({
-        jobId: mediaJob.id,
-        provider: mediaJob.provider,
-        jobType: mediaJob.job_type,
-        prompt: mediaJob.prompt,
-        promptEnhanced: mediaJob.prompt_enhanced,
-        negativePrompt: mediaJob.negative_prompt,
-        style: mediaJob.style,
-        visualMode: mediaJob.visual_mode,
-        aspectRatio: mediaJob.aspect_ratio,
-        durationSeconds: mediaJob.duration_seconds,
-        inputAssetIds: mediaJob.input_asset_ids ?? [],
-        settings: mediaJob.settings,
-        providerJobId: mediaJob.provider_job_id,
-      });
+      let falResult;
+      try {
+        falResult = await adapter.poll({
+          jobId: mediaJob.id,
+          provider: mediaJob.provider,
+          jobType: mediaJob.job_type,
+          prompt: mediaJob.prompt,
+          promptEnhanced: mediaJob.prompt_enhanced,
+          negativePrompt: mediaJob.negative_prompt,
+          style: mediaJob.style,
+          visualMode: mediaJob.visual_mode,
+          aspectRatio: mediaJob.aspect_ratio,
+          durationSeconds: mediaJob.duration_seconds,
+          inputAssetIds: mediaJob.input_asset_ids ?? [],
+          settings: mediaJob.settings,
+          providerJobId: mediaJob.provider_job_id,
+        });
+      } catch (pollError) {
+        const message = pollError instanceof Error ? pollError.message : "fal.ai polling failed";
+
+        const { data: failedJob } = await supabase
+          .from("shopreel_media_generation_jobs")
+          .update({
+            status: "failed",
+            error_text: message,
+            updated_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+            result_payload: {
+              ...(mediaJob.result_payload && typeof mediaJob.result_payload === "object" ? mediaJob.result_payload : {}),
+              provider: "fal",
+              provider_status: "failed",
+              lifecycle_stage: "poll_error",
+              sanitized_error: message,
+            },
+          } as any)
+          .eq("id", mediaJob.id)
+          .select("*")
+          .single();
+
+        return NextResponse.json({
+          ok: true,
+          completed: false,
+          failed: true,
+          job: failedJob,
+          error: message,
+        });
+      }
 
       console.info("[shopreel][video-creation][sync]", {
         route: "/api/shopreel/video-creation/jobs/[id]/sync",
