@@ -136,6 +136,17 @@ export async function POST(
           },
         });
 
+        if (completedJob.output_asset_id) {
+          await supabase
+            .from("shopreel_campaign_item_scenes")
+            .update({
+              status: "completed",
+              output_asset_id: completedJob.output_asset_id,
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq("media_job_id", completedJob.id);
+        }
+
         return NextResponse.json({ ok: true, completed: true, job: completedJob });
       }
 
