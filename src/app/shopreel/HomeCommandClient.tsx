@@ -15,6 +15,8 @@ import {
 } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
 import { buildOperationalGraph, planCommandExecution } from "@/features/shopreel/ui/system/operationalGraph";
 import { executeShopReelCommand } from "@/features/shopreel/ui/system/executeShopReelCommand";
+import { createCampaignCommandHandoff } from "@/features/shopreel/ui/system/campaignCommandHandoff";
+import { isLikelyCampaignPrompt } from "@/features/shopreel/ui/system/commandInputIntent";
 import { resolveCapabilityForWorld } from "@/features/shopreel/ui/system/operatorCapabilities";
 import { resolveOperatorRuntime } from "@/features/shopreel/ui/system/resolveOperatorRuntime";
 import OperatorRuntimeCanvas from "@/features/shopreel/ui/system/OperatorRuntimeCanvas";
@@ -282,77 +284,80 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
     setCommandFailure(null);
     setCommandResult(null);
     setIsCommandRunning(true);
+
+    let selectedRoute: string | null = null;
+    let execution: ReturnType<typeof executeShopReelCommand> | null = null;
+    let runtime: ReturnType<typeof resolveOperatorRuntime> | null = null;
+
+    const reportPhaseError = (phase: string, error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      const routedError = `Command failed in ${phase}: ${message}`;
+      setCommandFailure(routedError);
+      console.error("[shopreel] operator command phase failed", { phase, error, commandLength: nextCommand.length, selectedRoute });
+    };
+
     try {
-      const execution = executeShopReelCommand({
-        command: nextCommand,
-        lastRoute: context?.lastRoute,
-        source: "home_command",
-        recentWorlds: recent,
-        orchestrationPlan,
-      });
+      try {
+        execution = executeShopReelCommand({ command: nextCommand, lastRoute: context?.lastRoute, source: "home_command", recentWorlds: recent, orchestrationPlan });
+      } catch (error) {
+        reportPhaseError("executeShopReelCommand", error);
+        if (isLikelyCampaignPrompt(nextCommand)) {
+          try {
+            const handoff = createCampaignCommandHandoff({ prompt: nextCommand.trim(), source: "home_command" });
+            selectedRoute = `/shopreel/campaigns/new?mode=create&handoff=${encodeURIComponent(handoff.id)}`;
+          } catch {
+            selectedRoute = `/shopreel/campaigns/new?mode=create&prompt=${encodeURIComponent(nextCommand.trim())}`;
+          }
+          setLastResolvedRoute(selectedRoute);
+          setCommandResult(`Opening ${selectedRoute}…`);
+          try { router.push(selectedRoute); } catch (pushError) { reportPhaseError("router.push", pushError); }
+        }
+        return;
+      }
 
-      const runtime = resolveOperatorRuntime({
-        rawCommand: nextCommand,
-        classifiedIntent: execution.commandIntent,
-        currentPath: context?.lastRoute ?? "/shopreel",
-        selectedCampaignId: context?.lastCampaignId ?? null,
-        hasPendingApprovals,
-        hasActiveCampaign: hasActiveCampaign || hasRecentWorlds,
-        hasAssetsContext: Boolean(context?.creativeContinuity),
-      });
+      selectedRoute = execution.selectedRoute;
+      setLastResolvedRoute(selectedRoute);
+      setCommandResult(`Opening ${selectedRoute}…`);
 
-      dispatch(buildRuntimeStartAction(runtime, nextCommand));
-      dispatch({ type: "SET_ORCHESTRATION_PLAN", plan: orchestrationPlan });
-      dispatch({
-        type: "SET_CAPABILITY_CONTEXT",
-        capability: execution.typedAction?.target.capability ?? null,
-        activeEntity: execution.typedAction ? { kind: execution.typedAction.target.entityKind, id: execution.typedAction.target.entityId } : null,
-        queuedNextAction: execution.typedAction,
-        unresolvedIndicators: execution.actionResult?.ok ? [] : [execution.actionResult?.reason ?? ""],
-        lastRoute: execution.selectedRoute,
-        recoveryTarget: execution.selectedRoute,
-      });
-      persistContext(execution.selectedRoute);
-      const hydrationWarnings = loadErrors?.length ? loadErrors : [];
-      console.info("[shopreel] operator command result", {
-        prompt: nextCommand,
-        matchedIntent: execution.decision.intent,
-        routeMatched: execution.decision.matched,
-        targetRoute: execution.selectedRoute,
-        hydrationWarnings,
-      });
-      setLastResolvedRoute(execution.selectedRoute);
-      console.info("[shopreel] command routing", {
-        source,
-        commandLength: nextCommand.length,
-        selectedRoute: execution.selectedRoute,
-        handoffId: execution.handoffId,
-        decisionIntent: execution.decision.intent,
-        commandIntent: execution.commandIntent,
-      });
+      try {
+        runtime = resolveOperatorRuntime({
+          rawCommand: nextCommand,
+          classifiedIntent: execution.commandIntent,
+          currentPath: context?.lastRoute ?? "/shopreel",
+          selectedCampaignId: context?.lastCampaignId ?? null,
+          hasPendingApprovals,
+          hasActiveCampaign: hasActiveCampaign || hasRecentWorlds,
+          hasAssetsContext: Boolean(context?.creativeContinuity),
+        });
+      } catch (error) {
+        reportPhaseError("resolveOperatorRuntime", error);
+      }
+
+      try {
+        if (runtime) dispatch(buildRuntimeStartAction(runtime, nextCommand));
+        dispatch({ type: "SET_ORCHESTRATION_PLAN", plan: orchestrationPlan });
+        dispatch({
+          type: "SET_CAPABILITY_CONTEXT",
+          capability: execution.typedAction?.target.capability ?? null,
+          activeEntity: execution.typedAction ? { kind: execution.typedAction.target.entityKind, id: execution.typedAction.target.entityId } : null,
+          queuedNextAction: execution.typedAction,
+          unresolvedIndicators: execution.actionResult?.ok ? [] : [execution.actionResult?.reason ?? ""],
+          lastRoute: selectedRoute,
+          recoveryTarget: selectedRoute,
+        });
+      } catch (error) {
+        reportPhaseError("dispatch runtime/session actions", error);
+      }
+
+      try { persistContext(selectedRoute); } catch (error) { console.warn("[shopreel] persistContext non-blocking failure", { error, commandLength: nextCommand.length, selectedRoute }); reportPhaseError("persistContext", error); }
+
       if (!execution.decision.matched) {
         setCommandFailure(`No direct route match for "${nextCommand}". Opened command surface instead.`);
       }
-      setCommandResult(`Opening ${execution.selectedRoute}…`);
-      try {
-        router.push(execution.selectedRoute);
-      } catch (pushError) {
-        console.warn("[shopreel] operator router push failed", {
-          prompt: nextCommand,
-          intent: execution.decision.intent,
-          targetRoute: execution.selectedRoute,
-          hydrationWarnings,
-          error: pushError,
-        });
-        setCommandFailure(`Could not open ${execution.selectedRoute}. Open /shopreel manually.`);
-      }
+
+      try { router.push(selectedRoute); } catch (error) { reportPhaseError("router.push", error); }
       if (overrideCommand) setCommand(overrideCommand);
-    } catch (error) {
-      console.error("[shopreel] operator command execution failed", error);
-      setCommandFailure("Command failed. Try again or open workspace.");
-    } finally {
-      setIsCommandRunning(false);
-    }
+    } finally { setIsCommandRunning(false); }
   };
 
   const handleCommandSubmit = async (source: "form" | "arrow" | "enter" | "continue_button") => {

@@ -15,10 +15,24 @@ export type CampaignCommandHandoff = {
 
 type StoredHandoffs = Record<string, CampaignCommandHandoff>;
 
-function readAll(): StoredHandoffs {
-  if (typeof window === "undefined") return {};
+function safeSessionStorage(): Storage | null {
+  if (typeof window === "undefined" || !window.sessionStorage) return null;
   try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    const storage = window.sessionStorage;
+    const probeKey = `${STORAGE_KEY}__probe`;
+    storage.setItem(probeKey, "1");
+    storage.removeItem(probeKey);
+    return storage;
+  } catch {
+    return null;
+  }
+}
+
+function readAll(): StoredHandoffs {
+  const storage = safeSessionStorage();
+  if (!storage) return {};
+  try {
+    const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as StoredHandoffs;
     return parsed && typeof parsed === "object" ? parsed : {};
@@ -28,8 +42,13 @@ function readAll(): StoredHandoffs {
 }
 
 function writeAll(next: StoredHandoffs) {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  const storage = safeSessionStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore persistence failures (private browsing, quotas, storage disabled).
+  }
 }
 
 function createId() {
@@ -50,8 +69,12 @@ export function createCampaignCommandHandoff(input: {
     source: input.source,
     parsedBrief: input.parsedBrief,
   };
-  const all = readAll();
-  writeAll({ ...all, [handoff.id]: handoff });
+  try {
+    const all = readAll();
+    writeAll({ ...all, [handoff.id]: handoff });
+  } catch {
+    // Never throw from handoff creation; caller can still route via query fallback.
+  }
   return handoff;
 }
 
