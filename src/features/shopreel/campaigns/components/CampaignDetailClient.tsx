@@ -17,6 +17,7 @@ type CampaignRow = {
   status: string;
   platform_focus: string[];
   created_at: string;
+  metadata?: unknown;
 };
 
 type CampaignItemRow = {
@@ -30,10 +31,18 @@ type CampaignItemRow = {
   visual_mode: string | null;
   media_job_id: string | null;
   final_output_asset_id?: string | null;
+  metadata?: unknown;
 };
 
 type AdaptiveMemory = { learnedNotices: string[]; tasteSummary: string[]; continuityNotice: string | null };
 type ApprovalTask = { id: string; status: string; title: string; details: string | null; confidence: number | null; requires_approval: boolean };
+
+type ParsedBriefView = { mode?: string; sourcePrompt?: string; desiredOutputs?: string[]; missingQuestions?: string[] };
+
+function copyText(value: string) {
+  return navigator.clipboard.writeText(value);
+}
+
 
 export default function CampaignDetailClient({ campaign, items, progress, adaptiveMemory }: { campaign: CampaignRow; items: CampaignItemRow[]; progress: { totalItems: number; completedItems: number; progressPercent: number; totalScenes: number; queuedScenes: number; processingScenes: number; completedScenes: number; failedScenes: number }; adaptiveMemory: AdaptiveMemory }) {
   const router = useRouter();
@@ -42,6 +51,7 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
   const [campaignBrain, setCampaignBrain] = useState({ campaignObjective: "", targetAudience: "", channelPriorities: "", contentPillars: "" });
   const [runTasks, setRunTasks] = useState<Record<string, ApprovalTask[]>>({});
   const [taskReason, setTaskReason] = useState<Record<string, string>>({});
+  const [packageState, setPackageState] = useState<Record<string, any>>({});
 
   useEffect(() => {
     void (async () => {
@@ -63,6 +73,8 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
   }, [campaign.id]);
 
   const pendingTasks = useMemo(() => Object.values(runTasks).flat().filter((task) => task.status === "proposed" && task.requires_approval), [runTasks]);
+  const campaignMetadata = (campaign.metadata && typeof campaign.metadata === "object" ? campaign.metadata : {}) as Record<string, unknown>;
+  const parsedBrief = (campaignMetadata.parsed_brief ?? {}) as ParsedBriefView;
   const leadTask = pendingTasks[0] ?? null;
 
   async function transitionTask(taskId: string, action: "approve" | "reject") { /* unchanged */
@@ -77,9 +89,22 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
     } catch (err) { setError(err instanceof Error ? err.message : "Task transition failed"); } finally { setBusy(null); }
   }
 
+  async function buildPackage(itemId: string, action: "build" | "approve" = "build") {
+    const res = await fetch(`/api/shopreel/campaigns/items/${itemId}/package`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action }) });
+    const json = await res.json();
+    if (json.ok) setPackageState((p) => ({ ...p, [itemId]: json }));
+  }
+
   return (
     <section className="space-y-6 rounded-[2rem] border border-cyan-200/20 bg-slate-950/95 p-6 shadow-[0_20px_70px_rgba(2,132,199,0.25)]">
       <div className="space-y-5">
+        <div className="rounded-3xl border border-violet-300/30 bg-violet-500/10 p-4 text-sm text-violet-50">
+          <p className="text-xs uppercase tracking-[0.18em]">Parsed campaign brief</p>
+          <p>Detected mode: {parsedBrief.mode ?? "general_campaign"}</p>
+          <p>Source prompt: {parsedBrief.sourcePrompt ?? campaign.core_idea}</p>
+          <p>Recommended outputs: {(parsedBrief.desiredOutputs ?? []).join(", ") || "n/a"}</p>
+          <p>Missing questions: {(parsedBrief.missingQuestions ?? []).join(" | ") || "none"}</p>
+        </div>
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-100/70">Execution stage</p>
@@ -113,7 +138,7 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
         <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
           <p className="mb-2 text-xs uppercase tracking-[0.18em] text-cyan-100/70">Output constellations</p>
           <div className="space-y-2">
-            {items.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950 p-3"><div><div className="font-semibold text-white">{item.title}</div><div className="text-sm text-white/60">{item.angle}</div></div><div className="flex items-center gap-2"><GlassBadge tone={item.final_output_asset_id ? "copper" : "default"}>{item.final_output_asset_id ? "Ready" : formatShopReelStatus(item.status)}</GlassBadge><Link href={`/shopreel/campaigns/items/${item.id}?from=workspace`}><GlassButton variant="ghost">Open output</GlassButton></Link></div></div>)}
+            {items.slice(0,5).map((item) => { const itemMeta = (item.metadata && typeof item.metadata === "object" ? item.metadata : {}) as Record<string, any>; const intel = (itemMeta.campaign_intelligence ?? {}) as Record<string, any>; const pkg = packageState[item.id]?.productionPackage ?? itemMeta.production_package; return <div key={item.id} className="rounded-xl border border-white/10 bg-slate-950 p-3"><div className="flex items-center justify-between"><div><div className="font-semibold text-white">{item.title}</div><div className="text-sm text-white/60">{intel.hook ?? item.angle}</div><div className="text-xs text-white/60">Why it fits: {intel.why_it_fits_brief ?? "Mode-aligned angle"}</div><div className="text-xs text-white/60">Suggested outputs: {(intel.suggested_outputs ?? []).join(", ")}</div><div className="text-xs text-white/60">Primary CTA: {intel.primary_cta ?? "Get started"}</div></div><div className="flex items-center gap-2"><GlassButton variant="secondary" onClick={() => void buildPackage(item.id, "build")}>Approve angle + build package</GlassButton><GlassButton variant="ghost" onClick={() => void buildPackage(item.id, "build")}>Refine</GlassButton><GlassButton variant="ghost" onClick={() => void buildPackage(item.id, "build")}>Reject</GlassButton></div></div>{pkg ? <div className="mt-3 rounded-lg border border-cyan-200/20 p-3 text-xs text-cyan-50"><div className="mb-2 font-semibold">Production package ({pkg.mode})</div><pre className="whitespace-pre-wrap">{JSON.stringify(pkg.sections, null, 2)}</pre><div className="mt-2 flex flex-wrap gap-2"><GlassButton variant="ghost" onClick={() => void copyText(JSON.stringify(pkg.sections, null, 2))}>Copy full package</GlassButton><GlassButton variant="ghost" onClick={() => void copyText(String((pkg.sections.caption ?? pkg.sections.facebook_post ?? "")))}>Copy caption</GlassButton><GlassButton variant="ghost" onClick={() => void copyText(String((pkg.sections.short_script ?? pkg.sections.short_reel_script ?? "")))}>Copy script</GlassButton><GlassButton variant="ghost" onClick={() => void copyText(JSON.stringify(pkg.sections.CTA_options ?? pkg.sections.cta_options ?? []))}>Copy CTA options</GlassButton><GlassButton variant="secondary" onClick={() => void buildPackage(item.id, "approve")}>Mark package approved</GlassButton></div><p className="mt-2 text-cyan-100/70">Next: Generate image · Generate video · Create render job · Go to publish/export</p></div> : null}<div className="mt-2"><Link href={`/shopreel/campaigns/items/${item.id}?from=workspace`}><GlassButton variant="ghost">Open output</GlassButton></Link></div></div>})}
           </div>
         </div>
 

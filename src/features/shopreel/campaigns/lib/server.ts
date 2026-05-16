@@ -3,6 +3,7 @@ import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import type { Database, Json } from "@/types/supabase";
 import { getBrandBrainProfile } from "@/features/shopreel/brain/repository";
 import { buildCampaignBrainMetadata, generateDifferentiatedAngles } from "@/features/shopreel/campaigns/lib/campaignIntelligence";
+import type { ParsedCampaignBrief } from "@/features/shopreel/campaigns/lib/campaignIntakeTypes";
 
 type CampaignInsert =
   Database["public"]["Tables"]["shopreel_campaigns"]["Insert"];
@@ -17,12 +18,15 @@ export async function createCampaign(args: {
   offer: string | null;
   campaignGoal: string | null;
   platformFocus: string[];
+  parsedBrief?: ParsedCampaignBrief | null;
 }) {
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
 
   const brandBrain = await getBrandBrainProfile(shopId);
 
+  const existingMetadata = buildCampaignBrainMetadata(args.coreIdea) as Record<string, unknown>;
+  const parsed = args.parsedBrief;
   const campaignInsert: CampaignInsert = {
     shop_id: shopId,
     title: args.title,
@@ -32,7 +36,16 @@ export async function createCampaign(args: {
     campaign_goal: args.campaignGoal,
     platform_focus: args.platformFocus,
     status: "draft",
-    metadata: buildCampaignBrainMetadata(args.coreIdea),
+    metadata: {
+      ...existingMetadata,
+      ...(parsed ? {
+        parsed_brief: parsed,
+        campaign_mode: parsed.mode,
+        source_prompt: parsed.sourcePrompt,
+        desired_outputs: parsed.desiredOutputs,
+        missing_questions: parsed.missingQuestions,
+      } : {}),
+    } as Json,
   };
 
   const { data: campaign, error: campaignError } = await supabase
@@ -45,7 +58,7 @@ export async function createCampaign(args: {
     throw new Error(campaignError?.message ?? "Failed to create campaign");
   }
 
-  const baseAngles = generateDifferentiatedAngles({ title: args.title, coreIdea: args.coreIdea });
+  const baseAngles = generateDifferentiatedAngles({ title: args.title, coreIdea: args.coreIdea, parsedBrief: args.parsedBrief ?? null });
 
   const itemInserts: CampaignItemInsert[] = baseAngles.map((angle) => ({
     campaign_id: campaign.id,
@@ -73,6 +86,13 @@ export async function createCampaign(args: {
       generated_from_campaign: true,
       campaign_angle: angle.angle,
       campaign_intelligence: {
+        angle_key: angle.angle,
+        why_it_fits_brief: `Built for ${(args.parsedBrief?.mode ?? "general_campaign").replace(/_/g, " ")} using prompt context.`,
+        target_audience: args.audience,
+        primary_cta: (brandBrain?.preferred_ctas ?? [])[0] ?? "Start now",
+        suggested_outputs: args.parsedBrief?.desiredOutputs ?? [],
+        objection_handled: angle.objection,
+        sort_order: angle.sortOrder,
         hook: angle.hook,
         objection: angle.objection,
         emotional_outcome: angle.emotionalOutcome,
