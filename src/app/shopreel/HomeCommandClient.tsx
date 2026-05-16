@@ -101,6 +101,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
   const [emphasizedCardId, setEmphasizedCardId] = useState<string | null>(null);
   const [isCommandRunning, setIsCommandRunning] = useState(false);
   const [commandFailure, setCommandFailure] = useState<string | null>(loadErrors?.length ? `Runtime data load issue: ${loadErrors[0]}` : null);
+  const [commandResult, setCommandResult] = useState<string | null>(null);
   const unresolvedCount = recent.filter((item) => item.priority === "critical" || /review|approval/.test(item.normalizedStatus)).length;
   const hasPendingApprovals = recent.some((item) => /review|approval/.test(item.normalizedStatus));
   const hasActiveCampaign = recent.some((item) => item.kind === "campaign");
@@ -277,6 +278,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
     const nextCommand = overrideCommand ?? command;
     if (!nextCommand.trim()) return;
     setCommandFailure(null);
+    setCommandResult(null);
     setIsCommandRunning(true);
     try {
       const execution = executeShopReelCommand({
@@ -320,6 +322,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
       if (!execution.decision.matched) {
         setCommandFailure(`No direct route match for "${nextCommand}". Opened command surface instead.`);
       }
+      setCommandResult(`Routing to ${execution.selectedRoute}…`);
       try {
         await router.push(execution.selectedRoute);
       } catch (pushError) {
@@ -454,6 +457,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       {isCommandRunning ? "…" : "→"}
                     </button>
                   </form>
+                  {isCommandRunning ? <p className="mt-2 text-sm text-cyan-100/85">Routing…</p> : null}
+                  {commandResult ? <p className="mt-2 text-sm text-emerald-200">{commandResult}</p> : null}
                   {commandFailure ? <p className="mt-2 text-sm text-rose-200">{commandFailure}</p> : null}
 
                   <div className="mt-5 flex flex-wrap gap-3">
@@ -498,12 +503,16 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
               <div className="overflow-x-auto pb-2">
                 <div className="flex min-w-0 gap-3">
-                  {sortedWorlds.slice(0, 5).map((item) => (
+                  {sortedWorlds.length ? sortedWorlds.slice(0, 6).map((item) => (
                     <button key={`${item.kind}-${item.id}`} type="button" onClick={() => router.push(item.href)} className="min-h-11 min-w-[16rem] rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left">
                       <p className="truncate text-sm font-semibold text-white">{item.title}</p>
                       <p className="mt-1 text-xs text-white/60">{item.stageLabel}</p>
                     </button>
-                  ))}
+                  )) : (
+                    <div className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">
+                      No active worlds yet. Launch a campaign to create one.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

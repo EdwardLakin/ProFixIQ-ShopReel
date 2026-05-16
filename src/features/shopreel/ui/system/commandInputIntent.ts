@@ -29,6 +29,14 @@ const CREATE_CAMPAIGN_PATTERNS = [
   /\bideas? for (an? )?(advertising |marketing )?campaign\b/,
   /\bpromote .*\b/,
   /\bmarket .*\b/,
+  /\badvertis(e|ing)\b/,
+  /\bfacebook ads?\b/,
+  /\bweek of posts?\b/,
+  /\bnew bakery\b/,
+  /\bstarting .* business\b/,
+  /\blaunch [a-z0-9][\w\s-]*\b/,
+  /\bposts? for my .* business\b/,
+  /\bcreate ads?\b/,
 ];
 
 const EDIT_CAMPAIGN_PATTERNS = [/\bedit campaign\b/, /\bupdate campaign\b/, /\brevise campaign\b/];
@@ -53,4 +61,3 @@ export function classifyCommandInputIntent(input: string): CommandInputIntent {
 
   return "unknown";
 }
-

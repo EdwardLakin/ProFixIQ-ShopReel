@@ -53,7 +53,7 @@ export function executeShopReelCommand(input: {
   const runtimeExecution = resolveRuntimeExecution(input.command, input.lastRoute);
   const decision = resolveRouteFromPrompt(input.command, input.lastRoute);
   const commandIntent = classifyCommandInputIntent(input.command);
-  let selectedRoute = runtimeExecution.target.route || decision.route;
+  let selectedRoute = decision.route || runtimeExecution.target.route;
   let handoffMethod: "none" | "session_storage" = "none";
   let handoffId: string | null = null;
   let typedAction: OperatorAction | null = null;
