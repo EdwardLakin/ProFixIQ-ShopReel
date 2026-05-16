@@ -346,7 +346,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_42%_36%,rgba(255,171,75,.24),transparent_18%),radial-gradient(circle_at_50%_52%,rgba(111,76,255,.28),transparent_32%),radial-gradient(circle_at_86%_38%,rgba(70,160,255,.15),transparent_30%),linear-gradient(135deg,#02040c_0%,#060815_48%,#04030b_100%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
 
-      <div className="relative z-10 grid h-[100svh] min-h-[100svh] overflow-hidden grid-cols-1 xl:grid-cols-[clamp(9.5rem,12vw,12rem)_minmax(0,1fr)]">
+      <div className="relative z-10 grid min-h-[100svh] grid-cols-1 xl:grid-cols-[clamp(9.5rem,12vw,12rem)_minmax(0,1fr)]">
         <aside className="hidden border-r border-white/[0.06] bg-black/10 px-5 py-6 xl:flex xl:flex-col xl:gap-6">
           <div className="flex items-center gap-4">
             <div className="text-sm font-bold tracking-[0.1em]">PROFIXIQ</div>
@@ -384,21 +384,21 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
           </Link>
         </aside>
 
-        <main className="relative grid h-[100svh] min-h-[100svh] overflow-hidden grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+        <main className="relative grid min-h-[100svh] grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <header className="flex items-center justify-between">
             <div className="hidden items-center gap-3 text-[12px] uppercase tracking-[0.26em] text-amber-100/88 md:flex">
               <span className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,.95)]" />
               Operator chamber online
             </div>
-            <div className="ml-auto flex items-center gap-3">
-              <button type="button" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-white/72">
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <button type="button" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-white/72" aria-label="Search commands">
                 ⌕
               </button>
               <ShopReelNotificationsBell />
               <button
                 type="button"
                 onClick={() => dispatch({ type: "RECOVER" })}
-                className="rounded-2xl border border-white/10 bg-white/[0.055] px-5 py-3 text-sm font-semibold text-white"
+                className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-3 text-sm font-semibold text-white sm:px-5"
               >
                 Resume
               </button>
@@ -426,7 +426,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                 <div className="mt-8 max-w-3xl">
                   <div className="mb-3 text-[11px] uppercase tracking-[0.24em] text-white/50">Operator prompt</div>
                   <form
-                    className="relative z-30 flex items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
+                    className="relative z-30 flex items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-3 py-1.5 sm:px-5 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
                     onSubmit={(event) => {
                       event.preventDefault();
                       void runCommand();
@@ -449,7 +449,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       type="submit"
                       disabled={isCommandRunning || !command.trim()}
                       aria-label="Submit operator prompt"
-                      className="text-3xl text-white/48 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      className="min-h-11 min-w-11 rounded-xl px-2 text-3xl text-white/48 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isCommandRunning ? "…" : "→"}
                     </button>
@@ -462,7 +462,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                         type="button"
                         key={prompt}
                         onClick={() => setCommand(prompt)}
-                        className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/78 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
+                        className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/78 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
                       >
                         {prompt}
                       </button>
@@ -474,15 +474,15 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       type="button"
                       onClick={() => void runCommand()}
                       disabled={isCommandRunning || !command.trim()}
-                      className="group rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_32px_rgba(124,58,237,.28)]"
+                      className="group min-h-11 w-full rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_32px_rgba(124,58,237,.28)] sm:w-auto"
                     >
                       {isCommandRunning ? "Running…" : <>Continue <span className="ml-4 inline-block transition group-hover:translate-x-1">→</span></>}
                     </button>
-                    <Link href="/shopreel/review" className="rounded-2xl border border-white/12 bg-white/[0.035] px-6 py-4 text-sm text-white/80">
+                    <Link href="/shopreel/review" className="min-h-11 w-full rounded-2xl border border-white/12 bg-white/[0.035] px-6 py-3 text-sm text-white/80 sm:w-auto">
                       Review approvals
                       {unresolvedCount ? <span className="ml-2 rounded-full bg-violet-500 px-2 py-0.5 text-xs">{unresolvedCount}</span> : null}
                     </Link>
-                    <Link href="/shopreel/operations" className="text-sm text-white/46 hover:text-white">
+                    <Link href="/shopreel/operations" className="min-h-11 inline-flex items-center text-sm text-white/46 hover:text-white">
                       Manual / Operations →
                     </Link>
                   </div>
@@ -490,6 +490,29 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
             </div>
 
+
+            <div className="xl:hidden">
+              <div className="mb-3 flex items-end justify-between">
+                <div>
+                  <div className="text-[12px] uppercase tracking-[0.24em] text-white/70">Active campaign worlds</div>
+                  <p className="mt-1 text-xs text-white/52">Recent worlds in a tap-first stack.</p>
+                </div>
+                <Link href="/shopreel/campaigns" className="text-xs text-white/62">View all →</Link>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                <RuntimeWorldDeck
+                  items={sortedWorlds.slice(0, 4)}
+                  unresolvedCount={unresolvedCount}
+                  runtimeSession={runtimeSession}
+                  emphasizedCardId={emphasizedCardId}
+                  prefersReducedMotion={prefersReducedMotion}
+                  onSelect={(item, event, index, deckGraph, temporalMemory, choreography) => {
+                    if (!item.href) return;
+                    void router.push(item.href);
+                  }}
+                />
+              </div>
+            </div>
             <aside className="relative z-20 hidden min-h-0 xl:block xl:self-center">
               <div className="mb-8 flex items-end justify-between pl-4">
                 <div>
@@ -502,7 +525,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
               <button type="button" onClick={() => router.push(getResumeWorldHref(operatorPriority ? `/shopreel/${operatorPriority.recommendedReturnWorld}` : undefined))} className="mb-4 ml-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
 
-              <div className="relative h-[calc(100svh-15rem)] overflow-visible pb-2" role="region" aria-label="Recessed world portals">
+              <div className="relative h-[calc(100svh-15rem)] min-h-[32rem] overflow-visible pb-2" role="region" aria-label="Recessed world portals">
                 <RuntimeWorldDeck
                   items={sortedWorlds}
                   unresolvedCount={unresolvedCount}

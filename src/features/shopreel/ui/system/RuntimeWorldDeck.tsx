@@ -55,7 +55,7 @@ export default function RuntimeWorldDeck({
   };
 
   return (
-    <div className="relative h-full min-h-[34rem] w-full overflow-hidden" role="region" aria-label="Operational world portal deck">
+    <div className="relative h-full min-h-[26rem] w-full overflow-hidden lg:min-h-[34rem]" role="region" aria-label="Operational world portal deck">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.24em] text-white/52">Portal deck</p>
@@ -86,9 +86,9 @@ export default function RuntimeWorldDeck({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-8 top-[7.5rem] h-56 rounded-full bg-cyan-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-8 top-[7.5rem] hidden h-56 rounded-full bg-cyan-400/10 blur-3xl lg:block" />
 
-      <div className="relative h-[29rem] [perspective:1200px]">
+      <div className="relative h-[23rem] lg:h-[29rem] [perspective:1200px]">
         {visible.map((item, localIndex) => {
           const index = safeActiveIndex + localIndex;
           const active = localIndex === 0;
@@ -157,10 +157,10 @@ export default function RuntimeWorldDeck({
           });
 
           const selected = emphasizedCardId === `${item.kind}:${item.id}`;
-          const y = localIndex * 28;
-          const x = localIndex * 18;
+          const y = localIndex * 20;
+          const x = localIndex * 12;
           const scale = 1 - localIndex * 0.05;
-          const rotate = localIndex * -2.5;
+          const rotate = localIndex * -1.8;
           const opacity = [1, 0.72, 0.44, 0.2][localIndex] ?? 0.12;
 
           return (
@@ -170,7 +170,7 @@ export default function RuntimeWorldDeck({
               type="button"
               disabled={!active}
               onClick={(event) => onSelect(item, event, index, deckGraph, temporalMemory, choreography)}
-              className={`absolute left-0 right-0 top-0 min-h-[24rem] overflow-hidden rounded-[1.65rem] border p-6 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/70 ${
+              className={`absolute left-0 right-0 top-0 min-h-[20rem] lg:min-h-[24rem] overflow-hidden rounded-[1.65rem] border p-4 lg:p-6 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/70 ${
                 active
                   ? "cursor-pointer border-amber-200/70 bg-[linear-gradient(180deg,rgba(40,24,36,.98),rgba(7,10,24,.99))]"
                   : selected
@@ -194,7 +194,7 @@ export default function RuntimeWorldDeck({
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,196,111,.18),transparent_36%),radial-gradient(circle_at_90%_0%,rgba(103,232,249,.12),transparent_38%)]" />
               <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-amber-100/50 to-transparent" />
 
-              <div className="relative flex h-full min-h-[21rem] flex-col">
+              <div className="relative flex h-full min-h-[17rem] lg:min-h-[21rem] flex-col">
                 <div className="flex items-center justify-between gap-4 text-[10px] uppercase tracking-[0.18em] text-amber-100/82">
                   <span>{active ? "Front portal" : "Queued portal"}</span>
                   <span className="text-white/48">
