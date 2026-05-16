@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
-import { getCampaignMediaStage, readMediaMetadata } from "@/features/shopreel/campaigns/lib/mediaGeneration";
+import { getCampaignMediaStage, readMediaMetadata, type CampaignImagePurpose } from "@/features/shopreel/campaigns/lib/mediaGeneration";
 
 type CampaignRow = { id: string; title: string; core_idea: string; audience: string | null; offer: string | null; campaign_goal: string | null; status: string; platform_focus: string[]; created_at: string; metadata?: unknown };
 type CampaignItemRow = { id: string; title: string; angle: string; prompt: string; status: string; aspect_ratio: string; style: string | null; visual_mode: string | null; media_job_id: string | null; final_output_asset_id?: string | null; metadata?: unknown };
@@ -40,6 +40,7 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
   const [appliedBrief, setAppliedBrief] = useState<ParsedBriefView | null>(null);
   const [mediaBusy, setMediaBusy] = useState<string | null>(null);
   const [mediaJobs, setMediaJobs] = useState<Record<string, { image?: any; video?: any }>>({});
+  const [imagePurposeByItem, setImagePurposeByItem] = useState<Record<string, CampaignImagePurpose>>({});
 
   const campaignMetadata = (campaign.metadata && typeof campaign.metadata === "object" ? campaign.metadata : {}) as Record<string, unknown>;
   const parsedBrief = (campaignMetadata.parsed_brief && typeof campaignMetadata.parsed_brief === "object" ? campaignMetadata.parsed_brief : {}) as ParsedBriefView;
@@ -94,9 +95,9 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
   }
 
   async function copyWithFeedback(label: string, key: string, value: string) { await copyText(value); setConfirmation(`Copied ${label}.`); }
-  async function generateMedia(itemId: string, action: "generate_image" | "generate_video") {
+  async function generateMedia(itemId: string, action: "generate_image" | "generate_video", imagePurpose?: CampaignImagePurpose) {
     setMediaBusy(`${action}-${itemId}`);
-    const res = await fetch(`/api/shopreel/campaigns/items/${itemId}/media`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+    const res = await fetch(`/api/shopreel/campaigns/items/${itemId}/media`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, imagePurpose }) });
     const json = await res.json();
     if (json.ok) {
       setConfirmation(json.message ?? "Media generation started.");
@@ -110,6 +111,17 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
       router.refresh();
     } else setConfirmation(json.error ?? "Failed to start generation.");
     setMediaBusy(null);
+  }
+
+
+
+  function getDefaultImagePurpose(item: CampaignItemRow, meta: Record<string, any>, mediaPurpose: CampaignImagePurpose | null): CampaignImagePurpose {
+    if (mediaPurpose) return mediaPurpose;
+    const goal = campaign.campaign_goal ?? "";
+    const mode = String(meta?.source_mode ?? "");
+    if (goal === "business_advertising" || goal === "internal_self_marketing") return "static_ad";
+    if (mode === "uploaded_asset") return mediaPurpose ?? "static_ad";
+    return (meta.production_package ? "static_ad" : "video_reference");
   }
 
   return <section className="space-y-5 rounded-[2rem] border border-cyan-200/20 bg-slate-950/95 p-4 lg:p-6">
@@ -141,7 +153,8 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
         const pkg = packageState[item.id]?.productionPackage ?? (meta.production_package as CampaignPackage | undefined);
         const pkgStatus = packageState[item.id]?.status ?? (typeof meta.production_package_status === "string" ? meta.production_package_status : "draft");
         const media = readMediaMetadata(item.metadata);
-        const mediaState = getCampaignMediaStage({ packageApproved: pkgStatus === "approved", imageAssetId: media.imageAssetId, imagePreviewUrl: media.imagePreviewUrl, videoJobId: media.videoJobId });
+        const selectedPurpose = imagePurposeByItem[item.id] ?? getDefaultImagePurpose(item, meta, media.imagePurpose);
+        const mediaState = getCampaignMediaStage({ packageApproved: pkgStatus === "approved", imagePurpose: selectedPurpose, imageAssetId: media.imageAssetId, imagePreviewUrl: media.imagePreviewUrl, uploadedReferenceUrl: media.uploadedReferenceUrl, videoJobId: media.videoJobId });
         const imageJob = mediaJobs[item.id]?.image;
         const videoJob = mediaJobs[item.id]?.video;
         return <div key={item.id} className="rounded-xl border border-white/10 bg-slate-950 p-3 mb-3"><div className="flex justify-between gap-3 flex-wrap"><div><div className="font-semibold">{item.title}</div><div className="text-sm text-white/70">{intel.hook ?? item.angle}</div></div><div>{item.status !== "approved" ? <GlassButton variant="secondary" disabled={busy === `build-${item.id}`} onClick={() => void buildPackage(item.id, "build")}>Approve this angle</GlassButton> : null}{pkg && pkgStatus !== "approved" ? <GlassButton className="ml-2" variant="secondary" disabled={busy === `approve-${item.id}`} onClick={() => void buildPackage(item.id, "approve")}>Approve package</GlassButton> : null}</div></div>
@@ -151,15 +164,24 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
             <div className="mt-3 rounded border border-white/10 p-3">
               <p className="font-medium">Generate media</p>
               <p className="text-xs text-white/70">{mediaState.helper}</p>
+              <div className="mt-2 rounded border border-white/10 p-3">
+                <p className="text-sm font-semibold">Choose your image type</p>
+                <div className="mt-2 grid gap-2 md:grid-cols-3">
+                  {[{key:"static_ad",title:"Static ad image",helper:"Best for Facebook posts, boosted ads, flyers, and Instagram posts. Recommended first."},{key:"video_reference",title:"Video reference image",helper:"Best if you want to turn this campaign into a short reel/video."},{key:"uploaded_reference",title:"Upload my own reference",helper:"Use a real shop, product, vehicle, before/after, storefront, or team photo."}].map((opt:any)=><button key={opt.key} type="button" disabled={opt.key==="uploaded_reference"} onClick={()=>setImagePurposeByItem((p)=>({...p,[item.id]:opt.key as CampaignImagePurpose}))} className={`rounded border p-2 text-left ${selectedPurpose===opt.key?"border-cyan-300 bg-cyan-500/20":"border-white/10"} ${opt.key==="uploaded_reference"?"opacity-60 cursor-not-allowed":""}`}><p className="text-sm font-medium">{opt.title}</p><p className="text-xs text-white/70">{opt.helper}</p>{opt.key==="uploaded_reference"?<p className="text-xs text-yellow-300 mt-1">Coming next: connect uploaded image to this campaign.</p>:null}</button>)}
+                </div>
+                <div className="mt-2"><Link className="text-xs text-cyan-300" href="/shopreel/upload">Upload reference image</Link><p className="text-xs text-white/60">Upload support will be connected to this campaign item next.</p></div>
+              </div>
               <div className="mt-2 flex gap-2 flex-wrap">
-                <GlassButton variant="ghost" disabled={!mediaState.imageEnabled || mediaBusy === `generate_image-${item.id}`} onClick={() => void generateMedia(item.id, "generate_image")}>Generate image</GlassButton>
-                <GlassButton variant="ghost" disabled={!mediaState.videoEnabled || mediaBusy === `generate_video-${item.id}`} onClick={() => void generateMedia(item.id, "generate_video")}>Generate video</GlassButton>
+                <GlassButton variant="ghost" disabled={!mediaState.imageEnabled || selectedPurpose === "uploaded_reference" || mediaBusy === `generate_image-${item.id}`} onClick={() => void generateMedia(item.id, "generate_image", selectedPurpose)}>Generate image</GlassButton>
+                <GlassButton variant="ghost" disabled={!mediaState.videoEnabled || mediaBusy === `generate_video-${item.id}`} onClick={() => void generateMedia(item.id, "generate_video", selectedPurpose)}>Generate video</GlassButton>
                 {media.imageJobId ? <Link href={`/shopreel/video-creation/jobs/${media.imageJobId}`}><GlassButton variant="ghost">Open image job</GlassButton></Link> : null}
                 {media.videoJobId ? <Link href={`/shopreel/video-creation/jobs/${media.videoJobId}`}><GlassButton variant="ghost">Open video job</GlassButton></Link> : null}
               </div>
               {(media.imagePreviewUrl || imageJob?.preview_url) ? <a className="text-xs text-cyan-300 mt-2 block" href={media.imagePreviewUrl ?? imageJob?.preview_url ?? "#"} target="_blank">Open generated image preview</a> : null}
               {(media.videoPreviewUrl || videoJob?.preview_url) ? <a className="text-xs text-cyan-300 mt-1 block" href={media.videoPreviewUrl ?? videoJob?.preview_url ?? "#"} target="_blank">Open generated video preview</a> : null}
+              {(media.imagePurpose ?? selectedPurpose) ? <p className="text-xs mt-1">Image purpose: {String(media.imagePurpose ?? selectedPurpose).replaceAll("_"," ")}</p> : null}
               {imageJob?.status ? <p className="text-xs mt-1">Image job status: {imageJob.status}</p> : null}
+              {(media.imagePreviewUrl || imageJob?.preview_url) ? <p className="text-xs mt-1 text-emerald-300">Use this image to generate video.</p> : null}
               {videoJob?.status ? <p className="text-xs mt-1">Video job status: {videoJob.status}</p> : null}
             </div>
             {pkgStatus === "approved" ? <p className="mt-2 text-emerald-300 text-sm">Package approved. You can now copy/export or generate media.</p> : null}

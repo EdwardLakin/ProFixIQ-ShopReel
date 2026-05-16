@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { createAdminClient } from "@/lib/supabase/server";
 import { createMediaGenerationJob } from "@/features/shopreel/video-creation/lib/server";
-import { buildCampaignImagePrompt, buildCampaignVideoPrompt, readMediaMetadata, withMediaMetadata } from "@/features/shopreel/campaigns/lib/mediaGeneration";
+import { buildCampaignImagePrompt, buildCampaignVideoPrompt, isCampaignImagePurpose, readMediaMetadata, withMediaMetadata } from "@/features/shopreel/campaigns/lib/mediaGeneration";
 
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -18,7 +18,7 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
-  const body = await req.json().catch(() => ({})) as { action?: "generate_image" | "generate_video" };
+  const body = await req.json().catch(() => ({})) as { action?: "generate_image" | "generate_video"; imagePurpose?: unknown };
   const supabase = createAdminClient();
   const shopId = await getCurrentShopId();
   const { data: item } = await supabase.from("shopreel_campaign_items").select("*").eq("id", id).eq("shop_id", shopId).maybeSingle();
@@ -34,9 +34,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   const parsedBrief = campaignMeta.parsed_brief && typeof campaignMeta.parsed_brief === "object" ? campaignMeta.parsed_brief as Record<string, unknown> : {};
 
   if (body.action === "generate_image") {
-    const prompt = buildCampaignImagePrompt({ campaign, item, productionPackage, parsedBrief });
+    const imagePurpose = isCampaignImagePurpose(body.imagePurpose) ? body.imagePurpose : "static_ad";
+    if (imagePurpose === "uploaded_reference") {
+      return NextResponse.json({ ok: false, error: "Uploaded reference image is not connected to this campaign item yet." }, { status: 400 });
+    }
+    const prompt = buildCampaignImagePrompt({ campaign, item, productionPackage, parsedBrief, purpose: imagePurpose });
     const job = await createMediaGenerationJob({ title: `${item.title} image`, prompt, negativePrompt: "distorted text, fake logos, artifacts, extra limbs", jobType: "image", provider: "openai", style: (item.style as any) ?? "commercial", visualMode: (item.visual_mode as any) ?? "photoreal", aspectRatio: item.aspect_ratio as any, durationSeconds: null, inputAssetIds: [] });
-    await supabase.from("shopreel_campaign_items").update({ metadata: withMediaMetadata(item.metadata, { image_job_id: job.id, image_status: "queued", image_requested_at: new Date().toISOString() }) }).eq("id", id).eq("shop_id", shopId);
+    await supabase.from("shopreel_campaign_items").update({ metadata: withMediaMetadata(item.metadata, { image_purpose: imagePurpose, image_intent_label: imagePurpose, image_job_id: job.id, image_status: "queued", image_requested_at: new Date().toISOString() }) }).eq("id", id).eq("shop_id", shopId);
     return NextResponse.json({ ok: true, message: "Image generation started.", jobId: job.id, status: job.status, jobRoute: `/shopreel/video-creation/jobs/${job.id}` });
   }
 
@@ -48,10 +52,14 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       if (imageJob?.output_asset_id) imageAssetId = imageJob.output_asset_id;
       if (imageJob?.preview_url) imagePreviewUrl = imageJob.preview_url;
     }
+    const imagePurpose = mediaMeta.imagePurpose ?? "static_ad";
+    const uploadedReferenceUrl = mediaMeta.uploadedReferenceUrl;
+    const sourceImageType: "generated" | "uploaded" = imagePreviewUrl ? "generated" : "uploaded";
+    if (!imagePreviewUrl && uploadedReferenceUrl) imagePreviewUrl = uploadedReferenceUrl;
     if (!imagePreviewUrl) return NextResponse.json({ ok: false, error: "Generate an image before creating video." }, { status: 400 });
     const imageAsset = imageAssetId ? await supabase.from("content_assets").select("id,public_url").eq("id", imageAssetId).maybeSingle() : { data: { id: null, public_url: imagePreviewUrl } };
     const prompt = buildCampaignVideoPrompt({ campaign, item, productionPackage, imageAsset: imageAsset.data ?? { public_url: imagePreviewUrl } });
-    const job = await createMediaGenerationJob({ title: `${item.title} video`, prompt, negativePrompt: "jittery motion, unreadable text, unnatural anatomy", jobType: "video", provider: "fal" as any, style: (item.style as any) ?? "commercial", visualMode: (item.visual_mode as any) ?? "photoreal", aspectRatio: item.aspect_ratio as any, durationSeconds: item.duration_seconds ?? 10, inputAssetIds: imageAssetId ? [imageAssetId] : [], settings: { start_image_url: imagePreviewUrl, campaign_item_id: item.id } as any });
+    const job = await createMediaGenerationJob({ title: `${item.title} video`, prompt, negativePrompt: "jittery motion, unreadable text, unnatural anatomy", jobType: "video", provider: "fal" as any, style: (item.style as any) ?? "commercial", visualMode: (item.visual_mode as any) ?? "photoreal", aspectRatio: item.aspect_ratio as any, durationSeconds: item.duration_seconds ?? 10, inputAssetIds: imageAssetId ? [imageAssetId] : [], settings: { start_image_url: imagePreviewUrl, campaign_item_id: item.id, image_purpose: imagePurpose, source_image_type: sourceImageType } as any });
     await supabase.from("shopreel_campaign_items").update({ metadata: withMediaMetadata(item.metadata, { image_asset_id: imageAssetId, image_preview_url: imagePreviewUrl, video_job_id: job.id, video_status: "queued", video_requested_at: new Date().toISOString() }) }).eq("id", id).eq("shop_id", shopId);
     return NextResponse.json({ ok: true, message: "Video generation started.", jobId: job.id, status: job.status, jobRoute: `/shopreel/video-creation/jobs/${job.id}` });
   }

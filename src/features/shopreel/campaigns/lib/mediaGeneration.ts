@@ -6,30 +6,51 @@ type CampaignPackage = { sections?: Record<string, string | string[]> };
 type ParsedBrief = Record<string, unknown>;
 type MediaStageInput = {
   packageApproved: boolean;
+  imagePurpose: CampaignImagePurpose;
   imageAssetId: string | null;
   imagePreviewUrl: string | null;
+  uploadedReferenceUrl: string | null;
   videoJobId: string | null;
 };
+
+export type CampaignImagePurpose =
+  | "static_ad"
+  | "video_reference"
+  | "uploaded_reference";
+
+export function isCampaignImagePurpose(value: unknown): value is CampaignImagePurpose {
+  return value === "static_ad" || value === "video_reference" || value === "uploaded_reference";
+}
 
 export function buildCampaignImagePrompt(input: {
   campaign: BasicCampaign;
   item: BasicItem;
   productionPackage: CampaignPackage;
   parsedBrief?: ParsedBrief | null;
+  purpose?: CampaignImagePurpose;
 }) {
   const sections = input.productionPackage.sections ?? {};
   const service = String(input.parsedBrief?.serviceCategory ?? input.parsedBrief?.businessType ?? "local service business");
   const location = String(input.parsedBrief?.location ?? "their local market");
   const cta = String(input.parsedBrief?.bookingAction ?? "Message now to book");
   const hook = Array.isArray(sections.short_reel_script) ? sections.short_reel_script[0] : sections.short_reel_script;
+  const purpose = input.purpose ?? "static_ad";
+  const purposeLead = purpose === "video_reference"
+    ? "Create a cinematic vertical 9:16 first/reference frame for short-form video generation."
+    : "Create a clean vertical 9:16 static social ad image usable as a standalone post or boosted ad.";
+  const purposeGuidance = purpose === "video_reference"
+    ? "Focus on a clear primary subject, strong depth, motion potential, and composition that can evolve in image-to-video."
+    : "Design for Facebook/Instagram ad use with realistic local-business context and clear negative space for captions/CTA overlay.";
+
   return [
-    `Vertical social ad image for ${service} in ${location}.`,
-    "Realistic photo style, 9:16 composition, clean trustworthy local-business tone.",
+    purposeLead,
+    purposeGuidance,
+    "Realistic photo style, trustworthy local-business tone.",
     `Campaign angle: ${input.item.angle}.`,
     `Core idea: ${input.campaign.core_idea}.`,
     hook ? `Visual direction from approved package: ${hook}.` : null,
     `Leave clean negative space for caption overlay and CTA: ${cta}.`,
-    "No fake logos, no distorted text, no cluttered layouts, no unrealistic anatomy.",
+    "Avoid tiny unreadable text/logos, fake logos, cluttered layouts, and unrealistic anatomy.",
   ].filter(Boolean).join(" ");
 }
 
@@ -55,9 +76,12 @@ export function buildCampaignVideoPrompt(input: {
 
 export function getCampaignMediaStage(input: MediaStageInput) {
   if (!input.packageApproved) return { imageEnabled: false, videoEnabled: false, helper: "Approve the package before generating media." };
-  if (!input.imageAssetId && !input.imagePreviewUrl) return { imageEnabled: true, videoEnabled: false, helper: "Generate an image first. Video uses the image as the starting frame." };
+  const hasReferenceImage = Boolean(input.imageAssetId || input.imagePreviewUrl || input.uploadedReferenceUrl);
+  if (!hasReferenceImage) return { imageEnabled: true, videoEnabled: false, helper: "Generate an image first. Video uses the image as the starting frame." };
   if (input.videoJobId) return { imageEnabled: true, videoEnabled: true, helper: "Video job is in progress or completed. Open the job for details." };
-  return { imageEnabled: true, videoEnabled: true, helper: "Video will use this image as the start/reference frame." };
+  if (input.imagePurpose === "video_reference") return { imageEnabled: true, videoEnabled: true, helper: "This image was created as a video reference frame." };
+  if (input.imagePurpose === "uploaded_reference") return { imageEnabled: true, videoEnabled: true, helper: "Video will use your uploaded image as the reference frame." };
+  return { imageEnabled: true, videoEnabled: true, helper: "You can also use this static image as the starting frame for a video." };
 }
 
 export function readMediaMetadata(metadata: unknown) {
@@ -69,6 +93,8 @@ export function readMediaMetadata(metadata: unknown) {
     imageAssetId: typeof media.image_asset_id === "string" ? media.image_asset_id : null,
     imagePreviewUrl: typeof media.image_preview_url === "string" ? media.image_preview_url : null,
     imageStatus: typeof media.image_status === "string" ? media.image_status : null,
+    imagePurpose: isCampaignImagePurpose(media.image_purpose) ? media.image_purpose : null,
+    uploadedReferenceUrl: typeof media.uploaded_reference_url === "string" ? media.uploaded_reference_url : null,
     videoJobId: typeof media.video_job_id === "string" ? media.video_job_id : null,
     videoAssetId: typeof media.video_asset_id === "string" ? media.video_asset_id : null,
     videoPreviewUrl: typeof media.video_preview_url === "string" ? media.video_preview_url : null,

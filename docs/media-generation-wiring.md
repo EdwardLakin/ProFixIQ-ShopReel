@@ -1,6 +1,15 @@
 # Campaign media generation wiring
 
-Main campaign flow is **approved package → image → video**. Text-to-video may exist in provider APIs, but it is not the canonical campaign-item flow in this phase.
+Main campaign flow is **approved package → choose image purpose → generate/select image → generate video**. Text-to-video may exist in provider APIs, but it is not the canonical campaign-item flow in this phase.
+
+## Image purpose choices
+- `static_ad`: generated vertical social ad image for Facebook/Instagram/boosted/flyer-style posting (recommended default for business advertising).
+- `video_reference`: generated first/reference frame intended for image-to-video.
+- `uploaded_reference`: user-provided reference image (currently shown with upload path guidance; item-level connection is coming next where not yet wired).
+
+## Static ad vs video reference
+- Static ad prompts bias toward clean ad-ready composition, local-business realism, and caption/CTA overlay space.
+- Video reference prompts bias toward cinematic first-frame composition with motion potential for image-to-video.
 
 ## Providers found in code
 - `openai` (`src/features/shopreel/video-creation/providers/openai.ts`)
