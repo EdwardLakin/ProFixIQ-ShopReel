@@ -346,7 +346,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_42%_36%,rgba(255,171,75,.24),transparent_18%),radial-gradient(circle_at_50%_52%,rgba(111,76,255,.28),transparent_32%),radial-gradient(circle_at_86%_38%,rgba(70,160,255,.15),transparent_30%),linear-gradient(135deg,#02040c_0%,#060815_48%,#04030b_100%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.018)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
 
-      <div className="relative z-10 grid h-[100svh] min-h-[100svh] overflow-hidden grid-cols-1 xl:grid-cols-[clamp(9.5rem,12vw,12rem)_minmax(0,1fr)]">
+      <div className="relative z-10 grid min-h-[100svh] grid-cols-1 xl:grid-cols-[clamp(9.5rem,12vw,12rem)_minmax(0,1fr)]">
         <aside className="hidden border-r border-white/[0.06] bg-black/10 px-5 py-6 xl:flex xl:flex-col xl:gap-6">
           <div className="flex items-center gap-4">
             <div className="text-sm font-bold tracking-[0.1em]">PROFIXIQ</div>
@@ -384,7 +384,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
           </Link>
         </aside>
 
-        <main className="relative grid h-[100svh] min-h-[100svh] overflow-hidden grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
+        <main className="relative grid min-h-[100svh] grid-rows-[auto_minmax(0,1fr)] gap-4 px-4 py-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <header className="flex items-center justify-between">
             <div className="hidden items-center gap-3 text-[12px] uppercase tracking-[0.26em] text-amber-100/88 md:flex">
               <span className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,.95)]" />
@@ -405,8 +405,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
             </div>
           </header>
 
-          <section className="relative grid min-h-0 content-start gap-6 xl:grid-cols-[minmax(0,clamp(30rem,46vw,44rem))_minmax(0,1fr)] xl:items-center">
-            <div className="relative z-10 max-w-4xl self-center">
+          <section className="relative grid min-h-0 content-start gap-6 lg:gap-7 xl:grid-cols-[minmax(0,clamp(30rem,46vw,44rem))_minmax(0,1fr)] xl:items-center">
+            <div className="relative z-10 min-w-0 max-w-4xl self-center">
               <div className="pointer-events-none absolute left-[86%] top-[-8%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.85)_0_1.6%,rgba(255,177,76,.25)_2.5%_5%,transparent_8%),repeating-radial-gradient(circle,rgba(255,177,76,.18)_0_1px,transparent_1px_20px)] opacity-90" />
               <div
                 className={`${
@@ -426,7 +426,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                 <div className="mt-8 max-w-3xl">
                   <div className="mb-3 text-[11px] uppercase tracking-[0.24em] text-white/50">Operator prompt</div>
                   <form
-                    className="relative z-30 flex items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
+                    className="relative z-30 flex min-h-11 items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
                     onSubmit={(event) => {
                       event.preventDefault();
                       void runCommand();
@@ -449,7 +449,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       type="submit"
                       disabled={isCommandRunning || !command.trim()}
                       aria-label="Submit operator prompt"
-                      className="text-3xl text-white/48 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      className="min-h-11 min-w-11 text-3xl text-white/48 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isCommandRunning ? "…" : "→"}
                     </button>
@@ -462,7 +462,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                         type="button"
                         key={prompt}
                         onClick={() => setCommand(prompt)}
-                        className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/78 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
+                        className="min-h-11 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/78 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
                       >
                         {prompt}
                       </button>
@@ -474,11 +474,11 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       type="button"
                       onClick={() => void runCommand()}
                       disabled={isCommandRunning || !command.trim()}
-                      className="group rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_32px_rgba(124,58,237,.28)]"
+                      className="group min-h-11 rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_32px_rgba(124,58,237,.28)]"
                     >
                       {isCommandRunning ? "Running…" : <>Continue <span className="ml-4 inline-block transition group-hover:translate-x-1">→</span></>}
                     </button>
-                    <Link href="/shopreel/review" className="rounded-2xl border border-white/12 bg-white/[0.035] px-6 py-4 text-sm text-white/80">
+                    <Link href="/shopreel/review" className="min-h-11 rounded-2xl border border-white/12 bg-white/[0.035] px-6 py-3.5 text-sm text-white/80">
                       Review approvals
                       {unresolvedCount ? <span className="ml-2 rounded-full bg-violet-500 px-2 py-0.5 text-xs">{unresolvedCount}</span> : null}
                     </Link>
@@ -486,6 +486,24 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       Manual / Operations →
                     </Link>
                   </div>
+                </div>
+              </div>
+            </div>
+
+
+            <div className="xl:hidden">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/65">Active worlds</p>
+                <Link href="/shopreel/campaigns" className="text-xs text-white/70">View all →</Link>
+              </div>
+              <div className="overflow-x-auto pb-2">
+                <div className="flex min-w-0 gap-3">
+                  {sortedWorlds.slice(0, 5).map((item) => (
+                    <button key={`${item.kind}-${item.id}`} type="button" onClick={() => router.push(item.href)} className="min-h-11 min-w-[16rem] rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left">
+                      <p className="truncate text-sm font-semibold text-white">{item.title}</p>
+                      <p className="mt-1 text-xs text-white/60">{item.stageLabel}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
