@@ -160,16 +160,20 @@ export default function CampaignGenerator({
   const searchParams = useSearchParams();
 
   const handoffId = useMemo(() => searchParams.get("handoff")?.trim() ?? "", [searchParams]);
+  const modeParam = useMemo(() => searchParams.get("mode"), [searchParams]);
+  const fallbackPrompt = useMemo(() => searchParams.get("prompt")?.trim() ?? "", [searchParams]);
   const [promptFromCommand, setPromptFromCommand] = useState("");
   const [parsedBrief, setParsedBrief] = useState<ParsedCampaignBrief | null>(null);
   const [handoffError, setHandoffError] = useState<string | null>(null);
-  const creatingFromPrompt = searchParams.get("mode") === "create" && promptFromCommand.length > 0;
+  const [hasInitializedFromPrompt, setHasInitializedFromPrompt] = useState(false);
+  const creatingFromPrompt = modeParam === "create" && promptFromCommand.length > 0;
 
 
 
   useEffect(() => {
-    if (searchParams.get("mode") !== "create") return;
-    const fallbackPrompt = searchParams.get("prompt")?.trim() ?? "";
+    if (modeParam !== "create") return;
+    if (hasInitializedFromPrompt) return;
+
     if (handoffId) {
       const handoff = consumeCampaignCommandHandoff(handoffId);
       if (!handoff) {
@@ -182,6 +186,7 @@ export default function CampaignGenerator({
       setPromptFromCommand(prompt);
       setParsedBrief(handoff.parsedBrief ?? parseCampaignIntake(prompt));
       setHandoffError(null);
+      setHasInitializedFromPrompt(true);
       console.info("[ShopReelRouteTrace]", { handoffId, handoffMethod: "session_storage", campaignPrefillStatus: "handoff_loaded", promptLength: handoff.prompt.length });
       return;
     }
@@ -189,9 +194,10 @@ export default function CampaignGenerator({
     if (fallbackPrompt) {
       setPromptFromCommand(fallbackPrompt);
       setParsedBrief(parseCampaignIntake(fallbackPrompt));
+      setHasInitializedFromPrompt(true);
       console.info("[ShopReelRouteTrace]", { handoffMethod: "query_fallback", campaignPrefillStatus: "fallback_loaded", promptLength: fallbackPrompt.length });
     }
-  }, [handoffId, searchParams]);
+  }, [fallbackPrompt, handoffId, hasInitializedFromPrompt, modeParam]);
   const [title, setTitle] = useState("ShopReel vs Traditional Marketing");
   const [coreIdea, setCoreIdea] = useState(
     `Compare ShopReel to traditional marketing methods and introduce ShopReel as the future of business marketing.${seedDefaults.suggestedHook ? ` ${seedDefaults.suggestedHook}.` : ""}`
@@ -207,7 +213,7 @@ export default function CampaignGenerator({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!creatingFromPrompt) return;
+    if (!creatingFromPrompt || hasInitializedFromPrompt) return;
     const prompt = promptFromCommand;
     const brief = parsedBrief ?? parseCampaignIntake(prompt);
     const shortTitle = prompt.split(/[.!?\n]/)[0]?.replace(/^build\s+/i, "").trim() ?? "New Campaign";
@@ -221,7 +227,8 @@ export default function CampaignGenerator({
     setTone(brief.tone ?? "Confident and practical");
     if (brief.platformFocus.length > 0) setPlatformFocus(brief.platformFocus.join(", "));
     if (!parsedBrief) setParsedBrief(brief);
-  }, [creatingFromPrompt, parsedBrief, promptFromCommand]);
+    setHasInitializedFromPrompt(true);
+  }, [creatingFromPrompt, hasInitializedFromPrompt, parsedBrief, promptFromCommand]);
 
   async function create() {
     try {

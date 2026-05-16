@@ -16,11 +16,15 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   if (!item) return NextResponse.json({ ok: false, error: "Campaign item not found" }, { status: 404 });
 
   const { data: campaign } = await supabase.from("shopreel_campaigns").select("metadata").eq("id", item.campaign_id).eq("shop_id", shopId).maybeSingle();
-  const metadata = (item.metadata ?? {}) as Record<string, unknown>;
-  const campaignMetadata = (campaign?.metadata ?? {}) as Record<string, unknown>;
-  const mode = (campaignMetadata.campaign_mode as CampaignMode | undefined) ?? "general_campaign";
+  const metadata = (item.metadata && typeof item.metadata === "object" ? item.metadata : {}) as Record<string, unknown>;
+  const campaignMetadata = (campaign?.metadata && typeof campaign.metadata === "object" ? campaign.metadata : {}) as Record<string, unknown>;
+  const rawMode = campaignMetadata.campaign_mode;
+  const mode = (typeof rawMode === "string" ? rawMode : "general_campaign") as CampaignMode;
+  const campaignIntelligence = (metadata.campaign_intelligence && typeof metadata.campaign_intelligence === "object")
+    ? metadata.campaign_intelligence as Record<string, unknown>
+    : {};
 
-  const pkg = buildProductionPackage(mode, item.title, (metadata.campaign_intelligence as any)?.hook ?? item.title, (metadata.campaign_intelligence as any)?.primary_cta ?? "Get started today");
+  const pkg = buildProductionPackage(mode, item.title, (campaignIntelligence.hook as string | undefined) ?? item.title, (campaignIntelligence.primary_cta as string | undefined) ?? "Get started today");
 
   const nextMetadata = {
     ...metadata,
