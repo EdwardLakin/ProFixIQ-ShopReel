@@ -87,10 +87,16 @@ export async function createCampaign(args: {
       campaign_angle: angle.angle,
       campaign_intelligence: {
         angle_key: angle.angle,
-        why_it_fits_brief: `Built for ${(args.parsedBrief?.mode ?? "general_campaign").replace(/_/g, " ")} using prompt context.`,
+        why_it_fits_brief: args.parsedBrief?.mode === "business_advertising"
+          ? `Built for ${args.parsedBrief.businessType ?? "local service"}${args.parsedBrief.location ? ` in ${args.parsedBrief.location}` : ""} to drive customer inquiries and bookings.`
+          : `Built for ${(args.parsedBrief?.mode ?? "general_campaign").replace(/_/g, " ")} using prompt context.`,
         target_audience: args.audience,
-        primary_cta: (brandBrain?.preferred_ctas ?? [])[0] ?? "Start now",
-        suggested_outputs: args.parsedBrief?.desiredOutputs ?? [],
+        primary_cta: args.parsedBrief?.mode === "business_advertising"
+          ? (args.parsedBrief.bookingAction ?? "Message to book")
+          : ((brandBrain?.preferred_ctas ?? [])[0] ?? "Start now"),
+        suggested_outputs: args.parsedBrief?.mode === "business_advertising"
+          ? ["facebook_post", "facebook_comment_reply", "short_reel_script", "local_ad_copy", "cta_options"]
+          : (args.parsedBrief?.desiredOutputs ?? []),
         objection_handled: angle.objection,
         sort_order: angle.sortOrder,
         hook: angle.hook,

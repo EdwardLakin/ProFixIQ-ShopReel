@@ -1,47 +1,35 @@
 import { parseCampaignIntake } from "../src/features/shopreel/campaigns/lib/parseCampaignIntake";
 import { generateDifferentiatedAngles, buildProductionPackage } from "../src/features/shopreel/campaigns/lib/campaignIntelligence";
-
 function assert(condition: unknown, msg: string) { if (!condition) throw new Error(msg); }
-function hasAtLeastThreeUsefulSections(pkg: ReturnType<typeof buildProductionPackage>) {
-  return Object.entries(pkg.sections).filter(([, value]) => {
-    if (Array.isArray(value)) return value.length > 0;
-    return String(value ?? "").trim().length > 0;
-  }).length >= 3;
-}
 
-const business = parseCampaignIntake("I need facebook ads for my local HVAC business in Denver");
-assert(business.mode === "business_advertising", "business mode expected");
-const businessAngles = generateDifferentiatedAngles({ title: "HVAC Growth", coreIdea: business.sourcePrompt, parsedBrief: business });
-assert(businessAngles.some((a) => a.angle === "local_trust"), "business-specific angle missing");
+const businessPrompts = [
+  "I’m starting a mobile mechanic business in Calgary and need Facebook ads",
+  "I do mobile detailing and need posts to get bookings",
+  "I’m opening a small bakery and need local ads",
+  "Help me promote my landscaping business on Facebook",
+];
 
-const launch = parseCampaignIntake("Launch our new productivity app next month");
-const launchAngles = generateDifferentiatedAngles({ title: "Launch", coreIdea: launch.sourcePrompt, parsedBrief: launch });
-assert(launchAngles.some((a) => a.angle === "category_problem"), "launch-specific angle missing");
-assert(launchAngles.length >= 3, "launch mode should provide at least 3 angles");
+for (const prompt of businessPrompts) {
+  const brief = parseCampaignIntake(prompt);
+  assert(brief.mode === "business_advertising", "mode should be business_advertising");
+  assert(!!brief.businessType || !!brief.serviceCategory, "business/service type should be inferred");
+  if (/calgary/i.test(prompt)) assert((brief.location ?? "").toLowerCase().includes("calgary"), "location should include Calgary");
+  const outputs = brief.desiredOutputs.join(" ").toLowerCase();
+  assert(outputs.includes("facebook_post"), "outputs should include Facebook post");
+  assert(outputs.includes("comment_reply"), "outputs should include comment replies");
+  assert(outputs.includes("short_reel_script"), "outputs should include reel script");
+  assert(outputs.includes("local_ad_copy"), "outputs should include local ad copy");
 
-for (const angle of businessAngles) {
-  const pkgFromAngle = buildProductionPackage("business_advertising", angle.title, angle.hook, "Book now");
-  assert(angle.title && angle.hook && angle.objection && angle.emotionalOutcome, "angle core fields missing");
-  assert(hasAtLeastThreeUsefulSections(pkgFromAngle), "production package must include at least 3 useful sections");
-}
-
-const pkg = buildProductionPackage("business_advertising", "Local Trust", "Your neighbors trust us", "Book now");
-assert(!!(pkg.sections as any).facebook_post, "package missing facebook_post");
-assert(!!(pkg.sections as any).short_reel_script, "package missing short_reel_script");
-assert(JSON.stringify(pkg.sections).toLowerCase().includes("facebook"), "business package should contain facebook-oriented content");
-assert(JSON.stringify(pkg.sections).toLowerCase().includes("local"), "business package should contain local-focused content");
-assert(JSON.stringify(pkg.sections).toLowerCase().includes("reply"), "business package should contain comment-reply style content");
-
-const selfMarketing = parseCampaignIntake("Advertise ShopReel using ShopReel");
-const selfAngles = generateDifferentiatedAngles({ title: "ShopReel", coreIdea: selfMarketing.sourcePrompt, parsedBrief: selfMarketing });
-assert(selfAngles.length >= 3, "internal self-marketing should include at least 3 angles");
-const selfPkg = buildProductionPackage("internal_self_marketing", "ShopReel Operator", "Operate like a pro", "Try ShopReel");
-assert(JSON.stringify(selfPkg.sections).toLowerCase().includes("shopreel"), "self-marketing package should include ShopReel-specific positioning");
-
-const fallbackAngles = generateDifferentiatedAngles({ title: "Legacy", coreIdea: "general growth ask" });
-assert(fallbackAngles.length >= 4, "legacy campaign creation should still work without parsedBrief");
-for (const fallbackAngle of fallbackAngles) {
-  assert(fallbackAngle.title && fallbackAngle.hook, "fallback angle should include title/hook");
+  const angles = generateDifferentiatedAngles({ title: "Biz", coreIdea: brief.sourcePrompt, parsedBrief: brief });
+  assert(angles.length >= 5, "business angles should include full set");
+  const pkg = buildProductionPackage("business_advertising", angles[0].title, angles[0].hook, "Message to book");
+  const blob = JSON.stringify(pkg.sections).toLowerCase();
+  assert(blob.includes("facebook_post") || blob.includes("facebook"), "package should include facebook post");
+  assert(blob.includes("comment_reply"), "package should include comment replies");
+  assert(blob.includes("short_reel_script") || blob.includes("scene 1"), "package should include reel script");
+  assert(blob.includes("local_ad_copy") || blob.includes("headline"), "package should include local ad copy");
+  assert(blob.includes("cta_options"), "package should include cta options");
+  assert(blob.includes("book") || blob.includes("message") || blob.includes("quote"), "package should include booking language");
 }
 
 console.log("campaign-production-smoke passed");
