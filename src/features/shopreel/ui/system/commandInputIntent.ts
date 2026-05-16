@@ -39,6 +39,37 @@ const CREATE_CAMPAIGN_PATTERNS = [
   /\bcreate ads?\b/,
 ];
 
+
+const LIKELY_CAMPAIGN_PROMPT_TERMS = [
+  "advertise",
+  "ad",
+  "ads",
+  "facebook",
+  "campaign",
+  "launch",
+  "business",
+  "startup",
+  "starting",
+  "opening",
+  "posts",
+  "content",
+  "promote",
+  "marketing",
+  "customers",
+  "bookings",
+  "leads",
+  "tiktok",
+  "instagram",
+  "youtube",
+  "shopreel",
+];
+
+export function isLikelyCampaignPrompt(input: string): boolean {
+  const prompt = input.toLowerCase().trim();
+  if (!prompt) return false;
+  return LIKELY_CAMPAIGN_PROMPT_TERMS.some((term) => prompt.includes(term));
+}
+
 const EDIT_CAMPAIGN_PATTERNS = [/\bedit campaign\b/, /\bupdate campaign\b/, /\brevise campaign\b/];
 const GENERATE_CONTENT_PATTERNS = [
   /\bgenerate content\b/,
