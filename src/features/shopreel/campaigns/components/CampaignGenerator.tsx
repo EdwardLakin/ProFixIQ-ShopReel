@@ -283,7 +283,7 @@ export default function CampaignGenerator({
   }
 
   return (
-    <div className="grid gap-4 lg:gap-5">
+    <div className="grid gap-4 lg:gap-5 min-w-0">
       <GlassCard
         label="Campaign Brief"
         title="Start with the campaign idea"
@@ -300,11 +300,11 @@ export default function CampaignGenerator({
           </div>
         ) : null}
 
-        <div className="grid gap-3.5">
-          {creatingFromPrompt ? <div className="rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-50">New campaign detected · Campaign brief generated from your prompt.</div> : null}
-          {promptFromCommand ? <div className="rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-50">Source prompt context preserved ({promptFromCommand.length} chars).</div> : null}
-          {parsedBrief ? <div className="rounded-xl border border-violet-300/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-50">ShopReel detected: {MODE_LABELS[parsedBrief.mode]} · confidence {(parsedBrief.confidence * 100).toFixed(0)}%<br/>Recommended outputs: {parsedBrief.desiredOutputs.join(", ") || "n/a"}<br/>Missing questions: {parsedBrief.missingQuestions.join(" | ") || "none"}</div> : null}
-          {handoffError ? <div className="rounded-xl border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-100">{handoffError}</div> : null}
+        <div className="grid gap-3.5 min-w-0">
+          {creatingFromPrompt ? <div className="rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-50 break-words">New campaign detected · Campaign brief generated from your prompt.</div> : null}
+          {promptFromCommand ? <div className="rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-50 break-words">Source prompt context preserved ({promptFromCommand.length} chars).</div> : null}
+          {parsedBrief ? <div className="rounded-xl border border-violet-300/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-50 break-words whitespace-pre-wrap">ShopReel detected: {MODE_LABELS[parsedBrief.mode]} · confidence {(parsedBrief.confidence * 100).toFixed(0)}%<br/>Recommended outputs: {parsedBrief.desiredOutputs.join(", ") || "n/a"}<br/>Missing questions: {parsedBrief.missingQuestions.join(" | ") || "none"}</div> : null}
+          {handoffError ? <div className="rounded-xl border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-100 break-words">{handoffError}</div> : null}
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
               Campaign Title
@@ -378,8 +378,8 @@ export default function CampaignGenerator({
             />
           </label>
 
-          <div className="flex flex-wrap gap-3">
-            <GlassButton className="min-w-[220px] shadow-[0_14px_34px_rgba(88,99,255,0.38)]" variant="primary" onClick={() => void create()} disabled={submitting}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <GlassButton className="min-h-11 w-full sm:w-auto sm:min-w-[220px] shadow-[0_14px_34px_rgba(88,99,255,0.38)]" variant="primary" onClick={() => void create()} disabled={submitting}>
               {submitting ? "Creating..." : "Create campaign workspace"}
             </GlassButton>
           </div>
@@ -407,7 +407,7 @@ export default function CampaignGenerator({
             No campaigns yet.
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 min-w-0">
             {campaigns.map((campaign) => {
               const summary = campaign.production_summary;
               const itemCount = summary?.totalItems ?? campaign.items?.length ?? 0;
@@ -419,7 +419,7 @@ export default function CampaignGenerator({
                   key={campaign.id}
                   className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                 >
-                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+                  <div className="grid gap-4 min-w-0 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
@@ -460,7 +460,7 @@ export default function CampaignGenerator({
                       ) : null}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
                       <Link href={primaryAction.href}>
                         <GlassButton variant={primaryAction.variant}>
                           {primaryAction.label}
