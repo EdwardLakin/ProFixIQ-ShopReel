@@ -38,3 +38,13 @@ Main campaign flow is **approved package → choose image purpose → generate/s
 
 ## Missing-env warning behavior
 - Provider adapters throw explicit configuration errors when required keys are missing (for example `fal.ai is not configured...`, `Missing RUNWAYML_API_SECRET`).
+
+## Media Status UX
+- Campaign detail page is the source of truth for media status and next actions.
+- Job page is the detailed drill-down for provider/debug lifecycle information.
+- Status meanings on campaign page:
+  - Queued: request accepted, waiting to start.
+  - Processing/submitted/running/rendering: generation is in progress.
+  - Completed: usable output exists (preview URL or output asset).
+  - Failed/canceled: generation stopped; retry image before video.
+- Video unlock rule: Generate video is only enabled after image status is completed and has `previewUrl` or `outputAssetId`.

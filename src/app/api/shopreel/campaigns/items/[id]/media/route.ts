@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { createAdminClient } from "@/lib/supabase/server";
 import { createMediaGenerationJob } from "@/features/shopreel/video-creation/lib/server";
-import { buildCampaignImagePrompt, buildCampaignVideoPrompt, isCampaignImagePurpose, readMediaMetadata, withMediaMetadata } from "@/features/shopreel/campaigns/lib/mediaGeneration";
+import { buildCampaignImagePrompt, buildCampaignVideoPrompt, deriveCampaignMediaState, isActiveMediaStatus, isCampaignImagePurpose, normalizeMediaStatus, readMediaMetadata, withMediaMetadata } from "@/features/shopreel/campaigns/lib/mediaGeneration";
 
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -12,8 +12,37 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   if (!item) return NextResponse.json({ ok: false, error: "Campaign item not found" }, { status: 404 });
   const mediaMeta = readMediaMetadata(item.metadata);
   const jobIds = [mediaMeta.imageJobId, mediaMeta.videoJobId].filter(Boolean) as string[];
-  const { data: jobs } = jobIds.length ? await supabase.from("shopreel_media_generation_jobs").select("id,status,job_type,preview_url,output_asset_id").in("id", jobIds) : { data: [] };
-  return NextResponse.json({ ok: true, media: mediaMeta, jobs: jobs ?? [] });
+  const warnings: string[] = [];
+  const { data: jobs, error: jobsError } = jobIds.length ? await supabase.from("shopreel_media_generation_jobs").select("id,status,job_type,provider,preview_url,output_asset_id,error_text,updated_at,created_at").in("id", jobIds) : { data: [], error: null as any };
+  if (jobsError) warnings.push(`Job lookup warning: ${jobsError.message}`);
+  const imageJob = (jobs ?? []).find((j: any) => j.job_type === "image" && j.id === mediaMeta.imageJobId);
+  const videoJob = (jobs ?? []).find((j: any) => j.job_type === "video" && j.id === mediaMeta.videoJobId);
+  const image = {
+    jobId: mediaMeta.imageJobId,
+    status: normalizeMediaStatus(imageJob?.status ?? mediaMeta.imageStatus),
+    provider: imageJob?.provider ?? "openai",
+    previewUrl: imageJob?.preview_url ?? mediaMeta.imagePreviewUrl,
+    outputAssetId: imageJob?.output_asset_id ?? mediaMeta.imageAssetId,
+    errorText: imageJob?.error_text ?? null,
+    jobHref: mediaMeta.imageJobId ? `/shopreel/video-creation/jobs/${mediaMeta.imageJobId}` : null,
+    requestedAt: mediaMeta.imageRequestedAt,
+    updatedAt: imageJob?.updated_at ?? null,
+    purpose: mediaMeta.imagePurpose,
+  };
+  const video = {
+    jobId: mediaMeta.videoJobId,
+    status: normalizeMediaStatus(videoJob?.status ?? mediaMeta.videoStatus),
+    provider: videoJob?.provider ?? "fal",
+    previewUrl: videoJob?.preview_url ?? mediaMeta.videoPreviewUrl,
+    outputAssetId: videoJob?.output_asset_id ?? mediaMeta.videoAssetId,
+    errorText: videoJob?.error_text ?? null,
+    jobHref: mediaMeta.videoJobId ? `/shopreel/video-creation/jobs/${mediaMeta.videoJobId}` : null,
+    requestedAt: mediaMeta.videoRequestedAt,
+    updatedAt: videoJob?.updated_at ?? null,
+  };
+  const packageApproved = Boolean((item.metadata as any)?.production_package_status === "approved");
+  const normalized = deriveCampaignMediaState({ packageApproved, image, video });
+  return NextResponse.json({ ok: true, itemId: id, media: normalized, warnings });
 }
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
@@ -35,6 +64,13 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
   if (body.action === "generate_image") {
     const imagePurpose = isCampaignImagePurpose(body.imagePurpose) ? body.imagePurpose : "static_ad";
+    if (mediaMeta.imageJobId) {
+      const { data: existingImageJob } = await supabase.from("shopreel_media_generation_jobs").select("id,status").eq("id", mediaMeta.imageJobId).maybeSingle();
+      const existingStatus = normalizeMediaStatus(existingImageJob?.status ?? mediaMeta.imageStatus);
+      if (isActiveMediaStatus(existingStatus)) {
+        return NextResponse.json({ ok: true, message: "Image generation already in progress.", jobId: mediaMeta.imageJobId, status: existingStatus, jobRoute: `/shopreel/video-creation/jobs/${mediaMeta.imageJobId}`, existing: true });
+      }
+    }
     if (imagePurpose === "uploaded_reference") {
       return NextResponse.json({ ok: false, error: "Uploaded reference image is not connected to this campaign item yet." }, { status: 400 });
     }
