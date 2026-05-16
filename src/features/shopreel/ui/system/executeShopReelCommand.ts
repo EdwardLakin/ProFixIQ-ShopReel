@@ -1,6 +1,7 @@
 import type { OperatorWorldCard } from "@/features/shopreel/operator/operatorWorlds";
 import { classifyCommandInputIntent } from "@/features/shopreel/ui/system/commandInputIntent";
 import { createCampaignCommandHandoff } from "@/features/shopreel/ui/system/campaignCommandHandoff";
+import { parseCampaignIntake } from "@/features/shopreel/campaigns/lib/parseCampaignIntake";
 import {
   operatorCapabilityRegistry,
   resolveCapabilityForWorld,
@@ -110,7 +111,8 @@ export function executeShopReelCommand(input: {
   }
 
   if (commandIntent === "create_campaign") {
-    const handoff = createCampaignCommandHandoff({ prompt: input.command.trim(), source: input.source });
+    const parsedBrief = parseCampaignIntake(input.command.trim());
+    const handoff = createCampaignCommandHandoff({ prompt: input.command.trim(), source: input.source, parsedBrief });
     selectedRoute = `/shopreel/campaigns/new?mode=create&handoff=${encodeURIComponent(handoff.id)}`;
     handoffMethod = "session_storage";
     handoffId = handoff.id;
