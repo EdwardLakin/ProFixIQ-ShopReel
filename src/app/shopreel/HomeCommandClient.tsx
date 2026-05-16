@@ -102,6 +102,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
   const [isCommandRunning, setIsCommandRunning] = useState(false);
   const [commandFailure, setCommandFailure] = useState<string | null>(loadErrors?.length ? `Runtime data load issue: ${loadErrors[0]}` : null);
   const [commandResult, setCommandResult] = useState<string | null>(null);
+  const [lastSubmitSource, setLastSubmitSource] = useState<"form" | "arrow" | "enter" | "continue_button" | null>(null);
+  const [lastResolvedRoute, setLastResolvedRoute] = useState<string | null>(null);
   const unresolvedCount = recent.filter((item) => item.priority === "critical" || /review|approval/.test(item.normalizedStatus)).length;
   const hasPendingApprovals = recent.some((item) => /review|approval/.test(item.normalizedStatus));
   const hasActiveCampaign = recent.some((item) => item.kind === "campaign");
@@ -273,7 +275,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
     setContext(next);
   };
 
-  const runCommand = async (overrideCommand?: string) => {
+  const runCommand = async (overrideCommand?: string, source: "form" | "arrow" | "enter" | "continue_button" = "form") => {
     if (isCommandRunning) return;
     const nextCommand = overrideCommand ?? command;
     if (!nextCommand.trim()) return;
@@ -319,12 +321,21 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
         targetRoute: execution.selectedRoute,
         hydrationWarnings,
       });
+      setLastResolvedRoute(execution.selectedRoute);
+      console.info("[shopreel] command routing", {
+        source,
+        commandLength: nextCommand.length,
+        selectedRoute: execution.selectedRoute,
+        handoffId: execution.handoffId,
+        decisionIntent: execution.decision.intent,
+        commandIntent: execution.commandIntent,
+      });
       if (!execution.decision.matched) {
         setCommandFailure(`No direct route match for "${nextCommand}". Opened command surface instead.`);
       }
-      setCommandResult(`Routing to ${execution.selectedRoute}…`);
+      setCommandResult(`Opening ${execution.selectedRoute}…`);
       try {
-        await router.push(execution.selectedRoute);
+        router.push(execution.selectedRoute);
       } catch (pushError) {
         console.warn("[shopreel] operator router push failed", {
           prompt: nextCommand,
@@ -341,6 +352,23 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
       setCommandFailure("Command failed. Try again or open workspace.");
     } finally {
       setIsCommandRunning(false);
+    }
+  };
+
+  const handleCommandSubmit = async (source: "form" | "arrow" | "enter" | "continue_button") => {
+    if (isCommandRunning) return;
+    const nextCommand = command.trim();
+    setLastSubmitSource(source);
+    setCommandFailure(null);
+    if (!nextCommand) {
+      setCommandResult("Enter a prompt first.");
+      return;
+    }
+    setCommandResult("Routing prompt…");
+    try {
+      await runCommand(nextCommand, source);
+    } catch {
+      setCommandFailure("Command failed. Try again or open workspace.");
     }
   };
 
@@ -410,13 +438,13 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
 
           <section className="relative grid min-h-0 content-start gap-6 lg:gap-7 xl:grid-cols-[minmax(0,clamp(30rem,46vw,44rem))_minmax(0,1fr)] xl:items-center">
             <div className="relative z-10 min-w-0 max-w-4xl self-center">
-              <div className="pointer-events-none absolute left-[86%] top-[-8%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.85)_0_1.6%,rgba(255,177,76,.25)_2.5%_5%,transparent_8%),repeating-radial-gradient(circle,rgba(255,177,76,.18)_0_1px,transparent_1px_20px)] opacity-90" />
+              <div className="pointer-events-none -z-10 absolute left-[86%] top-[-8%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.85)_0_1.6%,rgba(255,177,76,.25)_2.5%_5%,transparent_8%),repeating-radial-gradient(circle,rgba(255,177,76,.18)_0_1px,transparent_1px_20px)] opacity-90" />
               <div
                 className={`${
                   prefersReducedMotion ? "" : "animate-[spin_38s_linear_infinite]"
-                } pointer-events-none absolute left-[86%] top-[12%] h-80 w-80 -translate-x-1/2 rounded-full border border-violet-200/10`}
+                } pointer-events-none -z-10 absolute left-[86%] top-[12%] h-80 w-80 -translate-x-1/2 rounded-full border border-violet-200/10`}
               />
-              <div className="pointer-events-none absolute left-[86%] top-[19%] h-3 w-3 -translate-x-1/2 rounded-full bg-amber-200 shadow-[0_0_42px_rgba(251,146,60,.95)]" />
+              <div className="pointer-events-none -z-10 absolute left-[86%] top-[19%] h-3 w-3 -translate-x-1/2 rounded-full bg-amber-200 shadow-[0_0_42px_rgba(251,146,60,.95)]" />
 
               <div className="relative">
                 <h1 className="mt-3 text-[clamp(2rem,3.4vw,3.25rem)] font-semibold leading-[1.03] tracking-[-0.04em] text-white">
@@ -429,10 +457,10 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                 <div className="mt-8 max-w-3xl">
                   <div className="mb-3 text-[11px] uppercase tracking-[0.24em] text-white/50">Operator prompt</div>
                   <form
-                    className="relative z-30 flex min-h-11 items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
+                    className="relative z-50 flex min-h-11 items-center rounded-[1.35rem] border border-white/14 bg-[#071024]/60 px-5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_18px_55px_rgba(0,0,0,.24)]"
                     onSubmit={(event) => {
                       event.preventDefault();
-                      void runCommand();
+                      void handleCommandSubmit("form");
                     }}
                   >
                     <AiCommandInput
@@ -441,7 +469,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
-                          void runCommand();
+                          void handleCommandSubmit("enter");
                         }
                       }}
                       placeholder="What should the operator run next?"
@@ -449,7 +477,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       className="min-h-14 flex-1 text-[0.98rem] border-0 bg-transparent pr-2 shadow-none focus-visible:ring-0"
                     />
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={() => void handleCommandSubmit("arrow")}
                       disabled={isCommandRunning || !command.trim()}
                       aria-label="Submit operator prompt"
                       className="min-h-11 min-w-11 text-3xl text-white/48 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
@@ -457,9 +486,22 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                       {isCommandRunning ? "…" : "→"}
                     </button>
                   </form>
+                  {!command.trim() && !isCommandRunning ? <p className="mt-2 text-xs text-amber-100/80">Arrow disabled: enter a prompt first.</p> : null}
                   {isCommandRunning ? <p className="mt-2 text-sm text-cyan-100/85">Routing…</p> : null}
                   {commandResult ? <p className="mt-2 text-sm text-emerald-200">{commandResult}</p> : null}
                   {commandFailure ? <p className="mt-2 text-sm text-rose-200">{commandFailure}</p> : null}
+                  <div className="mt-2 text-xs text-white/60">
+                    <p className="uppercase tracking-[0.12em] text-white/45">Routing status</p>
+                    <p>Command length: {command.trim().length}</p>
+                    <p>Last submit source: {lastSubmitSource ?? "none"}</p>
+                    <p>Last resolved route: {lastResolvedRoute ?? "none"}</p>
+                    <p>Last error: {commandFailure ?? "none"}</p>
+                  </div>
+                  {lastResolvedRoute ? (
+                    <Link href={lastResolvedRoute} className="mt-2 inline-flex text-xs text-cyan-200 underline underline-offset-2">
+                      Open routed campaign
+                    </Link>
+                  ) : null}
 
                   <div className="mt-5 flex flex-wrap gap-3">
                     {quickPrompts.map((prompt) => (
@@ -477,7 +519,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                   <div className="mt-7 flex flex-wrap items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => void runCommand()}
+                      onClick={() => void handleCommandSubmit("continue_button")}
                       disabled={isCommandRunning || !command.trim()}
                       className="group min-h-11 rounded-2xl bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-300 px-6 py-3 text-sm font-semibold text-white shadow-[0_0_32px_rgba(124,58,237,.28)]"
                     >

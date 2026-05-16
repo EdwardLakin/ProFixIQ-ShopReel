@@ -110,7 +110,7 @@ export function executeShopReelCommand(input: {
     }
   }
 
-  if (commandIntent === "create_campaign") {
+  if (commandIntent === "create_campaign" || decision.intent === "create_campaign") {
     const parsedBrief = parseCampaignIntake(input.command.trim());
     const handoff = createCampaignCommandHandoff({ prompt: input.command.trim(), source: input.source, parsedBrief });
     selectedRoute = `/shopreel/campaigns/new?mode=create&handoff=${encodeURIComponent(handoff.id)}`;
