@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 
 import { executeShopReelCommand } from "../src/features/shopreel/ui/system/executeShopReelCommand";
+import { classifyCommandInputIntent } from "../src/features/shopreel/ui/system/commandInputIntent";
+import { resolveRouteFromPrompt } from "../src/features/shopreel/ui/system/shopReelRouteRegistry";
 import type { OperatorWorldCard } from "../src/features/shopreel/operator/operatorWorlds";
 
 const CREATE_PROMPTS = [
@@ -45,5 +47,14 @@ assert.equal(render.selectedRoute, "/shopreel/render-queue");
 
 const settings = executeShopReelCommand({ command: "open settings", source: "home_command" });
 assert.equal(settings.selectedRoute, "/shopreel/settings");
+
+assert.equal(classifyCommandInputIntent("   "), "unknown");
+assert.equal(resolveRouteFromPrompt("   ").route, "/shopreel");
+
+const mechanic = executeShopReelCommand({
+  command: "I'm starting a mobile mechanic business in Calgary and need Facebook ads",
+  source: "home_command",
+});
+assert.match(mechanic.selectedRoute, /^\/shopreel\/campaigns\/new\?mode=create&handoff=/);
 
 console.log("operator-command-routing-smoke: ok");
