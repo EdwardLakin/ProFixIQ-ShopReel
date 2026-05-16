@@ -9,6 +9,8 @@ import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { consumeCampaignCommandHandoff } from "@/features/shopreel/ui/system/campaignCommandHandoff";
+import type { CampaignMode, ParsedCampaignBrief } from "@/features/shopreel/campaigns/lib/campaignIntakeTypes";
+import { parseCampaignIntake } from "@/features/shopreel/campaigns/lib/parseCampaignIntake";
 
 type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"] & {
   items?: Array<{
@@ -27,6 +29,18 @@ type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"] & {
     failedScenes: number;
     stageLabel: string;
   };
+};
+
+
+const MODE_LABELS: Record<CampaignMode, string> = {
+  business_advertising: "Business Advertising",
+  launch_campaign: "Launch Campaign",
+  weekly_content: "Weekly Content",
+  uploaded_asset: "Uploaded Asset",
+  campaign_refine: "Campaign Refine",
+  publish_learning: "Publish + Learning",
+  internal_self_marketing: "Internal Self-Marketing",
+  general_campaign: "General Campaign",
 };
 
 function timeAgoLabel(value: string) {
@@ -147,6 +161,7 @@ export default function CampaignGenerator({
 
   const handoffId = useMemo(() => searchParams.get("handoff")?.trim() ?? "", [searchParams]);
   const [promptFromCommand, setPromptFromCommand] = useState("");
+  const [parsedBrief, setParsedBrief] = useState<ParsedCampaignBrief | null>(null);
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const creatingFromPrompt = searchParams.get("mode") === "create" && promptFromCommand.length > 0;
 
@@ -163,7 +178,9 @@ export default function CampaignGenerator({
         console.info("[ShopReelRouteTrace]", { handoffId, handoffMethod: "session_storage", campaignPrefillStatus: "handoff_missing" });
         return;
       }
-      setPromptFromCommand(handoff.prompt.trim());
+      const prompt = handoff.prompt.trim();
+      setPromptFromCommand(prompt);
+      setParsedBrief(handoff.parsedBrief ?? parseCampaignIntake(prompt));
       setHandoffError(null);
       console.info("[ShopReelRouteTrace]", { handoffId, handoffMethod: "session_storage", campaignPrefillStatus: "handoff_loaded", promptLength: handoff.prompt.length });
       return;
@@ -171,6 +188,7 @@ export default function CampaignGenerator({
 
     if (fallbackPrompt) {
       setPromptFromCommand(fallbackPrompt);
+      setParsedBrief(parseCampaignIntake(fallbackPrompt));
       console.info("[ShopReelRouteTrace]", { handoffMethod: "query_fallback", campaignPrefillStatus: "fallback_loaded", promptLength: fallbackPrompt.length });
     }
   }, [handoffId, searchParams]);
@@ -191,18 +209,19 @@ export default function CampaignGenerator({
   useEffect(() => {
     if (!creatingFromPrompt) return;
     const prompt = promptFromCommand;
+    const brief = parsedBrief ?? parseCampaignIntake(prompt);
     const shortTitle = prompt.split(/[.!?\n]/)[0]?.replace(/^build\s+/i, "").trim() ?? "New Campaign";
-    const platformMatch = prompt.match(/\b(instagram|facebook|tiktok|youtube|linkedin|x|twitter)\b/gi) ?? [];
 
     setTitle(shortTitle.slice(0, 100));
     setCoreIdea(prompt);
-    setAudience(/\bfor\s+([^.,\n]+)/i.exec(prompt)?.[1]?.trim() ?? "");
-    setOffer(/\b(offer|promote|featuring)\s+([^.,\n]+)/i.exec(prompt)?.[2]?.trim() ?? "");
-    setCampaignGoal(/\b(goal|objective|to)\s+([^.,\n]+)/i.exec(prompt)?.[2]?.trim() ?? "Awareness and conversions");
-    setProductContext(/\b(?:for|about)\s+([^.,\n]+)/i.exec(prompt)?.[1]?.trim() ?? "");
-    setTone(/\b(tone|style)\s*(?:is|:)?\s*([^.,\n]+)/i.exec(prompt)?.[2]?.trim() ?? "Confident and practical");
-    if (platformMatch.length > 0) setPlatformFocus(Array.from(new Set(platformMatch.map((x) => x.toLowerCase()))).join(", "));
-  }, [creatingFromPrompt, promptFromCommand]);
+    setAudience(brief.audience ?? "");
+    setOffer(brief.offer ?? "");
+    setCampaignGoal(brief.goal ?? "Awareness and conversions");
+    setProductContext(brief.productName ?? brief.businessName ?? brief.businessType ?? "");
+    setTone(brief.tone ?? "Confident and practical");
+    if (brief.platformFocus.length > 0) setPlatformFocus(brief.platformFocus.join(", "));
+    if (!parsedBrief) setParsedBrief(brief);
+  }, [creatingFromPrompt, parsedBrief, promptFromCommand]);
 
   async function create() {
     try {
@@ -229,6 +248,8 @@ export default function CampaignGenerator({
             contentPillars: [],
             experimentHypotheses: [],
             successSignals: creatingFromPrompt ? [promptFromCommand] : [],
+            intakeNotes: parsedBrief?.notes ?? [],
+            parsedBrief: parsedBrief ?? undefined,
           },
         }),
       });
@@ -275,6 +296,7 @@ export default function CampaignGenerator({
         <div className="grid gap-3.5">
           {creatingFromPrompt ? <div className="rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-50">New campaign detected · Campaign brief generated from your prompt.</div> : null}
           {promptFromCommand ? <div className="rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-50">Source prompt context preserved ({promptFromCommand.length} chars).</div> : null}
+          {parsedBrief ? <div className="rounded-xl border border-violet-300/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-50">ShopReel detected: {MODE_LABELS[parsedBrief.mode]} · confidence {(parsedBrief.confidence * 100).toFixed(0)}%<br/>Recommended outputs: {parsedBrief.desiredOutputs.join(", ") || "n/a"}<br/>Missing questions: {parsedBrief.missingQuestions.join(" | ") || "none"}</div> : null}
           {handoffError ? <div className="rounded-xl border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-100">{handoffError}</div> : null}
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>

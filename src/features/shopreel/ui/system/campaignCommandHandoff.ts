@@ -1,5 +1,7 @@
 "use client";
 
+import type { ParsedCampaignBrief } from "@/features/shopreel/campaigns/lib/campaignIntakeTypes";
+
 const STORAGE_KEY = "shopreel_campaign_command_handoff_v1";
 
 export type CampaignCommandHandoff = {
@@ -8,6 +10,7 @@ export type CampaignCommandHandoff = {
   intent: "create_campaign";
   createdAt: string;
   source: "home_command" | "global_command";
+  parsedBrief?: ParsedCampaignBrief;
 };
 
 type StoredHandoffs = Record<string, CampaignCommandHandoff>;
@@ -37,6 +40,7 @@ function createId() {
 export function createCampaignCommandHandoff(input: {
   prompt: string;
   source: CampaignCommandHandoff["source"];
+  parsedBrief?: ParsedCampaignBrief;
 }) {
   const handoff: CampaignCommandHandoff = {
     id: createId(),
@@ -44,6 +48,7 @@ export function createCampaignCommandHandoff(input: {
     intent: "create_campaign",
     createdAt: new Date().toISOString(),
     source: input.source,
+    parsedBrief: input.parsedBrief,
   };
   const all = readAll();
   writeAll({ ...all, [handoff.id]: handoff });
