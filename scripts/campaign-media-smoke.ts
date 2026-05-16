@@ -7,9 +7,11 @@ const item = { title: "Book same-day mechanic", angle: "Trustworthy emergency ro
 const productionPackage = { sections: { short_reel_script: ["Scene 1 hook", "Scene 2 service", "Scene 3 trust", "Scene 4 process", "Scene 5 CTA"] } };
 const parsedBrief = { serviceCategory: "mobile mechanic service", location: "Calgary", bookingAction: "Call now" };
 
-const imagePrompt = buildCampaignImagePrompt({ campaign, item, productionPackage, parsedBrief });
-assert(imagePrompt.includes("Calgary"), "image prompt should include location context");
-assert(imagePrompt.includes("9:16"), "image prompt should include vertical format");
+const imagePrompt = buildCampaignImagePrompt({ campaign, item, productionPackage, parsedBrief, purpose: "static_ad" });
+assert(imagePrompt.includes("local-business"), "image prompt should include local-business context");
+assert(imagePrompt.includes("static social ad image"), "static ad prompt should include social ad intent");
+const referencePrompt = buildCampaignImagePrompt({ campaign, item, productionPackage, parsedBrief, purpose: "video_reference" });
+assert(referencePrompt.includes("first/reference frame"), "video reference prompt should include first/reference frame intent");
 
 let threw = false;
 try {
@@ -23,13 +25,15 @@ const videoPrompt = buildCampaignVideoPrompt({ campaign, item, productionPackage
 assert(videoPrompt.includes("5 concise scenes"), "video prompt should include 5-scene direction");
 assert(videoPrompt.includes("start/reference frame"), "video prompt should require reference image");
 
-const stageA = getCampaignMediaStage({ packageApproved: false, imageAssetId: null, imagePreviewUrl: null, videoJobId: null });
+const stageA = getCampaignMediaStage({ packageApproved: false, imagePurpose: "static_ad", imageAssetId: null, imagePreviewUrl: null, uploadedReferenceUrl: null, videoJobId: null });
 assert(!stageA.imageEnabled && !stageA.videoEnabled, "before package approval both actions disabled");
-const stageB = getCampaignMediaStage({ packageApproved: true, imageAssetId: null, imagePreviewUrl: null, videoJobId: null });
+const stageB = getCampaignMediaStage({ packageApproved: true, imagePurpose: "static_ad", imageAssetId: null, imagePreviewUrl: null, uploadedReferenceUrl: null, videoJobId: null });
 assert(stageB.imageEnabled && !stageB.videoEnabled, "after package approval image enabled, video disabled");
-const stageC = getCampaignMediaStage({ packageApproved: true, imageAssetId: "asset-1", imagePreviewUrl: "https://example.com/frame.png", videoJobId: null });
+const stageC = getCampaignMediaStage({ packageApproved: true, imagePurpose: "static_ad", imageAssetId: "asset-1", imagePreviewUrl: "https://example.com/frame.png", uploadedReferenceUrl: null, videoJobId: null });
 assert(stageC.videoEnabled, "video should unlock once image exists");
-const stageD = getCampaignMediaStage({ packageApproved: true, imageAssetId: "asset-1", imagePreviewUrl: "https://example.com/frame.png", videoJobId: "job-1" });
+const stageD = getCampaignMediaStage({ packageApproved: true, imagePurpose: "video_reference", imageAssetId: "asset-1", imagePreviewUrl: "https://example.com/frame.png", uploadedReferenceUrl: null, videoJobId: "job-1" });
 assert(stageD.videoEnabled && stageD.helper.includes("Video job"), "video status stage should be detected");
+const stageE = getCampaignMediaStage({ packageApproved: true, imagePurpose: "uploaded_reference", imageAssetId: null, imagePreviewUrl: null, uploadedReferenceUrl: "https://example.com/uploaded.png", videoJobId: null });
+assert(stageE.videoEnabled, "uploaded reference should unlock video");
 
 console.log("campaign-media-smoke passed");
