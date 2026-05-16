@@ -2,204 +2,137 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
-import { formatShopReelStatus } from "@/features/shopreel/lib/uiLabels";
 
-type CampaignRow = {
-  id: string;
-  title: string;
-  core_idea: string;
-  audience: string | null;
-  offer: string | null;
-  campaign_goal: string | null;
-  status: string;
-  platform_focus: string[];
-  created_at: string;
-  metadata?: unknown;
-};
-
-type CampaignItemRow = {
-  id: string;
-  title: string;
-  angle: string;
-  prompt: string;
-  status: string;
-  aspect_ratio: string;
-  style: string | null;
-  visual_mode: string | null;
-  media_job_id: string | null;
-  final_output_asset_id?: string | null;
-  metadata?: unknown;
-};
-
+type CampaignRow = { id: string; title: string; core_idea: string; audience: string | null; offer: string | null; campaign_goal: string | null; status: string; platform_focus: string[]; created_at: string; metadata?: unknown };
+type CampaignItemRow = { id: string; title: string; angle: string; prompt: string; status: string; aspect_ratio: string; style: string | null; visual_mode: string | null; media_job_id: string | null; final_output_asset_id?: string | null; metadata?: unknown };
 type AdaptiveMemory = { learnedNotices: string[]; tasteSummary: string[]; continuityNotice: string | null };
 type ApprovalTask = { id: string; status: string; title: string; details: string | null; confidence: number | null; requires_approval: boolean };
-
 type ParsedBriefView = { mode?: string; sourcePrompt?: string; desiredOutputs?: string[]; missingQuestions?: string[]; businessType?: string; serviceCategory?: string; location?: string; targetCustomer?: string; offer?: string; bookingAction?: string };
 type CampaignPackage = { mode?: string; sections?: Record<string, string | string[]> };
 
-function copyText(value: string) {
-  return navigator.clipboard.writeText(value);
-}
+type Stage = "missing_info" | "choose_angle" | "review_package" | "approve_package" | "copy_export" | "media";
+const questionHints: Record<string, string> = { "what is your business name?": "Example: Calgary Mobile Mechanic", "do you have an intro offer?": "Example: Free first inspection with booking", "what trust signal can we use?": "Example: 10 years experience, licensed, insured" };
+const pkgCards = [
+  ["facebook_post", "Facebook Post", "Paste this as a Facebook post."],
+  ["comment_reply_templates", "Comment Reply Templates", "Use these when people comment asking price/location/availability."],
+  ["short_reel_script", "Short Reel Script", "Use this as a shot list for a simple phone video."],
+  ["local_ad_copy", "Local Ad Copy", "Use this in local Facebook ads or boosted posts."],
+  ["cta_options", "CTA Options", "Use one CTA in your post ending or ad button text."],
+  ["follow_up_post_ideas", "Follow-up Post Ideas", "Use these for next week follow-up content."]
+] as const;
 
+const normalize = (v: string | string[]) => Array.isArray(v) ? v.map((x) => `• ${x}`).join("\n") : v;
+const copyText = (value: string) => navigator.clipboard.writeText(value);
 
 export default function CampaignDetailClient({ campaign, items, progress, adaptiveMemory }: { campaign: CampaignRow; items: CampaignItemRow[]; progress: { totalItems: number; completedItems: number; progressPercent: number; totalScenes: number; queuedScenes: number; processingScenes: number; completedScenes: number; failedScenes: number }; adaptiveMemory: AdaptiveMemory }) {
   const router = useRouter();
+  const packageRef = useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [campaignBrain, setCampaignBrain] = useState({ campaignObjective: "", targetAudience: "", channelPriorities: "", contentPillars: "" });
   const [runTasks, setRunTasks] = useState<Record<string, ApprovalTask[]>>({});
-  const [taskReason, setTaskReason] = useState<Record<string, string>>({});
-  const [packageState, setPackageState] = useState<Record<string, { productionPackage?: CampaignPackage; status?: string }>>({});
-  const [copiedState, setCopiedState] = useState<Record<string, string>>({});
+  const [packageState, setPackageState] = useState<Record<string, { productionPackage?: CampaignPackage; status?: string; message?: string; itemId?: string }>>({});
+  const [sessionNotice, setSessionNotice] = useState<string>("");
+  const [confirmation, setConfirmation] = useState<string>("");
+  const [missingAnswers, setMissingAnswers] = useState<Record<string, string>>({});
+  const [appliedBrief, setAppliedBrief] = useState<ParsedBriefView | null>(null);
 
-  useEffect(() => {
-    void (async () => {
-      const [brainRes, runsRes] = await Promise.all([
-        fetch(`/api/shopreel/campaigns/${campaign.id}/brain`, { cache: "no-store" }),
-        fetch(`/api/shopreel/agents/runs?campaignId=${campaign.id}`, { cache: "no-store" }),
-      ]);
-      const brainJson = (await brainRes.json().catch(() => ({}))) as { campaignBrain?: { campaign_objective?: string | null; target_audience?: string | null; channel_priorities?: string[]; content_pillars?: string[] } | null };
-      const runsJson = (await runsRes.json().catch(() => ({}))) as { runs?: Array<{ id: string }> };
-      if (brainJson.campaignBrain) setCampaignBrain({ campaignObjective: brainJson.campaignBrain.campaign_objective ?? "", targetAudience: brainJson.campaignBrain.target_audience ?? "", channelPriorities: (brainJson.campaignBrain.channel_priorities ?? []).join("\n"), contentPillars: (brainJson.campaignBrain.content_pillars ?? []).join("\n") });
-      const runs = runsJson.runs ?? [];
-      const taskEntries = await Promise.all(runs.slice(0, 6).map(async (run) => {
-        const runRes = await fetch(`/api/shopreel/agents/runs/${run.id}`, { cache: "no-store" });
-        const runJson = (await runRes.json().catch(() => ({}))) as { tasks?: ApprovalTask[] };
-        return [run.id, runJson.tasks ?? []] as const;
-      }));
-      setRunTasks(Object.fromEntries(taskEntries));
-    })();
-  }, [campaign.id]);
-
-  const pendingTasks = useMemo(() => Object.values(runTasks).flat().filter((task) => task.status === "proposed" && task.requires_approval), [runTasks]);
   const campaignMetadata = (campaign.metadata && typeof campaign.metadata === "object" ? campaign.metadata : {}) as Record<string, unknown>;
   const parsedBrief = (campaignMetadata.parsed_brief && typeof campaignMetadata.parsed_brief === "object" ? campaignMetadata.parsed_brief : {}) as ParsedBriefView;
-  const campaignMode = typeof campaignMetadata.campaign_mode === "string" ? campaignMetadata.campaign_mode : parsedBrief.mode ?? "general_campaign";
-  const leadTask = pendingTasks[0] ?? null;
-  const approvedItem = items.find((item) => {
-    const metadata = (item.metadata && typeof item.metadata === "object" ? item.metadata : {}) as Record<string, unknown>;
-    return item.status === "approved" || metadata.production_package_status === "approved";
-  }) ?? null;
-  const packagedItem = items.find((item) => {
-    const metadata = (item.metadata && typeof item.metadata === "object" ? item.metadata : {}) as Record<string, unknown>;
-    return metadata.production_package && typeof metadata.production_package === "object";
-  }) ?? null;
-  const primaryAction = !approvedItem
-    ? "Approve an angle"
-    : !packagedItem
-      ? "Build production package"
-      : approvedItem && packagedItem && ((packagedItem.metadata as any)?.production_package_status !== "approved")
-        ? "Approve package"
-        : "Copy/export package";
+  const brief = appliedBrief ?? parsedBrief;
+  const pendingMissing = brief.missingQuestions ?? [];
 
-  function normalizeCopyValue(value: string | string[]) {
-    return Array.isArray(value) ? value.map((entry) => `• ${entry}`).join("\n") : value;
-  }
-  function formatBusinessPackageCopy(pkg: CampaignPackage) {
-    const s = pkg.sections ?? {};
-    const replies = Array.isArray(s.comment_reply_templates) ? s.comment_reply_templates : [];
-    const ctas = Array.isArray(s.cta_options) ? s.cta_options : [];
-    const followUps = Array.isArray(s.follow_up_post_ideas) ? s.follow_up_post_ideas : [];
-    return `BUSINESS AD PACKAGE\n\nFacebook Post:\n${String(s.facebook_post ?? "")}\n\nComment Reply Templates:\n${replies.map((v, i) => `${i + 1}. ${v}`).join("\n")}\n\nShort Reel Script:\n${String(s.short_reel_script ?? "")}\n\nLocal Ad Copy:\n${String(s.local_ad_copy ?? "")}\n\nCTA Options:\n${ctas.map((v) => `- ${v}`).join("\n")}\n\nFollow-up Post Ideas:\n${followUps.map((v) => `- ${v}`).join("\n")}`;
-  }
-  async function copyWithFeedback(key: string, value: string) {
-    await copyText(value);
-    setCopiedState((prev) => ({ ...prev, [key]: "Copied" }));
-    setTimeout(() => setCopiedState((prev) => ({ ...prev, [key]: "" })), 1800);
-  }
+  useEffect(() => { void (async () => {
+    const runsRes = await fetch(`/api/shopreel/agents/runs?campaignId=${campaign.id}`, { cache: "no-store" });
+    const runsJson = (await runsRes.json().catch(() => ({}))) as { runs?: Array<{ id: string }> };
+    const taskEntries = await Promise.all((runsJson.runs ?? []).slice(0, 6).map(async (run) => {
+      const runRes = await fetch(`/api/shopreel/agents/runs/${run.id}`, { cache: "no-store" });
+      const runJson = (await runRes.json().catch(() => ({}))) as { tasks?: ApprovalTask[] };
+      return [run.id, runJson.tasks ?? []] as const;
+    }));
+    setRunTasks(Object.fromEntries(taskEntries));
+  })(); }, [campaign.id]);
 
-  async function transitionTask(taskId: string, action: "approve" | "reject") { /* unchanged */
-    try {
-      setBusy(`${action}-${taskId}`); setError(null);
-      const reason = taskReason[taskId]?.trim() ?? "";
-      const res = await fetch(`/api/shopreel/agents/tasks/${taskId}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: reason || null, metadata: { source: "campaign_workspace_decision_panel", decisionMode: action === "approve" ? "approve" : reason ? "refine" : "reject", refinementSignal: action === "reject" ? reason || null : null } }) });
-      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; task?: { status: string } };
-      if (!res.ok || json?.ok === false || !json.task) throw new Error(json?.error ?? `Failed to ${action} task`);
-      setRunTasks((prev) => Object.fromEntries(Object.entries(prev).map(([runId, tasks]) => [runId, tasks.map((task) => task.id === taskId ? { ...task, status: json.task!.status } : task)])));
-      router.refresh();
-    } catch (err) { setError(err instanceof Error ? err.message : "Task transition failed"); } finally { setBusy(null); }
+  const approvedItem = items.find((item) => item.status === "approved" || (((item.metadata as any) ?? {}).production_package_status === "approved")) ?? null;
+  const selectedItem = approvedItem ?? items[0] ?? null;
+  const selectedMeta = selectedItem?.metadata && typeof selectedItem.metadata === "object" ? selectedItem.metadata as Record<string, any> : {};
+  const selectedPkg = selectedItem ? (packageState[selectedItem.id]?.productionPackage ?? (selectedMeta.production_package as CampaignPackage | undefined)) : null;
+  const selectedStatus = selectedItem ? (packageState[selectedItem.id]?.status ?? (typeof selectedMeta.production_package_status === "string" ? selectedMeta.production_package_status : "draft")) : "draft";
+
+  const stage: Stage = pendingMissing.length > 0 ? "missing_info" : !approvedItem ? "choose_angle" : !selectedPkg ? "review_package" : selectedStatus !== "approved" ? "approve_package" : "copy_export";
+
+  function applyAnswers() {
+    const updates: Partial<ParsedBriefView> = {};
+    const answered: string[] = [];
+    for (const q of pendingMissing) {
+      const val = (missingAnswers[q] ?? "").trim(); if (!val) continue;
+      const k = q.toLowerCase();
+      if (k.includes("business name")) updates.businessType = val;
+      if (k.includes("offer")) updates.offer = val;
+      if (k.includes("trust")) updates.targetCustomer = `${brief.targetCustomer ?? ""} (${val})`.trim();
+      answered.push(q);
+    }
+    setAppliedBrief({ ...brief, ...updates, missingQuestions: pendingMissing.filter((q) => !answered.includes(q)) });
+    setSessionNotice("Answers applied for this session."); setConfirmation("Answers applied.");
   }
 
-  async function buildPackage(itemId: string, action: "build" | "approve" = "build") {
-    const res = await fetch(`/api/shopreel/campaigns/items/${itemId}/package`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ action }) });
+  async function buildPackage(itemId: string, action: "build" | "approve") {
+    setBusy(`${action}-${itemId}`);
+    const res = await fetch(`/api/shopreel/campaigns/items/${itemId}/package`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, missingAnswers }) });
     const json = await res.json();
-    if (json.ok) setPackageState((p) => ({ ...p, [itemId]: json }));
+    if (json.ok) {
+      setPackageState((p) => ({ ...p, [itemId]: json }));
+      setConfirmation(action === "build" ? "Angle approved and package created." : "Package approved.");
+      if (action === "build") setTimeout(() => packageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 40);
+      router.refresh();
+    }
+    setBusy(null);
   }
 
-  return (
-    <section className="space-y-5 rounded-[2rem] border border-cyan-200/20 bg-slate-950/95 p-3 sm:p-4 lg:p-6 shadow-[0_20px_70px_rgba(2,132,199,0.25)]">
-      <div className="space-y-5">
-        <div className="rounded-2xl border border-violet-300/30 bg-violet-500/10 p-3 text-sm text-violet-50 break-words">
-          <p className="text-xs uppercase tracking-[0.18em]">Parsed campaign brief</p>
-          <p>Detected mode: {campaignMode}</p>
-          <p>Source prompt: {parsedBrief.sourcePrompt ?? campaign.core_idea}</p>
-          <p>Recommended outputs: {(parsedBrief.desiredOutputs ?? []).join(", ") || "n/a"}</p>
-          <p>Missing questions: {(parsedBrief.missingQuestions ?? []).join(" | ") || "none"}</p>
-        </div>
-        {campaignMode === "business_advertising" ? <div className="rounded-2xl border border-emerald-300/30 bg-emerald-500/10 p-3 text-sm text-emerald-50 break-words">
-          <p className="text-xs uppercase tracking-[0.18em]">Business ad readiness</p>
-          <p>Service: {parsedBrief.serviceCategory ?? parsedBrief.businessType ?? "missing"}</p>
-          <p>Location: {parsedBrief.location ?? "missing"}</p>
-          <p>Target customer: {parsedBrief.targetCustomer ?? "missing"}</p>
-          <p>Offer: {parsedBrief.offer ?? "missing"}</p>
-          <p>Booking CTA: {parsedBrief.bookingAction ?? "missing"}</p>
-          <p>Missing info: {(parsedBrief.missingQuestions ?? []).join(" | ") || "none"}</p>
-        </div> : null}
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-100/70">Execution stage</p>
-            <h2 className="text-2xl font-semibold text-white">{leadTask ? leadTask.title : "Campaign chamber stable"}</h2>
-            <p className="mt-1 text-sm text-cyan-100/70">{leadTask?.details ?? "Operator and AI are synchronized. Use the control plane to keep campaign momentum."}</p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <GlassBadge tone="default">{pendingTasks.length} approvals</GlassBadge><GlassBadge tone="muted">{progress.completedItems}/{progress.totalItems} outputs</GlassBadge><GlassBadge tone="muted">{progress.processingScenes + progress.queuedScenes} scenes active</GlassBadge>
-          </div>
-        </header>
+  async function copyWithFeedback(label: string, key: string, value: string) { await copyText(value); setConfirmation(`Copied ${label}.`); }
 
-        <div className="rounded-2xl border border-cyan-300/35 bg-cyan-500/10 p-4">
-          <div className="mb-2 text-sm text-cyan-100/85">Primary next action: <span className="font-semibold text-white">{primaryAction}</span></div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-            {leadTask ? <><GlassButton onClick={() => void transitionTask(leadTask.id, "approve")} disabled={busy === `approve-${leadTask.id}`}>Approve and advance</GlassButton><GlassButton variant="ghost" onClick={() => void transitionTask(leadTask.id, "reject")} disabled={busy === `reject-${leadTask.id}`}>Refine trajectory</GlassButton></> : <p className="text-sm text-white/70">No blocking decisions right now.</p>}
-          </div>
-        </div>
+  return <section className="space-y-5 rounded-[2rem] border border-cyan-200/20 bg-slate-950/95 p-4 lg:p-6">
+    <div className="rounded-2xl border border-cyan-300/35 bg-cyan-500/10 p-3">
+      <p className="text-xs uppercase tracking-[0.18em]">Guided stages</p>
+      <p className="text-sm text-white/80">Brief → Missing Info → Choose Angle → Build Package → Approve Package → Export / Generate</p>
+      <p className="mt-1 text-sm">Current: <span className="font-semibold">{stage.replace("_", " ")}</span></p>
+    </div>
 
-        <div className="grid gap-4 min-w-0 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-950/55 p-3 sm:p-4 min-w-0">
-            <p className="text-xs uppercase tracking-[0.18em] text-cyan-100/75">Recessed approval lane</p>
-            {pendingTasks.length === 0 ? <div className="text-sm text-white/65">Approval lane is clear.</div> : pendingTasks.slice(0, 4).map((task) => <article key={task.id} className="rounded-2xl bg-black/35 p-3 ring-1 ring-white/10"><div className="flex flex-wrap items-center gap-2"><span className="font-medium text-white">{task.title}</span><GlassBadge tone="muted">Confidence {task.confidence ?? "n/a"}</GlassBadge></div>{task.details ? <p className="mt-1 text-sm text-white/70">{task.details}</p> : null}<textarea value={taskReason[task.id] ?? ""} onChange={(e) => setTaskReason((prev) => ({ ...prev, [task.id]: e.target.value }))} className="mt-2 w-full rounded-xl border border-white/10 bg-black/35 p-2 text-sm" placeholder="Refinement note" /><div className="mt-2 flex flex-col gap-2 sm:flex-row"><GlassButton variant="secondary" onClick={() => void transitionTask(task.id, "approve")}>Approve</GlassButton><GlassButton variant="ghost" onClick={() => void transitionTask(task.id, "reject")}>Refine</GlassButton></div></article>)}
-          </div>
-          <aside className="space-y-3 rounded-2xl border border-cyan-100/15 bg-slate-900 p-3 sm:p-4 min-w-0">
-            <p className="text-xs uppercase tracking-[0.18em] text-cyan-100/75">Chamber intelligence</p>
-            {adaptiveMemory.learnedNotices.map((notice) => <p key={notice} className="text-sm text-cyan-50/80">{notice}</p>)}
-            {adaptiveMemory.tasteSummary.length > 0 ? <div className="flex flex-wrap gap-2">{adaptiveMemory.tasteSummary.map((signal) => <GlassBadge key={signal} tone="muted">{signal}</GlassBadge>)}</div> : <p className="text-sm text-cyan-100/55">No recent taste signals learned.</p>}
-            {adaptiveMemory.continuityNotice ? <p className="text-xs text-cyan-100/75">{adaptiveMemory.continuityNotice}</p> : null}
-          </aside>
-        </div>
+    <div className="rounded-2xl border border-emerald-300/30 bg-emerald-500/10 p-3 text-sm">
+      <p className="text-xs uppercase tracking-[0.18em]">Business ad readiness</p>
+      <p>Service: {brief.serviceCategory ?? brief.businessType ?? "missing"}</p><p>Location: {brief.location ?? "missing"}</p><p>Target customer: {brief.targetCustomer ?? "missing"}</p><p>Offer: {brief.offer ?? "missing"}</p><p>Booking CTA: {brief.bookingAction ?? "missing"}</p>
+      <p>Missing info: {(brief.missingQuestions ?? []).join(" | ") || "none"}</p>{sessionNotice ? <p className="text-emerald-200 mt-1">{sessionNotice}</p> : null}
+    </div>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 sm:p-4 min-w-0">
-          <p className="mb-2 text-xs uppercase tracking-[0.18em] text-cyan-100/70">Output constellations</p>
-          <div className="space-y-2">
-            {items.slice(0,5).map((item) => {
-              const itemMeta = (item.metadata && typeof item.metadata === "object" ? item.metadata : {}) as Record<string, any>;
-              const intel = (itemMeta.campaign_intelligence && typeof itemMeta.campaign_intelligence === "object" ? itemMeta.campaign_intelligence : {}) as Record<string, any>;
-              const pkg = packageState[item.id]?.productionPackage ?? ((itemMeta.production_package && typeof itemMeta.production_package === "object") ? itemMeta.production_package as CampaignPackage : null);
-              const pkgStatus = typeof itemMeta.production_package_status === "string" ? itemMeta.production_package_status : "draft";
-              const fullPackageText = pkg?.sections ? (campaignMode === "business_advertising" ? formatBusinessPackageCopy(pkg) : Object.entries(pkg.sections).map(([section, value]) => `${section}:\n${normalizeCopyValue(value)}`).join("\n\n")) : "";
-              return <div key={item.id} className="rounded-xl border border-white/10 bg-slate-950 p-3"><div className="flex flex-col gap-3 min-w-0 sm:flex-row sm:items-start sm:justify-between"><div><div className="font-semibold text-white">{item.title}</div><div className="text-sm text-white/60">{intel.hook ?? item.angle}</div><div className="text-xs text-white/60">Why it fits: {intel.why_it_fits_brief ?? "Mode-aligned angle"}</div><div className="text-xs text-white/60">Suggested outputs: {Array.isArray(intel.suggested_outputs) ? intel.suggested_outputs.join(", ") : "n/a"}</div><div className="text-xs text-white/60">Primary CTA: {typeof intel.primary_cta === "string" ? intel.primary_cta : "Get started"}</div></div><div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">{item.status !== "approved" ? <GlassButton variant="secondary" onClick={() => void buildPackage(item.id, "build")}>Approve an angle</GlassButton> : null}{item.status === "approved" && !pkg ? <GlassButton variant="secondary" onClick={() => void buildPackage(item.id, "build")}>Build production package</GlassButton> : null}{pkg && pkgStatus !== "approved" ? <GlassButton variant="secondary" onClick={() => void buildPackage(item.id, "approve")}>Approve package</GlassButton> : null}</div></div>{pkg ? <div className="mt-3 rounded-lg border border-cyan-200/20 p-3 text-xs text-cyan-50"><div className="mb-2 font-semibold">Production package ({pkg.mode ?? campaignMode})</div><div className="rounded-lg border border-white/10 bg-black/25 p-3 text-xs whitespace-pre-wrap break-words">{Object.entries(pkg.sections ?? {}).map(([section, value]) => `${section}: ${normalizeCopyValue(value as string | string[])}`).join(" | ") || "Package sections pending."}</div><div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"><GlassButton className="min-h-11 w-full" variant="ghost" onClick={() => void copyWithFeedback(`${item.id}-full`, fullPackageText)}>Copy full package</GlassButton><GlassButton className="min-h-11 w-full" variant="ghost" onClick={() => void copyWithFeedback(`${item.id}-caption`, String((pkg.sections?.caption ?? pkg.sections?.facebook_post ?? "")))}>Copy caption</GlassButton><GlassButton className="min-h-11 w-full" variant="ghost" onClick={() => void copyWithFeedback(`${item.id}-script`, String((pkg.sections?.short_script ?? pkg.sections?.short_reel_script ?? "")))}>Copy script</GlassButton><GlassButton className="min-h-11 w-full" variant="ghost" onClick={() => void copyWithFeedback(`${item.id}-cta`, normalizeCopyValue((pkg.sections?.CTA_options ?? pkg.sections?.cta_options ?? []) as string | string[]))}>Copy CTA options</GlassButton>{pkgStatus === "approved" ? <><GlassButton className="min-h-11 w-full" variant="secondary">Copy/export package</GlassButton><GlassButton className="min-h-11 w-full" variant="ghost">Generate image</GlassButton><GlassButton className="min-h-11 w-full" variant="ghost">Generate video</GlassButton><GlassButton className="min-h-11 w-full" variant="ghost">Go to publish/export</GlassButton></> : null}</div>{Object.entries(copiedState).some(([key, value]) => key.startsWith(item.id) && value) ? <p className="mt-2 text-emerald-300">Copied to clipboard.</p> : null}</div> : null}<div className="mt-2"><Link href={`/shopreel/campaigns/items/${item.id}?from=workspace`}><GlassButton className="min-h-11 w-full sm:w-auto" variant="ghost">Open output</GlassButton></Link></div></div>})}
-          </div>
-        </div>
+    {pendingMissing.length > 0 ? <div className="rounded-2xl border border-yellow-300/30 bg-yellow-500/10 p-3"><p className="font-semibold">Answer missing info</p>
+      {pendingMissing.map((q) => <label className="mt-2 block" key={q}><span className="text-sm">{q}</span><input value={missingAnswers[q] ?? ""} onChange={(e) => setMissingAnswers((p) => ({ ...p, [q]: e.target.value }))} placeholder={questionHints[q.toLowerCase()] ?? "Add answer"} className="mt-1 w-full rounded border border-white/20 bg-black/30 p-2 text-sm" /></label>)}
+      <GlassButton className="mt-3" onClick={applyAnswers}>Apply answers to campaign</GlassButton></div> : null}
 
-        <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 sm:p-4 min-w-0">
-          <p className="mb-2 text-xs uppercase tracking-[0.18em] text-cyan-100/70">Mission memory node</p>
-          <textarea className="mb-2 w-full rounded-xl border border-white/10 bg-black/35 p-2 text-sm" placeholder="Campaign objective" value={campaignBrain.campaignObjective} onChange={(e)=>setCampaignBrain((prev)=>({...prev,campaignObjective:e.target.value}))} />
-          <textarea className="mb-2 w-full rounded-xl border border-white/10 bg-black/35 p-2 text-sm" placeholder="Target audience" value={campaignBrain.targetAudience} onChange={(e)=>setCampaignBrain((prev)=>({...prev,targetAudience:e.target.value}))} />
-          <GlassButton variant="secondary" onClick={()=>void fetch(`/api/shopreel/campaigns/${campaign.id}/brain`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({campaignObjective:campaignBrain.campaignObjective,targetAudience:campaignBrain.targetAudience,channelPriorities:campaignBrain.channelPriorities.split("\n").map((x)=>x.trim()).filter(Boolean),contentPillars:campaignBrain.contentPillars.split("\n").map((x)=>x.trim()).filter(Boolean)})})}>Save mission memory</GlassButton>
-          {error ? <div className="mt-2 text-sm text-red-400">{error}</div> : null}
-        </div>
-      </div>
-    </section>
-  );
+    <div className="rounded-2xl border border-cyan-300/35 bg-cyan-500/10 p-4">
+      <div className="mb-2 text-sm">Primary next action: <span className="font-semibold">{stage === "missing_info" ? "Answer missing info" : stage === "choose_angle" ? "Approve one campaign angle" : stage === "review_package" ? "Review the production package" : stage === "approve_package" ? "Approve the package" : "Copy the finished package"}</span></div>
+      {confirmation ? <p className="text-emerald-300 text-xs">What just happened? {confirmation}</p> : null}
+    </div>
+
+    <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4"><p className="mb-2 text-xs uppercase tracking-[0.18em]">Campaign angles and package</p>
+      {items.slice(0, 5).map((item) => {
+        const meta = (item.metadata && typeof item.metadata === "object" ? item.metadata : {}) as Record<string, any>;
+        const intel = (meta.campaign_intelligence && typeof meta.campaign_intelligence === "object" ? meta.campaign_intelligence : {}) as Record<string, any>;
+        const pkg = packageState[item.id]?.productionPackage ?? (meta.production_package as CampaignPackage | undefined);
+        const pkgStatus = packageState[item.id]?.status ?? (typeof meta.production_package_status === "string" ? meta.production_package_status : "draft");
+        return <div key={item.id} className="rounded-xl border border-white/10 bg-slate-950 p-3 mb-3"><div className="flex justify-between gap-3 flex-wrap"><div><div className="font-semibold">{item.title}</div><div className="text-sm text-white/70">{intel.hook ?? item.angle}</div></div><div>{item.status !== "approved" ? <GlassButton variant="secondary" disabled={busy === `build-${item.id}`} onClick={() => void buildPackage(item.id, "build")}>Approve this angle</GlassButton> : null}{pkg && pkgStatus !== "approved" ? <GlassButton className="ml-2" variant="secondary" disabled={busy === `approve-${item.id}`} onClick={() => void buildPackage(item.id, "approve")}>Approve package</GlassButton> : null}</div></div>
+          {pkg ? <div ref={selectedItem?.id === item.id ? packageRef : undefined} className="mt-3 rounded-lg border border-cyan-200/20 p-3"><p className="font-semibold">Review production package</p><p className="text-xs text-cyan-100/80 mb-2">Copy buttons place the text on your clipboard so you can paste it into Facebook, Instagram, notes, or your scheduler.</p>
+            <div className="grid gap-2 md:grid-cols-2">{pkgCards.map(([k, label, helper]) => { const value = pkg.sections?.[k] ?? pkg.sections?.[k.replace("cta_options", "CTA_options")]; if (!value) return null; return <div key={k} className="rounded border border-white/10 p-2"><p className="font-medium">{label}</p><p className="text-xs text-white/60">{helper}</p><pre className="text-xs whitespace-pre-wrap">{normalize(value as string | string[])}</pre><GlassButton variant="ghost" onClick={() => void copyWithFeedback(label, `${item.id}-${k}`, normalize(value as string | string[]))}>Copy this section</GlassButton></div>; })}</div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"><GlassButton variant="ghost" onClick={() => void copyWithFeedback("everything for posting", `${item.id}-all`, JSON.stringify(pkg.sections ?? {}, null, 2))}>Copy everything for posting</GlassButton><GlassButton variant="ghost" onClick={() => void copyWithFeedback("Facebook post", `${item.id}-post`, String(pkg.sections?.facebook_post ?? pkg.sections?.caption ?? ""))}>Copy Facebook post</GlassButton><GlassButton variant="ghost" onClick={() => void copyWithFeedback("reel script", `${item.id}-script`, String(pkg.sections?.short_reel_script ?? pkg.sections?.short_script ?? ""))}>Copy reel script</GlassButton><GlassButton variant="ghost" disabled>Generate image — coming next</GlassButton><GlassButton variant="ghost" disabled>Generate video — coming next</GlassButton><GlassButton variant="ghost" disabled>Publish/export — coming next</GlassButton></div>
+            {pkgStatus === "approved" ? <p className="mt-2 text-emerald-300 text-sm">Package approved. You can now copy/export or generate media.</p> : null}
+          </div> : null}
+          <div className="mt-2"><Link href={`/shopreel/campaigns/items/${item.id}?from=workspace`}><GlassButton variant="ghost">Open output</GlassButton></Link></div>
+        </div>;
+      })}
+    </div>
+
+    <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4"><p className="mb-2 text-xs uppercase tracking-[0.18em]">Approval tasks</p><p className="text-sm text-white/70">{Object.values(runTasks).flat().filter((t) => t.status === "proposed" && t.requires_approval).length} tasks awaiting review.</p></div>
+    <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4"><p className="mb-2 text-xs uppercase tracking-[0.18em]">Campaign guidance</p>{adaptiveMemory.learnedNotices.map((n) => <p key={n} className="text-sm">{n}</p>)}</div>
+    <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-4"><p className="mb-2 text-xs uppercase tracking-[0.18em]">Campaign memory</p><p className="text-sm text-white/70">Use review and production panels to continue memory updates.</p></div>
+  </section>;
 }

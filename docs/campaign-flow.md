@@ -68,3 +68,10 @@ Intentionally not automated yet in this mode:
 - automatic video rendering/publishing
 - autonomous campaign spend optimization
 - external AI enrichment calls during intake parsing
+
+## Campaign Detail UX Rules
+- Missing info must be answerable inline.
+- Approval must reveal the next step.
+- No dead buttons.
+- Copy actions must explain where the text goes.
+- Media generation is downstream and should not appear active unless wired.
