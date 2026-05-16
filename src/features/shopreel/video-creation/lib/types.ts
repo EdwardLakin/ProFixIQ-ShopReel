@@ -64,6 +64,7 @@ export type VideoCreationFormInput = {
   musicDirection?: VideoMusicDirection;
   customMusicDirection?: string;
   storyboardSummary?: string;
+  settings?: Record<string, unknown>;
 };
 
 export const VIDEO_CREATION_JOB_TYPES: Array<{
