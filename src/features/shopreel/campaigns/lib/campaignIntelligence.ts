@@ -266,6 +266,21 @@ export function buildCampaignBrainMetadata(coreIdea: string): Json {
 }
 
 
+
+export function mergeMissingAnswersIntoContext(context: Record<string, unknown>, answers: Record<string, string>) {
+  const next = { ...context };
+  for (const [question, answer] of Object.entries(answers)) {
+    const trimmed = answer.trim();
+    if (!trimmed) continue;
+    const key = question.toLowerCase();
+    if (key.includes("business name")) next.business_name = trimmed;
+    else if (key.includes("offer")) next.intro_offer = trimmed;
+    else if (key.includes("trust")) next.trust_signal = trimmed;
+    else next[`answer_${key.replace(/[^a-z0-9]+/g, "_")}`] = trimmed;
+  }
+  return next;
+}
+
 export function buildProductionPackage(mode: CampaignMode, angleTitle: string, hook: string, cta: string): ProductionPackage {
   const base = {
     caption: `${angleTitle}: ${hook}`,
