@@ -11,6 +11,7 @@ import { cx, glassTheme } from "@/features/shopreel/ui/system/glassTheme";
 import { consumeCampaignCommandHandoff } from "@/features/shopreel/ui/system/campaignCommandHandoff";
 import type { CampaignMode, ParsedCampaignBrief } from "@/features/shopreel/campaigns/lib/campaignIntakeTypes";
 import { parseCampaignIntake } from "@/features/shopreel/campaigns/lib/parseCampaignIntake";
+import { buildCampaignFormDefaultsFromParsedBrief, emptyCampaignFormDefaults } from "@/features/shopreel/campaigns/lib/campaignFormDefaults";
 
 type CampaignRow = Database["public"]["Tables"]["shopreel_campaigns"]["Row"] & {
   items?: Array<{
@@ -163,16 +164,45 @@ export default function CampaignGenerator({
   const modeParam = useMemo(() => searchParams.get("mode"), [searchParams]);
   const fallbackPrompt = useMemo(() => searchParams.get("prompt")?.trim() ?? "", [searchParams]);
   const [promptFromCommand, setPromptFromCommand] = useState("");
+  const [editablePrompt, setEditablePrompt] = useState("");
   const [parsedBrief, setParsedBrief] = useState<ParsedCampaignBrief | null>(null);
   const [handoffError, setHandoffError] = useState<string | null>(null);
-  const [hasInitializedFromPrompt, setHasInitializedFromPrompt] = useState(false);
+  const [hasConsumedHandoff, setHasConsumedHandoff] = useState(false);
+  const [hasAppliedBriefToFields, setHasAppliedBriefToFields] = useState(false);
+  const [hasUserEditedFields, setHasUserEditedFields] = useState(false);
   const creatingFromPrompt = modeParam === "create" && promptFromCommand.length > 0;
+  const [title, setTitle] = useState("");
+  const [coreIdea, setCoreIdea] = useState("");
+  const [audience, setAudience] = useState("");
+  const [offer, setOffer] = useState("");
+  const [campaignGoal, setCampaignGoal] = useState("");
+  const [productContext, setProductContext] = useState("");
+  const [tone, setTone] = useState("");
+  const [platformFocus, setPlatformFocus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
+  function markEdited() {
+    setHasUserEditedFields(true);
+  }
 
+  function applyBriefToFields(brief: ParsedCampaignBrief | null, sourcePrompt: string) {
+    const defaults = buildCampaignFormDefaultsFromParsedBrief(brief, sourcePrompt);
+    setTitle(defaults.title);
+    setCoreIdea(defaults.coreIdea);
+    setAudience(defaults.audience);
+    setOffer(defaults.offer);
+    setCampaignGoal(defaults.campaignGoal);
+    setProductContext(defaults.productContext);
+    setTone(defaults.tone);
+    setPlatformFocus(defaults.platformFocus);
+    setHasAppliedBriefToFields(true);
+  }
 
   useEffect(() => {
     if (modeParam !== "create") return;
-    if (hasInitializedFromPrompt) return;
+    if (hasConsumedHandoff) return;
 
     if (handoffId) {
       const handoff = consumeCampaignCommandHandoff(handoffId);
@@ -186,7 +216,8 @@ export default function CampaignGenerator({
       setPromptFromCommand(prompt);
       setParsedBrief(handoff.parsedBrief ?? parseCampaignIntake(prompt));
       setHandoffError(null);
-      setHasInitializedFromPrompt(true);
+      setEditablePrompt(prompt);
+      setHasConsumedHandoff(true);
       console.info("[ShopReelRouteTrace]", { handoffId, handoffMethod: "session_storage", campaignPrefillStatus: "handoff_loaded", promptLength: handoff.prompt.length });
       return;
     }
@@ -194,41 +225,41 @@ export default function CampaignGenerator({
     if (fallbackPrompt) {
       setPromptFromCommand(fallbackPrompt);
       setParsedBrief(parseCampaignIntake(fallbackPrompt));
-      setHasInitializedFromPrompt(true);
+      setEditablePrompt(fallbackPrompt);
+      setHasConsumedHandoff(true);
       console.info("[ShopReelRouteTrace]", { handoffMethod: "query_fallback", campaignPrefillStatus: "fallback_loaded", promptLength: fallbackPrompt.length });
+      return;
     }
-  }, [fallbackPrompt, handoffId, hasInitializedFromPrompt, modeParam]);
-  const [title, setTitle] = useState("ShopReel vs Traditional Marketing");
-  const [coreIdea, setCoreIdea] = useState(
-    `Compare ShopReel to traditional marketing methods and introduce ShopReel as the future of business marketing.${seedDefaults.suggestedHook ? ` ${seedDefaults.suggestedHook}.` : ""}`
-  );
-  const [audience, setAudience] = useState("Repair shops, local businesses, and creators");
-  const [offer, setOffer] = useState("Turn real work into marketing automatically");
-  const [campaignGoal, setCampaignGoal] = useState("Brand awareness and product introduction");
-  const [productContext, setProductContext] = useState("");
-  const [tone, setTone] = useState("Confident and practical");
-  const [platformFocus, setPlatformFocus] = useState("instagram, facebook, tiktok, youtube");
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+    const empty = emptyCampaignFormDefaults();
+    setTitle(empty.title);
+    setCoreIdea(empty.coreIdea);
+    setAudience(empty.audience);
+    setOffer(empty.offer);
+    setCampaignGoal(empty.campaignGoal);
+    setProductContext(empty.productContext);
+    setTone(empty.tone);
+    setPlatformFocus(empty.platformFocus);
+    setHasConsumedHandoff(true);
+  }, [fallbackPrompt, handoffId, hasConsumedHandoff, modeParam]);
 
   useEffect(() => {
-    if (!creatingFromPrompt || hasInitializedFromPrompt) return;
-    const prompt = promptFromCommand;
-    const brief = parsedBrief ?? parseCampaignIntake(prompt);
-    const shortTitle = prompt.split(/[.!?\n]/)[0]?.replace(/^build\s+/i, "").trim() ?? "New Campaign";
+    if (!creatingFromPrompt || !parsedBrief || hasAppliedBriefToFields || hasUserEditedFields) return;
+    applyBriefToFields(parsedBrief, promptFromCommand);
+  }, [creatingFromPrompt, parsedBrief, hasAppliedBriefToFields, hasUserEditedFields, promptFromCommand]);
 
-    setTitle(shortTitle.slice(0, 100));
-    setCoreIdea(prompt);
-    setAudience(brief.audience ?? "");
-    setOffer(brief.offer ?? "");
-    setCampaignGoal(brief.goal ?? "Awareness and conversions");
-    setProductContext(brief.productName ?? brief.businessName ?? brief.businessType ?? "");
-    setTone(brief.tone ?? "Confident and practical");
-    if (brief.platformFocus.length > 0) setPlatformFocus(brief.platformFocus.join(", "));
-    if (!parsedBrief) setParsedBrief(brief);
-    setHasInitializedFromPrompt(true);
-  }, [creatingFromPrompt, hasInitializedFromPrompt, parsedBrief, promptFromCommand]);
+  function regenerateBriefFromPrompt() {
+    const prompt = editablePrompt.trim();
+    if (!prompt) return;
+    setPromptFromCommand(prompt);
+    setParsedBrief(parseCampaignIntake(prompt));
+    setHasAppliedBriefToFields(false);
+  }
+
+  function applyGeneratedBrief() {
+    if (!parsedBrief) return;
+    applyBriefToFields(parsedBrief, editablePrompt.trim() || promptFromCommand);
+    setMessage("Generated campaign brief from your prompt.");
+  }
 
   async function create() {
     try {
@@ -301,9 +332,17 @@ export default function CampaignGenerator({
         ) : null}
 
         <div className="grid gap-3.5 min-w-0">
-          {creatingFromPrompt ? <div className="rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-50 break-words">New campaign detected · Campaign brief generated from your prompt.</div> : null}
+          {creatingFromPrompt ? <div className="rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-50 break-words">Generated campaign brief from your prompt.</div> : null}
           {promptFromCommand ? <div className="rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-50 break-words">Source prompt context preserved ({promptFromCommand.length} chars).</div> : null}
           {parsedBrief ? <div className="rounded-xl border border-violet-300/30 bg-violet-400/10 px-3 py-2 text-xs text-violet-50 break-words whitespace-pre-wrap">ShopReel detected: {MODE_LABELS[parsedBrief.mode]} · confidence {(parsedBrief.confidence * 100).toFixed(0)}%<br/>Recommended outputs: {parsedBrief.desiredOutputs.join(", ") || "n/a"}<br/>Missing questions: {parsedBrief.missingQuestions.join(" | ") || "none"}</div> : null}
+          <div className="rounded-xl border border-white/15 bg-black/20 p-3 grid gap-2">
+            <div className="text-xs uppercase tracking-[0.18em] text-white/70">AI Brief Generator</div>
+            <textarea value={editablePrompt} onChange={(e) => setEditablePrompt(e.target.value)} rows={3} placeholder="Describe your business and campaign goal..." className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
+            <div className="flex flex-wrap gap-2">
+              <GlassButton variant="secondary" onClick={regenerateBriefFromPrompt}>Regenerate brief from prompt</GlassButton>
+              <GlassButton variant="ghost" onClick={applyGeneratedBrief} disabled={!parsedBrief}>Apply generated brief</GlassButton>
+            </div>
+          </div>
           {handoffError ? <div className="rounded-xl border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-xs text-rose-100 break-words">{handoffError}</div> : null}
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>
@@ -311,24 +350,24 @@ export default function CampaignGenerator({
             </span>
             <input
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { markEdited(); setTitle(e.target.value); }}
               className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
             />
           </label>
 
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Product / Brand Context</span>
-            <input value={productContext} onChange={(e) => setProductContext(e.target.value)} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
+            <input value={productContext} onChange={(e) => { markEdited(); setProductContext(e.target.value); }} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
           </label>
 
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Tone</span>
-            <input value={tone} onChange={(e) => setTone(e.target.value)} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
+            <input value={tone} onChange={(e) => { markEdited(); setTone(e.target.value); }} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
           </label>
 
           <label className="grid gap-2">
             <span className={cx("text-xs uppercase tracking-[0.18em]", glassTheme.text.muted)}>Platforms</span>
-            <input value={platformFocus} onChange={(e) => setPlatformFocus(e.target.value)} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
+            <input value={platformFocus} onChange={(e) => { markEdited(); setPlatformFocus(e.target.value); }} className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45" />
           </label>
 
           <label className="grid gap-2">
@@ -337,7 +376,7 @@ export default function CampaignGenerator({
             </span>
             <textarea
               value={coreIdea}
-              onChange={(e) => setCoreIdea(e.target.value)}
+              onChange={(e) => { markEdited(); setCoreIdea(e.target.value); }}
               rows={4}
               className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
             />
@@ -350,7 +389,7 @@ export default function CampaignGenerator({
               </span>
               <input
                 value={audience}
-                onChange={(e) => setAudience(e.target.value)}
+                onChange={(e) => { markEdited(); setAudience(e.target.value); }}
                 className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
               />
             </label>
@@ -361,7 +400,7 @@ export default function CampaignGenerator({
               </span>
               <input
                 value={offer}
-                onChange={(e) => setOffer(e.target.value)}
+                onChange={(e) => { markEdited(); setOffer(e.target.value); }}
                 className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
               />
             </label>
@@ -373,14 +412,14 @@ export default function CampaignGenerator({
             </span>
             <input
               value={campaignGoal}
-              onChange={(e) => setCampaignGoal(e.target.value)}
+              onChange={(e) => { markEdited(); setCampaignGoal(e.target.value); }}
               className="rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-white outline-none transition focus:border-cyan-300/45"
             />
           </label>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <GlassButton className="min-h-11 w-full sm:w-auto sm:min-w-[220px] shadow-[0_14px_34px_rgba(88,99,255,0.38)]" variant="primary" onClick={() => void create()} disabled={submitting}>
-              {submitting ? "Creating..." : "Create campaign workspace"}
+              {submitting ? "Creating..." : "Create campaign from brief"}
             </GlassButton>
           </div>
 
