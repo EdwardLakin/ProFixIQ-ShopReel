@@ -46,3 +46,25 @@ Current canonical spine:
 - Do **not** auto-render before explicit package approval.
 - Do **not** add disconnected parallel campaign flows.
 - Do **not** add new campaign modes in this hardening pass.
+
+## Business Advertising / Startup Campaign Mode
+
+For practical small-business prompts (e.g., mobile mechanic, detailing, bakery, landscaping), `business_advertising` now deterministically extracts or infers:
+- business type / service category
+- location or service area when present
+- target customer and primary business problem
+- service promise, trust signals, offer hints
+- booking action, platform focus, urgency, and local tone
+
+Production package output is copy/paste oriented and includes:
+- Facebook post
+- comment reply templates
+- short reel script (5-scene structure)
+- local ad copy (headline + primary text + CTA)
+- CTA options
+- follow-up post ideas for the next week
+
+Intentionally not automated yet in this mode:
+- automatic video rendering/publishing
+- autonomous campaign spend optimization
+- external AI enrichment calls during intake parsing

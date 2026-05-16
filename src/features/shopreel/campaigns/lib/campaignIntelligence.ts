@@ -149,6 +149,16 @@ const MODE_ANGLE_KEYS: Record<CampaignMode, string[]> = {
 
 export type ProductionPackage = { mode: CampaignMode; sections: Record<string, string | string[]> };
 
+function buildBusinessHook(angle: string, brief: ParsedCampaignBrief | null | undefined) {
+  const service = brief?.serviceCategory ?? brief?.businessType ?? "local service";
+  const location = brief?.location ? ` in ${brief.location}` : "";
+  if (angle === "problem_solution") return `Need ${service} ${location}? Get a fast quote without back-and-forth.`;
+  if (angle === "local_trust") return `${service} trusted by neighbors${location}—quick replies and clear pricing.`;
+  if (angle === "founder_story") return `I started this ${service} business to make booking simple${location}.`;
+  if (angle === "limited_offer") return `${service}${location}: first-time booking offer available this week.`;
+  return `Busy schedule? We bring ${service} to you${location}.`;
+}
+
 export function generateDifferentiatedAngles(args: { title: string; coreIdea: string; parsedBrief?: ParsedCampaignBrief | null }): CampaignAngleDraft[] {
   const brain = buildCampaignBrain(args.coreIdea);
   const distilled = distillCampaignPrompt(args.coreIdea);
@@ -156,7 +166,9 @@ export function generateDifferentiatedAngles(args: { title: string; coreIdea: st
   const angleFrames = MODE_ANGLE_KEYS[mode].map((key) => ({ angle: key, narrative: `Mode-specific narrative for ${key.replace(/_/g, " ")}`, hookType: "proof", archetype: key.replace(/_/g, " ") }));
 
   return angleFrames.map((frame, index) => {
-    const hook = brain.hooks[index % brain.hooks.length] ?? "Start with a sharp human truth.";
+    const hook = mode === "business_advertising"
+      ? buildBusinessHook(frame.angle, args.parsedBrief)
+      : (brain.hooks[index % brain.hooks.length] ?? "Start with a sharp human truth.");
     const objection = distilled.objections[index % distilled.objections.length] ?? "Will this actually work?";
     const outcome = distilled.outcomes[index % distilled.outcomes.length] ?? "Confidence and momentum.";
     const platformAdaptation = brain.platformStrategy[index % brain.platformStrategy.length] ?? "Short-form first.";
@@ -261,7 +273,28 @@ export function buildProductionPackage(mode: CampaignMode, angleTitle: string, h
     cta_options: [cta, "DM us to get started", "Comment READY for details"],
   };
   const sectionsByMode: Record<CampaignMode, Record<string, string | string[]>> = {
-    business_advertising: { facebook_post: base.caption, facebook_comment_reply_templates: ["Thanks for checking us out!", "Happy to share details—DM us."], short_reel_script: base.short_script, caption: base.caption, CTA_options: base.cta_options, local_ad_copy: "Local businesses: turn daily work into demand.", simple_image_video_prompt: "Real customer moment, local trust signal, clear CTA." },
+    business_advertising: {
+      facebook_post: `${hook}\n\nIf you need reliable help, we can get you booked quickly with clear next steps.\n\nMessage us to book or get a quote today.`,
+      comment_reply_templates: [
+        "Yes—we can help with that service. Send a quick message with details and we’ll confirm availability.",
+        "Great question on pricing. DM us what you need and we’ll give you a clear quote.",
+        "We serve local customers and nearby areas. Message us your location and we’ll confirm coverage.",
+        "You can book by message right here. Send your preferred day/time and we’ll lock it in.",
+        "Yes, we can come to you for most jobs. Share your address area and service request.",
+        "Awesome—send us a quick DM and we’ll get you booked.",
+      ],
+      short_reel_script: "Scene 1: Quick intro shot of you/the business.\nOverlay: Local service, real results.\nScene 2: Show common customer problem.\nOverlay: Need help fast?\nScene 3: Show service in action.\nOverlay: Simple booking. Clear updates.\nScene 4: Show happy outcome or clean finish.\nOverlay: Reliable and local.\nScene 5: On-camera CTA.\nOverlay: Message now to book.",
+      local_ad_copy: "Headline: Local service you can book today\nPrimary text: Need help from a reliable local business? We make booking simple, respond quickly, and keep pricing clear. Message now for a quote.\nCTA: Send Message\nOffer line: Ask about our first-time customer offer.",
+      cta_options: ["Message to book", "DM for a quote", "Send details to get pricing", "Message your service request", "Book your spot today"],
+      follow_up_post_ideas: [
+        "Post a before/after with one sentence on what was fixed and how to book.",
+        "Post a quick FAQ: pricing, service area, and response times.",
+        "Post a customer story/testimonial with a direct message CTA.",
+      ],
+      facebook_comment_reply: "Reply quickly, answer clearly, and invite a DM with booking details.",
+      caption: base.caption,
+      CTA_options: base.cta_options,
+    },
     launch_campaign: { launch_positioning: "Why now + who this is for", announcement_post: base.caption, founder_story_post: "Founder insight + launch mission", short_form_video_concepts: ["Problem", "Demo", "Outcome"], landing_page_hero_copy: "Launch with confidence", launch_email: "Launch announcement + CTA", seven_day_launch_sequence: "Day 1 announce, Day 2 proof..." },
     weekly_content: { seven_day_content_calendar: "Mon-Sun with themes", post_ideas: ["Education", "Proof", "Offer"], captions: [base.caption], hooks: [hook], reel_scripts: [base.short_script], CTA_suggestions: base.cta_options },
     uploaded_asset: { asset_caption: base.caption, before_after_post: "Before/After story", reel_script: base.short_script, overlay_text: "Before → After", thumbnail_title: angleTitle, CTA: cta },

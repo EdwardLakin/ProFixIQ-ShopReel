@@ -15,6 +15,14 @@ export type ParsedCampaignBrief = {
   businessName: string | null;
   productName: string | null;
   businessType: string | null;
+  serviceCategory?: string | null;
+  targetCustomer?: string | null;
+  primaryProblem?: string | null;
+  servicePromise?: string | null;
+  trustSignals?: string[];
+  bookingAction?: string | null;
+  urgency?: string | null;
+  localTone?: string | null;
   location: string | null;
   audience: string | null;
   goal: string | null;
