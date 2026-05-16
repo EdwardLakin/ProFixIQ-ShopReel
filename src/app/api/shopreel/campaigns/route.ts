@@ -3,6 +3,7 @@ import { createCampaign } from "@/features/shopreel/campaigns/lib/server";
 import { upsertCampaignBrain } from "@/features/shopreel/brain/repository";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
+import type { ParsedCampaignBrief } from "@/features/shopreel/campaigns/lib/campaignIntakeTypes";
 
 export function validateCreateCampaignPayload(payload: {
   title?: string;
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
         contentPillars?: string[];
         experimentHypotheses?: string[];
         successSignals?: string[];
+        parsedBrief?: ParsedCampaignBrief;
       };
     };
 
@@ -53,6 +55,7 @@ export async function POST(req: Request) {
       offer: body.offer ?? null,
       campaignGoal: body.campaignGoal ?? null,
       platformFocus: Array.isArray(body.platformFocus) ? body.platformFocus : [],
+      parsedBrief: body.campaignBrain?.parsedBrief ?? null,
     });
 
     if (body.campaignBrain) {

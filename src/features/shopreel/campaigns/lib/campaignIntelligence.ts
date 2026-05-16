@@ -1,4 +1,5 @@
 import type { Json } from "@/types/supabase";
+import type { CampaignMode, ParsedCampaignBrief } from "@/features/shopreel/campaigns/lib/campaignIntakeTypes";
 import { buildHumanBehaviorLayer, buildSceneTextureSystem, buildVisualNarrativeDirection, detectRealismDegradation, nextEmotionalArcStage, scoreEmotionalRealism } from "./narrativeIntelligence";
 
 type DistilledPrompt = {
@@ -135,15 +136,24 @@ export function buildCampaignBrain(coreIdea: string): CampaignBrain {
   };
 }
 
-export function generateDifferentiatedAngles(args: { title: string; coreIdea: string }): CampaignAngleDraft[] {
+const MODE_ANGLE_KEYS: Record<CampaignMode, string[]> = {
+  business_advertising: ["problem_solution","local_trust","founder_story","limited_offer","convenience"],
+  launch_campaign: ["category_problem","founder_story","product_demo","emotional_outcome","objection_handling"],
+  weekly_content: ["education","proof","behind_the_scenes","offer","community"],
+  uploaded_asset: ["before_after","proof_point","story_from_asset","educational_breakdown","CTA_post"],
+  campaign_refine: ["stronger_hook","clearer_offer","less_generic","emotional_reframe","direct_response"],
+  publish_learning: ["best_performer_followup","repurpose","platform_version","schedule_sequence","next_campaign"],
+  internal_self_marketing: ["ShopReel_as_operator","before_after_marketing","founder_building_in_public","small_business_content_engine","AI_operating_system_not_tool"],
+  general_campaign: ["problem_solution","proof","emotional_outcome","product_demo","direct_response"],
+};
+
+export type ProductionPackage = { mode: CampaignMode; sections: Record<string, string | string[]> };
+
+export function generateDifferentiatedAngles(args: { title: string; coreIdea: string; parsedBrief?: ParsedCampaignBrief | null }): CampaignAngleDraft[] {
   const brain = buildCampaignBrain(args.coreIdea);
   const distilled = distillCampaignPrompt(args.coreIdea);
-  const angleFrames = [
-    { angle: "POV Shift", narrative: "Open in first-person urgency and move toward control", hookType: "confession", archetype: "POV" },
-    { angle: "Founder Confession", narrative: "Show the operator/founder pressure before the turning point", hookType: "scenario", archetype: "founder story" },
-    { angle: "Documentary Proof", narrative: "Ground the story in realistic process moments and observable change", hookType: "proof", archetype: "documentary" },
-    { angle: "Before/After Release", narrative: "Contrast messy reality with emotionally clear after-state", hookType: "challenge", archetype: "before/after" },
-  ] as const;
+  const mode = args.parsedBrief?.mode ?? "general_campaign";
+  const angleFrames = MODE_ANGLE_KEYS[mode].map((key) => ({ angle: key, narrative: `Mode-specific narrative for ${key.replace(/_/g, " ")}`, hookType: "proof", archetype: key.replace(/_/g, " ") }));
 
   return angleFrames.map((frame, index) => {
     const hook = brain.hooks[index % brain.hooks.length] ?? "Start with a sharp human truth.";
@@ -241,4 +251,24 @@ export function buildCampaignBrainMetadata(coreIdea: string): Json {
     realism_degradation_baseline: degradationBaseline,
     visual_narrative_intelligence: buildVisualNarrativeDirection(coreIdea),
   } satisfies Json;
+}
+
+
+export function buildProductionPackage(mode: CampaignMode, angleTitle: string, hook: string, cta: string): ProductionPackage {
+  const base = {
+    caption: `${angleTitle}: ${hook}`,
+    short_script: `Hook: ${hook}\nBody: Show practical proof.\nCTA: ${cta}`,
+    cta_options: [cta, "DM us to get started", "Comment READY for details"],
+  };
+  const sectionsByMode: Record<CampaignMode, Record<string, string | string[]>> = {
+    business_advertising: { facebook_post: base.caption, facebook_comment_reply_templates: ["Thanks for checking us out!", "Happy to share details—DM us."], short_reel_script: base.short_script, caption: base.caption, CTA_options: base.cta_options, local_ad_copy: "Local businesses: turn daily work into demand.", simple_image_video_prompt: "Real customer moment, local trust signal, clear CTA." },
+    launch_campaign: { launch_positioning: "Why now + who this is for", announcement_post: base.caption, founder_story_post: "Founder insight + launch mission", short_form_video_concepts: ["Problem", "Demo", "Outcome"], landing_page_hero_copy: "Launch with confidence", launch_email: "Launch announcement + CTA", seven_day_launch_sequence: "Day 1 announce, Day 2 proof..." },
+    weekly_content: { seven_day_content_calendar: "Mon-Sun with themes", post_ideas: ["Education", "Proof", "Offer"], captions: [base.caption], hooks: [hook], reel_scripts: [base.short_script], CTA_suggestions: base.cta_options },
+    uploaded_asset: { asset_caption: base.caption, before_after_post: "Before/After story", reel_script: base.short_script, overlay_text: "Before → After", thumbnail_title: angleTitle, CTA: cta },
+    campaign_refine: { diagnosis: "Current angle too generic", rewritten_hook: hook, rewritten_caption: base.caption, stronger_CTA: cta, alternate_angles: ["More direct", "More emotional"], before_after_comparison: "Old vs new messaging" },
+    publish_learning: { publish_checklist: "Hook, CTA, platform fit", schedule_suggestion: "Post during peak hours", platform_specific_versions: ["Reels", "TikTok", "Shorts"], follow_up_campaign_ideas: ["Follow-up proof angle"], make_more_like_this_recommendations: ["Reuse winning hook structure"] },
+    internal_self_marketing: { shopreel_positioning_post: base.caption, founder_building_in_public_post: "Build in public update", short_reel_script: base.short_script, comparison_ad: "Manual marketing vs ShopReel", CTA_options: base.cta_options, landing_page_section_copy: "Operator-grade marketing engine" },
+    general_campaign: { caption: base.caption, hook_options: [hook], short_script: base.short_script, CTA_options: base.cta_options, platform_versions: ["Reels version", "TikTok version"] },
+  };
+  return { mode, sections: sectionsByMode[mode] };
 }
