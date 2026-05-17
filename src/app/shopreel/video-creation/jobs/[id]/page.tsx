@@ -37,7 +37,25 @@ export default async function VideoGenerationDetailPage({ params }: { params: Pr
         <GlassCard title="Lifecycle timeline" label="Timestamps">{timeline.map(([k,v]) => <div key={String(k)} className="flex justify-between border-b border-white/5 py-2 text-sm text-white/80"><span>{k}</span><span>{v ?? "—"}</span></div>)}</GlassCard>
         <GlassCard title="Prompt + plan" label="Input"><div className="space-y-2 text-sm text-white/80"><div>{job.prompt ?? "No prompt submitted"}</div><div>Enhanced: {job.prompt_enhanced ?? "None"}</div><div>Style: {job.style ?? "default"}</div></div></GlassCard>
       </div>
-      <GlassCard title="Output preview" label="Preview">{job.preview_url ? <video controls className="w-full rounded-2xl" src={job.preview_url} /> : <div className="text-sm text-white/70">No preview yet.</div>}</GlassCard>
+      <GlassCard title="Output preview" label="Preview">
+        {job.job_type === "image" ? (
+          job.preview_url ? (
+            <div className="space-y-3">
+              <img src={job.preview_url} alt={job.title ?? "Generated image"} className="w-full rounded-2xl object-cover" />
+              <p className="text-sm text-emerald-300">{status === "completed" ? "Image ready" : "Image preview available"}</p>
+              <div className="flex flex-wrap gap-3 text-sm">
+                <a className="text-cyan-300 underline" href={job.preview_url} target="_blank" rel="noreferrer">Open image</a>
+                <a className="text-cyan-300 underline" href={`data:text/plain,${encodeURIComponent(job.preview_url)}`} download="image-url.txt">Copy image URL</a>
+              </div>
+            </div>
+          ) : status === "completed" ? (
+            <div className="space-y-2 text-sm text-yellow-200">
+              <p>Job completed, but no preview URL was stored.</p>
+              <p className="text-white/70">Expand debug payload below to inspect provider output.</p>
+            </div>
+          ) : <div className="text-sm text-white/70">No preview yet.</div>
+        ) : job.preview_url ? <video controls className="w-full rounded-2xl" src={job.preview_url} /> : <div className="text-sm text-white/70">No preview yet.</div>}
+      </GlassCard>
       <GlassCard title="Advanced payload" label="Debug"><details><summary className="cursor-pointer text-xs text-white/80">Expand debug payload</summary><pre className="mt-2 overflow-auto rounded-xl border border-white/10 bg-black/35 p-2 text-[11px] text-white/70">{JSON.stringify(job.result_payload ?? {}, null, 2)}</pre></details></GlassCard>
       </div>
       {isActive ? <GlassCard title="Job status" label="Live"><p className="text-sm text-white/80">This job is waiting/running. Refresh or return later.</p></GlassCard> : null}

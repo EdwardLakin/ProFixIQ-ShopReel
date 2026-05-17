@@ -19,3 +19,17 @@ assert(deriveCampaignMediaState({packageApproved:true,image:{...baseImg,jobId:"j
 assert(deriveCampaignMediaState({packageApproved:true,image:{...baseImg,jobId:"j1",status:"completed",previewUrl:"https://x"},video:{...baseVid,jobId:"v1",status:"queued"}}).stage==="video_in_progress","video queued visible");
 assert(deriveCampaignMediaState({packageApproved:true,image:{...baseImg,jobId:"j1",status:"queued"},video:baseVid}).nextActionLabel==="Open image job","duplicate queued should not suggest new image job");
 console.log("campaign-media-smoke passed");
+
+
+const completedNoPreview = deriveCampaignMediaState({
+  packageApproved:true,
+  image:{...baseImg,jobId:"j1",status:"completed",previewUrl:null,outputAssetId:null},
+  video:baseVid
+});
+assert(completedNoPreview.stage==="ready_for_image","completed without preview remains blocked");
+const completedWithPreview = deriveCampaignMediaState({
+  packageApproved:true,
+  image:{...baseImg,jobId:"j1",status:"completed",previewUrl:"https://img"},
+  video:baseVid
+});
+assert(completedWithPreview.stage==="ready_for_video","completed with preview unlocks video");

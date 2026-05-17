@@ -175,7 +175,8 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
         const imageJobId = liveMedia?.image?.jobId ?? media.imageJobId;
         const videoJobId = liveMedia?.video?.jobId ?? media.videoJobId;
         const imageActive = isActiveMediaStatus(imageStatus);
-        const imageCompleted = imageStatus === "completed" && Boolean(imagePreview || (liveMedia?.image?.outputAssetId ?? media.imageAssetId));
+        const imageHasOutput = Boolean(imagePreview || (liveMedia?.image?.outputAssetId ?? media.imageAssetId));
+        const imageCompleted = imageStatus === "completed" && imageHasOutput;
         const imageFailed = imageStatus === "failed";
         const videoEnabled = pkgStatus === "approved" && imageCompleted;
         const imageEnabled = pkgStatus === "approved" && !imageActive;
@@ -200,11 +201,12 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
                 {imageJobId ? <Link href={`/shopreel/video-creation/jobs/${imageJobId}`}><GlassButton variant="ghost">Open image job</GlassButton></Link> : null}
                 {videoJobId ? <Link href={`/shopreel/video-creation/jobs/${videoJobId}`}><GlassButton variant="ghost">Open video job</GlassButton></Link> : null}
               </div>
-              {(imagePreview) ? <a className="text-xs text-cyan-300 mt-2 block" href={imagePreview ?? "#"} target="_blank">Open generated image preview</a> : null}
+              {imagePreview ? <div className="mt-2 space-y-2"><img src={imagePreview} alt={`${item.title} generated image`} className="h-40 w-auto max-w-full rounded border border-white/10 object-cover" /><a className="text-xs text-cyan-300 block" href={imagePreview} target="_blank" rel="noreferrer">Open generated image preview</a></div> : null}
               {(liveMedia?.video?.previewUrl || media.videoPreviewUrl) ? <a className="text-xs text-cyan-300 mt-1 block" href={liveMedia?.video?.previewUrl ?? media.videoPreviewUrl ?? "#"} target="_blank">Open generated video preview</a> : null}
               {(media.imagePurpose ?? selectedPurpose) ? <p className="text-xs mt-1">Image purpose: {String(media.imagePurpose ?? selectedPurpose).replaceAll("_"," ")}</p> : null}
               {imageStatus ? <p className="text-xs mt-1">Image job status: {imageStatus}</p> : null}
-              {(imagePreview) ? <p className="text-xs mt-1 text-emerald-300">Use this image to generate video.</p> : null}
+              {imageCompleted ? <p className="text-xs mt-1 text-emerald-300">Use this image to generate video.</p> : null}
+              {imageStatus === "completed" && !imageHasOutput ? <p className="text-xs mt-1 text-yellow-300">Image job completed but no preview URL is available.</p> : null}
               {videoStatus ? <p className="text-xs mt-1">Video job status: {videoStatus}</p> : null}
             </div>
             {pkgStatus === "approved" ? <p className="mt-2 text-emerald-300 text-sm">Package approved. You can now copy/export or generate media.</p> : null}
