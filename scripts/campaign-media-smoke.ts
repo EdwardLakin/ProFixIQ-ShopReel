@@ -1,4 +1,4 @@
-import { buildCampaignImagePrompt, buildCampaignVideoPrompt, deriveCampaignMediaState } from "../src/features/shopreel/campaigns/lib/mediaGeneration";
+import { buildCampaignImagePrompt, buildCampaignVideoPrompt, deriveCampaignMediaState, mergeLiveJobIntoMediaMetadata, readMediaMetadata } from "../src/features/shopreel/campaigns/lib/mediaGeneration";
 function assert(condition: unknown, msg: string) { if (!condition) throw new Error(msg); }
 const campaign = { title: "Mobile Mechanic Launch", core_idea: "Fast local mobile mechanic trust-first ads" };
 const item = { title: "Book same-day mechanic", angle: "Trustworthy emergency roadside help" };
@@ -33,3 +33,22 @@ const completedWithPreview = deriveCampaignMediaState({
   video:baseVid
 });
 assert(completedWithPreview.stage==="ready_for_video","completed with preview unlocks video");
+
+
+const failedState = deriveCampaignMediaState({
+  packageApproved:true,
+  image:{...baseImg,jobId:"j1",status:"failed",errorText:"Provider timeout"},
+  video:baseVid
+});
+assert(failedState.nextActionLabel==="Retry image","failed state keeps retry action");
+
+const reconciled = mergeLiveJobIntoMediaMetadata({ media: { image_job_id: "j1", image_status: "queued" } }, {
+  status: "completed",
+  preview_url: "https://img.example/preview.png",
+  output_asset_id: "asset-1",
+  completed_at: "2026-05-17T00:00:00.000Z",
+});
+const reconciledMedia = readMediaMetadata(reconciled);
+assert(reconciledMedia.imageStatus === "completed", "reconcile updates queued->completed");
+assert(reconciledMedia.imagePreviewUrl === "https://img.example/preview.png", "reconcile stores preview");
+assert(reconciledMedia.imageAssetId === "asset-1", "reconcile stores output asset id");

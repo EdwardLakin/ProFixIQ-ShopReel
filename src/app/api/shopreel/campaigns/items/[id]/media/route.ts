@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentShopId } from "@/features/shopreel/server/getCurrentShopId";
 import { createAdminClient } from "@/lib/supabase/server";
 import { createMediaGenerationJob } from "@/features/shopreel/video-creation/lib/server";
-import { buildCampaignImagePrompt, buildCampaignVideoPrompt, deriveCampaignMediaState, isActiveMediaStatus, isCampaignImagePurpose, normalizeMediaStatus, readMediaMetadata, withMediaMetadata } from "@/features/shopreel/campaigns/lib/mediaGeneration";
+import { buildCampaignImagePrompt, buildCampaignVideoPrompt, deriveCampaignMediaState, isActiveMediaStatus, isCampaignImagePurpose, mergeLiveJobIntoMediaMetadata, normalizeMediaStatus, readMediaMetadata, withMediaMetadata } from "@/features/shopreel/campaigns/lib/mediaGeneration";
 
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -10,13 +10,39 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   const shopId = await getCurrentShopId();
   const { data: item } = await supabase.from("shopreel_campaign_items").select("*").eq("id", id).eq("shop_id", shopId).maybeSingle();
   if (!item) return NextResponse.json({ ok: false, error: "Campaign item not found" }, { status: 404 });
+
   const mediaMeta = readMediaMetadata(item.metadata);
-  const jobIds = [mediaMeta.imageJobId, mediaMeta.videoJobId].filter(Boolean) as string[];
   const warnings: string[] = [];
-  const { data: jobs, error: jobsError } = jobIds.length ? await supabase.from("shopreel_media_generation_jobs").select("id,status,job_type,provider,preview_url,output_asset_id,error_text,updated_at,created_at").in("id", jobIds) : { data: [], error: null as any };
+  let staleMetadataRefreshed = false;
+
+  const jobIds = [mediaMeta.imageJobId, mediaMeta.videoJobId].filter(Boolean) as string[];
+  const { data: jobs, error: jobsError } = jobIds.length
+    ? await supabase
+        .from("shopreel_media_generation_jobs")
+        .select("id,shop_id,status,job_type,provider,preview_url,output_asset_id,error_text,completed_at,updated_at,created_at")
+        .in("id", jobIds)
+        .eq("shop_id", shopId)
+    : { data: [], error: null as any };
+
   if (jobsError) warnings.push(`Job lookup warning: ${jobsError.message}`);
+
   const imageJob = (jobs ?? []).find((j: any) => j.job_type === "image" && j.id === mediaMeta.imageJobId);
   const videoJob = (jobs ?? []).find((j: any) => j.job_type === "video" && j.id === mediaMeta.videoJobId);
+
+  if (imageJob && normalizeMediaStatus(mediaMeta.imageStatus) !== normalizeMediaStatus(imageJob.status)) {
+    const reconciledMetadata = mergeLiveJobIntoMediaMetadata(item.metadata, imageJob);
+    const { error: reconcileError } = await supabase
+      .from("shopreel_campaign_items")
+      .update({ metadata: reconciledMetadata })
+      .eq("id", id)
+      .eq("shop_id", shopId);
+    if (reconcileError) {
+      warnings.push(`Metadata sync warning: ${reconcileError.message}`);
+    } else {
+      staleMetadataRefreshed = true;
+    }
+  }
+
   const image = {
     jobId: mediaMeta.imageJobId,
     status: normalizeMediaStatus(imageJob?.status ?? mediaMeta.imageStatus),
@@ -29,6 +55,7 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     updatedAt: imageJob?.updated_at ?? null,
     purpose: mediaMeta.imagePurpose,
   };
+
   const video = {
     jobId: mediaMeta.videoJobId,
     status: normalizeMediaStatus(videoJob?.status ?? mediaMeta.videoStatus),
@@ -40,9 +67,14 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     requestedAt: mediaMeta.videoRequestedAt,
     updatedAt: videoJob?.updated_at ?? null,
   };
+
   if (image.status === "completed" && !image.previewUrl && !image.outputAssetId) {
     warnings.push("Image job completed but no preview URL is available.");
   }
+  if (staleMetadataRefreshed) {
+    warnings.push("Campaign media metadata was stale and has been refreshed.");
+  }
+
   const packageApproved = Boolean((item.metadata as any)?.production_package_status === "approved");
   const normalized = deriveCampaignMediaState({ packageApproved, image, video });
   return NextResponse.json({ ok: true, itemId: id, media: normalized, warnings });
