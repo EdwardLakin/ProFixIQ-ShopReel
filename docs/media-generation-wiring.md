@@ -48,3 +48,9 @@ Main campaign flow is **approved package → choose image purpose → generate/s
   - Completed: usable output exists (preview URL or output asset).
   - Failed/canceled: generation stopped; retry image before video.
 - Video unlock rule: Generate video is only enabled after image status is completed and has `previewUrl` or `outputAssetId`.
+
+## Image output requirements
+- Completed image jobs must store a usable `preview_url` or an `output_asset_id` that resolves to `content_assets.public_url`.
+- Image job detail route renders image previews with `<img>` behavior; video/audio players are only for video jobs.
+- Video unlock requires an image job in `completed` state plus usable preview/output asset wiring.
+- If image provider reports completed but no URL/output asset is available, job should fail/warn instead of silent completion.

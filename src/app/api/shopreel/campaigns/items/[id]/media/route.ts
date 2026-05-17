@@ -40,6 +40,9 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     requestedAt: mediaMeta.videoRequestedAt,
     updatedAt: videoJob?.updated_at ?? null,
   };
+  if (image.status === "completed" && !image.previewUrl && !image.outputAssetId) {
+    warnings.push("Image job completed but no preview URL is available.");
+  }
   const packageApproved = Boolean((item.metadata as any)?.production_package_status === "approved");
   const normalized = deriveCampaignMediaState({ packageApproved, image, video });
   return NextResponse.json({ ok: true, itemId: id, media: normalized, warnings });

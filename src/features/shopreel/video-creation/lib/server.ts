@@ -180,8 +180,15 @@ export async function finalizeCompletedMediaJob(args: {
   const supabase = createAdminClient();
   const finalUrl = args.storage?.publicUrl ?? args.providerResult.previewUrl ?? null;
   if (!finalUrl) {
+    if (args.completedJob.job_type === "image") {
+      throw new Error("Image provider completed but did not return a usable image URL.");
+    }
     throw new Error("Video provider did not return an output yet.");
   }
+
+  const inferredImageMimeType = finalUrl.startsWith("data:image/webp") || finalUrl.toLowerCase().includes(".webp")
+    ? "image/webp"
+    : "image/png";
 
   const outputAssetId = await createOutputAsset({
     shopId: args.completedJob.shop_id,
@@ -190,7 +197,7 @@ export async function finalizeCompletedMediaJob(args: {
     publicUrl: finalUrl,
     storagePath: args.storage?.storagePath ?? null,
     bucket: args.storage?.bucket ?? null,
-    mimeType: args.completedJob.job_type === "image" ? "image/png" : "video/mp4",
+    mimeType: args.completedJob.job_type === "image" ? inferredImageMimeType : "video/mp4",
     metadata: {
       generated_by: "shopreel_video_creation",
       provider: args.completedJob.provider,
@@ -223,6 +230,7 @@ export async function finalizeCompletedMediaJob(args: {
         preview_url: finalUrl,
         provider_result: args.providerResult.resultPayload,
         real_provider_output: true,
+        job_type: args.completedJob.job_type,
       },
     })
     .eq("id", args.completedJob.id)

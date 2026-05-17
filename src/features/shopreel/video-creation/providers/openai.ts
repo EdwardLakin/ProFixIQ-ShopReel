@@ -9,6 +9,10 @@ type OpenAIImageResponse = {
     url?: string;
     b64_json?: string;
   }>;
+  output?: Array<{
+    url?: string;
+    b64_json?: string;
+  }>;
   error?: {
     message?: string;
   };
@@ -72,18 +76,12 @@ export const openAiMediaProvider: MediaProviderAdapter = {
         );
       }
 
-      const image = json.data?.[0] ?? null;
-      const previewUrl =
-        typeof image?.url === "string" && image.url.length > 0
-          ? image.url
-          : typeof image?.b64_json === "string" && image.b64_json.length > 0
-            ? `data:image/png;base64,${image.b64_json}`
-            : null;
+      const image = json.data?.[0] ?? json.output?.[0] ?? null;
+      const providerUrl = typeof image?.url === "string" && image.url.length > 0 ? image.url : null;
+      const previewUrl = providerUrl;
 
       if (!previewUrl) {
-        throw new Error(
-          `OpenAI image generation completed without an image URL or base64 payload. Response keys: ${Object.keys(json ?? {}).join(", ")}`
-        );
+        throw new Error("Image provider completed but did not return a usable image URL.");
       }
 
       return {
@@ -94,7 +92,7 @@ export const openAiMediaProvider: MediaProviderAdapter = {
           provider: "openai",
           mode: "image_generation",
           prompt,
-          returned_url: typeof image?.url === "string" ? image.url : null,
+          returned_url: providerUrl,
           returned_b64: typeof image?.b64_json === "string",
         },
       };
