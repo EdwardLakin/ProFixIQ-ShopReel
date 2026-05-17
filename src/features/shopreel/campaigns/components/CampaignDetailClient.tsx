@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import GlassBadge from "@/features/shopreel/ui/system/GlassBadge";
 import GlassButton from "@/features/shopreel/ui/system/GlassButton";
 import { isActiveMediaStatus, normalizeMediaStatus, readMediaMetadata, type CampaignImagePurpose } from "@/features/shopreel/campaigns/lib/mediaGeneration";
+import { resolveCampaignOutputRoute } from "@/features/shopreel/campaigns/lib/postReview";
 
 type CampaignRow = { id: string; title: string; core_idea: string; audience: string | null; offer: string | null; campaign_goal: string | null; status: string; platform_focus: string[]; created_at: string; metadata?: unknown };
 type CampaignItemRow = { id: string; title: string; angle: string; prompt: string; status: string; aspect_ratio: string; style: string | null; visual_mode: string | null; media_job_id: string | null; final_output_asset_id?: string | null; metadata?: unknown };
@@ -168,7 +169,7 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
       <GlassButton className="mt-3" onClick={applyAnswers}>Apply answers to campaign</GlassButton></div> : null}
 
     <div className="rounded-2xl border border-cyan-300/35 bg-cyan-500/10 p-4">
-      <div className="mb-2 text-sm">Primary next action: <span className="font-semibold">{stage === "missing_info" ? "Answer missing info" : stage === "choose_angle" ? "Approve one campaign angle" : stage === "review_package" ? "Review the production package" : stage === "approve_package" ? "Approve the package" : "Copy the finished package"}</span></div>
+      <div className="mb-2 text-sm">Primary next action: <span className="font-semibold">{stage === "missing_info" ? "Answer missing info" : stage === "choose_angle" ? "Approve one campaign angle" : stage === "review_package" ? "Review the production package" : stage === "approve_package" ? "Approve the package" : "Review finished post"}</span></div>
       {confirmation ? <p className="text-emerald-300 text-xs">What just happened? {confirmation}</p> : null}
     </div>
 
@@ -219,14 +220,17 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
               {(media.imagePurpose ?? selectedPurpose) ? <p className="text-xs mt-1">Image purpose: {String(media.imagePurpose ?? selectedPurpose).replaceAll("_"," ")}</p> : null}
               {imageStatus ? <p className="text-xs mt-1">Image job status: {imageStatus}</p> : null}
               {imageCompleted ? <p className="text-xs mt-1 text-emerald-300">Image ready</p> : null}
-              {imageCompleted ? <p className="text-xs mt-1 text-emerald-300">Use this image to generate video.</p> : null}
+              {imageCompleted ? <p className="text-xs mt-1 text-emerald-300">Optional: turn this image into a video.</p> : null}
               {imageStatus === "completed" && !imageHasOutput ? <p className="text-xs mt-1 text-yellow-300">Image job completed but no preview URL is available.</p> : null}
               {videoStatus ? <p className="text-xs mt-1">Video job status: {videoStatus}</p> : null}
               {(mediaWarningsByItem[item.id] ?? []).includes("Campaign media metadata was stale and has been refreshed.") ? <p className="text-xs mt-1 text-cyan-300">Campaign media status was refreshed from the live job.</p> : null}
             </div>
             {pkgStatus === "approved" ? <p className="mt-2 text-emerald-300 text-sm">Package approved. You can now copy/export or generate media.</p> : null}
           </div> : null}
-          <div className="mt-2"><Link href={`/shopreel/campaigns/items/${item.id}?from=workspace`}><GlassButton variant="ghost">Open output</GlassButton></Link></div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link href={resolveCampaignOutputRoute({ itemId: item.id, campaignMode: brief.mode ?? campaign.campaign_goal, imagePurpose: media.imagePurpose ?? selectedPurpose })}><GlassButton variant="ghost">Review finished post</GlassButton></Link>
+            <Link href={`/shopreel/campaigns/items/${item.id}?from=workspace`}><GlassButton variant="ghost">Open video production</GlassButton></Link>
+          </div>
         </div>;
       })}
     </div>

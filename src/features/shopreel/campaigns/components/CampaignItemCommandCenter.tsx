@@ -209,6 +209,19 @@ export default function CampaignItemCommandCenter({
 
   const direction = selectedScene ? getSceneDirection(selectedScene) : null;
 
+  if (orderedScenes.length === 0) {
+    return (
+      <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-5">
+        <h2 className="text-xl font-semibold">Video production workspace</h2>
+        <p className="mt-2 text-sm text-white/70">This is the video production workspace. Use this after you choose to generate a video.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a href={`/shopreel/campaigns/items/${item.id}/post-review`} className="text-cyan-300 text-sm">Back to post review</a>
+          <a href={`/shopreel/campaigns/${item.campaign_id}`} className="text-cyan-300 text-sm">Back to campaign workspace</a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-5">
       <section className="rounded-[1.35rem] border border-cyan-200/20 bg-[#06111f]/85 p-5 shadow-[0_12px_34px_rgba(0,0,0,.24)]">
