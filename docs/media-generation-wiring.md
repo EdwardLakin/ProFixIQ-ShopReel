@@ -54,3 +54,10 @@ Main campaign flow is **approved package → choose image purpose → generate/s
 - Image job detail route renders image previews with `<img>` behavior; video/audio players are only for video jobs.
 - Video unlock requires an image job in `completed` state plus usable preview/output asset wiring.
 - If image provider reports completed but no URL/output asset is available, job should fail/warn instead of silent completion.
+
+## Campaign media state sync
+- The live `shopreel_media_generation_jobs` row is the source of truth for image/video status and output fields.
+- `shopreel_campaign_items.metadata.media` is treated as cached state for quick reads and linkage.
+- `GET /api/shopreel/campaigns/items/[id]/media` reconciles stale cached metadata when `image_job_id` exists and live status differs.
+- Reconciliation is best-effort and does not fail the media response if metadata update fails.
+- Broad backfills are only needed when `image_job_id` links are missing or no reliable item↔job relationship exists.

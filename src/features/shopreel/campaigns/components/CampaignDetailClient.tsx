@@ -40,6 +40,7 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
   const [appliedBrief, setAppliedBrief] = useState<ParsedBriefView | null>(null);
   const [mediaBusy, setMediaBusy] = useState<string | null>(null);
   const [mediaStateByItem, setMediaStateByItem] = useState<Record<string, any>>({});
+  const [mediaWarningsByItem, setMediaWarningsByItem] = useState<Record<string, string[]>>({});
   const [imagePurposeByItem, setImagePurposeByItem] = useState<Record<string, CampaignImagePurpose>>({});
 
   const campaignMetadata = (campaign.metadata && typeof campaign.metadata === "object" ? campaign.metadata : {}) as Record<string, unknown>;
@@ -98,9 +99,20 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
   async function refreshMediaStatus(itemId: string) {
     const mediaRes = await fetch(`/api/shopreel/campaigns/items/${itemId}/media`, { cache: "no-store" });
     const mediaJson = await mediaRes.json().catch(() => ({}));
-    if (mediaJson?.ok) setMediaStateByItem((p) => ({ ...p, [itemId]: mediaJson.media }));
+    if (mediaJson?.ok) {
+      setMediaStateByItem((p) => ({ ...p, [itemId]: mediaJson.media }));
+      setMediaWarningsByItem((p) => ({ ...p, [itemId]: Array.isArray(mediaJson.warnings) ? mediaJson.warnings : [] }));
+    }
   }
 
+
+  useEffect(() => {
+    void (async () => {
+      for (const item of items) {
+        await refreshMediaStatus(item.id);
+      }
+    })();
+  }, [items]);
   useEffect(() => {
     const pollIds = items.map((i) => i.id);
     let timer: ReturnType<typeof setInterval> | null = null;
@@ -200,14 +212,17 @@ export default function CampaignDetailClient({ campaign, items, progress, adapti
                 <GlassButton variant="ghost" disabled={!videoEnabled || mediaBusy === `generate_video-${item.id}`} onClick={() => void generateMedia(item.id, "generate_video", selectedPurpose)}>Generate video</GlassButton>
                 {imageJobId ? <Link href={`/shopreel/video-creation/jobs/${imageJobId}`}><GlassButton variant="ghost">Open image job</GlassButton></Link> : null}
                 {videoJobId ? <Link href={`/shopreel/video-creation/jobs/${videoJobId}`}><GlassButton variant="ghost">Open video job</GlassButton></Link> : null}
+                <GlassButton variant="ghost" onClick={() => void refreshMediaStatus(item.id)}>Refresh media status</GlassButton>
               </div>
               {imagePreview ? <div className="mt-2 space-y-2"><img src={imagePreview} alt={`${item.title} generated image`} className="h-40 w-auto max-w-full rounded border border-white/10 object-cover" /><a className="text-xs text-cyan-300 block" href={imagePreview} target="_blank" rel="noreferrer">Open generated image preview</a></div> : null}
               {(liveMedia?.video?.previewUrl || media.videoPreviewUrl) ? <a className="text-xs text-cyan-300 mt-1 block" href={liveMedia?.video?.previewUrl ?? media.videoPreviewUrl ?? "#"} target="_blank">Open generated video preview</a> : null}
               {(media.imagePurpose ?? selectedPurpose) ? <p className="text-xs mt-1">Image purpose: {String(media.imagePurpose ?? selectedPurpose).replaceAll("_"," ")}</p> : null}
               {imageStatus ? <p className="text-xs mt-1">Image job status: {imageStatus}</p> : null}
+              {imageCompleted ? <p className="text-xs mt-1 text-emerald-300">Image ready</p> : null}
               {imageCompleted ? <p className="text-xs mt-1 text-emerald-300">Use this image to generate video.</p> : null}
               {imageStatus === "completed" && !imageHasOutput ? <p className="text-xs mt-1 text-yellow-300">Image job completed but no preview URL is available.</p> : null}
               {videoStatus ? <p className="text-xs mt-1">Video job status: {videoStatus}</p> : null}
+              {(mediaWarningsByItem[item.id] ?? []).includes("Campaign media metadata was stale and has been refreshed.") ? <p className="text-xs mt-1 text-cyan-300">Campaign media status was refreshed from the live job.</p> : null}
             </div>
             {pkgStatus === "approved" ? <p className="mt-2 text-emerald-300 text-sm">Package approved. You can now copy/export or generate media.</p> : null}
           </div> : null}
