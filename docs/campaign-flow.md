@@ -75,3 +75,10 @@ Intentionally not automated yet in this mode:
 - No dead buttons.
 - Copy actions must explain where the text goes.
 - Media generation is downstream and should not appear active unless wired.
+
+
+## Post Review stage
+- Package + image now flows to a dedicated Post Review stage for static/social ad outputs.
+- `/shopreel/campaigns/items/[id]/post-review` is the canonical review destination for `business_advertising` or `static_ad` image-purpose flows.
+- Video production at `/shopreel/campaigns/items/[id]` remains separate and optional.
+- “Open output” semantics are now “Review finished post,” not storyboard production.
