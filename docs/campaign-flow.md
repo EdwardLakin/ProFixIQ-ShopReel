@@ -89,3 +89,9 @@ Intentionally not automated yet in this mode:
 - Post Review only enables a publish CTA when queue wiring is available for the specific item.
 - If queue wiring is unavailable for an item, UI clearly states direct publishing is not wired yet and keeps manual copy/export actions primary.
 - Manual posting fallback remains always available: copy post + caption, open/download image, and copy comment replies.
+
+## Final Post Review Actions
+- If publish queue is available for the item, primary action is **Send to publish queue**.
+- If publish queue is unavailable, primary action is **Copy post + image** with explicit manual posting steps.
+- Connected publishing must never be faked; blocked queue state must explain missing payload wiring.
+- Post Review top workflow controls are page-scoped and should not route to generic review inbox controls.

@@ -6,6 +6,8 @@ import type { OperatorFlowState } from "@/features/shopreel/operator-flow/operat
 
 export default function OperatorWorkflowHeader({ flow, title }: { flow: OperatorFlowState; title: string }) {
   const pathname = usePathname();
+  const isPostReviewRoute = /^\/shopreel\/campaigns\/items\/[^/]+\/post-review/.test(pathname);
+  const postReviewItemId = isPostReviewRoute ? pathname.split("/")[4] : null;
 
   const approvalNextHref =
     flow.stage === "campaign_plan" || flow.stage === "script" || flow.stage === "scenes" || flow.stage === "creative_output"
@@ -28,11 +30,16 @@ export default function OperatorWorkflowHeader({ flow, title }: { flow: Operator
           <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-100/80">Operator workflow</p>
           <h1 className="mt-1 text-lg font-semibold">{title}</h1>
           <p className="mt-1 text-sm text-white/75">Stage: {flow.stage.replaceAll("_", " ")} · {flow.reason}</p>
-          <p className="text-xs text-white/60">Recommended next action: {flow.recommendedNextAction.replaceAll("_", " ")}</p>
+          <p className="text-xs text-white/60">Recommended next action: {isPostReviewRoute ? "publish_prep" : flow.recommendedNextAction.replaceAll("_", " ")}</p>
         </div>
         <div className="flex gap-2">
-          <Link href={approvalNextHref} className="rounded-lg border border-cyan-200/40 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-50">{approvalLabel}</Link>
-          <Link href={flow.revisionRoute} className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white/85">Revise</Link>
+          {isPostReviewRoute ? <>
+            <Link href="/shopreel/campaigns" className="rounded-lg border border-cyan-200/40 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-50">Back to campaign</Link>
+            {postReviewItemId ? <Link href={pathname} className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white/85">Copy post + image</Link> : null}
+          </> : <>
+            <Link href={approvalNextHref} className="rounded-lg border border-cyan-200/40 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-50">{approvalLabel}</Link>
+            <Link href={flow.revisionRoute} className="rounded-lg border border-white/25 px-3 py-2 text-sm text-white/85">Revise</Link>
+          </>}
         </div>
       </div>
     </section>
