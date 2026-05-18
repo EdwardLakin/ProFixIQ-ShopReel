@@ -55,7 +55,7 @@ export default function RuntimeWorldDeck({
   };
 
   return (
-    <div className="relative h-full min-h-[28rem] w-full overflow-hidden" role="region" aria-label="Operational world deck">
+    <div className="relative h-full min-h-[26rem] w-full max-w-[42rem] overflow-hidden" role="region" aria-label="Operational world deck">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.24em] text-white/52">Portal deck</p>
@@ -88,7 +88,7 @@ export default function RuntimeWorldDeck({
 
       <div className="pointer-events-none absolute inset-x-8 top-[7.5rem] hidden h-56 rounded-full bg-cyan-400/10 blur-3xl lg:block" />
 
-      <div className="relative h-[24rem] lg:h-[29rem] [perspective:1200px]">
+      <div className="relative h-[22rem] md:h-[24rem] lg:h-[25rem] xl:h-[26rem] [perspective:1200px]">
         {visible.map((item, localIndex) => {
           const index = safeActiveIndex + localIndex;
           const active = localIndex === 0;
@@ -170,7 +170,7 @@ export default function RuntimeWorldDeck({
               type="button"
               disabled={!active}
               onClick={(event) => onSelect(item, event, index, deckGraph, temporalMemory, choreography)}
-              className={`absolute left-0 right-0 top-0 min-h-[20rem] lg:min-h-[24rem] overflow-hidden rounded-[1.65rem] border p-6 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/70 ${
+              className={`absolute left-0 right-0 top-0 min-h-[19rem] md:min-h-[20rem] lg:min-h-[21rem] overflow-hidden rounded-[1.65rem] border p-5 md:p-6 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/70 ${
                 active
                   ? "cursor-pointer border-amber-200/70 bg-[linear-gradient(180deg,rgba(40,24,36,.98),rgba(7,10,24,.99))]"
                   : selected

@@ -567,14 +567,15 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               </div>
             </div>
 
-            <aside className="relative z-20 hidden min-h-0 md:block lg:block xl:hidden">
+            <aside className="relative z-20 hidden min-h-0 md:block md:self-start">
               <div className="mb-4 flex items-end justify-between">
                 <div>
                   <div className="text-[12px] uppercase tracking-[0.24em] text-white/78">Operational worlds</div>
-                  <p className="mt-2 text-sm text-white/52">Compact deck view for tablet/laptop.</p>
+                  <p className="mt-2 text-sm text-white/52">Operational deck.</p>
                 </div>
                 <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">View all →</Link>
               </div>
+              <button type="button" onClick={() => router.push(getResumeWorldHref(operatorPriority ? `/shopreel/${operatorPriority.recommendedReturnWorld}` : undefined))} className="mb-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
               {sortedWorlds.length ? (
                 <RuntimeWorldDeck
                   items={sortedWorlds}
@@ -603,102 +604,6 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               )}
             </aside>
 
-            <aside className="relative z-20 hidden min-h-0 xl:block xl:self-center">
-              <div className="mb-8 flex items-end justify-between pl-4">
-                <div>
-                  <div className="text-[12px] uppercase tracking-[0.26em] text-white/78">Operational worlds</div>
-                  <p className="mt-3 text-sm text-white/48">Recessed chambers behind your forward action plane. Priority: {operatorPriority?.highestPressureWorld ?? "none"}.</p>
-                </div>
-                <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">
-                  View all →
-                </Link>
-              </div>
-              <button type="button" onClick={() => router.push(getResumeWorldHref(operatorPriority ? `/shopreel/${operatorPriority.recommendedReturnWorld}` : undefined))} className="mb-4 ml-4 rounded-xl border border-cyan-200/30 bg-cyan-400/10 px-4 py-2 text-xs text-cyan-100">Resume active world</button>
-
-              <div className="relative h-[calc(100svh-15rem)] overflow-visible pb-2" role="region" aria-label="Recessed world portals">
-                <RuntimeWorldDeck
-                  items={sortedWorlds}
-                  unresolvedCount={unresolvedCount}
-                  runtimeSession={runtimeSession}
-                  emphasizedCardId={emphasizedCardId}
-                  prefersReducedMotion={prefersReducedMotion}
-                  onSelect={(item, event, index, deckGraph, temporalMemory, choreography) => {
-                        if (!item.href) return;
-                        const worldId = resolveWorldFromEntityKind(item.kind);
-                        const worldSnapshot = buildWorldSnapshot(item);
-                        const worldEntryIntent = buildWorldEntryIntent({
-                          worldId,
-                          href: item.href,
-                          entityKind: item.kind,
-                          entityId: item.id,
-                          source: "home_deck",
-                          recommendedAction: worldSnapshot.recommendation?.actionId,
-                          fallbackRoute: worldSnapshot.recommendation?.route,
-                        });
-                        dispatch({
-                          type: "SET_WORLD_CONTEXT",
-                          activeWorldId: resolveWorldEntryForHref(item.href),
-                          worldEntryIntent,
-                          focusedWorldEntity: { kind: item.kind, id: item.id },
-                          worldRecommendation: worldSnapshot.recommendation?.reason ?? null,
-                          worldEntrySnapshot: {
-                            worldId,
-                            href: item.href,
-                            entityId: item.id,
-                            entityKind: item.kind,
-                            title: item.title,
-                            status: item.normalizedStatus,
-                            visualSeed: `${worldId}:${item.title.toLowerCase()}:${item.normalizedStatus}:${item.priority}`,
-                            guidedStep: null,
-                          },
-                          reason: "home_deck_entry",
-                        });
-                        const snapshot = buildWorldEntrySnapshotFromCard(item);
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        const fallbackRect = { x: Math.max(0, window.innerWidth * 0.25), y: Math.max(0, window.innerHeight * 0.2), width: Math.max(220, window.innerWidth * 0.3), height: Math.max(200, window.innerHeight * 0.35) };
-                        const safeRect = Number.isFinite(rect.x) && Number.isFinite(rect.y) && rect.width > 0 && rect.height > 0
-                          ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
-                          : fallbackRect;
-                        try {
-                          startWorldEntryTransition({
-                          worldId: snapshot.worldId,
-                          href: snapshot.href,
-                          title: snapshot.title,
-                          cardRect: safeRect,
-                          operatorPriorityContext: { rank: Math.max(1, index + 1), unresolvedCount: unresolvedCount, hasBlocker: /failed|blocked|error/.test(item.normalizedStatus) },
-                          atmosphere: {
-                            tone: /failed|blocked|error/.test(item.normalizedStatus) ? "critical" : /review|approval|pending/.test(item.normalizedStatus) ? "elevated" : "focused",
-                            gradientSeed: snapshot.visualSeed,
-                            continuityRailOffset: Math.min(1, index / 8),
-                            orchestrationPressureTone: /failed|blocked|error/.test(item.normalizedStatus) ? "urgent" : unresolvedCount > 0 ? "watch" : "steady",
-                            temporalResilience: temporalMemory.resilience === "strong" || temporalMemory.resilience === "moderate" ? "stable" : temporalMemory.resilience === "fragile" ? "recovering" : "volatile",
-                            graphStressIntensity: Math.min(1, (deckGraph.dependencies.length + deckGraph.traversal.blockers.length) / 10),
-                          },
-                          capturedAt: new Date().toISOString(),
-                        }, prefersReducedMotion);
-                        } catch (error) {
-                          console.error("[shopreel] failed to start world entry transition", error);
-                        }
-                        createWorldEntryTransition({ mode: "deck_to_world", fromWorldId: runtimeSession.activeWorldId, toWorldId: snapshot.worldId, fromRoute: runtimeSession.lastRoute, toRoute: snapshot.href, label: "deck-entry", at: new Date().toISOString() }, prefersReducedMotion);
-                        persistWorldEntrySnapshot(snapshot);
-                        dispatch({
-                          type: "SET_CAPABILITY_CONTEXT",
-                          capability: resolveCapabilityForWorld(item),
-                          activeEntity: { kind: item.kind, id: item.id },
-                          queuedNextAction: { kind: "open", label: "open", target: { entityKind: item.kind, entityId: item.id, href: item.href, capability: resolveCapabilityForWorld(item) } },
-                          lastRoute: item.href,
-                          recoveryTarget: item.href,
-                        });
-                        void router.push(item.href);
-                      }}
-                />
-                {!activeWorld ? (
-                  <div className="rounded-[2rem] border border-white/12 bg-white/[0.04] p-8 text-white/65">
-                    No active worlds yet. Launch a campaign to create one.
-                  </div>
-                ) : null}
-              </div>
-            </aside>
           </section>
         </main>
       </div>

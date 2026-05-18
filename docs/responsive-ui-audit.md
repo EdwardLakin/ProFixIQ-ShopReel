@@ -52,15 +52,18 @@ Intentional uses kept:
 ## Dashboard Navigation + Deck Follow-up (May 18, 2026)
 - Restored dashboard navigation access to **Settings** from sidebar/navigation surfaces and global utility actions.
 - Restored global controls: **Home** (`/shopreel`) and **Back** (`router.back()` with `/shopreel` fallback).
-- Restored desktop/tablet deck visibility requirement:
-  - `xl+`: visible stacked deck on the right.
-  - `md`/`lg`: visible compact stacked deck (not plain pills).
-  - `sm`: simplified horizontal cards.
+- Canonicalized deck behavior so tablet stacked deck is the source of truth for all `md+` breakpoints:
+  - `md`/tablet: stacked deck.
+  - `lg`/laptop: stacked deck.
+  - `xl`/desktop: stacked deck (same presentation as tablet, not a separate giant variant).
+  - `2xl`/large desktop: stacked deck with the same card model and bounded sizing.
+  - `sm`: simplified horizontal rail/cards.
+- Removed separate oversized desktop deck variant to avoid washed-out giant cards and keep deck/operator chamber cohesion.
 
 ### Manual QA Checklist (Dashboard Navigation + Deck)
-- [ ] `/shopreel` desktop (1440px+) shows a visible stacked deck.
-- [ ] `/shopreel` laptop/desktop (1280px) still shows deck/stack (not pills only).
-- [ ] `/shopreel` tablet shows deck/cards with visible depth.
+- [ ] `/shopreel` desktop (1440px+) shows the same stacked deck style as tablet (no giant card variant).
+- [ ] `/shopreel` laptop/desktop (1280px) shows stacked deck cards (not pills only).
+- [ ] `/shopreel` tablet (1024px) shows the same stacked deck style used on desktop.
 - [ ] `/shopreel` mobile shows active-world cards and remains usable.
 - [ ] Settings is reachable from dashboard navigation and utility row.
 - [ ] Back works from campaign detail/post-review/job/settings pages, with safe fallback to `/shopreel`.
