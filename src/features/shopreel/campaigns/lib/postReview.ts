@@ -18,6 +18,21 @@ export type PostReviewPayload = {
   campaignId: string;
 };
 
+export type PostReviewPublishingConnections = {
+  facebook: { connected: boolean; label: string | null; pageId: string | null; expiresAt: string | null };
+  instagram: { connected: boolean; label: string | null; businessId: string | null; expiresAt: string | null };
+};
+
+export function resolvePostReviewPublishingState(input: { publishingConnections: PostReviewPublishingConnections; publishQueueEnabled: boolean }) {
+  const hasConnectedDestination = input.publishingConnections.facebook.connected || input.publishingConnections.instagram.connected;
+  return {
+    hasConnectedDestination,
+    showConnectCta: !hasConnectedDestination,
+    publishCtaEnabled: hasConnectedDestination && input.publishQueueEnabled,
+    manualPostingAvailable: true,
+  };
+}
+
 function toText(value: string | string[] | undefined) {
   if (!value) return "";
   return Array.isArray(value) ? value.join("\n") : value;
