@@ -95,3 +95,10 @@ Intentionally not automated yet in this mode:
 - If publish queue is unavailable, primary action is **Copy post + image** with explicit manual posting steps.
 - Connected publishing must never be faked; blocked queue state must explain missing payload wiring.
 - Post Review top workflow controls are page-scoped and should not route to generic review inbox controls.
+
+## Settings usage in campaign lifecycle
+- **Campaign intake:** Brand voice, positioning, audience notes, and compliance note shape intake summarization and brief framing before campaign generation.
+- **Campaign intelligence:** Default hook template and preferred CTAs influence how ShopReel proposes angles, narrative entry points, and action intent.
+- **Production package:** Voice rules, prohibited claims, and CTA preferences guide the copy package used in review-ready outputs.
+- **Image/video prompt direction:** Visual style notes, default aspect ratio, and caption style influence image/video prompt quality and packaging format.
+- **Publishing behavior:** Posting timezone, include brand CTA, and automation toggles define what happens after approvals (queue, draft approvals, and eventual publish behavior when fully wired).

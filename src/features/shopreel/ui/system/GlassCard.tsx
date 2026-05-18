@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
-type GlassCardProps = {
+type GlassCardProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
   className?: string;
   intensity?: "soft" | "strong";
@@ -20,11 +20,13 @@ export default function GlassCard({
   title,
   description,
   footer,
+  ...props
 }: GlassCardProps) {
   const isStrong = strong || intensity === "strong";
 
   return (
     <div
+      {...props}
       className={[
         "relative overflow-hidden rounded-[1.65rem] border backdrop-blur-2xl transition duration-200",
         isStrong
