@@ -11,11 +11,12 @@ for (const route of requiredUtility) {
 }
 
 export const DASHBOARD_DECK_LAYOUT_VARIANTS = {
-  sm: "rail",
-  md: "stacked_deck",
-  lg: "stacked_deck",
-  xl: "stacked_deck",
-  "2xl": "stacked_deck",
+  sm: "stacked_vertical_rail",
+  md: "side_by_side_operator_deck",
+  lg: "side_by_side_operator_deck",
+  xl: "side_by_side_operator_deck",
+  "2xl": "side_by_side_operator_deck",
+  deck_variant: "stacked_deck",
 } as const;
 
 if (
