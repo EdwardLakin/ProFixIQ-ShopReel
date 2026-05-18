@@ -7,19 +7,21 @@ export default function GlassToggle(props: {
   description?: string;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
 }) {
-  const { label, description, checked, onCheckedChange } = props;
+  const { label, description, checked, onCheckedChange, disabled = false } = props;
 
   return (
     <button
       type="button"
-      onClick={() => onCheckedChange(!checked)}
+      onClick={() => { if (!disabled) onCheckedChange(!checked); }}
       className={cx(
-        "flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition hover:border-[rgba(255,255,255,0.10)]",
+        "flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition hover:border-[rgba(255,255,255,0.10)] disabled:cursor-not-allowed disabled:opacity-65",
         glassTheme.border.softer,
         glassTheme.glass.input,
       )}
       aria-pressed={checked}
+      disabled={disabled}
     >
       <div className="space-y-1">
         <div className={cx("text-sm font-medium", glassTheme.text.primary)}>{label}</div>
