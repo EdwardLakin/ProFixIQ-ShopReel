@@ -82,3 +82,10 @@ Intentionally not automated yet in this mode:
 - `/shopreel/campaigns/items/[id]/post-review` is the canonical review destination for `business_advertising` or `static_ad` image-purpose flows.
 - Video production at `/shopreel/campaigns/items/[id]` remains separate and optional.
 - “Open output” semantics are now “Review finished post,” not storyboard production.
+
+## Post Review publishing readiness
+- ShopReel Settings can contain active Facebook/Instagram connections via `/api/shopreel/connections`.
+- Post Review now checks the same connection source and shows publishing destination readiness for Facebook/Instagram.
+- Post Review only enables a publish CTA when queue wiring is available for the specific item.
+- If queue wiring is unavailable for an item, UI clearly states direct publishing is not wired yet and keeps manual copy/export actions primary.
+- Manual posting fallback remains always available: copy post + caption, open/download image, and copy comment replies.

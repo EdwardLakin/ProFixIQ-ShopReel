@@ -1,4 +1,4 @@
-import { buildPostReviewPayload, formatPostReviewCopy, resolveCampaignOutputRoute } from "../src/features/shopreel/campaigns/lib/postReview";
+import { buildPostReviewPayload, formatPostReviewCopy, resolveCampaignOutputRoute, resolvePostReviewPublishingState } from "../src/features/shopreel/campaigns/lib/postReview";
 
 function assert(condition: unknown, message: string) { if (!condition) throw new Error(message); }
 
@@ -22,3 +22,25 @@ assert(resolveCampaignOutputRoute({ itemId: "i1", campaignMode: "business_advert
 assert(resolveCampaignOutputRoute({ itemId: "i1", campaignMode: "launch_campaign", imagePurpose: "video_reference" }).endsWith("/shopreel/campaigns/items/i1"), "video route unchanged");
 
 console.log("campaign-post-review-smoke passed");
+
+
+const connectedState = resolvePostReviewPublishingState({
+  publishingConnections: {
+    facebook: { connected: true, label: "Page", pageId: "123", expiresAt: null },
+    instagram: { connected: true, label: "ig", businessId: "456", expiresAt: null },
+  },
+  publishQueueEnabled: false,
+});
+assert(connectedState.hasConnectedDestination, "connected state detected");
+assert(!connectedState.publishCtaEnabled, "publish CTA disabled when API not wired");
+assert(connectedState.manualPostingAvailable, "manual posting remains available");
+
+const disconnectedState = resolvePostReviewPublishingState({
+  publishingConnections: {
+    facebook: { connected: false, label: null, pageId: null, expiresAt: null },
+    instagram: { connected: false, label: null, businessId: null, expiresAt: null },
+  },
+  publishQueueEnabled: true,
+});
+assert(disconnectedState.showConnectCta, "disconnected state requests settings connect CTA");
+assert(!disconnectedState.hasConnectedDestination, "no connected publish claim when disconnected");
