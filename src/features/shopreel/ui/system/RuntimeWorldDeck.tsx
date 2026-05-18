@@ -55,7 +55,7 @@ export default function RuntimeWorldDeck({
   };
 
   return (
-    <div className="relative h-full min-h-[28rem] w-full overflow-hidden" role="region" aria-label="Operational world portal deck">
+    <div className="relative h-full min-h-[28rem] w-full overflow-hidden" role="region" aria-label="Operational world deck">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.24em] text-white/52">Portal deck</p>
@@ -196,7 +196,7 @@ export default function RuntimeWorldDeck({
 
               <div className="relative flex h-full min-h-[21rem] flex-col">
                 <div className="flex items-center justify-between gap-4 text-[10px] uppercase tracking-[0.18em] text-amber-100/82">
-                  <span>{active ? "Front portal" : "Queued portal"}</span>
+                  <span>{active ? "Active world" : "Queued world"}</span>
                   <span className="text-white/48">
                     {safeActiveIndex + localIndex + 1}/{items.length}
                   </span>
@@ -204,7 +204,7 @@ export default function RuntimeWorldDeck({
 
                 <div className="mt-10">
                   <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-100/55">
-                    {worldKind} · {item.sourceLabel}
+                    {worldKind} · {item.sourceLabel} · {item.normalizedStatus}
                   </p>
                   <h2 className="mt-4 line-clamp-3 text-[clamp(1.55rem,2.2vw,2.25rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-white">
                     {item.title}
@@ -216,16 +216,17 @@ export default function RuntimeWorldDeck({
 
                 <div className="mt-auto flex items-end justify-between gap-5">
                   <div className="min-w-0 text-sm text-white/68">
-                    <p className="truncate">{item.actionLabel}</p>
+                    <p className="truncate">Status: {item.normalizedStatus}</p>
                     <p className="mt-1 text-xs text-white/42">
                       Chain {deckGraph.dependencies.length}/{deckGraph.traversal.blockers.length} · {temporalMemory.resilience}
                       {unresolvedCount ? ` · ${unresolvedCount} unresolved` : ""}
                     </p>
                   </div>
 
-                  <span className="shrink-0 rounded-full bg-amber-300/18 px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_0_24px_rgba(251,191,36,.14)]">
-                    Enter world →
-                  </span>
+                  <div className="shrink-0 text-right">
+                    <span className="rounded-full bg-amber-300/18 px-4 py-2 text-sm font-semibold text-amber-100 shadow-[0_0_24px_rgba(251,191,36,.14)]">Enter world →</span>
+                    <p className="mt-2 text-xs text-white/60">{item.href.includes("/campaign") ? "Open campaign" : item.href.includes("post-review") ? "Review post" : "Continue"}</p>
+                  </div>
                 </div>
               </div>
             </button>

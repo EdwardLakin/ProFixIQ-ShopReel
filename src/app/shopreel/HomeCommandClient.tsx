@@ -62,6 +62,7 @@ const quickPrompts = ["Launch campaign", "Refine direction", "Review approvals",
 
 const chamberNav = [
   { label: "Home", icon: "⌂", href: "/shopreel" },
+  { label: "Settings", icon: "⚙", href: "/shopreel/settings" },
   { label: "Workspace", icon: "◫", href: "/shopreel/campaigns" },
   { label: "Continuity", icon: "◌", href: "/shopreel/operator" },
   { label: "Approvals", icon: "✓", href: "/shopreel/review" },
@@ -88,6 +89,18 @@ function buildWorldEntrySnapshotFromCard(item: OperatorWorldCard) {
 
 function getResumeWorldHref(fallback?: string): string {
   return readPersistedRuntimeSession()?.worldContinuity.activeRoute ?? fallback ?? "/shopreel";
+}
+
+function GlobalUtilityRow({ onBack, onResume }: { onBack: () => void; onResume: () => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link href="/shopreel" className="rounded-xl border border-white/12 bg-white/[0.03] px-3 py-2 text-xs text-white/80">Home</Link>
+      <button type="button" onClick={onBack} className="rounded-xl border border-white/12 bg-white/[0.03] px-3 py-2 text-xs text-white/80">Back</button>
+      <Link href="/shopreel/settings" className="rounded-xl border border-white/12 bg-white/[0.03] px-3 py-2 text-xs text-white/80">⚙ Settings</Link>
+      <ShopReelNotificationsBell />
+      <button type="button" onClick={onResume} className="rounded-xl border border-white/12 bg-white/[0.055] px-4 py-2 text-xs font-semibold text-white">Resume</button>
+    </div>
+  );
 }
 
 export default function HomeCommandClient({ recent, loadErrors }: { recent: OperatorWorldCard[]; loadErrors?: string[] }) {
@@ -426,18 +439,8 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
               <span className="h-2 w-2 rounded-full bg-orange-300 shadow-[0_0_18px_rgba(251,146,60,.95)]" />
               Operator chamber online
             </div>
-            <div className="ml-auto flex items-center gap-3">
-              <button type="button" className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.035] text-white/72">
-                ⌕
-              </button>
-              <ShopReelNotificationsBell />
-              <button
-                type="button"
-                onClick={() => dispatch({ type: "RECOVER" })}
-                className="rounded-2xl border border-white/10 bg-white/[0.055] px-5 py-3 text-sm font-semibold text-white"
-              >
-                Resume
-              </button>
+            <div className="ml-auto">
+              <GlobalUtilityRow onBack={() => { if (window.history.length > 1) router.back(); else router.push("/shopreel"); }} onResume={() => dispatch({ type: "RECOVER" })} />
             </div>
           </header>
 
@@ -543,7 +546,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
             </div>
 
 
-            <div className="xl:hidden">
+            <div className="lg:hidden">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/65">Active worlds</p>
                 <Link href="/shopreel/campaigns" className="text-xs text-white/70">View all →</Link>
@@ -563,6 +566,42 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
                 </div>
               </div>
             </div>
+
+            <aside className="relative z-20 hidden min-h-0 md:block lg:block xl:hidden">
+              <div className="mb-4 flex items-end justify-between">
+                <div>
+                  <div className="text-[12px] uppercase tracking-[0.24em] text-white/78">Operational worlds</div>
+                  <p className="mt-2 text-sm text-white/52">Compact deck view for tablet/laptop.</p>
+                </div>
+                <Link href="/shopreel/campaigns" className="text-sm text-white/58 hover:text-white">View all →</Link>
+              </div>
+              {sortedWorlds.length ? (
+                <RuntimeWorldDeck
+                  items={sortedWorlds}
+                  unresolvedCount={unresolvedCount}
+                  runtimeSession={runtimeSession}
+                  emphasizedCardId={emphasizedCardId}
+                  prefersReducedMotion={prefersReducedMotion}
+                  onSelect={(item, event, index, deckGraph, temporalMemory, choreography) => {
+                    if (!item.href) return;
+                    const worldId = resolveWorldFromEntityKind(item.kind);
+                    const snapshot = buildWorldEntrySnapshotFromCard(item);
+                    persistWorldEntrySnapshot(snapshot);
+                    dispatch({
+                      type: "SET_CAPABILITY_CONTEXT",
+                      capability: resolveCapabilityForWorld(item),
+                      activeEntity: { kind: item.kind, id: item.id },
+                      queuedNextAction: { kind: "open", label: "open", target: { entityKind: item.kind, entityId: item.id, href: item.href, capability: resolveCapabilityForWorld(item) } },
+                      lastRoute: item.href,
+                      recoveryTarget: item.href,
+                    });
+                    void router.push(item.href);
+                  }}
+                />
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/70">No active worlds yet. Launch a campaign to create one.</div>
+              )}
+            </aside>
 
             <aside className="relative z-20 hidden min-h-0 xl:block xl:self-center">
               <div className="mb-8 flex items-end justify-between pl-4">

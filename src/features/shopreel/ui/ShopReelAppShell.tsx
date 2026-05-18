@@ -8,7 +8,8 @@ import { GlobalEnvironmentContinuityProvider, useGlobalEnvironmentContinuity } f
 import { deriveOperatorAdaptation, readOperatorBehaviorMemory } from "@/features/shopreel/ui/system/operatorBehaviorAdaptation";
 import { deriveProductionIntuition } from "@/features/shopreel/ui/system/productionIntuition";
 import { readWorkspaceMemory } from "@/features/shopreel/ui/system/aiWorkspaceMemory";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { deriveOperatorRhythmSnapshot, recordOperatorRhythmEvent } from "@/features/shopreel/ui/system/operatorRhythm";
 import { deriveStrategicAdaptation, readStrategicOperationalMemory } from "@/features/shopreel/ui/system/strategicAdaptation";
 import { deriveEcosystemStateSnapshot } from "@/features/shopreel/ui/system/ecosystemState";
@@ -20,6 +21,7 @@ import { deriveSpatialWorkspaceBehaviorSnapshot } from "@/features/shopreel/ui/s
 function ShellScaffold({ children }: { children: ReactNode }) {
   const continuity = useGlobalEnvironmentContinuity();
   const pathname = usePathname();
+  const router = useRouter();
   const rhythm = deriveOperatorRhythmSnapshot();
   const atmosphere = continuity.adaptiveAtmosphere;
   const evolution = continuity.continuousEvolution;
@@ -73,7 +75,7 @@ function ShellScaffold({ children }: { children: ReactNode }) {
         <div className={`${navProminence} ${navModeClass} ${navBiasClass} ${intuitionNavBias} ${routePull} transition-all duration-300 ${embodiment.continuityPresence === "anchored" ? "sticky top-0" : ""}`}><ShopReelSidebar /></div>
         
         <section className={`relative min-w-0 flex-1 ${shellPadding} ${spatial.recoveryExpansion >= 70 || embodiment.recoveryBreathingRoom === "wide" ? "pt-3 pb-5" : spatial.instabilityCompression >= 70 || embodiment.unstableCompression === "active" ? "pt-1 pb-3" : "py-4"} ${transition?.safeLoading === "soft_continuity" ? "opacity-[0.97]" : transition?.mode === "continuity" ? "opacity-[0.97]" : embodiment.transitionPosture === "cooled" ? "opacity-[0.94]" : "opacity-100"} ${transition?.safeLoading === "soft_continuity" ? "transition-opacity duration-500" : ""} transition-[padding,opacity,transform] duration-300`}>
-          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}>{pathname !== "/shopreel" ? <div className="relative z-10 flex justify-end"><div className="pointer-events-auto shrink-0"><GlobalCommandLauncher /></div></div> : null}{children}</div>
+          <div className={`min-h-screen ${embodiment.transitionPosture === "forward" ? "[&_*]:transition-all" : ""} ${embodiment.surfaceWeight === "high" ? "space-y-2" : embodiment.calmExpansion === "expanded" ? "space-y-5" : "space-y-3"}`}>{pathname !== "/shopreel" ? <div className="relative z-10 flex flex-wrap items-center justify-end gap-2"><Link href="/shopreel" className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-white/85">Home</Link><button type="button" onClick={() => { if (window.history.length > 1) router.back(); else router.push("/shopreel"); }} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-white/85">Back</button><Link href="/shopreel/settings" className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-white/85">Settings</Link><div className="pointer-events-auto shrink-0"><GlobalCommandLauncher /></div></div> : null}{children}</div>
         </section>
       </div>
     </div>

@@ -48,3 +48,19 @@ Intentional uses kept:
 - [ ] Confirm campaign detail “Primary next action” remains near top and actionable.
 - [ ] Confirm package text wraps and copy buttons are easy to tap on mobile.
 - [ ] Confirm generate image/video/publish controls remain secondary to package approval.
+
+## Dashboard Navigation + Deck Follow-up (May 18, 2026)
+- Restored dashboard navigation access to **Settings** from sidebar/navigation surfaces and global utility actions.
+- Restored global controls: **Home** (`/shopreel`) and **Back** (`router.back()` with `/shopreel` fallback).
+- Restored desktop/tablet deck visibility requirement:
+  - `xl+`: visible stacked deck on the right.
+  - `md`/`lg`: visible compact stacked deck (not plain pills).
+  - `sm`: simplified horizontal cards.
+
+### Manual QA Checklist (Dashboard Navigation + Deck)
+- [ ] `/shopreel` desktop (1440px+) shows a visible stacked deck.
+- [ ] `/shopreel` laptop/desktop (1280px) still shows deck/stack (not pills only).
+- [ ] `/shopreel` tablet shows deck/cards with visible depth.
+- [ ] `/shopreel` mobile shows active-world cards and remains usable.
+- [ ] Settings is reachable from dashboard navigation and utility row.
+- [ ] Back works from campaign detail/post-review/job/settings pages, with safe fallback to `/shopreel`.
