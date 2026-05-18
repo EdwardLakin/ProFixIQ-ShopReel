@@ -80,6 +80,7 @@ export function resolveInitialStageFromCommand(command: string): { stage: Operat
 }
 export function resolveStageFromEntity(entity: OperatorFlowEntity | null | undefined): OperatorFlowStage {
   const hay = `${entity?.href ?? ""} ${entity?.status ?? ""} ${entity?.kind ?? ""}`.toLowerCase();
+  if (/post-review/.test(hay)) return "publish";
   if (/analytics/.test(hay)) return "results";
   if (/publish|posted/.test(hay)) return "publish";
   if (/calendar|schedul/.test(hay)) return "schedule";

@@ -25,10 +25,20 @@ export type PostReviewPublishingConnections = {
 
 export function resolvePostReviewPublishingState(input: { publishingConnections: PostReviewPublishingConnections; publishQueueEnabled: boolean }) {
   const hasConnectedDestination = input.publishingConnections.facebook.connected || input.publishingConnections.instagram.connected;
+  const manualPrimary = !hasConnectedDestination || !input.publishQueueEnabled;
   return {
     hasConnectedDestination,
     showConnectCta: !hasConnectedDestination,
     publishCtaEnabled: hasConnectedDestination && input.publishQueueEnabled,
+    queueBlockedReason: hasConnectedDestination && !input.publishQueueEnabled
+      ? "Connected account found, but this post is missing required publish payload wiring."
+      : null,
+    recommendedNextStep: hasConnectedDestination && input.publishQueueEnabled
+      ? "Send this post to your publish queue."
+      : hasConnectedDestination
+        ? "Copy the post manually for now."
+        : "Copy manually or connect Facebook/Instagram.",
+    manualPrimary,
     manualPostingAvailable: true,
   };
 }

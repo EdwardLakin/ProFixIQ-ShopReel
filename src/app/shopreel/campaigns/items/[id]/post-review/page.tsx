@@ -66,6 +66,9 @@ export default async function CampaignItemPostReviewPage(props: { params: Promis
   return <CampaignFlowShell>
     <CampaignPageHeader title={item.title} subtitle={`Campaign mode: ${payload.campaignMode.replaceAll("_", " ")}`} backHref={`/shopreel/campaigns/${campaign.id}`} backLabel="Back to campaign workspace" />
     <CampaignPostReviewClient payload={payload} imageJobId={media.imageJobId} campaignId={campaign.id} publishingConnections={publishingConnections} publishQueueEnabled />
-    {intelligence ? <pre className="mt-4 overflow-auto rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/60">Campaign intelligence: {JSON.stringify(intelligence, null, 2)}</pre> : null}
+    {intelligence ? <details className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/70">
+      <summary className="cursor-pointer text-sm font-medium text-white/80">Advanced debug payload</summary>
+      <pre className="mt-2 overflow-auto text-white/60">{JSON.stringify(intelligence, null, 2)}</pre>
+    </details> : null}
   </CampaignFlowShell>;
 }

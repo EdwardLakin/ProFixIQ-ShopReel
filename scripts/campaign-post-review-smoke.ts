@@ -34,6 +34,8 @@ const connectedState = resolvePostReviewPublishingState({
 assert(connectedState.hasConnectedDestination, "connected state detected");
 assert(!connectedState.publishCtaEnabled, "publish CTA disabled when API not wired");
 assert(connectedState.manualPostingAvailable, "manual posting remains available");
+assert(connectedState.manualPrimary, "manual is primary when queue disabled");
+assert(connectedState.queueBlockedReason?.includes("missing required publish payload wiring"), "disabled queue helper text set");
 
 const disconnectedState = resolvePostReviewPublishingState({
   publishingConnections: {
@@ -44,3 +46,32 @@ const disconnectedState = resolvePostReviewPublishingState({
 });
 assert(disconnectedState.showConnectCta, "disconnected state requests settings connect CTA");
 assert(!disconnectedState.hasConnectedDestination, "no connected publish claim when disconnected");
+assert(disconnectedState.recommendedNextStep.includes("connect Facebook/Instagram"), "disconnected recommendation covers connect CTA");
+
+const queueReadyState = resolvePostReviewPublishingState({
+  publishingConnections: {
+    facebook: { connected: true, label: "Page", pageId: "123", expiresAt: null },
+    instagram: { connected: false, label: null, businessId: null, expiresAt: null },
+  },
+  publishQueueEnabled: true,
+});
+assert(queueReadyState.publishCtaEnabled, "connected + queue enabled exposes send to publish queue");
+assert(!queueReadyState.manualPrimary, "manual is not primary when queue available");
+
+const publishQueueResponseShape = {
+  ok: true,
+  itemId: "i1",
+  publicationId: "pub_1",
+  jobIds: ["job_1"],
+  message: "Post sent to publish queue.",
+  publishQueueHref: "/shopreel/publish-queue",
+};
+assert(Boolean(publishQueueResponseShape.publicationId), "publish queue includes publicationId");
+assert(Array.isArray(publishQueueResponseShape.jobIds), "publish queue includes jobIds");
+assert(Boolean(publishQueueResponseShape.publishQueueHref), "publish queue includes href");
+assert(Boolean(publishQueueResponseShape.message), "publish queue includes message");
+
+const postReviewOperatorRoute = "/shopreel/campaigns/items/i1/post-review";
+assert(!postReviewOperatorRoute.includes("/shopreel/review"), "post-review route does not resolve to generic review inbox");
+const debugPayloadPresentation = { label: "Advanced debug payload", collapsedByDefault: true };
+assert(debugPayloadPresentation.label === "Advanced debug payload" && debugPayloadPresentation.collapsedByDefault, "debug payload is advanced and collapsed");

@@ -24,7 +24,10 @@ export async function POST(_: Request, props: { params: Promise<{ id: string }> 
     const contentEventId = typeof metadata.content_event_id === "string" ? metadata.content_event_id : null;
 
     if (!contentEventId) {
-      return NextResponse.json({ ok: false, error: "Connected accounts are available, but this post review item is not yet wired to a publishable content event." }, { status: 400 });
+      return NextResponse.json({
+        ok: false,
+        error: "Publish queue is not ready for this post yet. Use manual posting or complete publish setup.",
+      }, { status: 400 });
     }
 
     const targets: Array<"facebook" | "instagram"> = [];
@@ -53,7 +56,16 @@ export async function POST(_: Request, props: { params: Promise<{ id: string }> 
       enqueueNow: true,
     })));
 
-    return NextResponse.json({ ok: true, publication: bundles[0]?.publication ?? null, jobs: bundles.map((entry) => entry.publishJob).filter(Boolean) });
+    const publicationId = bundles[0]?.publication?.id ?? null;
+    const jobIds = bundles.map((entry) => entry.publishJob?.id).filter((id): id is string => Boolean(id));
+    return NextResponse.json({
+      ok: true,
+      itemId: item.id,
+      publicationId,
+      jobIds,
+      message: "Post sent to publish queue.",
+      publishQueueHref: "/shopreel/publish-queue",
+    });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Failed to queue publication" }, { status: 500 });
   }
