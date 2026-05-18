@@ -15,7 +15,7 @@
 
 ## Changes Made
 - Removed fixed-height chamber traps on `/shopreel` by replacing rigid viewport-height grids with min-height behavior so content can stack on smaller devices.
-- Added mobile/tablet “Active worlds” horizontal rail in `/shopreel` and kept immersive stacked deck desktop-only at `xl`.
+- Updated `/shopreel` deck placement so `md+` uses a side-by-side operator + stacked deck chamber, while `sm` keeps the stacked vertical flow with the active-worlds rail below the prompt.
 - Increased mobile touch targets for primary command actions and quick prompts (minimum 44px intent).
 - Reduced deck minimum heights and visual weight on smaller screens in `RuntimeWorldDeck`.
 - Hardened campaign/new form and status strips for wrapping (`break-words`, full-width CTA on mobile).
@@ -43,7 +43,7 @@ Intentional uses kept:
 ## Manual QA Checklist
 - [ ] At 360px, verify no horizontal page overflow on `/shopreel`, `/shopreel/campaigns/new`, `/shopreel/campaigns/[id]`.
 - [ ] Confirm command input remains first primary interaction on `/shopreel` mobile.
-- [ ] Confirm runtime deck is not shown as right-side panel below `xl`.
+- [ ] Confirm runtime deck is shown beside the operator prompt at `md+`, and stacks below the prompt on `sm`.
 - [ ] Confirm campaign/new CTA is clearly visible and easy to tap on mobile.
 - [ ] Confirm campaign detail “Primary next action” remains near top and actionable.
 - [ ] Confirm package text wraps and copy buttons are easy to tap on mobile.
@@ -52,12 +52,12 @@ Intentional uses kept:
 ## Dashboard Navigation + Deck Follow-up (May 18, 2026)
 - Restored dashboard navigation access to **Settings** from sidebar/navigation surfaces and global utility actions.
 - Restored global controls: **Home** (`/shopreel`) and **Back** (`router.back()` with `/shopreel` fallback).
-- Canonicalized deck behavior so tablet stacked deck is the source of truth for all `md+` breakpoints:
-  - `md`/tablet: stacked deck.
-  - `lg`/laptop: stacked deck.
-  - `xl`/desktop: stacked deck (same presentation as tablet, not a separate giant variant).
-  - `2xl`/large desktop: stacked deck with the same card model and bounded sizing.
-  - `sm`: simplified horizontal rail/cards.
+- Canonicalized deck behavior so tablet stacked deck is the source of truth for all `md+` breakpoints, with side-by-side chamber placement:
+  - `sm`: simplified vertical stack with operator prompt first and active-worlds rail/cards below.
+  - `md`/tablet: side-by-side `operator + stacked_deck`.
+  - `lg`/laptop: side-by-side `operator + stacked_deck`.
+  - `xl`/desktop: side-by-side `operator + stacked_deck` (same presentation as tablet, not a separate giant variant).
+  - `2xl`/large desktop: side-by-side `operator + stacked_deck` with bounded right-column sizing.
 - Removed separate oversized desktop deck variant to avoid washed-out giant cards and keep deck/operator chamber cohesion.
 
 ### Manual QA Checklist (Dashboard Navigation + Deck)

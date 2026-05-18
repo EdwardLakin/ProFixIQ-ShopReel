@@ -444,7 +444,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
             </div>
           </header>
 
-          <section className="relative grid min-h-0 content-start gap-6 lg:gap-7 xl:grid-cols-[minmax(0,clamp(30rem,46vw,44rem))_minmax(0,1fr)] xl:items-center">
+          <section className="relative grid min-h-0 content-start gap-6 md:grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)] md:items-start lg:gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(28rem,38rem)]">
             <div className="relative z-10 min-w-0 max-w-4xl self-center">
               <div className="pointer-events-none -z-10 absolute left-[86%] top-[-8%] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,177,76,.85)_0_1.6%,rgba(255,177,76,.25)_2.5%_5%,transparent_8%),repeating-radial-gradient(circle,rgba(255,177,76,.18)_0_1px,transparent_1px_20px)] opacity-90" />
               <div
@@ -546,7 +546,7 @@ export default function HomeCommandClient({ recent, loadErrors }: { recent: Oper
             </div>
 
 
-            <div className="lg:hidden">
+            <div className="md:hidden">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/65">Active worlds</p>
                 <Link href="/shopreel/campaigns" className="text-xs text-white/70">View all →</Link>
